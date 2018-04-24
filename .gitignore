@@ -1,0 +1,5 @@
+.*
+!.gitignore
+**/*.gen.go
+*.gen.go
+.idea/
