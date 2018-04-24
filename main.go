@@ -24,7 +24,9 @@ func mainLoop(sig <-chan os.Signal) os.Signal {
 	select {
 	case s := <-sig:
 		if err := srv.Stop(); err != nil {
-			log.Errorf("Error on stopping web: %v", err)
+			log.WithField("Module", "Web").Errorf("Error on stopping web: %v", err)
+		} else {
+			log.WithField("Module", "Web").Info("Stopped gracefully.")
 		}
 		return s
 	}

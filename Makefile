@@ -10,6 +10,7 @@ run: all
 get:
 	go get -u "github.com/Sirupsen/logrus"
 	go get -u "github.com/fatih/color"
+	go get -u "github.com/julienschmidt/httprouter"
 
 gen:
 	go generate $(pkg)
