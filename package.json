@@ -1,0 +1,31 @@
+{
+  "name": "the-gear-of-seasons",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "gulp build",
+    "watch": "gulp watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FairyRockets/the-gear-of-seasons.git"
+  },
+  "author": "PSI",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/FairyRockets/the-gear-of-seasons/issues"
+  },
+  "homepage": "https://github.com/FairyRockets/the-gear-of-seasons#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-loader": "^7.1.4",
+    "babel-preset-env": "^1.6.1",
+    "child_process": "^1.0.2",
+    "gulp": "^3.9.1",
+    "gulp-util": "^3.0.8",
+    "webpack": "^4.6.0",
+    "webpack-cli": "^2.0.15",
+    "webpack-stream": "^4.0.3",
+    "write-file-webpack-plugin": "^4.2.0"
+  }
+}
