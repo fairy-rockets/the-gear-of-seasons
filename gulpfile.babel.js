@@ -22,7 +22,7 @@ gulp.task('server:build', (cont) => {
       .filter(line => line.length > 0)
       .forEach(l => util.log(util.colors.red('Error (go build): ' + l)));
   }
-  cont(build);
+  cont();
 });
 let server = null;
 gulp.task('server:spawn', () => {
