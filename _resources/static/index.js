@@ -91,7 +91,7 @@ eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n  value: true\n});\n
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-eval("\n\nvar _Gear = __webpack_require__(/*! ./Gear */ \"./frontend/Gear.js\");\n\nvar _Gear2 = _interopRequireDefault(_Gear);\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nfunction main() {\n  var gear = new _Gear2.default();\n}\n\ndocument.addEventListener('DOMContentLoaded', function () {\n  main();\n});\n\n//# sourceURL=webpack:///./frontend/index.js?");
+eval("\n\nvar _Gear = __webpack_require__(/*! ./Gear */ \"./frontend/Gear.js\");\n\nvar _Gear2 = _interopRequireDefault(_Gear);\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nfunction main() {\n  /** @type {HTMLCanvasElement} */\n  var canvas = document.getElementById('background');\n  var ctx = canvas.getContext('webgl');\n  if (ctx) {\n    var parent = canvas.parentElement;\n    paret.removeChild(canvas);\n    var elem = document.createElement('div');\n    elem.textContent = 'WebGL not supported';\n    elem.id = 'background';\n    parent.appendChild(elem);\n    return;\n  }\n  var gear = new _Gear2.default();\n}\n\ndocument.addEventListener('DOMContentLoaded', function () {\n  main();\n});\n\n//# sourceURL=webpack:///./frontend/index.js?");
 
 /***/ })
 
