@@ -20,7 +20,7 @@ gulp.task('server:build', (cont) => {
     build.stderr.toString()
       .split('\n')
       .filter(line => line.length > 0)
-      .forEach(l => util.log(util.colors.red('Error (go build): ' + l)));
+      .forEach(line => log(colors.red(`Error (go build): ${line}`)));
   }
   cont();
 });
