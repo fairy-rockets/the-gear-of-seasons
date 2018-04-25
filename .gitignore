@@ -3,3 +3,4 @@
 **/*.gen.go
 *.gen.go
 .idea/
+node_modules/
