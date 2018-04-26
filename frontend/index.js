@@ -1,19 +1,23 @@
 import Gear from './Gear';
+import World from './World';
+
+/** @type {World} */
+let world = null;
 
 function main() {
   /** @type {HTMLCanvasElement} */
+  const wrapper = document.getElementById('background_wrapper');
   const canvas = document.getElementById('background');
-  const ctx = canvas.getContext('webgl');
-  if(ctx) {
-    const parent =canvas.parentElement;
-    paret.removeChild(canvas);
-    const elem = document.createElement('div');
-    elem.textContent='WebGL not supported';
-    elem.id = 'background';
-    parent.appendChild(elem);
+  if(!canvas || !wrapper) {
+    document.body.innerHTML='<h1>No canvas</h1>';
     return;
   }
-  const gear = new Gear();
+  world = World.fromCanvas(wrapper, canvas);
+  if(!world) {
+    document.body.innerHTML='<h1>WebGL not supported</h1>';
+    return;
+  }
+  world.start();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
