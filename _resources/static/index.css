@@ -16,6 +16,14 @@ body {
   height: 100%;
 }
 
+#background_wrapper{
+  margin: 0;
+  padding: 0;
+  border: 0;
+  width: 100%;
+  height: 100%;
+}
+
 #background{
   margin: 0;
   padding: 0;

@@ -11,7 +11,7 @@ import webpackConfig from './webpack.config.js';
 gulp.task('frontend:build', () => {
   return webpackStream(webpackConfig, webpack)
           .on('error', onError)
-          .pipe(gulp.dest("_resources/dist"));
+          .pipe(gulp.dest("_resources/static"));
 });
 
 gulp.task('server:build', (cont) => {

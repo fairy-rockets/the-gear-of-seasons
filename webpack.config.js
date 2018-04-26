@@ -6,7 +6,7 @@ module.exports = {
   entry: {
     'index': __dirname+'/frontend/index.js',
   },
-  mode: "development",
+  mode: 'development',
   output: {
     path: __dirname + '/_resources/static',
     filename: '[name].js',
