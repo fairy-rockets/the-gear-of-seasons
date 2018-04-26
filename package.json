@@ -30,5 +30,8 @@
     "webpack-cli": "^2.0.15",
     "webpack-stream": "^4.0.3",
     "write-file-webpack-plugin": "^4.2.0"
+  },
+  "dependencies": {
+    "gl-matrix": "^2.5.1"
   }
 }
