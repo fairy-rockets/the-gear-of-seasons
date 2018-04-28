@@ -37,6 +37,31 @@ export default class Gear {
     const world = this.world_;
     this.generateModel(12, 10, 0.6, 1, 0.3);
   }
+  /**
+   * 
+   * @param {mat4} mat 
+   */
+  render(mat) {
+    const gl = this.gl_;
+    const world = this.world_;
+
+    mat4.mul(this.mat_, this.posMat_, this.rotMat_);
+    mat4.mul(this.mat_, mat, this.mat_);
+    
+    try {
+      this.program_.bind();
+      this.vArray_.bindShader(this.program_, 'position');
+      this.colorArray_.bindShader(this.program_, 'color');
+      gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, this.mat_);
+      this.indexies_.bind();
+      this.indexies_.render();
+    } finally {
+      this.vArray_.unbind();
+      this.colorArray_.unbind();
+      this.indexies_.unbind();
+      this.program_.unbind();
+    }
+  }
 
   /**
    * 
@@ -149,33 +174,9 @@ export default class Gear {
     this.colorArray_ = world.createArrayBuffer(flatten(colors), 4);
     this.indexies_ = world.createIndexBuffer(gl.TRIANGLES, flatten(index));
   }
-  /**
-   * 
-   * @param {mat4} mat 
-   */
-  render(mat) {
-    const gl = this.gl_;
-    const world = this.world_;
-
-    mat4.mul(this.mat_, this.posMat_, this.rotMat_);
-    mat4.mul(this.mat_, mat, this.mat_);
-    
-    try {
-      this.program_.bind();
-      this.vArray_.bindShader(this.program_, 'position');
-      this.colorArray_.bindShader(this.program_, 'color');
-      gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, this.mat_);
-      this.indexies_.bind();
-      this.indexies_.render();
-    } finally {
-      gl.useProgram(null);
-      this.vArray_.unbind();
-      this.colorArray_.unbind();
-      this.indexies_.unbind();
-    }
-  }
   destroy() {
     this.vArray_.destroy();
     this.indexies_.destroy();
+    this.program_.destoy();
   }
 }

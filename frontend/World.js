@@ -1,7 +1,7 @@
 import Gear from "./Gear";
 import IndexBuffer from "./gl/IndexBuffer";
 import ArrayBuffer from "./gl/ArrayBuffer";
-import {mat4} from 'gl-matrix';
+import {mat4, vec3, vec4} from 'gl-matrix';
 import Program from "./gl/Program";
 
 export default class World {
@@ -38,6 +38,9 @@ export default class World {
     this.init_();
     requestAnimationFrame(this.runner_);
   }
+  /**
+   * @private
+   */
   init_() {
     const gl = this.gl_;
     gl.enable(gl.DEPTH_TEST);
@@ -133,7 +136,9 @@ export default class World {
     gl.attachShader(program, vs);
     gl.attachShader(program, fs);
     gl.linkProgram(program);
-    if(gl.getProgramParameter(program, gl.LINK_STATUS)){
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+  if(gl.getProgramParameter(program, gl.LINK_STATUS)) {
       return new Program(gl, program);
     }else{
       const err = gl.getProgramInfoLog(program);

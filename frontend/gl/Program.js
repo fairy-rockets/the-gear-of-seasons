@@ -61,6 +61,7 @@ export default class Program {
     gl.useProgram(null);
   }
   destoy(){
-    
+    this.gl_.deleteProgram(this.prog_);
+    this.prog_ = null;
   }
 }
