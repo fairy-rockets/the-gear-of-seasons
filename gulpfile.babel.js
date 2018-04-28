@@ -1,12 +1,15 @@
 import gulp from 'gulp';
 import log from 'fancy-log';
-import colors from 'ansi-colors';
+import * as colors from 'ansi-colors';
 import webpackStream from 'webpack-stream';
 import webpack from 'webpack';
 import child from 'child_process';
 import runSeq from 'run-sequence';
 
 import webpackConfig from './webpack.config.js';
+
+const Repo = 'github.com/FairyRockets/the-gear-of-seasons';
+const Bin = '.bin/the-gear-of-seasons';
 
 gulp.task('frontend:build', () => {
   return webpackStream(webpackConfig, webpack)
@@ -15,12 +18,21 @@ gulp.task('frontend:build', () => {
 });
 
 gulp.task('server:build', (cont) => {
-  const build = child.spawnSync('go', ['build', '-o', '.bin/the-gear-of-seasons', 'github.com/FairyRockets/the-gear-of-seasons']);
+  const gen = child.spawnSync('go', ['generate', Repo]);
+  if (gen.stderr.length) {
+    gen.stderr.toString()
+        .split('\n')
+        .filter(line => line.length > 0)
+        .forEach(line => log(colors.red(`Error (go build): ${line}`)));
+    cont();
+    return;
+  }
+  const build = child.spawnSync('go', ['build', '-o', Bin, Repo]);
   if (build.stderr.length) {
     build.stderr.toString()
-      .split('\n')
-      .filter(line => line.length > 0)
-      .forEach(line => log(colors.red(`Error (go build): ${line}`)));
+        .split('\n')
+        .filter(line => line.length > 0)
+        .forEach(line => log(colors.red(`Error (go build): ${line}`)));
   }
   cont();
 });
