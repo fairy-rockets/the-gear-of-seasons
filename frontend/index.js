@@ -18,6 +18,15 @@ function main() {
     return;
   }
   world.start();
+
+  const pathName = location.pathname;
+  if(pathName == '/') {
+
+  }else if(pathName.startsWith('/i/')){
+
+  }else{
+    
+  }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
