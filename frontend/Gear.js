@@ -27,27 +27,15 @@ export default class Gear {
       gl_FragColor = vColor;
     }
     `);
-    this.shader_ = world.linkShaders(vs, fs);
+    this.program_ = world.linkShaders(vs, fs);
     this.posMat_ = mat4.identity(mat4.create());
     this.rotMat_ = mat4.identity(mat4.create());
+    this.mat_ = mat4.identity(mat4.create());
   }
   init() {
     const gl = this.gl_;
     const world = this.world_;
-    this.generateModel(12, 10, 0.7, 1, 0.3);
-    /*
-    this.vArray_ = world.createArrayBuffer([
-      0.0, 1.0, 0.0,
-      1.0, -1.0, 0.0,
-     -1.0, -1.0, 0.0
-    ], 3);
-    this.colorArray_ = world.createArrayBuffer([
-      1.0, 0.0, 0.0, 1.0,
-      0.0, 1.0, 0.0, 1.0,
-      0.0, 0.0, 1.0, 1.0,
-    ], 4);
-    this.indexies_ = world.createIndexBuffer(gl.TRIANGLES, [0,1,2]);
-    */
+    this.generateModel(12, 10, 0.6, 1, 0.3);
   }
 
   /**
@@ -160,8 +148,6 @@ export default class Gear {
     this.vArray_ = world.createArrayBuffer(flatten(vertex), 3);
     this.colorArray_ = world.createArrayBuffer(flatten(colors), 4);
     this.indexies_ = world.createIndexBuffer(gl.TRIANGLES, flatten(index));
-
-    mat4.rotate(this.posMat_, this.posMat_, pi2/6, [0, 1,1]);
   }
   /**
    * 
@@ -171,16 +157,14 @@ export default class Gear {
     const gl = this.gl_;
     const world = this.world_;
 
-    mat4.rotate(this.rotMat_, this.rotMat_, 0.015, [0, 0, 1]);
-
-    const tmpMat = mat4.mul(mat4.create(), this.posMat_, this.rotMat_);
-    mat4.mul(tmpMat, mat, tmpMat);
+    mat4.mul(this.mat_, this.posMat_, this.rotMat_);
+    mat4.mul(this.mat_, mat, this.mat_);
     
     try {
-      gl.useProgram(this.shader_);
-      this.vArray_.bindShader(this.shader_, 'position');
-      this.colorArray_.bindShader(this.shader_, 'color');
-      gl.uniformMatrix4fv(gl.getUniformLocation(this.shader_, 'matrix'), false, tmpMat);
+      this.program_.bind();
+      this.vArray_.bindShader(this.program_, 'position');
+      this.colorArray_.bindShader(this.program_, 'color');
+      gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, this.mat_);
       this.indexies_.bind();
       this.indexies_.render();
     } finally {

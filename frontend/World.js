@@ -2,6 +2,7 @@ import Gear from "./Gear";
 import IndexBuffer from "./gl/IndexBuffer";
 import ArrayBuffer from "./gl/ArrayBuffer";
 import {mat4} from 'gl-matrix';
+import Program from "./gl/Program";
 
 export default class World {
   /**
@@ -27,7 +28,7 @@ export default class World {
     this.wrapper_ = wrapper;
     this.canvas_ = canvas;
     this.gl_ = gl;
-    this.runner_ = this.run.bind(this);
+    this.runner_ = this.render.bind(this);
     this.gear_ = new Gear(this, gl);
     this.cameraMat_ = mat4.identity(mat4.create());
     this.projMat_ = mat4.identity(mat4.create());
@@ -43,15 +44,17 @@ export default class World {
     gl.depthFunc(gl.LEQUAL);
     gl.enable(gl.CULL_FACE);
     
+    mat4.lookAt(this.cameraMat_, [0, 0, 2], [0, 0, 0], [0, 1, 0]);
     this.gear_.init();
   }
   /**
    * @param {number} time 
    */
-  run(time) {
+  render(time) {
     requestAnimationFrame(this.runner_);
     const gl = this.gl_;
     const canvas = this.canvas_;
+    const worldMat = this.mat_;
     let changed = false;
     if(canvas.width !== canvas.clientWidth) {
       canvas.width = canvas.clientWidth;
@@ -62,12 +65,10 @@ export default class World {
       changed = true;
     }
     if(changed) {
-      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      mat4.perspective(this.projMat_, 45, canvas.width / canvas.height, 0.1, 100);
+      mat4.multiply(worldMat, this.projMat_, this.cameraMat_);
     }
-    const mat = this.mat_;
-    mat4.lookAt(this.cameraMat_, [0, 0, 2], [0, 0, 0], [0, 1, 0]);
-    mat4.perspective(this.projMat_, 45, canvas.width / canvas.height, 0.1, 100);
-    mat4.multiply(mat, this.projMat_, this.cameraMat_);
     // canvasを初期化する色を設定する
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     // canvasを初期化する際の深度を設定する
@@ -75,7 +76,7 @@ export default class World {
     // canvasを初期化
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    this.gear_.render(mat);
+    this.gear_.render(worldMat);
 
     gl.flush();
   }
@@ -124,7 +125,7 @@ export default class World {
   /**
    * @param {WebGLShader} vs
    * @param {WebGLShader} fs
-   * @returns {WebGLProgram}
+   * @returns {Program}
    */
   linkShaders(vs, fs) {
     const gl = this.gl_;
@@ -133,7 +134,7 @@ export default class World {
     gl.attachShader(program, fs);
     gl.linkProgram(program);
     if(gl.getProgramParameter(program, gl.LINK_STATUS)){
-      return program;
+      return new Program(gl, program);
     }else{
       const err = gl.getProgramInfoLog(program);
       console.error('Error while linking shaders:', err);
