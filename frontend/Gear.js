@@ -36,6 +36,8 @@ export default class Gear {
     const gl = this.gl_;
     const world = this.world_;
     this.generateModel(12, 10, 0.6, 1, 0.3);
+    mat4.translate(this.posMat_, this.posMat_, [-2, 0, 0]);
+    mat4.rotateY(this.posMat_, this.posMat_, -20/180*Math.PI);
   }
   /**
    * 
