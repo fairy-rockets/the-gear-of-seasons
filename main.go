@@ -36,8 +36,8 @@ func printLogo() {
 	log.Info("****************************************")
 	log.Info(color.BlueString("  the-gear-of-seasons  "))
 	log.Info("****************************************")
+	log.Info(color.MagentaString("%s", gitRev()))
 	log.Infof("Build at: %s", color.MagentaString("%s", buildAt()))
-	log.Infof("Git Revision: \n%s", color.MagentaString("%s", gitRev()))
 }
 
 func main() {
