@@ -1,3 +1,5 @@
+import Program from "./Program";
+
 export default class ArrayBuffer{
   /**
    * @param {WebGLRenderingContext} gl 
@@ -17,15 +19,12 @@ export default class ArrayBuffer{
   }
   /**
    * 
-   * @param {WebGLProgram} prog 
+   * @param {Program} prog 
    * @param {string} attrName
    */
   bindShader(prog, attrName) {
     const gl = this.gl_;
-    const pos = gl.getAttribLocation(prog, attrName);
-    if(pos < 0) {
-      throw new Error(`Attribute ${attrName} not found.`);
-    }
+    const pos = prog.attributeLoc(attrName);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buff_);
     gl.vertexAttribPointer(pos, this.elemSize, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(pos);
@@ -37,5 +36,9 @@ export default class ArrayBuffer{
   unbind() {
     const gl = this.gl_;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buff_);
+  }
+  destroy() {
+    const gl = this.gl_;
+    gl.deleteBuffer(this.buff_);
   }
 }
