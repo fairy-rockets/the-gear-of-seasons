@@ -1,11 +1,13 @@
 export default class IndexBuffer{
   /**
    * @param {WebGLRenderingContext} gl 
+   * @param {number} mode 
    * @param {WebGLBuffer} buff
    * @param {number} length
    */
-  constructor(gl, buff, length) {
+  constructor(gl, mode, buff, length) {
     this.gl_ = gl;
+    this.mode_ = mode;
     this.buff_ = buff;
     this.length = length;
   }
@@ -15,10 +17,14 @@ export default class IndexBuffer{
   }
   render() {
     const gl = this.gl_;
-    gl.drawElements(gl.TRIANGLES, this.length, gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(this.mode_, this.length, gl.UNSIGNED_SHORT, 0);
   }
   unbind() {
     const gl = this.gl_;
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buff_);
+  }
+  destroy() {
+    const gl = this.gl_;
+    gl.deleteBuffer(this.buff_);
   }
 }
