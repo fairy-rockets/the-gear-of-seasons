@@ -38,6 +38,11 @@ export default class World {
     requestAnimationFrame(this.runner_);
   }
   init_() {
+    const gl = this.gl_;
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+    gl.enable(gl.CULL_FACE);
+    
     this.gear_.init();
   }
   /**
@@ -138,9 +143,10 @@ export default class World {
   }
   /**
    * @param {Uint16Array|number[]} data 
+   * @param {number} mode
    * @returns {IndexBuffer}
    */
-  createIndexBuffer(data) {
+  createIndexBuffer(mode, data) {
     const gl = this.gl_;
     const buff = gl.createBuffer();
     if(data instanceof Array) {
@@ -149,7 +155,7 @@ export default class World {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buff);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-    return new IndexBuffer(gl, buff, data.length);
+    return new IndexBuffer(gl, mode, buff, data.length);
   }
   /**
    * @param {Float32Array|number[]} data
