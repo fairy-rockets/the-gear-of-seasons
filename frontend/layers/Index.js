@@ -40,11 +40,25 @@ export default class Index extends Layer {
   attach() {
     super.attach();
     this.world.canvas.addEventListener('wheel', this.wheelEventListener_);
+    this.world.canvas.addEventListener('mousemove', this.mouseMoveListener_.bind(this));
     this.fetch(300);
   }
   detach() {
     this.world.canvas.removeEventListener('wheel', this.wheelEventListener_);
+    this.world.canvas.removeEventListener('mousemove', this.mouseMoveListener_.bind(this));
     super.detach();
+  }
+
+  /**
+   * @param {MouseEvent} ev 
+   */
+  mouseMoveListener_(ev) {
+    ev.preventDefault();
+    const world = this.world;
+    const width = world.canvas.width;
+    const height = this.world.canvas.height;
+    const y = -(ev.clientY - height/2) / height;
+    const x = (ev.clientX - width/2) / height;
   }
 
   /**

@@ -6,8 +6,8 @@ import { mat4, vec3, vec4 } from "gl-matrix";
  */
 function calcTodaysAngle() {
   const now = new Date();
-  const beg = new Date(now.getFullYear(), 1, 1, 0, 0, 0, 0);
-  const end = new Date(now.getFullYear(), 12, 31, 0, 0, 0, 0);
+  const beg = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), 11, 31, 12, 59, 59, 999);
   return Math.PI * 2 * ((now.getTime() - beg.getTime()) / (end.getTime() - beg.getTime()));
 }
 
@@ -76,7 +76,7 @@ export default class Gear {
         return vec4(color.rgb / (1.0+pow(d,4.0)*7.0), color.a);
       } else {
         float r = distance(vPosition.xy, vec2(0, 0));
-        float d = distance(position * 5.0, vPosition)/4.0;
+        float d = distance(position * 5.0, vPosition) / 4.0;
         float mix = clamp(pow(abs(r - 1.0)/3.0, 0.75),0.0,1.0) / pow(d,4.0);
 
         return vec4(mix * color.rgb, color.a);
@@ -89,12 +89,13 @@ export default class Gear {
         calcLight(positionOfSpringLight.xyz, colorOfSpringLight) +
         calcLight(positionOfSummerLight.xyz, colorOfSummerLight) +
         calcLight(positionOfAutumnLight.xyz, colorOfAutumnLight);
-      gl_FragColor = clamp(color * vColor, 0.2, 1.0);
+      gl_FragColor = clamp(color * vColor, 0.0, 1.0);
     }
     `);
     this.program_ = world.linkShaders(vs, fs);
     this.modelMat_ = mat4.identity(mat4.create());
-    this.angle_ = 0;
+    this.todaysAngle_ = calcTodaysAngle();
+    this.angle_ = this.todaysAngle_;
     this.tmpMat_ = mat4.identity(mat4.create());
     this.tmpCameraMat_ = mat4.identity(mat4.create());
   }
@@ -102,8 +103,6 @@ export default class Gear {
     const gl = this.gl_;
     const world = this.world_;
     this.generateModel(12, 10, 0.6, 1, 0.3);
-    this.todaysAngle_ = calcTodaysAngle();
-    this.angle_ = this.todaysAngle_;
   }
   /**
    * @param {number} width 
@@ -115,7 +114,7 @@ export default class Gear {
     mat4.identity(modelMat);
     //mat4.rotateY(modelMat, modelMat, -20/180*Math.PI);
     mat4.scale(modelMat, modelMat, [10, 10, 10]);
-    mat4.translate(modelMat, modelMat, [-0.8 * aspect, +0.8, -1.5]);
+    mat4.translate(modelMat, modelMat, [-1.0 * aspect, 0, -1.5]);
   }
   /** @param {number} v */
   set angle(v) {
@@ -141,7 +140,7 @@ export default class Gear {
 
     // calc model matrix
     mat4.identity(cameraMat);
-    mat4.rotateZ(cameraMat, cameraMat, this.angle);
+    mat4.rotateZ(cameraMat, cameraMat, this.angle_);
     mat4.mul(cameraMat, this.modelMat_, cameraMat);
 
     // calc final matrix (eye + projection)
