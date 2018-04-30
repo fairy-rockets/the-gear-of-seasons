@@ -28,7 +28,7 @@ export default class Index extends Layer {
   onWheelEvent_(event) {
     event.preventDefault();
     const world = this.world;
-    world.gear.angle += event.deltaY * Math.PI / (360 * 10);
+    world.gear.angle -= event.deltaY * Math.PI / (360 * 10);
   }
   /**
    * @param {number} time 
@@ -40,7 +40,7 @@ export default class Index extends Layer {
   attach() {
     super.attach();
     this.world.canvas.addEventListener('wheel', this.wheelEventListener_);
-    this.fetch(100);
+    this.fetch(300);
   }
   detach() {
     this.world.canvas.removeEventListener('wheel', this.wheelEventListener_);
@@ -51,10 +51,11 @@ export default class Index extends Layer {
    * @param {MomentData[]} moments 
    */
   onLoadMoments_(moments) {
+    const world = this.world;
     /** @type {Moment[]} */
     const models = [];
     for(let m of moments) {
-      const model = new Moment(m.angle, new Date(m.date), m.title, m.image);
+      const model = new Moment(world, m.angle, new Date(m.date), m.title, m.image);
       model.relocation(models);
       models.push(model);
     }

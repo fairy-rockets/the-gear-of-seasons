@@ -69,7 +69,8 @@ export default class World {
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.enable(gl.CULL_FACE);
-    
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.enable(gl.BLEND);
     mat4.lookAt(this.cameraMat_, [0, 0, 3], [0, 0, 0], [0, 1, 0]);
     this.gear_.init();
   }
