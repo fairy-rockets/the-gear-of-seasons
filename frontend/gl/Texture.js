@@ -27,14 +27,19 @@ export default class Texture {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.bindTexture(gl.TEXTURE_2D, null);
-    this.image_ = null;
   }
 
   /**
    * @returns {boolean}
    */
   get ready() {
-    return this.tex_ != null && this.image_ == null;
+    return this.tex_ != null;
+  }
+  /**
+   * @returns {Image}
+   */
+  get image(){
+    return this.image_;
   }
 
   /**
@@ -58,5 +63,6 @@ export default class Texture {
     const gl = this.gl_;
     gl.deleteTexture(this.tex_);
     this.tex_ = null;
+    this.image_ = null;
   }
 }
