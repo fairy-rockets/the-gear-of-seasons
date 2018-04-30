@@ -6,37 +6,48 @@ import Program from "./gl/Program";
 
 export default class World {
   /**
-   * 
-   * @param {HTMLDivElement} wrapper
    * @param {HTMLCanvasElement} canvas 
    * @returns {World}
    */
-  static fromCanvas(wrapper, canvas) {
+  static fromCanvas(canvas) {
     const gl = canvas.getContext('webgl');
     if(!gl) {
       return null;
     }
-    return new World(wrapper, canvas, gl);
+    return new World(canvas, gl);
   }
   /**
-   * @param {HTMLDivElement} wrapper
    * @param {HTMLCanvasElement} canvas 
    * @param {WebGLRenderingContext} gl 
    * @private
    */
-  constructor(wrapper, canvas, gl) {
-    this.wrapper_ = wrapper;
+  constructor(canvas, gl) {
     this.canvas_ = canvas;
     this.gl_ = gl;
-    this.runner_ = this.render.bind(this);
+    this.runner_ = this.render_.bind(this);
     this.gear_ = new Gear(this, gl);
+
+    // WorldMatrix
     this.cameraMat_ = mat4.identity(mat4.create());
     this.projMat_ = mat4.identity(mat4.create());
     this.mat_ = mat4.identity(mat4.create());
   }
+  /** @public */
   start() {
     this.init_();
     requestAnimationFrame(this.runner_);
+  }
+  /** @returns {Gear} */
+  get gear(){
+    return this.gear_;
+  }
+  /** @returns {number} */
+  get aspect() {
+    return this.canvas_.width / this.canvas_.height;
+  }
+  /** @returns {HTMLCanvasElement} */
+  get canvas() {
+    return this.canvas_;
   }
   /**
    * @private
@@ -47,30 +58,37 @@ export default class World {
     gl.depthFunc(gl.LEQUAL);
     gl.enable(gl.CULL_FACE);
     
-    mat4.lookAt(this.cameraMat_, [0, 0, 2], [0, 0, 0], [0, 1, 0]);
+    mat4.lookAt(this.cameraMat_, [0, 0, 3], [0, 0, 0], [0, 1, 0]);
     this.gear_.init();
   }
   /**
-   * @param {number} time 
+   * 
+   * @param {number} width 
+   * @param {number} height 
    */
-  render(time) {
+  onSizeChanged(width, height) {
+    const gl = this.gl_;
+    const worldMat = this.mat_;
+    gl.viewport(0, 0, width, height);
+    mat4.perspective(this.projMat_, 45, width / height, 1, 100);
+    mat4.multiply(worldMat, this.projMat_, this.cameraMat_);
+    this.gear_.onSizeChanged(width, height);
+  }
+  /**
+   * @param {number} time 
+   * @private
+   */
+  render_(time) {
     requestAnimationFrame(this.runner_);
     const gl = this.gl_;
     const canvas = this.canvas_;
     const worldMat = this.mat_;
-    let changed = false;
-    if(canvas.width !== canvas.clientWidth) {
-      canvas.width = canvas.clientWidth;
-      changed = true;
-    }
-    if(canvas.height !== canvas.clientHeight) {
-      canvas.height = canvas.clientHeight;
-      changed = true;
-    }
-    if(changed) {
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      mat4.perspective(this.projMat_, 45, canvas.width / canvas.height, 0.1, 100);
-      mat4.multiply(worldMat, this.projMat_, this.cameraMat_);
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+  if(canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+      this.onSizeChanged(width, height);
     }
     // canvasを初期化する色を設定する
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
