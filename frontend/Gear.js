@@ -29,32 +29,53 @@ export default class Gear {
     `);
     this.program_ = world.linkShaders(vs, fs);
     this.posMat_ = mat4.identity(mat4.create());
-    this.rotMat_ = mat4.identity(mat4.create());
+    this.angle_ = 0;
     this.mat_ = mat4.identity(mat4.create());
   }
   init() {
     const gl = this.gl_;
     const world = this.world_;
     this.generateModel(12, 10, 0.6, 1, 0.3);
-    mat4.translate(this.posMat_, this.posMat_, [-2, 0, 0]);
-    mat4.rotateY(this.posMat_, this.posMat_, -20/180*Math.PI);
+  }
+  /**
+   * @param {number} width 
+   * @param {number} height 
+   */
+  onSizeChanged(width, height) {
+    const aspect = width/height;
+    const posMat = this.posMat_;
+    mat4.identity(posMat);
+    mat4.rotateY(posMat, posMat, -20/180*Math.PI);
+    mat4.scale(posMat, posMat, [10, 10, 10]);
+    mat4.translate(posMat, posMat, [-1.3*aspect, 0, -1]);
+  }
+  /** @param {number} v */
+  set angle(v) {
+    this.angle_ = v;
+  }
+  /** @returns {number} */
+  get angle() {
+    return this.angle_;
   }
   /**
    * 
    * @param {mat4} mat 
    */
-  render(mat) {
+  render(worldMat) {
     const gl = this.gl_;
     const world = this.world_;
+    const mat = this.mat_;
 
-    mat4.mul(this.mat_, this.posMat_, this.rotMat_);
-    mat4.mul(this.mat_, mat, this.mat_);
+    mat4.identity(mat);
+    mat4.rotateZ(mat, mat, this.angle_);
+    mat4.mul(mat, this.posMat_, mat);
+    mat4.mul(mat, worldMat, mat);
     
     try {
       this.program_.bind();
       this.vArray_.bindShader(this.program_, 'position');
       this.colorArray_.bindShader(this.program_, 'color');
-      gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, this.mat_);
+      gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
       this.indexies_.bind();
       this.indexies_.render();
     } finally {

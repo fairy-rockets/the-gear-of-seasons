@@ -4,7 +4,7 @@ const WriteFilePlugin = require('write-file-webpack-plugin');
 module.exports = {
   context: __dirname,
   entry: {
-    'index': __dirname+'/frontend/index.js',
+    'main': __dirname+'/frontend/main.js',
   },
   mode: 'development',
   output: {
