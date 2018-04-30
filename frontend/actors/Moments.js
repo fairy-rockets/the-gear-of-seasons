@@ -2,6 +2,8 @@ import World from "../World.js";
 import Moment from "./Moment.js"
 import { mat4 } from "gl-matrix";
 
+const Scale = 0.2;
+
 export default class Moments {
   /**
    * @param {World} world 
@@ -14,22 +16,26 @@ export default class Moments {
 
     const vs = world.compileVertexShader(`
     attribute vec3 position;
-    attribute vec4 color;
-
+    attribute vec2 textureCoord;
     uniform mat4 matrix;
-
-    varying vec4 vColor;
+    varying vec2 vTextureCoord;
     
     void main(void) {
-        vColor = color;
-        gl_Position = matrix * vec4(position, 1.0);
+      vTextureCoord = textureCoord;
+      gl_Position = matrix * vec4(position, 1.0);
     }
     `);
     const fs = world.compileFragmentShader(`
-    varying mediump vec4 vColor;
+    uniform sampler2D texture;
+    varying mediump vec2 vTextureCoord;
 
     void main(void) {
-      gl_FragColor = vColor;
+      mediump vec2 center = vec2(0.5, 0.5);
+      mediump float dist = distance(vTextureCoord, center);
+      gl_FragColor =
+        dist < 0.47 ? texture2D(texture, vTextureCoord) :
+        dist < 0.5 ? texture2D(texture, vTextureCoord)*((0.5-dist)/0.2) + vec4(1,1,1,0.6) * (dist/0.2) :
+        vec4(0, 0, 0, 0);
     }
     `);
     this.program_ = world.linkShaders(vs, fs);
@@ -40,12 +46,6 @@ export default class Moments {
      -1.0, -1.0,  0.0,
       1.0, -1.0,  0.0
     ],3);
-    this.colors_ = world.createArrayBuffer([
-      1.0, 0.0, 0.0, 1.0,
-      0.0, 1.0, 0.0, 1.0,
-      0.0, 0.0, 1.0, 1.0,
-      1.0, 1.0, 1.0, 1.0
-    ],4);
     this.texCoords_ = world.createArrayBuffer([
       0.0, 0.0,
       1.0, 0.0,
@@ -88,15 +88,19 @@ export default class Moments {
     try {
       this.program_.bind();
       this.vertexes_.bindShader(this.program_, 'position');
-      this.colors_.bindShader(this.program_, 'color');
-      //this.texCoords_.bindShader(this.program_, 'textureCoord');
+      this.texCoords_.bindShader(this.program_, 'textureCoord');
       this.indecies_.bind();
       for(let m of this.models_) {
+        const tex = m.tex;
+        if(!tex.ready) {
+          continue;
+        }
+        tex.bindShader(this.program_, 'texture');
         mat4.identity(mat);
-        mat4.rotateZ(mat, mat, gear.angle);
-        mat4.translate(mat, mat, [m.x, m.y, 0]);
-        mat4.scale(mat,mat, [0.1, 0.1, 0.1]);
         mat4.rotateZ(mat, mat, -gear.angle);
+        mat4.translate(mat, mat, [m.x, m.y, 0]);
+        mat4.scale(mat,mat, [Scale, Scale, Scale]);
+        mat4.rotateZ(mat, mat, +gear.angle);
         mat4.mul(mat, gear.modelMat, mat);
         mat4.mul(mat, worldMat, mat);
         gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
@@ -104,15 +108,13 @@ export default class Moments {
       }
     } finally {
       this.vertexes_.unbind();
-      this.colors_.unbind();
-      //this.texCoords_.unbind();
+      this.texCoords_.unbind();
       this.indecies_.unbind();
       this.program_.unbind();
     }
   }
 
   destroy() {
-    this.colors_.destroy();
     this.vertexes_.destroy();
     this.texCoords_.destroy();
     this.indecies_.destroy();

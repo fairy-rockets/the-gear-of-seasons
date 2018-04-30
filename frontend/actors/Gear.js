@@ -1,6 +1,57 @@
 import World from "../World.js";
 import { mat4 } from "gl-matrix";
 
+const hsv = (h, s, v) => {
+  if(s > 1 || v > 1){return;}
+  const th = h % 360;
+  const i = Math.floor(th / 60);
+  const f = th / 60 - i;
+  const m = v * (1 - s);
+  const n = v * (1 - s * f);
+  const k = v * (1 - s * (1 - f));
+  if(!s > 0 && !s < 0){
+    return [v, v, v, a];
+  } else {
+    const r = [v, n, m, m, k, v];
+    const g = [k, v, v, n, m, m];
+    const b = [m, m, k, v, v, n];
+    return [r[i], g[i], b[i], 1];
+  }
+};
+
+const Colors = [
+  /*  1月 */ [180, 0.00, 0.90],
+  /*  2月 */ [190, 0.36, 1.00],
+  /*  3月 */ [344, 0.55, 1.00],
+  /*  4月 */ [328, 0.25, 1.00],
+  /*  5月 */ [126, 0.58, 0.99],
+  /*  6月 */ [258, 0.58, 0.99],
+  /*  7月 */ [222, 0.58, 0.99],
+  /*  8月 */ [188, 0.58, 0.99],
+  /*  9月 */ [146, 0.58, 0.99],
+  /* 10月 */ [ 76, 0.58, 0.99],
+  /* 11月 */ [ 20, 0.74, 0.95],
+  /* 12月 */ [  0,    0, 0.59],
+];
+
+/**
+ * @param {number} angle 
+ * @returns {number[]}
+ */
+const colorOfAngle = (angle) => {
+  angle = ((angle % 360) + 360) % 360;
+  const n = Math.floor(angle % 30);
+  const alpha = (angle - (n * 30)) / 30.0;
+  const beta = 1-alpha;
+  const before = Colors[(n+12-1)%12];
+  const after = Colors[(n+1)%12];
+  return hsv(
+    before[0] * alpha + after[0] * beta,
+    before[1] * alpha + after[1] * beta,
+    before[2] * alpha + after[2] * beta,
+  );
+};
+
 export default class Gear {
   /**
    * @param {World} world 
@@ -70,7 +121,7 @@ export default class Gear {
     const mat = this.mat_;
 
     mat4.identity(mat);
-    mat4.rotateZ(mat, mat, this.angle_);
+    mat4.rotateZ(mat, mat, -this.angle_);
     mat4.mul(mat, this.modelMat_, mat);
     mat4.mul(mat, worldMat, mat);
     
@@ -98,23 +149,6 @@ export default class Gear {
    * @param {number} depth
    */
   generateModel(numCogs, numDivs, innerRadius, outerRadius, depth) {
-    const hsva = (h, s, v, a) => {
-      if(s > 1 || v > 1 || a > 1){return;}
-      const th = h % 360;
-      const i = Math.floor(th / 60);
-      const f = th / 60 - i;
-      const m = v * (1 - s);
-      const n = v * (1 - s * f);
-      const k = v * (1 - s * (1 - f));
-      if(!s > 0 && !s < 0){
-        return [v, v, v, a];
-      } else {
-        const r = [v, n, m, m, k, v];
-        const g = [k, v, v, n, m, m];
-        const b = [m, m, k, v, v, n];
-        return [r[i], g[i], b[i], a];
-      }
-    }
     const vertexes = [];
     const indecies = [];
     const colors = [];
@@ -155,13 +189,8 @@ export default class Gear {
           [c * radius,      s * radius,      -depth/2]
         );
 
-        const h = angle * 360 / pi2;
-        colors.push(
-          hsva(h, 0.7, 1, 1),
-          hsva(h, 0.7, 1, 1),
-          hsva(h, 0.7, 1, 1),
-          hsva(h, 0.7, 1, 1)
-        );
+        const color = hsv(angle * 360 / pi2, 0.7, 1);
+        colors.push(color, color, color, color);
 
         if(last) {
           // 内側の壁
