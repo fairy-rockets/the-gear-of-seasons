@@ -25,10 +25,6 @@ export default class Moment {
     this.x_ = 0;
     this.y_ = 0;
   }
-  /** @returns {Texture} */
-  get tex() {
-    return this.tex_;
-  }
   /**
    * 
    * @param {Moment[]} moments 
@@ -44,7 +40,7 @@ export default class Moment {
         const dx = radius * c - m.x_;
         const dy = radius * s - m.y_;
         const d = Math.sqrt(dx * dx + dy * dy);
-        if(d <= Size * 2) {
+        if(d < Size * 2) {
           radius = m.radius_ + Size + d;
           fixed = true;
           break;
@@ -55,6 +51,10 @@ export default class Moment {
     this.x_ = c * radius;
     this.y_ = s * radius;
   }
+  destroy() {
+    this.tex_.destroy();
+    this.tex_=null;
+  }
   /** @returns {number} */
   get x() {
     return this.x_;
@@ -63,9 +63,8 @@ export default class Moment {
   get y() {
     return this.y_;
   }
-
-  destroy() {
-    this.tex_.destroy();
-    this.tex_=null;
+  /** @returns {Texture} */
+  get tex() {
+    return this.tex_;
   }
 }
