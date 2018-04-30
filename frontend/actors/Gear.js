@@ -1,56 +1,34 @@
 import World from "../World.js";
-import { mat4 } from "gl-matrix";
-
-const hsv = (h, s, v) => {
-  if(s > 1 || v > 1){return;}
-  const th = h % 360;
-  const i = Math.floor(th / 60);
-  const f = th / 60 - i;
-  const m = v * (1 - s);
-  const n = v * (1 - s * f);
-  const k = v * (1 - s * (1 - f));
-  if(!s > 0 && !s < 0){
-    return [v, v, v, a];
-  } else {
-    const r = [v, n, m, m, k, v];
-    const g = [k, v, v, n, m, m];
-    const b = [m, m, k, v, v, n];
-    return [r[i], g[i], b[i], 1];
-  }
-};
-
-const Colors = [
-  /*  1月 */ [180, 0.00, 0.90],
-  /*  2月 */ [190, 0.36, 1.00],
-  /*  3月 */ [344, 0.55, 1.00],
-  /*  4月 */ [328, 0.25, 1.00],
-  /*  5月 */ [126, 0.58, 0.99],
-  /*  6月 */ [258, 0.58, 0.99],
-  /*  7月 */ [222, 0.58, 0.99],
-  /*  8月 */ [188, 0.58, 0.99],
-  /*  9月 */ [146, 0.58, 0.99],
-  /* 10月 */ [ 76, 0.58, 0.99],
-  /* 11月 */ [ 20, 0.74, 0.95],
-  /* 12月 */ [  0,    0, 0.59],
-];
+import { mat4, vec3, vec4 } from "gl-matrix";
 
 /**
- * @param {number} angle 
+ * @returns {number}
+ */
+function calcTodaysAngle() {
+  const now = new Date();
+  const beg = new Date(now.getFullYear(), 1, 1, 0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), 12, 31, 0, 0, 0, 0);
+  return Math.PI * 2 * ((now.getTime() - beg.getTime()) / (end.getTime() - beg.getTime()));
+}
+
+/**
+ * 
+ * @param {number} r 
+ * @param {number} g 
+ * @param {number} b 
  * @returns {number[]}
  */
-const colorOfAngle = (angle) => {
-  angle = ((angle % 360) + 360) % 360;
-  const n = Math.floor(angle % 30);
-  const alpha = (angle - (n * 30)) / 30.0;
-  const beta = 1-alpha;
-  const before = Colors[(n+12-1)%12];
-  const after = Colors[(n+1)%12];
-  return hsv(
-    before[0] * alpha + after[0] * beta,
-    before[1] * alpha + after[1] * beta,
-    before[2] * alpha + after[2] * beta,
-  );
-};
+function rgb(r,g,b) {
+  r /= 255.0;
+  g /= 255.0;
+  b /= 255.0;
+  return [Math.pow(r, 2.2), Math.pow(g, 2.2), Math.pow(b, 2.2), 1];
+}
+
+const WinterColor = rgb(158, 195, 255);
+const SpringColor = rgb(255, 168, 168);
+const SummerColor = rgb(58, 242, 187);
+const AutumnColor = rgb(221, 105, 51);
 
 export default class Gear {
   /**
@@ -61,43 +39,83 @@ export default class Gear {
     this.gl_ = world.gl;
     const vs = world.compileVertexShader(`
     attribute vec3 position;
+    attribute vec3 norm;
     attribute vec4 color;
-    uniform mat4 matrix;
-    varying vec4 vColor;
+    uniform mat4 modelMatrix;
+    uniform mat4 projMatrix;
+    varying mediump vec3 vPosition;
+    varying mediump vec4 vColor;
     
     void main(void) {
-        vColor = color;
-        gl_Position = matrix * vec4(position, 1.0);
+      vPosition = position;//(modelMatrix * vec4(position, 1.0)).xyz;
+      vColor = color;
+      gl_Position = projMatrix * vec4(position, 1.0);
     }
     `);
     const fs = world.compileFragmentShader(`
-    varying mediump vec4 vColor;
+    precision mediump float;
+
+    varying vec3 vPosition;
+    varying vec4 vColor;
+
+    uniform vec4 positionOfWinterLight;
+    uniform vec4 colorOfWinterLight;
+
+    uniform vec4 positionOfSpringLight;
+    uniform vec4 colorOfSpringLight;
+
+    uniform vec4 positionOfSummerLight;
+    uniform vec4 colorOfSummerLight;
+
+    uniform vec4 positionOfAutumnLight;
+    uniform vec4 colorOfAutumnLight;
+
+    vec4 calcLight(vec3 position, vec4 color) {
+      if(vPosition.z > -1.0) {
+        float d = distance(position, vPosition);
+        return vec4(color.rgb / (1.0+pow(d,4.0)*7.0), color.a);
+      } else {
+        float r = distance(vPosition.xy, vec2(0, 0));
+        float d = distance(position * 5.0, vPosition)/4.0;
+        float mix = clamp(pow(abs(r - 1.0)/3.0, 0.75),0.0,1.0) / pow(d,4.0);
+
+        return vec4(mix * color.rgb, color.a);
+      }
+    }
 
     void main(void) {
-      gl_FragColor = vColor;
+      vec4 color =
+        calcLight(positionOfWinterLight.xyz, colorOfWinterLight) +
+        calcLight(positionOfSpringLight.xyz, colorOfSpringLight) +
+        calcLight(positionOfSummerLight.xyz, colorOfSummerLight) +
+        calcLight(positionOfAutumnLight.xyz, colorOfAutumnLight);
+      gl_FragColor = clamp(color * vColor, 0.2, 1.0);
     }
     `);
     this.program_ = world.linkShaders(vs, fs);
     this.modelMat_ = mat4.identity(mat4.create());
     this.angle_ = 0;
-    this.mat_ = mat4.identity(mat4.create());
+    this.tmpMat_ = mat4.identity(mat4.create());
+    this.tmpCameraMat_ = mat4.identity(mat4.create());
   }
   init() {
     const gl = this.gl_;
     const world = this.world_;
     this.generateModel(12, 10, 0.6, 1, 0.3);
+    this.todaysAngle_ = calcTodaysAngle();
+    this.angle_ = this.todaysAngle_;
   }
   /**
    * @param {number} width 
    * @param {number} height 
    */
   onSizeChanged(width, height) {
-    const aspect = width/height;
+    const aspect = width / height;
     const modelMat = this.modelMat_;
     mat4.identity(modelMat);
     //mat4.rotateY(modelMat, modelMat, -20/180*Math.PI);
     mat4.scale(modelMat, modelMat, [10, 10, 10]);
-    mat4.translate(modelMat, modelMat, [-0.8*aspect, +0.8, -1.5]);
+    mat4.translate(modelMat, modelMat, [-0.8 * aspect, +0.8, -1.5]);
   }
   /** @param {number} v */
   set angle(v) {
@@ -118,23 +136,44 @@ export default class Gear {
   render(worldMat) {
     const gl = this.gl_;
     const world = this.world_;
-    const mat = this.mat_;
+    const mat = this.tmpMat_;
+    const cameraMat = this.tmpCameraMat_;
 
-    mat4.identity(mat);
-    mat4.rotateZ(mat, mat, -this.angle_);
-    mat4.mul(mat, this.modelMat_, mat);
-    mat4.mul(mat, worldMat, mat);
-    
+    // calc model matrix
+    mat4.identity(cameraMat);
+    mat4.rotateZ(cameraMat, cameraMat, this.angle);
+    mat4.mul(cameraMat, this.modelMat_, cameraMat);
+
+    // calc final matrix (eye + projection)
+    mat4.mul(mat, worldMat, cameraMat);
+
+    vec4.transformMat4(this.positionOfWinterLightTmp_, this.positionOfWinterLight_, cameraMat);
+    vec4.transformMat4(this.positionOfSpringLightTmp_, this.positionOfSpringLight_, cameraMat);
+    vec4.transformMat4(this.positionOfSummerLightTmp_, this.positionOfSummerLight_, cameraMat);
+    vec4.transformMat4(this.positionOfAutumnLightTmp_, this.positionOfAutumnLight_, cameraMat);
+
+
     try {
       this.program_.bind();
       this.vertexes_.bindShader(this.program_, 'position');
-      this.colorArray_.bindShader(this.program_, 'color');
-      gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
+      this.colors_.bindShader(this.program_, 'color');
+      gl.uniformMatrix4fv(this.program_.uniformLoc('modelMatrix'), false, cameraMat);
+      gl.uniformMatrix4fv(this.program_.uniformLoc('projMatrix'), false, mat);
+
+      gl.uniform4fv(this.program_.uniformLoc('colorOfWinterLight'), WinterColor);
+      gl.uniform4fv(this.program_.uniformLoc('colorOfSummerLight'), SummerColor);
+      gl.uniform4fv(this.program_.uniformLoc('colorOfSpringLight'), SpringColor);
+      gl.uniform4fv(this.program_.uniformLoc('colorOfAutumnLight'), AutumnColor);
+
+      gl.uniform4fv(this.program_.uniformLoc('positionOfWinterLight'), this.positionOfWinterLight_);
+      gl.uniform4fv(this.program_.uniformLoc('positionOfSpringLight'), this.positionOfSpringLight_);
+      gl.uniform4fv(this.program_.uniformLoc('positionOfSummerLight'), this.positionOfSummerLight_);
+      gl.uniform4fv(this.program_.uniformLoc('positionOfAutumnLight'), this.positionOfAutumnLight_);
+
       this.indecies_.bind();
       this.indecies_.render();
     } finally {
       this.vertexes_.unbind();
-      this.colorArray_.unbind();
       this.indecies_.unbind();
       this.program_.unbind();
     }
@@ -149,10 +188,21 @@ export default class Gear {
    * @param {number} depth
    */
   generateModel(numCogs, numDivs, innerRadius, outerRadius, depth) {
+    const pi2 = Math.PI * 2;
+    this.positionOfWinterLight_ = vec4.fromValues(+innerRadius, 0, depth, 0);
+    this.positionOfSpringLight_ = vec4.fromValues(0, -innerRadius, depth, 0);
+    this.positionOfSummerLight_ = vec4.fromValues(-innerRadius, 0, depth, 0);
+    this.positionOfAutumnLight_ = vec4.fromValues(0, +innerRadius, depth, 0);
+    this.positionOfWinterLightTmp_ = vec4.create();
+    this.positionOfSpringLightTmp_ = vec4.create();
+    this.positionOfSummerLightTmp_ = vec4.create();
+    this.positionOfAutumnLightTmp_ = vec4.create();
+    /** @type {number[]} */
     const vertexes = [];
+    /** @type {number[]} */
     const indecies = [];
+    /** @type {number[]} */
     const colors = [];
-    const pi2 = Math.PI*2;
     /**
       @typedef Line
       @type {object}
@@ -170,67 +220,93 @@ export default class Gear {
      */
     let first = null;
     const totalLines = numCogs * numDivs * 2;
-    for(let i = 0; i < numCogs * 2; ++i) {
-      for(let j = 0; j < numDivs; ++j) {
+    for (let i = 0; i < numCogs * 2; ++i) {
+      for (let j = 0; j < numDivs; ++j) {
         const angle = pi2 * (i * numDivs + j) / totalLines;
-        const radius = i % 2 == 0 ? outerRadius : outerRadius*0.8;
+        const radius = i % 2 == 0 ? outerRadius : outerRadius * 0.8;
         const c = Math.cos(angle);
         const s = Math.sin(angle);
-        let current = {
-          innerTop:    vertexes.length + 0,
-          innerBottom: vertexes.length + 1,
-          outerTop:    vertexes.length + 2,
-          outerBottom: vertexes.length + 3
+        const numVertexes = vertexes.length / 3;
+        const current = {
+          innerTop: numVertexes + 0,
+          innerBottom: numVertexes + 1,
+          outerTop: numVertexes + 2,
+          outerBottom: numVertexes + 3
         };
         vertexes.push(
-          [c * innerRadius, s * innerRadius, depth/2],
-          [c * innerRadius, s * innerRadius, -depth/2],
-          [c * radius,      s * radius,      depth/2],
-          [c * radius,      s * radius,      -depth/2]
+          c * innerRadius, s * innerRadius, depth / 2,
+          c * innerRadius, s * innerRadius, -depth / 2,
+          c * radius, s * radius, depth / 2,
+          c * radius, s * radius, -depth / 2
+        );
+        colors.push(
+          1.0, 1.0, 1.0, 1.0,
+          0.3, 0.3, 0.3, 1.0,
+          1.0, 1.0, 1.0, 1.0,
+          0.3, 0.3, 0.3, 1.0,
         );
 
-        const color = hsv(angle * 360 / pi2, 0.7, 1);
-        colors.push(color, color, color, color);
-
-        if(last) {
+        if (last) {
           // 内側の壁
-          indecies.push([last.innerTop, current.innerTop, current.innerBottom]);
-          indecies.push([current.innerBottom, last.innerBottom, last.innerTop]);
+          indecies.push(last.innerTop, current.innerTop, current.innerBottom);
+          indecies.push(current.innerBottom, last.innerBottom, last.innerTop);
           // シルエット
-          indecies.push([current.innerTop, last.innerTop, last.outerTop]);
-          indecies.push([last.outerTop, current.outerTop, current.innerTop]);
+          indecies.push(current.innerTop, last.innerTop, last.outerTop);
+          indecies.push(last.outerTop, current.outerTop, current.innerTop);
           // 外側の壁
-          indecies.push([current.outerTop, last.outerTop, last.outerBottom]);
-          indecies.push([last.outerBottom, current.outerBottom, current.outerTop]);
+          indecies.push(current.outerTop, last.outerTop, last.outerBottom);
+          indecies.push(last.outerBottom, current.outerBottom, current.outerTop);
+
         }
         last = current;
-        if(!first) first = current;
+        if (!first) first = current;
       }
     }
     // 円環を閉じる
     {
       const current = first;
       // 内側の壁
-      indecies.push([last.innerTop, current.innerTop, current.innerBottom]);
-      indecies.push([current.innerBottom, last.innerBottom, last.innerTop]);
+      indecies.push(last.innerTop, current.innerTop, current.innerBottom);
+      indecies.push(current.innerBottom, last.innerBottom, last.innerTop);
       // シルエット
-      indecies.push([current.innerTop, last.innerTop, last.outerTop]);
-      indecies.push([last.outerTop, current.outerTop, current.innerTop]);
+      indecies.push(current.innerTop, last.innerTop, last.outerTop);
+      indecies.push(last.outerTop, current.outerTop, current.innerTop);
       // 外側の壁
-      indecies.push([current.outerTop, last.outerTop, last.outerBottom]);
-      indecies.push([last.outerBottom, current.outerBottom, current.outerTop]);
+      indecies.push(current.outerTop, last.outerTop, last.outerBottom);
+      indecies.push(last.outerBottom, current.outerBottom, current.outerTop);
     }
+
+    // background
+    {
+      const idx = vertexes.length/3;
+      vertexes.push(
+        -10.0, +10.0,  -3.0,
+        +10.0, +10.0,  -3.0,
+        -10.0, -10.0,  -3.0,
+        +10.0, -10.0,  -3.0
+      );
+      indecies.push(idx + 2, idx + 1, idx + 0);
+      indecies.push(idx + 1, idx + 2, idx + 3);
+      colors.push(
+        1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0, 1.0,
+      );
+    }
+
+
     //GL
-    const flatten = (nested) => Array.prototype.concat.apply([], nested);
     const world = this.world_;
     const gl = this.gl_;
 
-    this.vertexes_ = world.createArrayBuffer(flatten(vertexes), 3);
-    this.colorArray_ = world.createArrayBuffer(flatten(colors), 4);
-    this.indecies_ = world.createIndexBuffer(gl.TRIANGLES, flatten(indecies));
+    this.vertexes_ = world.createArrayBuffer(vertexes, 3);
+    this.colors_ = world.createArrayBuffer(colors, 4);
+    this.indecies_ = world.createIndexBuffer(gl.TRIANGLES, indecies);
   }
   destroy() {
     this.vertexes_.destroy();
+    this.colors_.destroy();
     this.indecies_.destroy();
     this.program_.destoy();
   }

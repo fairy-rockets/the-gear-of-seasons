@@ -102,10 +102,10 @@ export default class Moments {
         }
         tex.bindShader(this.program_, 'texture');
         mat4.identity(mat);
-        mat4.rotateZ(mat, mat, -gear.angle);
+        mat4.rotateZ(mat, mat, +gear.angle);
         mat4.translate(mat, mat, [m.x, m.y, 0]);
         mat4.scale(mat,mat, [Scale, Scale, Scale]);
-        mat4.rotateZ(mat, mat, +gear.angle);
+        mat4.rotateZ(mat, mat, -gear.angle);
         mat4.mul(mat, gear.modelMat, mat);
         mat4.mul(mat, worldMat, mat);
         gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
