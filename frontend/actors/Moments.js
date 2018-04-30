@@ -68,6 +68,11 @@ export default class Moments {
    * @param {Moment[]} m
    */
   set models(ms) {
+    if(this.models_) {
+      for(let m of this.models_) {
+        m.destroy();
+      }
+    }
     this.models_ = ms;
   }
   /**
@@ -115,6 +120,9 @@ export default class Moments {
   }
 
   destroy() {
+    for(let m of this.models_) {
+      m.destroy();
+    }
     this.vertexes_.destroy();
     this.texCoords_.destroy();
     this.indecies_.destroy();

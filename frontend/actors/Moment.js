@@ -37,17 +37,17 @@ export default class Moment {
     const c = Math.cos(this.angle_);
     const s = Math.sin(this.angle_);
     let radius = 1 + Size * 1.5;
-    let fix = true;
-    while(fix) {
-      fix = false
+    let fixed = true;
+    while(fixed) {
+      fixed = false
       for(let m of moments) {
         const dx = radius * c - m.x_;
         const dy = radius * s - m.y_;
         const d = Math.sqrt(dx * dx + dy * dy);
         if(d <= Size * 2) {
-          radius = m.radius_ + Size * 2;
-          fix = true
-          break
+          radius = m.radius_ + Size + d;
+          fixed = true;
+          break;
         }
       }
     }
@@ -62,5 +62,10 @@ export default class Moment {
   /** @returns {number} */
   get y() {
     return this.y_;
+  }
+
+  destroy() {
+    this.tex_.destroy();
+    this.tex_=null;
   }
 }

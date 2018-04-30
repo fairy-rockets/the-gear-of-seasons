@@ -97,7 +97,7 @@ export default class Gear {
     mat4.identity(modelMat);
     //mat4.rotateY(modelMat, modelMat, -20/180*Math.PI);
     mat4.scale(modelMat, modelMat, [10, 10, 10]);
-    mat4.translate(modelMat, modelMat, [-1*aspect, 0, -1.5]);
+    mat4.translate(modelMat, modelMat, [-0.8*aspect, +0.8, -1.5]);
   }
   /** @param {number} v */
   set angle(v) {
