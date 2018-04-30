@@ -26,8 +26,8 @@ function rgb(r,g,b) {
 }
 
 const WinterColor = rgb(158, 195, 255);
-const SpringColor = rgb(255, 168, 168);
-const SummerColor = rgb(58, 242, 187);
+const SpringColor = rgb(255, 198, 215);
+const SummerColor = rgb(82, 219, 70);
 const AutumnColor = rgb(221, 105, 51);
 
 export default class Gear {
