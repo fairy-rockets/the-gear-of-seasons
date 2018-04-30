@@ -35,7 +35,7 @@ export default class ArrayBuffer{
   }
   unbind() {
     const gl = this.gl_;
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.buff_);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
   destroy() {
     this.gl_.deleteBuffer(this.buff_);

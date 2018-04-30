@@ -27,13 +27,13 @@ export default class Moment {
   relocation(moments) {
     const c = Math.cos(this.angle_);
     const s = Math.sin(this.angle_);
-    let radius = 1.0;
+    let radius = 1.2;
     for(let m of moments) {
-      const d = Math.abs(m.x_ * (-s) + m.y_ * c)
-      if(d <= Size) {
-        if(radius < d) {
-          radius = m.radius_ + Size;
-        }
+      const dx = radius * c - m.x_;
+      const dy = radius * s - m.y_;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if(d <= Size * 2) {
+        radius = m.radius_ + Size * 2;
       }
     }
     this.radius_ = radius;
