@@ -1,8 +1,10 @@
-import Gear from "./Gear";
-import IndexBuffer from "./gl/IndexBuffer";
-import ArrayBuffer from "./gl/ArrayBuffer";
 import {mat4, vec3, vec4} from 'gl-matrix';
-import Program from "./gl/Program";
+import IndexBuffer from "./gl/IndexBuffer.js";
+import ArrayBuffer from "./gl/ArrayBuffer.js";
+import Program from "./gl/Program.js";
+
+import Gear from "./actors/Gear.js";
+import Layer from "./Layer.js";
 
 export default class World {
   /**
@@ -25,7 +27,9 @@ export default class World {
     this.canvas_ = canvas;
     this.gl_ = gl;
     this.runner_ = this.render_.bind(this);
-    this.gear_ = new Gear(this, gl);
+    this.gear_ = new Gear(this);
+    /** @type {Layer} */
+    this.layer_ = null;
 
     // WorldMatrix
     this.cameraMat_ = mat4.identity(mat4.create());
@@ -41,6 +45,10 @@ export default class World {
   get gear(){
     return this.gear_;
   }
+  /** @param {Layer} layer */
+  set layer(layer) {
+    this.layer_ = layer;
+  }
   /** @returns {number} */
   get aspect() {
     return this.canvas_.width / this.canvas_.height;
@@ -48,6 +56,10 @@ export default class World {
   /** @returns {HTMLCanvasElement} */
   get canvas() {
     return this.canvas_;
+  }
+  /** @returns {WebGLRenderingContext} */
+  get gl() {
+    return this.gl_;
   }
   /**
    * @private
@@ -97,7 +109,11 @@ export default class World {
     // canvasを初期化
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    this.gear_.render(worldMat);
+    //this.gear_.render(worldMat);
+
+    if(this.layer_) {
+      this.layer_.render(time, worldMat);
+    }
 
     gl.flush();
   }
