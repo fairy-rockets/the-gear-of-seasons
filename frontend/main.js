@@ -1,6 +1,6 @@
-import Gear from './Gear';
 import World from './World';
-import Index from './Index';
+import Gear from './actors/Gear';
+import Index from './layers/Index';
 
 /** @type {World} */
 let world = null;
@@ -37,7 +37,7 @@ function open(pathName) {
 
 function openIndex(){
   const index = new Index(world);
-  index.attatch();
+  index.attach();
 }
 
 document.addEventListener('DOMContentLoaded', function() {

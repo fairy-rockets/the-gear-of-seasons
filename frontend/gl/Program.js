@@ -30,7 +30,7 @@ export default class Program {
     }
     const pos = gl.getAttribLocation(this.prog_, name);
     if(pos < 0) {
-      throw new Error(`Attribute ${attrName} not found.`);
+      throw new Error(`Attribute ${name} not found.`);
     }
     this.attributeLocs_.set(name, pos);
     return pos;

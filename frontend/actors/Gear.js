@@ -1,14 +1,13 @@
-import World from "./World";
+import World from "../World.js";
 import { mat4 } from "gl-matrix";
 
 export default class Gear {
   /**
    * @param {World} world 
-   * @param {WebGLRenderingContext} gl 
    */
-  constructor(world, gl) {
+  constructor(world) {
     this.world_ = world;
-    this.gl_ = gl;
+    this.gl_ = world.gl;
     const vs = world.compileVertexShader(`
     attribute vec3 position;
     attribute vec4 color;
@@ -28,7 +27,7 @@ export default class Gear {
     }
     `);
     this.program_ = world.linkShaders(vs, fs);
-    this.posMat_ = mat4.identity(mat4.create());
+    this.modelMat_ = mat4.identity(mat4.create());
     this.angle_ = 0;
     this.mat_ = mat4.identity(mat4.create());
   }
@@ -43,11 +42,11 @@ export default class Gear {
    */
   onSizeChanged(width, height) {
     const aspect = width/height;
-    const posMat = this.posMat_;
-    mat4.identity(posMat);
-    mat4.rotateY(posMat, posMat, -20/180*Math.PI);
-    mat4.scale(posMat, posMat, [10, 10, 10]);
-    mat4.translate(posMat, posMat, [-1.3*aspect, 0, -1]);
+    const modelMat = this.modelMat_;
+    mat4.identity(modelMat);
+    //mat4.rotateY(modelMat, modelMat, -20/180*Math.PI);
+    mat4.scale(modelMat, modelMat, [10, 10, 10]);
+    mat4.translate(modelMat, modelMat, [-1*aspect, 0, -1.5]);
   }
   /** @param {number} v */
   set angle(v) {
@@ -56,6 +55,10 @@ export default class Gear {
   /** @returns {number} */
   get angle() {
     return this.angle_;
+  }
+  /** @returns {mat4} */
+  get modelMat() {
+    return this.modelMat_;
   }
   /**
    * 
@@ -68,20 +71,20 @@ export default class Gear {
 
     mat4.identity(mat);
     mat4.rotateZ(mat, mat, this.angle_);
-    mat4.mul(mat, this.posMat_, mat);
+    mat4.mul(mat, this.modelMat_, mat);
     mat4.mul(mat, worldMat, mat);
     
     try {
       this.program_.bind();
-      this.vArray_.bindShader(this.program_, 'position');
+      this.vertexes_.bindShader(this.program_, 'position');
       this.colorArray_.bindShader(this.program_, 'color');
       gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
-      this.indexies_.bind();
-      this.indexies_.render();
+      this.indecies_.bind();
+      this.indecies_.render();
     } finally {
-      this.vArray_.unbind();
+      this.vertexes_.unbind();
       this.colorArray_.unbind();
-      this.indexies_.unbind();
+      this.indecies_.unbind();
       this.program_.unbind();
     }
   }
@@ -112,8 +115,8 @@ export default class Gear {
         return [r[i], g[i], b[i], a];
       }
     }
-    const vertex = [];
-    const index = [];
+    const vertexes = [];
+    const indecies = [];
     const colors = [];
     const pi2 = Math.PI*2;
     /**
@@ -140,12 +143,12 @@ export default class Gear {
         const c = Math.cos(angle);
         const s = Math.sin(angle);
         let current = {
-          innerTop:    vertex.length + 0,
-          innerBottom: vertex.length + 1,
-          outerTop:    vertex.length + 2,
-          outerBottom: vertex.length + 3
+          innerTop:    vertexes.length + 0,
+          innerBottom: vertexes.length + 1,
+          outerTop:    vertexes.length + 2,
+          outerBottom: vertexes.length + 3
         };
-        vertex.push(
+        vertexes.push(
           [c * innerRadius, s * innerRadius, depth/2],
           [c * innerRadius, s * innerRadius, -depth/2],
           [c * radius,      s * radius,      depth/2],
@@ -162,14 +165,14 @@ export default class Gear {
 
         if(last) {
           // 内側の壁
-          index.push([last.innerTop, current.innerTop, current.innerBottom]);
-          index.push([current.innerBottom, last.innerBottom, last.innerTop]);
+          indecies.push([last.innerTop, current.innerTop, current.innerBottom]);
+          indecies.push([current.innerBottom, last.innerBottom, last.innerTop]);
           // シルエット
-          index.push([current.innerTop, last.innerTop, last.outerTop]);
-          index.push([last.outerTop, current.outerTop, current.innerTop]);
+          indecies.push([current.innerTop, last.innerTop, last.outerTop]);
+          indecies.push([last.outerTop, current.outerTop, current.innerTop]);
           // 外側の壁
-          index.push([current.outerTop, last.outerTop, last.outerBottom]);
-          index.push([last.outerBottom, current.outerBottom, current.outerTop]);
+          indecies.push([current.outerTop, last.outerTop, last.outerBottom]);
+          indecies.push([last.outerBottom, current.outerBottom, current.outerTop]);
         }
         last = current;
         if(!first) first = current;
@@ -179,27 +182,27 @@ export default class Gear {
     {
       const current = first;
       // 内側の壁
-      index.push([last.innerTop, current.innerTop, current.innerBottom]);
-      index.push([current.innerBottom, last.innerBottom, last.innerTop]);
+      indecies.push([last.innerTop, current.innerTop, current.innerBottom]);
+      indecies.push([current.innerBottom, last.innerBottom, last.innerTop]);
       // シルエット
-      index.push([current.innerTop, last.innerTop, last.outerTop]);
-      index.push([last.outerTop, current.outerTop, current.innerTop]);
+      indecies.push([current.innerTop, last.innerTop, last.outerTop]);
+      indecies.push([last.outerTop, current.outerTop, current.innerTop]);
       // 外側の壁
-      index.push([current.outerTop, last.outerTop, last.outerBottom]);
-      index.push([last.outerBottom, current.outerBottom, current.outerTop]);
+      indecies.push([current.outerTop, last.outerTop, last.outerBottom]);
+      indecies.push([last.outerBottom, current.outerBottom, current.outerTop]);
     }
     //GL
     const flatten = (nested) => Array.prototype.concat.apply([], nested);
     const world = this.world_;
     const gl = this.gl_;
 
-    this.vArray_ = world.createArrayBuffer(flatten(vertex), 3);
+    this.vertexes_ = world.createArrayBuffer(flatten(vertexes), 3);
     this.colorArray_ = world.createArrayBuffer(flatten(colors), 4);
-    this.indexies_ = world.createIndexBuffer(gl.TRIANGLES, flatten(index));
+    this.indecies_ = world.createIndexBuffer(gl.TRIANGLES, flatten(indecies));
   }
   destroy() {
-    this.vArray_.destroy();
-    this.indexies_.destroy();
+    this.vertexes_.destroy();
+    this.indecies_.destroy();
     this.program_.destoy();
   }
 }
