@@ -7,6 +7,10 @@ import (
 
 	"fmt"
 
+	"path/filepath"
+
+	"github.com/FairyRockets/the-gear-of-seasons/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/moment"
 	"github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
@@ -18,20 +22,29 @@ const (
 )
 
 type Web struct {
-	impl   *http.Server
-	router *httprouter.Router
+	impl        *http.Server
+	router      *httprouter.Router
+	entities    *entity.Store
+	moments     *moment.Store
+	momentCache *momentCache
+	entityCache *entityCache
 }
 
 func log() *logrus.Entry {
 	return logrus.WithField("Module", "Web")
 }
 
-func NewWebServer(addr string) *Web {
-	srv := &Web{}
-	srv.router = httprouter.New()
+func NewWebServer(addr string, entities *entity.Store, moments *moment.Store) *Web {
+	srv := &Web{
+		router:      httprouter.New(),
+		entities:    entities,
+		moments:     moments,
+		momentCache: newMomentCache(entities, moments),
+		entityCache: newEntityCache(entities, filepath.Join(entities.Path(), "_cache")),
+	}
 	srv.impl = &http.Server{
 		Addr:    addr,
-		Handler: srv.router,
+		Handler: srv,
 	}
 	srv.setupRoute()
 	return srv
@@ -39,10 +52,37 @@ func NewWebServer(addr string) *Web {
 
 func (srv *Web) setupRoute() {
 	router := srv.router
-	router.GET("/", srv.index)
+	router.GET("/", srv.serveIndex)
+	router.GET("/entity/:id", srv.serveEntity)
+	router.GET("/entity/:id/thumbnail", srv.serveEntityThumbnail)
+	router.GET("/moment/search", srv.serveMomentSearch)
 	router.ServeFiles("/static/*filepath", http.Dir(StaticPath))
 }
 
+func (srv *Web) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if req.Method == "GET" {
+		m := srv.moments.Lookup(req.URL.Path)
+		if m != nil {
+			srv.serveMoment(w, req, m)
+			return
+		}
+	}
+	srv.router.ServeHTTP(w, req)
+}
+
+func (srv *Web) Prepare() {
+	ents := srv.entities.AsSlice()
+	for i, ent := range ents {
+		if _, ok := ent.(*entity.ImageEntity); ok {
+			_, err := srv.entityCache.FetchThumbnail(ent)
+			if err != nil {
+				log().Fatalf("Prepare Thumbnails for %s: %v", ent.GetID(), err)
+			} else {
+				log().Infof("Prepare Thumbnails [%d / %d]", i+1, len(ents))
+			}
+		}
+	}
+}
 func (srv *Web) Start() error {
 	log().Infof("Start at %s", srv.impl.Addr)
 	err := srv.impl.ListenAndServe()

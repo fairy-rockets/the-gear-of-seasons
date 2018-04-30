@@ -4,3 +4,6 @@
 *.gen.go
 .idea/
 node_modules/
+
+_entities
+_moments
