@@ -109,7 +109,7 @@ export default class World {
     // canvasを初期化
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    //this.gear_.render(worldMat);
+    this.gear_.render(worldMat);
 
     if(this.layer_) {
       this.layer_.render(time, worldMat);

@@ -1,7 +1,7 @@
 import World from '../World.js'
 import Layer from '../Layer.js';
-import MomentButton from '../actors/MomentButton.js';
-import Moment from '../models/Moment.js';
+import Moments from '../actors/Moments.js';
+import Moment from '../actors/Moment.js';
 import { mat4 } from 'gl-matrix';
 
 /**
@@ -19,13 +19,7 @@ export default class Index extends Layer {
   constructor(world) {
     super(world);
     this.wheelEventListener_ = this.onWheelEvent_.bind(this);
-    /** @type {MomentButton[]} */
-    this.buttons_ = new Array(100);
-    for(let i = 0; i < this.buttons_.length; ++i) {
-      this.buttons_[i] = new MomentButton(world);
-    }
-    /** @type {Moment[]} */
-    this.moments_ = new Array(100);
+    this.moments_ = new Moments(world);
   }
   /**
    * 
@@ -41,9 +35,7 @@ export default class Index extends Layer {
    * @param {mat4} worldMat
    */
   render(time, worldMat) {
-    for(let btn of this.buttons_) {
-      btn.render(worldMat);
-    }
+    this.moments_.render(worldMat);
   }
   attach() {
     super.attach();
@@ -59,17 +51,14 @@ export default class Index extends Layer {
    * @param {MomentData[]} moments 
    */
   onLoadMoments_(moments) {
-    this.moments_.splice(0,this.moments_.length);
+    /** @type {Moment[]} */
+    const models = [];
     for(let m of moments) {
       const model = new Moment(m.angle, new Date(m.date), m.title, m.image);
-      model.relocation(this.moments_);
-      this.moments_.push(model);
+      model.relocation(models);
+      models.push(model);
     }
-    let i = 0;
-    for(let m of this.moments_) {
-      this.buttons_[i].model = m;
-      ++i;
-    }
+    this.moments_.models = models;
   }
 
   fetch(size) {
