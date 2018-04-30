@@ -2,12 +2,19 @@ package main
 
 import (
 	"flag"
+	_ "image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"os"
-	"os/signal"
-	"syscall"
 
 	log "github.com/Sirupsen/logrus"
 
+	"os/signal"
+	"syscall"
+
+	"github.com/FairyRockets/the-gear-of-seasons/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/moment"
 	"github.com/FairyRockets/the-gear-of-seasons/web"
 	"github.com/fatih/color"
 )
@@ -16,11 +23,25 @@ import (
 
 var addr = flag.String("listen", ":8080", "listen")
 
-func mainLoop(sig <-chan os.Signal) os.Signal {
-	srv := web.NewWebServer(*addr)
+func mainLoop() os.Signal {
+	var err error
+	entities := entity.NewStore("_entities")
+	if err = entities.Init(); err != nil {
+		log.Fatalf("Error while loading entities: %v", err)
+	}
+	moments := moment.NewStore("_moments")
+	if err = moments.Init(); err != nil {
+		log.Fatalf("Error while loading moments: %v", err)
+	}
 
+	log.Infof("%d entities, %d moments", entities.Size(), moments.Size())
+
+	srv := web.NewWebServer(*addr, entities, moments)
+	srv.Prepare()
 	go srv.Start()
 
+	sig := make(chan os.Signal)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	select {
 	case s := <-sig:
 		if err := srv.Stop(); err != nil {
@@ -55,8 +76,7 @@ func main() {
 	log.Info("Initialized.")
 	log.Info("----------------------------------------")
 
-	sig := make(chan os.Signal)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	s := mainLoop(sig)
+	s := mainLoop()
+
 	log.Fatalf("Signal (%v) received, stopping\n", s)
 }
