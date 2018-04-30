@@ -28,7 +28,7 @@ export default class Index extends Layer {
   onWheelEvent_(event) {
     event.preventDefault();
     const world = this.world;
-    world.gear.angle -= event.deltaY * Math.PI / (360 * 10);
+    world.gear.angle += event.deltaY * Math.PI / (360 * 10);
   }
   /**
    * @param {number} time 

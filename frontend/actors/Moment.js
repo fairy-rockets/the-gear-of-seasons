@@ -35,7 +35,7 @@ export default class Moment {
    */
   relocation(moments) {
     const c = Math.cos(this.angle_);
-    const s = Math.sin(this.angle_);
+    const s = -Math.sin(this.angle_);
     let radius = 1 + Size * 1.5;
     let fixed = true;
     while(fixed) {
