@@ -3,6 +3,7 @@ import Layer from '../Layer.js';
 import Moments from '../actors/Moments.js';
 import Moment from '../actors/Moment.js';
 import { mat4, vec4 } from 'gl-matrix';
+import * as debug from '../gl/debug.js';
 
 /**
   @typedef MomentData
@@ -21,6 +22,8 @@ export default class Index extends Layer {
     this.wheelEventListener_ = this.onWheelEvent_.bind(this);
     this.mouseMoveListener_ = this.onMouseMove_.bind(this);
     this.moments_ = new Moments(world);
+    this.mouseX_ = 0;
+    this.mouseY_ = 0;
   }
   /**
    * 
@@ -36,7 +39,7 @@ export default class Index extends Layer {
    * @param {mat4} worldMat
    */
   render(time, worldMat) {
-    this.moments_.render(worldMat);
+    this.moments_.render(time, worldMat, this.mouseX_, this.mouseY_);
   }
 
   attach() {
@@ -57,28 +60,12 @@ export default class Index extends Layer {
    */
   onMouseMove_(ev) {
     ev.preventDefault();
-    const world = this.world;
-    const width = world.canvas.width;
-    const height = this.world.canvas.height;
-    const y = -(ev.clientY - height/2) / height;
-    const x = (ev.clientX - width/2) / height;
+    const canvas = this.world.canvas;
+    const hw = canvas.width/2;
+    const hh = canvas.height/2;
 
-    // calculate mouse position in Z=0
-    const mat = mat4.identity(mat4.create());
-    mat4.copy(mat, world.gear.modelMat);
-    mat4.mul(mat, world.mat_, mat);
-    const matP = mat4.set(mat4.create(),
-      mat[0], mat[1], mat[2], mat[3],
-      mat[4], mat[5], mat[6], mat[7],
-      0,      0,      -1,     0,
-      -x,     -y,     0,      -1
-    );
-    const vecP = vec4.fromValues(-mat[12], -mat[13], -mat[14], -mat[15]);
-    const invP = mat4.invert(mat4.create(), matP);
-    const out = vec4.transformMat4(vec4.create(), vecP, invP); /* = (X,Y,z,w) */
-    
-    const px = out[0];
-    const py = out[1];
+    this.mouseX_ = (ev.clientX - hw) / hw;
+    this.mouseY_ = -(ev.clientY - hh) / hh;
   }
 
   /**

@@ -2,9 +2,10 @@ import World from "../World.js";
 import { vec2 } from "gl-matrix";
 import Texture from "../gl/Texture.js";
 
-const DiscRadius = 0.2;
-
 export default class Moment {
+  static get DiscRadius() {
+    return 0.2;
+  }
   /**
    * @param {World} world
    * @param {string} angle 
@@ -30,11 +31,11 @@ export default class Moment {
    * @param {Moment[]} moments 
    */
   relocation(moments) {
-    const diameter = DiscRadius * 2;
+    const diameter = Moment.DiscRadius * 2;
     const diameter2 = diameter * diameter;
     const c = Math.cos(this.angle_);
     const s = -Math.sin(this.angle_);
-    let radius = 1.05 + DiscRadius;
+    let radius = 1.05 + Moment.DiscRadius;
     let fixed = true;
     while(fixed) {
       fixed = false
