@@ -36,7 +36,7 @@ export default class Moments {
       vec2 center = vec2(0.5, 0.5);
       float dist = distance(vTextureCoord, center);
       vec4 texColor = texture2D(texture, vTextureCoord);
-      vec4 ringColor = hovered ? vec4(1, 1, 1, 0.6) : vec4(0,0,0,0.6);
+      vec4 ringColor = hovered ? vec4(1, 1, 1, 1) : vec4(0.2,0.2,0.2,0.5);
       gl_FragColor =
         dist < 0.47 ? texColor :
         dist < 0.5 ? texColor*((0.5-dist)/0.3) + ringColor * (dist/0.3) :
@@ -65,6 +65,10 @@ export default class Moments {
     /** Matrix **/
     this.modelMat_ = mat4.identity(mat4.create());
     this.mat_ = mat4.identity(mat4.create());
+    
+    /** Mouse Handling **/
+    this.mouseTmpMat_ = mat4.identity(mat4.create());
+    this.mouseTmpVec_ = vec4.create();
 
     /** @type {Moment[]} */
     this.models_ = null;
@@ -135,16 +139,18 @@ export default class Moments {
    * @returns {number[]}
    */
   calcMousePos_(mat, x, y) {
-    const matP = mat4.set(mat4.create(),
+    const tmpMat = this.mouseTmpMat_;
+    const tmpVec = this.mouseTmpVec_;
+    mat4.set(tmpMat,
       mat[0], mat[1], mat[2], mat[3],
       mat[4], mat[5], mat[6], mat[7],
       0,      0,      -1,     0,
       -x,     -y,     0,      -1
     );
-    const vecP = vec4.fromValues(-mat[12], -mat[13], -mat[14], -mat[15]);
-    const invP = mat4.invert(mat4.create(), matP);
-    const out = vec4.transformMat4(vec4.create(), vecP, invP); /* = (X,Y,z,w) */
-    return [out[0], out[1]];
+    vec4.set(tmpVec, -mat[12], -mat[13], -mat[14], -mat[15]);
+    mat4.invert(tmpMat, tmpMat);
+    vec4.transformMat4(tmpVec, tmpVec, tmpMat); /* = (X,Y,z,w) */
+    return [tmpVec[0], tmpVec[1]];
   }
 
   destroy() {
