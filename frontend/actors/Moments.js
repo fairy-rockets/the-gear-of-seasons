@@ -95,8 +95,8 @@ export default class Moments {
 
         //model matrix
         mat4.identity(mat);
+        mat4.translate(mat, mat, [m.x, m.y, 0]);
         mat4.mul(mat, mat, matModel);
-        mat4.translate(mat, mat, [m.x / Scale, m.y / Scale, 0]);
         mat4.rotateZ(mat, mat, -gear.angle);
         
         // move to gear space!
