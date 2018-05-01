@@ -55,7 +55,7 @@ func (srv *Web) setupRoute() {
 	router.GET("/", srv.serveIndex)
 	router.GET("/entity/:id", srv.serveEntity)
 	router.GET("/entity/:id/thumbnail", srv.serveEntityThumbnail)
-	router.GET("/moment/search", srv.serveMomentSearch)
+	router.GET("/moment/*moment", srv.serveMoment)
 	router.ServeFiles("/static/*filepath", http.Dir(StaticPath))
 }
 
@@ -63,7 +63,7 @@ func (srv *Web) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method == "GET" {
 		m := srv.moments.Lookup(req.URL.Path)
 		if m != nil {
-			srv.serveMoment(w, req, m)
+			srv.serveIndex(w, req, nil)
 			return
 		}
 	}

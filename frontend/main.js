@@ -37,7 +37,7 @@ function open(pathName) {
 
 function openIndex(){
   const index = new Index(world);
-  index.attach();
+  world.pushLayer(index);
 }
 
 document.addEventListener('DOMContentLoaded', function() {

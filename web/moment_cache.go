@@ -31,8 +31,9 @@ type momentCacheEntry struct {
 }
 
 var (
-	embedRegex    = regexp.MustCompile(`\[(link|img|video|audio) ([^\]]+)\]`)
-	keyValueRegex = regexp.MustCompile(`([a-z]+)="([^"]*)"`)
+	embedRegex     = regexp.MustCompile(`\[(link|img|video|audio) ([^\]]+)\]`)
+	paragraphRegex = regexp.MustCompile(`(:?^|\n+|/>\n?)(.+?)(:?$|\n\n+|\n?<)`)
+	keyValueRegex  = regexp.MustCompile(`([a-z]+)="([^"]*)"`)
 )
 
 func parseEmbedFiels(str string) map[string]string {
@@ -66,7 +67,9 @@ func (cache *momentCache) Fetch(m *moment.Moment) (string, []entity.Entity) {
 
 func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 	c := &momentCacheEntry{}
-	c.body = embedRegex.ReplaceAllStringFunc(m.Text, func(embed string) string {
+	body := m.Text
+
+	body = embedRegex.ReplaceAllStringFunc(body, func(embed string) string {
 		matches := embedRegex.FindStringSubmatch(embed)
 		fileType := matches[1]
 		fields := parseEmbedFiels(matches[2])
@@ -102,10 +105,7 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 			if video, ok := e.(*entity.VideoEntity); ok {
 				c.embedding = append(c.embedding, e)
 				url := fmt.Sprintf("/entity/%s", id)
-				return fmt.Sprintf(`<video  width="%d" height="%d" preload="metadata" controls="controls">
-	<source type="%s" src="%s" />
-	<a href="%s">Click to play.</a>
-</video>`, video.Width, video.Height, video.MimeType, url, url)
+				return fmt.Sprintf(`<video  width="%d" height="%d" preload="metadata" controls="controls"><source type="%s" src="%s" /><a href="%s">Click to play.</a></video>`, video.Width, video.Height, video.MimeType, url, url)
 			} else {
 				return fmt.Sprintf(`<strong class="error">Entity(%s) is not video.</strong>`, id)
 			}
@@ -115,6 +115,8 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 			return fmt.Sprintf(`<strong class="error">%s not supported</strong>`, fileType)
 		}
 	})
+	body = paragraphRegex.ReplaceAllString(body, "<p>$1</p>")
+	c.body = fmt.Sprintf("<h1>%s</h1>%s", m.Title, body)
 	return c
 
 }

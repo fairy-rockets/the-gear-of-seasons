@@ -15,12 +15,23 @@ import (
 
 	"fmt"
 
+	"strings"
+
 	"github.com/FairyRockets/the-gear-of-seasons/entity"
 	"github.com/FairyRockets/the-gear-of-seasons/moment"
 	"github.com/julienschmidt/httprouter"
 )
 
-func (srv *Web) serveMoment(w http.ResponseWriter, r *http.Request, m *moment.Moment) {
+func (srv *Web) serveMoment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	if r.URL.Path == "/moment/search" {
+		srv.serveMomentSearch(w, r, p)
+		return
+	}
+	m := srv.moments.Lookup(strings.TrimPrefix(r.URL.Path, "/moment"))
+	if m == nil {
+		w.WriteHeader(404)
+		return
+	}
 	w.WriteHeader(200)
 	body, _ := srv.momentCache.Fetch(m)
 	w.Write([]byte(body))
@@ -31,6 +42,7 @@ type momentSummary struct {
 	Date  time.Time `json:"date"`
 	Title string    `json:"title"`
 	Image string    `json:"image"`
+	URL   string    `json:"url"`
 }
 
 func (srv *Web) makeSummary(m *moment.Moment) *momentSummary {
@@ -47,11 +59,11 @@ func (srv *Web) makeSummary(m *moment.Moment) *momentSummary {
 	end := time.Date(m.Date.Year()+1, time.January, 1, 0, 0, 0, 0, m.Date.Location())
 	angle := float64(m.Date.Sub(beg)) / float64(end.Sub(beg))
 
-	imageData := ""
+	imageURL := ""
 	if img != nil {
 		_, err = srv.entityCache.FetchThumbnail(img)
 		if err == nil {
-			imageData = fmt.Sprintf("/entity/%s/thumbnail", img.GetID())
+			imageURL = fmt.Sprintf("/entity/%s/thumbnail", img.GetID())
 		}
 	}
 
@@ -59,7 +71,8 @@ func (srv *Web) makeSummary(m *moment.Moment) *momentSummary {
 		Angle: angle * math.Pi * 2,
 		Date:  m.Date,
 		Title: m.Title,
-		Image: imageData,
+		Image: imageURL,
+		URL:   fmt.Sprintf("/moment%s", m.Path()),
 	}
 }
 
