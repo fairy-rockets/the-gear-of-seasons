@@ -2,7 +2,7 @@ import World from "../World.js";
 import { vec2 } from "gl-matrix";
 import Texture from "../gl/Texture.js";
 
-const Size = 0.2;
+const DiscRadius = 0.2;
 
 export default class Moment {
   /**
@@ -30,18 +30,28 @@ export default class Moment {
    * @param {Moment[]} moments 
    */
   relocation(moments) {
+    const diameter = DiscRadius * 2;
+    const diameter2 = diameter * diameter;
     const c = Math.cos(this.angle_);
     const s = -Math.sin(this.angle_);
-    let radius = 1 + Size * 1.5;
+    let radius = 1.05 + DiscRadius;
     let fixed = true;
     while(fixed) {
       fixed = false
+      const x = radius * c;
+      const y = radius * s;
+
+      const a = s;
+      const b = -c;
       for(let m of moments) {
-        const dx = radius * c - m.x_;
-        const dy = radius * s - m.y_;
-        const d = Math.sqrt(dx * dx + dy * dy);
-        if(d < Size * 2) {
-          radius = m.radius_ + Size + d;
+        const dx = x - m.x_;
+        const dy = y - m.y_;
+        if(Math.abs(dx) > diameter || Math.abs(dy) > diameter) {
+          continue;
+        }
+        if(Math.sqrt(dx * dx + dy * dy) < diameter) {
+          const d = (m.x_ * a) + (m.y_ * b);
+          radius = m.radius_ + Math.sqrt(diameter2 - d*d);
           fixed = true;
           break;
         }
