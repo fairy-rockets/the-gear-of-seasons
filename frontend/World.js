@@ -65,7 +65,11 @@ export default class World {
   }
   /** @param {Layer} layer */
   set layer(layer) {
+    if(this.layer_) {
+      document.body.removeChild(layer.element);
+    }
     this.layer_ = layer;
+    document.body.appendChild(layer.element);
   }
   /** @returns {number} */
   get aspect() {
@@ -127,9 +131,12 @@ export default class World {
     // canvasを初期化
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    // TODO:
+    this.gear_.beforeRender(matWorld);
+
+    // Render
     this.bg_.render(time, matWorld);
     this.gear_.render(matWorld);
-
     if(this.layer_) {
       this.layer_.render(time, matWorld);
     }

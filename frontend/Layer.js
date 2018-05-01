@@ -9,6 +9,9 @@ export default class Layer {
   constructor(world) {
     /** @private */
     this.world_ = world;
+    /** @private */
+    this.element_ = document.createElement('div');
+    this.element_.className = 'layer-wrapper';
   }
   /**
    * @returns {World}
@@ -27,6 +30,10 @@ export default class Layer {
    */
   get gear() {
     return this.world_.gear;
+  }
+  /** @returns {HTMLDivElement} */
+  get element() {
+    return this.element_;
   }
   /**
    * @param {number} time 
