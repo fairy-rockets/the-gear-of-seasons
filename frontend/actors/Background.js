@@ -31,7 +31,7 @@ export default class Background {
     this.matModel_ = mat4.identity(mat4.create());
     mat4.scale(this.matModel_, this.matModel_, [20, 20, 20]);
     this.matLoc_ = mat4.identity(mat4.create());
-    mat4.translate(this.matLoc_, this.matLoc_, [0, 0, -10]);
+    mat4.translate(this.matLoc_, this.matLoc_, [0, 0, -1]);
     this.mat_ = mat4.identity(mat4.create());
     
   }
