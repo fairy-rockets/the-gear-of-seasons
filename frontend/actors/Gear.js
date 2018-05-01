@@ -18,7 +18,7 @@ function calcTodaysAngle() {
  * @param {number} b 
  * @returns {number[]}
  */
-function rgb(r,g,b) {
+function rgb(r, g, b) {
   r /= 255.0;
   g /= 255.0;
   b /= 255.0;
@@ -115,7 +115,7 @@ export default class Gear {
 
       this.program_.bind();
       this.vertexes_.bindShader(this.program_, 'position');
-      this.colors_.bindShader(this.program_, 'color');
+      this.norms_.bindShader(this.program_, 'norm');
 
       gl.uniformMatrix4fv(this.program_.uniformLoc('matLocModel'), false, matLocModel);
       gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, matTmp);
@@ -136,6 +136,7 @@ export default class Gear {
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
       this.vertexes_.unbind();
+      this.norms_.unbind();
       this.indecies_.unbind();
       this.program_.unbind();
     }
@@ -165,88 +166,120 @@ export default class Gear {
     /** @type {number[]} */
     const indecies = [];
     /** @type {number[]} */
-    const colors = [];
-    /**
-      @typedef LineStatus
-      @type {object}
-      @property {number} innerTop
-      @property {number} innerBottom
-      @property {number} outerTop
-      @property {number} outerBottom
-    */
-    /**  @type {LineStatus} */
-    let last = null;
-    /** @type {LineStatus} */
-    let first = null;
+    const norms = [];
+
     const totalLines = numCogs * numDivs * 2;
+
+    const middleRadius = outerRadius * 0.8;
+
     for (let i = 0; i < numCogs * 2; ++i) {
-      for (let j = 0; j < numDivs; ++j) {
+      const radius = i % 2 == 0 ? outerRadius : middleRadius;
+      for (let j = 0; j <= numDivs; ++j) {
         const angle = pi2 * (i * numDivs + j) / totalLines;
-        const radius = i % 2 == 0 ? outerRadius : outerRadius * 0.8;
+
         const c = Math.cos(angle);
         const s = Math.sin(angle);
-        const numVertexes = vertexes.length / 3;
-        const current = {
-          innerTop: numVertexes + 0,
-          innerBottom: numVertexes + 1,
-          outerTop: numVertexes + 2,
-          outerBottom: numVertexes + 3
-        };
-        vertexes.push(
-          c * innerRadius, s * innerRadius, depth / 2,
-          c * innerRadius, s * innerRadius, -depth / 2,
-          c * radius, s * radius, depth / 2,
-          c * radius, s * radius, -depth / 2
-        );
-        colors.push(
-          1.0, 1.0, 1.0, 1.0,
-          0.3, 0.3, 0.3, 1.0,
-          1.0, 1.0, 1.0, 1.0,
-          0.3, 0.3, 0.3, 1.0,
-        );
+        if (j === 0) {
+          // 壁を作る
+          const off = vertexes.length / 3;
+          vertexes.push(
+            c * middleRadius, s * middleRadius, +depth / 2,
+            c * middleRadius, s * middleRadius, -depth / 2,
+            c * outerRadius,  s * outerRadius,  +depth / 2,
+            c * outerRadius,  s * outerRadius,  -depth / 2
+          );
+          if(i % 2 == 0) {
+            indecies.push(off + 1, off + 3, off + 2);
+            indecies.push(off + 2, off + 0, off + 1);
+            norms.push(
+              -s, c, 0,
+              -s, c, 0,
+              -s, c, 0,
+              -s, c, 0
+            );
+          }else{
+            indecies.push(off + 2, off + 3, off + 1);
+            indecies.push(off + 1, off + 0, off + 2);
+            norms.push(
+              s, -c, 0,
+              s, -c, 0,
+              s, -c, 0,
+              s, -c, 0,
+            );
+          }
+        } else {
+          const prevAngle = pi2 * (i * numDivs + j - 1) / totalLines;
+          const pc = Math.cos(prevAngle);
+          const ps = Math.sin(prevAngle);
 
-        if (last) {
-          // 内側の壁
-          indecies.push(last.innerTop, current.innerTop, current.innerBottom);
-          indecies.push(current.innerBottom, last.innerBottom, last.innerTop);
-          // シルエット
-          indecies.push(current.innerTop, last.innerTop, last.outerTop);
-          indecies.push(last.outerTop, current.outerTop, current.innerTop);
-          // 外側の壁
-          indecies.push(current.outerTop, last.outerTop, last.outerBottom);
-          indecies.push(last.outerBottom, current.outerBottom, current.outerTop);
+          { // 内側の壁
+            const off = vertexes.length / 3;
+            vertexes.push(
+              pc * innerRadius, ps * innerRadius, +depth / 2,
+              pc * innerRadius, ps * innerRadius, -depth / 2,
+              c * innerRadius, s * innerRadius, +depth / 2,
+              c * innerRadius, s * innerRadius, -depth / 2,
+            );
+            norms.push(
+              -c, -s, 0,
+              -c, -s, 0,
+              -c, -s, 0,
+              -c, -s, 0,
+            );
+            indecies.push(off + 2, off + 3, off + 1);
+            indecies.push(off + 1, off + 0, off + 2);
+          }
 
+          { // シルエット
+            const off = vertexes.length / 3;
+            vertexes.push(
+              pc * innerRadius, ps * innerRadius, +depth / 2,
+              pc * radius, ps * radius, +depth / 2,
+              c * innerRadius, s * innerRadius, +depth / 2,
+              c * radius, s * radius, +depth / 2,
+            );
+            norms.push(
+              0, 0, 1,
+              0, 0, 1,
+              0, 0, 1,
+              0, 0, 1,
+            );
+            indecies.push(off + 2, off + 0, off + 1);
+            indecies.push(off + 1, off + 3, off + 2);
+          }
+
+          { // 外側の壁
+            const off = vertexes.length / 3;
+            vertexes.push(
+              pc * radius, ps * radius, +depth / 2,
+              pc * radius, ps * radius, -depth / 2,
+              c * radius, s * radius, +depth / 2,
+              c * radius, s * radius, -depth / 2,
+            );
+            norms.push(
+              c, s, 0,
+              c, s, 0,
+              c, s, 0,
+              c, s, 0,
+            );
+            indecies.push(off + 2, off + 0, off + 1);
+            indecies.push(off + 1, off + 3, off + 2);
+          }
         }
-        last = current;
-        if (!first) first = current;
       }
     }
-    // 円環を閉じる
-    {
-      const current = first;
-      // 内側の壁
-      indecies.push(last.innerTop, current.innerTop, current.innerBottom);
-      indecies.push(current.innerBottom, last.innerBottom, last.innerTop);
-      // シルエット
-      indecies.push(current.innerTop, last.innerTop, last.outerTop);
-      indecies.push(last.outerTop, current.outerTop, current.innerTop);
-      // 外側の壁
-      indecies.push(current.outerTop, last.outerTop, last.outerBottom);
-      indecies.push(last.outerBottom, current.outerBottom, current.outerTop);
-    }
-
 
     //GL
     const world = this.world_;
     const gl = this.gl_;
 
     this.vertexes_ = world.createArrayBuffer(vertexes, 3);
-    this.colors_ = world.createArrayBuffer(colors, 4);
+    this.norms_ = world.createArrayBuffer(norms, 3);
     this.indecies_ = world.createIndexBuffer(gl.TRIANGLES, indecies);
   }
   destroy() {
     this.vertexes_.destroy();
-    this.colors_.destroy();
+    this.norms_.destroy();
     this.indecies_.destroy();
     this.program_.destoy();
   }
@@ -255,15 +288,15 @@ export default class Gear {
 const vsSrc = `
 attribute vec3 position;
 attribute vec3 norm;
-attribute vec4 color;
+
 uniform mat4 matLocModel;
 uniform mat4 matrix;
 varying mediump vec3 vPosition;
-varying mediump vec4 vColor;
+varying mediump vec3 vNorm;
 
 void main(void) {
   vPosition = position;//(matLocModel * vec4(position, 1.0)).xyz;
-  vColor = color;
+  vNorm = norm;
   gl_Position = matrix * vec4(position, 1.0);
 }`;
 
@@ -271,7 +304,6 @@ const fsSrc = `
 precision mediump float;
 
 varying vec3 vPosition;
-varying vec4 vColor;
 
 uniform vec4 positionOfWinterLight;
 uniform vec4 colorOfWinterLight;
@@ -304,5 +336,5 @@ void main(void) {
     calcLight(positionOfSpringLight.xyz, colorOfSpringLight) +
     calcLight(positionOfSummerLight.xyz, colorOfSummerLight) +
     calcLight(positionOfAutumnLight.xyz, colorOfAutumnLight);
-  gl_FragColor = clamp(color * vColor, 0.0, 1.0);
+  gl_FragColor = vec4(1.0);//clamp(color, 0.0, 1.0);
 }`;

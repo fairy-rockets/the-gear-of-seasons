@@ -86,6 +86,11 @@ precision mediump float;
 uniform float time;
 varying vec2 vPosition;
 
+// https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
+float rand(vec2 co){
+  return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
 void main(void) {
   float n = 0.2;
   gl_FragColor = vec4(n, n, n, 1);
