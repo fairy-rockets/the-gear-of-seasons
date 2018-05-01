@@ -105,6 +105,7 @@ export default class Moments {
       this.vertexes_.bindShader(this.program_, 'position');
       this.texCoords_.bindShader(this.program_, 'textureCoord');
       this.indecies_.bind();
+      let hit = false;
       for(let m of this.models_) {
         const tex = m.tex;
         if(!tex.ready) {
@@ -120,10 +121,12 @@ export default class Moments {
         mat4.mul(mat, worldMat, mat);
         const [dx, dy] = this.calcMousePos_(mat, mouseX, mouseY)
         const hovered = Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && (dx * dx + dy * dy) <= 1;
+        hit = hit || hovered;
         gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
         gl.uniform1i(this.program_.uniformLoc('hovered'), hovered);
         this.indecies_.render();
       }
+      world.cursor = hit;
     } finally {
       this.vertexes_.unbind();
       this.texCoords_.unbind();
