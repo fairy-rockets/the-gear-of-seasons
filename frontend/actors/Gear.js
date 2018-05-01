@@ -94,9 +94,9 @@ export default class Gear {
 
     // calc model matrix
     mat4.identity(matLocModel);
-    mat4.rotateZ(matLocModel, matLocModel, this.angle_);
     mat4.mul(matLocModel, matLoc, matLocModel);
     mat4.mul(matLocModel, matModel, matLocModel);
+    mat4.rotateZ(matLocModel, matLocModel, this.angle_);
 
     // calc final matrix (eye + projection)
     mat4.mul(matTmp, matWorld, matLocModel);
