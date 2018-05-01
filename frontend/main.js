@@ -42,4 +42,4 @@ function openIndex(){
 
 document.addEventListener('DOMContentLoaded', function() {
   main();
-});
+}, false);
