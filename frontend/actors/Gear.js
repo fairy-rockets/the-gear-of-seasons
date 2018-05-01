@@ -13,25 +13,6 @@ function calcTodaysAngle() {
   return Math.PI * 2 * ((now.getTime() - beg.getTime()) / (end.getTime() - beg.getTime()));
 }
 
-/**
- * 
- * @param {number} r 
- * @param {number} g 
- * @param {number} b 
- * @returns {number[]}
- */
-function rgb(r, g, b) {
-  r /= 255.0;
-  g /= 255.0;
-  b /= 255.0;
-  return [Math.pow(r, 2.2), Math.pow(g, 2.2), Math.pow(b, 2.2), 1];
-}
-
-const WinterColor = rgb(158, 195, 255);
-const SpringColor = rgb(255, 198, 215);
-const SummerColor = rgb(82, 219, 70);
-const AutumnColor = rgb(221, 105, 51);
-
 export default class Gear {
   /**
    * @param {World} world 
@@ -66,7 +47,7 @@ export default class Gear {
     mat4.identity(matLoc);
     //mat4.rotateY(matModel, matModel, -90/180*Math.PI);
     mat4.scale(matModel, matModel, [10, 10, 10]);
-    mat4.translate(matLoc, matLoc, [-1.1 * aspect, 0, -1.5]);
+    mat4.translate(matLoc, matLoc, [-0.8 * aspect, 0.8, -1.5]);
   }
   /** @param {number} v */
   set angle(v) {
@@ -79,6 +60,22 @@ export default class Gear {
   /** @returns {mat4} */
   get matrix() {
     return this.matLocModel_;
+  }
+  /** @returns {vec3} */
+  get winterLightPos() {
+    return this.winterLightPos_;
+  }
+  /** @returns {vec3} */
+  get springLightPos() {
+    return this.springLightPos_;
+  }
+  /** @returns {vec3} */
+  get summerLightPos() {
+    return this.summerLightPos_;
+  }
+  /** @returns {vec3} */
+  get autumnLightPos() {
+    return this.autumnLightPos_;
   }
   /**
    * 
@@ -291,6 +288,7 @@ attribute vec3 norm;
 
 uniform mat4 matLocModel;
 uniform mat4 matrix;
+
 varying mediump vec3 vPosition;
 varying mediump vec3 vNorm;
 
