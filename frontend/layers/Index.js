@@ -26,23 +26,75 @@ export default class Index extends Layer {
     this.mouseY_ = 0;
 
     this.element.innerHTML = htmlSrc;
-  }
-  /**
-   * 
-   * @param {WheelEvent} event 
-   */
-  onWheelEvent_(event) {
-    event.preventDefault();
-    const world = this.world;
-    world.gear.angle += event.deltaY * Math.PI / (360 * 10);
-    world.gear.angle -= event.deltaX * Math.PI / (360 * 10);
+    /**
+     * @type {Moment}
+     * @private
+     */
+    this.selected_ = null;
+    this.selectedAngle_ = null;
   }
   /**
    * @param {number} time 
    * @param {mat4} matWorld
    */
   render(time, matWorld) {
-    this.moments_.render(time, matWorld, this.mouseX_, this.mouseY_);
+    const m = this.moments_.render(time, matWorld, this.mouseX_, this.mouseY_);
+    if(m !== this.selected_) {
+      this.selected_ = m;
+      const tooltip = document.getElementById('tooltip');
+      if(m == null) {
+        tooltip.classList.add('hidden');
+      }else{
+        tooltip.classList.remove('hidden');
+        const now = new Date();
+        const date = m.date;
+        let year = now.getFullYear() - date.getFullYear();
+        now.setFullYear(date.getFullYear());
+        let day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
+        if(day > 365/2) {
+          year++;
+          now.setFullYear(date.getFullYear()-1);
+          day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
+        }else if(day < -365/2){
+          year--;
+          now.setFullYear(date.getFullYear()+1);
+          day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
+        }
+        day = Math.floor(day);
+        if(year === 0 && day === 0){
+          tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">今日！</div>`;
+        }else if(year == 0) {
+          if(day > 0) {
+            tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">太陽が空を${day}周戻った頃</div>`;
+          } else {
+            tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">太陽が空を${-day}周した頃</div>`;
+          }
+        }else{
+          if(day == 0){
+            tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">季節の歯車が${year}回転する前</div>`;
+          }else if(day > 0){
+            tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">季節の歯車が${year}回転戻って、<br>さらに太陽が空を${day}周戻った頃</div>`;
+          }else{
+            tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">季節の歯車が${year}回転戻って、<br>その後太陽が空を${-day}周した頃</div>`;
+          }
+        }
+        this.fixTooltipPosition_(tooltip);
+      }
+    }
+  }
+
+  /**
+   * @param {HTMLDivElement} tooltip 
+   */
+  fixTooltipPosition_(tooltip) {
+    const m = this.selected_;
+    if((m.screenBottomY + m.screenTopY) / 2 / this.world_.canvas.height >= 0.5) {
+      tooltip.style.top = (m.screenTopY - tooltip.clientHeight)+'px';
+      tooltip.style.left = (m.screenTopX - tooltip.clientWidth/2)+'px';
+    }else{
+      tooltip.style.top = m.screenBottomY+'px';
+      tooltip.style.left = (m.screenTopX - tooltip.clientWidth/2)+'px';
+    }
   }
 
   /** @override */
@@ -71,6 +123,20 @@ export default class Index extends Layer {
 
     this.mouseX_ = (ev.clientX - hw) / hw;
     this.mouseY_ = -(ev.clientY - hh) / hh;
+  }
+
+  /**
+   * 
+   * @param {WheelEvent} event 
+   */
+  onWheelEvent_(event) {
+    event.preventDefault();
+    const world = this.world;
+    world.gear.angle += event.deltaY * Math.PI / (360 * 10);
+    world.gear.angle -= event.deltaX * Math.PI / (360 * 10);
+    if(this.selected_) {
+      this.fixTooltipPosition_(document.getElementById('tooltip'))
+    }
   }
 
   /**
@@ -110,5 +176,5 @@ const htmlSrc = `
   <a href="">About us</a>
   </div>
 </div>
-<div id="tooltip" class="tooltop"></div>
+<div id="tooltip" class="tooltip"></div>
 `;

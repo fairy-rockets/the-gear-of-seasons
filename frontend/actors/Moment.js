@@ -27,6 +27,35 @@ export default class Moment {
     this.radius_ = -1;
     this.x_ = 0;
     this.y_ = 0;
+    //
+    this.screenTopX_ = 0;
+    this.screenTopY_ = 0;
+    this.screenBottomX_ = 0;
+    this.screenBottomY_ = 0;
+  }
+  setScreenTop(screenTopX, screenTopY) {
+    this.screenTopX_ = screenTopX;
+    this.screenTopY_ = screenTopY;
+  }
+  setScreenBottom(screenBottomX, screenBottomY) {
+    this.screenBottomX_ = screenBottomX;
+    this.screenBottomY_ = screenBottomY;
+  }
+  /** @type {number} */
+  get screenTopX() {
+    return this.screenTopX_;
+  }
+  /** @type {number} */
+  get screenTopY() {
+    return this.screenTopY_;
+  }
+  /** @type {number} */
+  get screenBottomX() {
+    return this.screenBottomX_;
+  }
+  /** @type {number} */
+  get screenBottomY() {
+    return this.screenBottomY_;
   }
   /**
    * 
@@ -76,5 +105,13 @@ export default class Moment {
   /** @returns {Texture} */
   get tex() {
     return this.tex_;
+  }
+  /** @returns {string} */
+  get title() {
+    return this.title_;
+  }
+  /** @returns {Date} */
+  get date() {
+    return this.date_;
   }
 }

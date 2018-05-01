@@ -44,6 +44,7 @@ export default class Moments {
     /** Mouse Handling **/
     this.mouseTmpMat_ = mat4.identity(mat4.create());
     this.mouseTmpVec_ = vec4.create();
+    this.momentPosTmpVec_ = vec4.create();
 
     /** @type {Moment[]} */
     this.models_ = null;
@@ -64,6 +65,7 @@ export default class Moments {
    * @param {mat4} mat 
    * @param {number} mouseX
    * @param {number} mouseY
+   * @returns {Moment} 
    */
   render(time, matWorld, mouseX, mouseY) {
     const gl = this.gl_;
@@ -71,12 +73,18 @@ export default class Moments {
     const gear = world.gear;
     const mat = this.mat_;
 
+    const hw = world.canvas.width/2;
+    const hh = world.canvas.height/2;
+
     const matModel = this.matModel_;
     const matLoc = this.matLoc_;
 
     if(!this.models_) {
       return;
     }
+
+    /** @type {Moment} */
+    let selected = null;
 
     try {
       gl.enable(gl.BLEND);
@@ -106,6 +114,16 @@ export default class Moments {
         // mouse hit test
         const [dx, dy] = this.calcMousePos_(mat, mouseX, mouseY)
         const hovered = Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && (dx * dx + dy * dy) <= 1;
+        if(hovered) {
+          const v = this.momentPosTmpVec_;
+          vec4.set(v, 0, 1, 0, 1);
+          vec4.transformMat4(v, v, mat);
+          m.setScreenTop((v[0]/v[3]+1)*hw, (1-v[1]/v[3])*hh);
+          vec4.set(v, 0, -1, 0, 1);
+          vec4.transformMat4(v, v, mat);
+          m.setScreenBottom((v[0]/v[3]+1)*hw, (1-v[1]/v[3])*hh);
+          selected = m;
+        }
         hit = hit || hovered;
 
         // Lets render!
@@ -121,6 +139,7 @@ export default class Moments {
       this.indecies_.unbind();
       this.program_.unbind();
     }
+    return selected;
   }
   /**
    * 
