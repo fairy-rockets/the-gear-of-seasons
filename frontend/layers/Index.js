@@ -4,6 +4,7 @@ import Moments from '../actors/Moments.js';
 import Moment from '../actors/Moment.js';
 import { mat4, vec4 } from 'gl-matrix';
 import * as debug from '../gl/debug.js';
+import Page from './Page.js';
 
 /**
   @typedef MomentData
@@ -12,6 +13,7 @@ import * as debug from '../gl/debug.js';
   @property {string} date
   @property {string} title
   @property {string} image
+  @property {string} url
 */
 export default class Index extends Layer {
   /**
@@ -23,6 +25,8 @@ export default class Index extends Layer {
     this.wheelEventListener_ = this.onWheelEvent_.bind(this);
     /** @private */
     this.mouseMoveListener_ = this.onMouseMove_.bind(this);
+    /** @private */
+    this.mouseUpListener_ = this.onMouseUp_.bind(this);
     /** @private */
     this.moments_ = new Moments(world);
     /** @private */
@@ -130,18 +134,21 @@ export default class Index extends Layer {
   }
 
   /** @override */
-  attach() {
-    super.attach();
+  onAttached() {
+    super.onAttached();
+    this.world.cursor = false;
     this.world.canvas.addEventListener('wheel', this.wheelEventListener_, false);
     this.world.canvas.addEventListener('mousemove', this.mouseMoveListener_, false);
+    this.world.canvas.addEventListener('mouseup', this.mouseUpListener_, false);
     this.fetch(300);
   }
-
   /** @override */
-  detach() {
+  onDtached() {
+    this.world.cursor = false;
     this.world.canvas.removeEventListener('wheel', this.wheelEventListener_, false);
     this.world.canvas.removeEventListener('mousemove', this.mouseMoveListener_, false);
-    super.detach();
+    this.world.canvas.removeEventListener('mouseup', this.mouseUpListener_, false);
+    super.onDtached();
   }
 
   /**
@@ -155,6 +162,19 @@ export default class Index extends Layer {
 
     this.mouseX_ = (ev.clientX - hw) / hw;
     this.mouseY_ = -(ev.clientY - hh) / hh;
+  }
+
+  /**
+   * @param {MouseEvent} ev 
+   */
+  onMouseUp_(ev) {
+    ev.preventDefault();
+    const m = this.selected_;
+    if(!m) {
+      return;
+    }
+    const content = fetch(m.url).then(resp => resp.text());
+    this.world.pushLayer(new Page(this.world, content));
   }
 
   /**
@@ -179,7 +199,7 @@ export default class Index extends Layer {
     /** @type {Moment[]} */
     const models = [];
     for(let m of moments) {
-      const model = new Moment(world, m.angle, new Date(m.date), m.title, m.image);
+      const model = new Moment(world, m.angle, new Date(m.date), m.title, m.image, m.url);
       model.relocation(models);
       models.push(model);
     }

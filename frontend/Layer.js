@@ -41,11 +41,9 @@ export default class Layer {
    */
   render(time, matWorld) {
   }
-  attach() {
-    this.world.layer = this;
+  onAttached() {
   }
-  detach() {
-    this.world.layer = null;
+  onDtached() {
   }
   destroy() {
 

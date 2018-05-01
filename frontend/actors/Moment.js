@@ -12,15 +12,17 @@ export default class Moment {
    * @param {Date} date 
    * @param {string} title 
    * @param {string} imageUrl 
+   * @param {string} url
    */
-  constructor(world, angle, date, title, imageUrl) {
+  constructor(world, angle, date, title, imageUrl, url) {
     this.world_ = world;
     this.gl_ = world.gl;
     // params
     this.angle_ = angle;
     this.date_ = date;
     this.title_ = title;
-    this.imageUrl = imageUrl;
+    this.imageUrl_ = imageUrl;
+    this.url_ = url;
     this.tex_ = new Texture(world, imageUrl);
     this.c_ = Math.cos(this.angle_);
     this.s_ = -Math.sin(this.angle_);
@@ -109,6 +111,14 @@ export default class Moment {
   /** @returns {string} */
   get title() {
     return this.title_;
+  }
+  /** @returns {string} */
+  get imageUrl() {
+    return this.imageUrl_;
+  }
+  /** @returns {string} */
+  get url() {
+    return this.url_;
   }
   /** @returns {Date} */
   get date() {

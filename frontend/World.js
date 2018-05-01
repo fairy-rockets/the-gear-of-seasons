@@ -30,8 +30,8 @@ export default class World {
     this.runner_ = this.render_.bind(this);
     this.gear_ = new Gear(this);
     this.bg_ = new Background(this);
-    /** @type {Layer} */
-    this.layer_ = null;
+    /** @type {Layer[]} */
+    this.layers_ = [];
 
     // WorldMatrix
     this.matEye_ = mat4.identity(mat4.create());
@@ -60,18 +60,34 @@ export default class World {
     requestAnimationFrame(this.runner_);
   }
   /** @returns {Gear} */
-  get gear(){
+  get gear() {
     return this.gear_;
   }
-  /** @param {Layer} layer */
-  set layer(layer) {
-    if(this.layer_) {
-      document.body.removeChild(layer.element);
+  /** @param {Layer} next */
+  pushLayer(next) {
+    if(this.layers_.length > 0) {
+      const current = this.layers_[this.layers_.length-1];
+      current.onDtached();
+      document.body.removeChild(current.element);
     }
-    this.layer_ = layer;
-    document.body.appendChild(layer.element);
+    this.layers_.push(next);
+    document.body.appendChild(next.element);
+    next.onAttached();
   }
-  /** @returns {number} */
+  popLayer() {
+    if(this.layers_.length == 0) {
+      throw new Error("No layers.");
+    }
+    const current = this.layers_.pop();
+    current.onDtached();
+    document.body.removeChild(current.element);
+    current.destroy();
+
+    const next = this.layers_[this.layers_.length-1];
+    document.body.appendChild(next.element);
+    next.onAttached();
+  }
+    /** @returns {number} */
   get aspect() {
     return this.canvas_.width / this.canvas_.height;
   }
@@ -137,8 +153,8 @@ export default class World {
     // Render
     this.bg_.render(time, matWorld);
     this.gear_.render(matWorld);
-    if(this.layer_) {
-      this.layer_.render(time, matWorld);
+    if(this.layers_.length > 0) {
+      this.layers_[this.layers_.length-1].render(time, matWorld);
     }
 
     gl.flush();
