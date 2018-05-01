@@ -1,8 +1,8 @@
 import World from "../World.js";
 import Moment from "./Moment.js"
-import { mat4 } from "gl-matrix";
+import { mat4, vec4 } from "gl-matrix";
 
-const Scale = 0.2;
+const Scale = Moment.DiscRadius;
 
 export default class Moments {
   /**
@@ -26,15 +26,20 @@ export default class Moments {
     }
     `);
     const fs = world.compileFragmentShader(`
+    precision mediump float;
+
+    uniform bool hovered;
     uniform sampler2D texture;
-    varying mediump vec2 vTextureCoord;
+    varying vec2 vTextureCoord;
 
     void main(void) {
-      mediump vec2 center = vec2(0.5, 0.5);
-      mediump float dist = distance(vTextureCoord, center);
+      vec2 center = vec2(0.5, 0.5);
+      float dist = distance(vTextureCoord, center);
+      vec4 texColor = texture2D(texture, vTextureCoord);
+      vec4 ringColor = hovered ? vec4(1, 1, 1, 0.6) : vec4(0,0,0,0.6);
       gl_FragColor =
-        dist < 0.47 ? texture2D(texture, vTextureCoord) :
-        dist < 0.5 ? texture2D(texture, vTextureCoord)*((0.5-dist)/0.2) + vec4(1,1,1,0.6) * (dist/0.2) :
+        dist < 0.47 ? texColor :
+        dist < 0.5 ? texColor*((0.5-dist)/0.3) + ringColor * (dist/0.3) :
         vec4(0, 0, 0, 0);
     }
     `);
@@ -76,10 +81,12 @@ export default class Moments {
     this.models_ = ms;
   }
   /**
-   * 
+   * @param {number} time 
    * @param {mat4} mat 
+   * @param {number} mouseX
+   * @param {number} mouseY
    */
-  render(worldMat) {
+  render(time, worldMat, mouseX, mouseY) {
     const gl = this.gl_;
     const world = this.world_;
     const gear = world.gear;
@@ -88,7 +95,6 @@ export default class Moments {
     if(!this.models_) {
       return;
     }
-
 
     try {
       this.program_.bind();
@@ -108,7 +114,10 @@ export default class Moments {
         mat4.rotateZ(mat, mat, -gear.angle);
         mat4.mul(mat, gear.modelMat, mat);
         mat4.mul(mat, worldMat, mat);
+        const [dx, dy] = this.calcMousePos_(mat, mouseX, mouseY)
+        const hovered = Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && (dx * dx + dy * dy) <= 1;
         gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
+        gl.uniform1i(this.program_.uniformLoc('hovered'), hovered);
         this.indecies_.render();
       }
     } finally {
@@ -117,6 +126,25 @@ export default class Moments {
       this.indecies_.unbind();
       this.program_.unbind();
     }
+  }
+  /**
+   * 
+   * @param {mat4} mat 
+   * @param {number} x 
+   * @param {number} y 
+   * @returns {number[]}
+   */
+  calcMousePos_(mat, x, y) {
+    const matP = mat4.set(mat4.create(),
+      mat[0], mat[1], mat[2], mat[3],
+      mat[4], mat[5], mat[6], mat[7],
+      0,      0,      -1,     0,
+      -x,     -y,     0,      -1
+    );
+    const vecP = vec4.fromValues(-mat[12], -mat[13], -mat[14], -mat[15]);
+    const invP = mat4.invert(mat4.create(), matP);
+    const out = vec4.transformMat4(vec4.create(), vecP, invP); /* = (X,Y,z,w) */
+    return [out[0], out[1]];
   }
 
   destroy() {
