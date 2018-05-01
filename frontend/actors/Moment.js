@@ -22,6 +22,8 @@ export default class Moment {
     this.title_ = title;
     this.imageUrl = imageUrl;
     this.tex_ = new Texture(world, imageUrl);
+    this.c_ = Math.cos(this.angle_);
+    this.s_ = -Math.sin(this.angle_);
     this.radius_ = -1;
     this.x_ = 0;
     this.y_ = 0;
@@ -33,8 +35,8 @@ export default class Moment {
   relocation(moments) {
     const diameter = Moment.DiscRadius * 2;
     const diameter2 = diameter * diameter;
-    const c = Math.cos(this.angle_);
-    const s = -Math.sin(this.angle_);
+    const c = this.c_;
+    const s = this.s_;
     let radius = 1.05 + Moment.DiscRadius;
     let fixed = true;
     while(fixed) {

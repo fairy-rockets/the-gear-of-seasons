@@ -14,35 +14,8 @@ export default class Moments {
 
     const gl = this.gl_;
 
-    const vs = world.compileVertexShader(`
-    attribute vec3 position;
-    attribute vec2 textureCoord;
-    uniform mat4 matrix;
-    varying vec2 vTextureCoord;
-    
-    void main(void) {
-      vTextureCoord = textureCoord;
-      gl_Position = matrix * vec4(position, 1.0);
-    }
-    `);
-    const fs = world.compileFragmentShader(`
-    precision mediump float;
-
-    uniform bool hovered;
-    uniform sampler2D texture;
-    varying vec2 vTextureCoord;
-
-    void main(void) {
-      vec2 center = vec2(0.5, 0.5);
-      float dist = distance(vTextureCoord, center);
-      vec4 texColor = texture2D(texture, vTextureCoord);
-      vec4 ringColor = hovered ? vec4(1, 1, 1, 1) : vec4(0.2,0.2,0.2,0.5);
-      gl_FragColor =
-        dist < 0.47 ? texColor :
-        dist < 0.5 ? texColor*((0.5-dist)/0.3) + ringColor * (dist/0.3) :
-        vec4(0, 0, 0, 0);
-    }
-    `);
+    const vs = world.compileVertexShader(vsSrc);
+    const fs = world.compileFragmentShader(fsSrc);
     this.program_ = world.linkShaders(vs, fs);
 
     this.vertexes_ = world.createArrayBuffer([
@@ -63,8 +36,10 @@ export default class Moments {
     ]);
 
     /** Matrix **/
-    this.modelMat_ = mat4.identity(mat4.create());
+    this.matModel_ = mat4.identity(mat4.create());
     this.mat_ = mat4.identity(mat4.create());
+
+    mat4.scale(this.matModel_, this.matModel_, [Scale, Scale, Scale]);
     
     /** Mouse Handling **/
     this.mouseTmpMat_ = mat4.identity(mat4.create());
@@ -90,17 +65,22 @@ export default class Moments {
    * @param {number} mouseX
    * @param {number} mouseY
    */
-  render(time, worldMat, mouseX, mouseY) {
+  render(time, matWorld, mouseX, mouseY) {
     const gl = this.gl_;
     const world = this.world_;
     const gear = world.gear;
     const mat = this.mat_;
+
+    const matModel = this.matModel_;
+    const matLoc = this.matLoc_;
 
     if(!this.models_) {
       return;
     }
 
     try {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       this.program_.bind();
       this.vertexes_.bindShader(this.program_, 'position');
       this.texCoords_.bindShader(this.program_, 'textureCoord');
@@ -112,22 +92,30 @@ export default class Moments {
           continue;
         }
         tex.bindShader(this.program_, 'texture');
+
+        //model matrix
         mat4.identity(mat);
-        mat4.rotateZ(mat, mat, +gear.angle);
-        mat4.translate(mat, mat, [m.x, m.y, 0]);
-        mat4.scale(mat,mat, [Scale, Scale, Scale]);
+        mat4.mul(mat, mat, matModel);
+        mat4.translate(mat, mat, [m.x / Scale, m.y / Scale, 0]);
         mat4.rotateZ(mat, mat, -gear.angle);
-        mat4.mul(mat, gear.modelMat, mat);
-        mat4.mul(mat, worldMat, mat);
+        
+        // move to gear space!
+        mat4.mul(mat, gear.matrix, mat);
+        mat4.mul(mat, matWorld, mat);
+
+        // mouse hit test
         const [dx, dy] = this.calcMousePos_(mat, mouseX, mouseY)
         const hovered = Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && (dx * dx + dy * dy) <= 1;
         hit = hit || hovered;
+
+        // Lets render!
         gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
         gl.uniform1i(this.program_.uniformLoc('hovered'), hovered);
         this.indecies_.render();
       }
       world.cursor = hit;
     } finally {
+      gl.disable(gl.BLEND);
       this.vertexes_.unbind();
       this.texCoords_.unbind();
       this.indecies_.unbind();
@@ -166,3 +154,34 @@ export default class Moments {
     this.program_.destoy();
   }
 }
+
+const vsSrc = `
+attribute vec3 position;
+attribute vec2 textureCoord;
+uniform mat4 matrix;
+varying vec2 vTextureCoord;
+
+void main(void) {
+  vTextureCoord = textureCoord;
+  gl_Position = matrix * vec4(position, 1.0);
+}
+`;
+
+const fsSrc = `
+precision mediump float;
+
+uniform bool hovered;
+uniform sampler2D texture;
+varying vec2 vTextureCoord;
+
+void main(void) {
+  vec2 center = vec2(0.5, 0.5);
+  float dist = distance(vTextureCoord, center);
+  vec4 texColor = texture2D(texture, vTextureCoord);
+  vec4 ringColor = hovered ? vec4(1, 1, 1, 1) : vec4(0.2,0.2,0.2,0.5);
+  gl_FragColor =
+    dist < 0.47 ? texColor :
+    dist < 0.5 ? texColor*((0.5-dist)/0.3) + ringColor * (dist/0.3) :
+    vec4(0, 0, 0, 0);
+}
+`;

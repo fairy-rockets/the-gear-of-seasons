@@ -5,6 +5,7 @@ import Program from "./gl/Program.js";
 
 import Gear from "./actors/Gear.js";
 import Layer from "./Layer.js";
+import Background from './actors/Background.js';
 
 export default class World {
   /**
@@ -28,13 +29,14 @@ export default class World {
     this.gl_ = gl;
     this.runner_ = this.render_.bind(this);
     this.gear_ = new Gear(this);
+    this.bg_ = new Background(this);
     /** @type {Layer} */
     this.layer_ = null;
 
     // WorldMatrix
-    this.cameraMat_ = mat4.identity(mat4.create());
-    this.projMat_ = mat4.identity(mat4.create());
-    this.mat_ = mat4.identity(mat4.create());
+    this.matEye_ = mat4.identity(mat4.create());
+    this.matProjection_ = mat4.identity(mat4.create());
+    this.matWorld_ = mat4.identity(mat4.create());
 
     //
     this.cursor_ = false;
@@ -42,7 +44,19 @@ export default class World {
   }
   /** @public */
   start() {
-    this.init_();
+    // init OpenGL
+    const gl = this.gl_;
+    gl.enable(gl.CULL_FACE);
+
+    //gl.enable(gl.DEPTH_TEST);
+    //gl.depthFunc(gl.LEQUAL);
+
+    //gl.enable(gl.BLEND);
+    //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    mat4.lookAt(this.matEye_, [0, 0, 3], [0, 0, 0], [0, 1, 0]);
+
+    // Start animation
     requestAnimationFrame(this.runner_);
   }
   /** @returns {Gear} */
@@ -78,29 +92,16 @@ export default class World {
     return this.cursor_;
   }
   /**
-   * @private
-   */
-  init_() {
-    const gl = this.gl_;
-    gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);
-    gl.enable(gl.CULL_FACE);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    gl.enable(gl.BLEND);
-    mat4.lookAt(this.cameraMat_, [0, 0, 3], [0, 0, 0], [0, 1, 0]);
-    this.gear_.init();
-  }
-  /**
    * 
    * @param {number} width 
    * @param {number} height 
    */
   onSizeChanged(width, height) {
     const gl = this.gl_;
-    const worldMat = this.mat_;
+    const matWorld = this.matWorld_;
     gl.viewport(0, 0, width, height);
-    mat4.perspective(this.projMat_, 45, width / height, 1, 100);
-    mat4.multiply(worldMat, this.projMat_, this.cameraMat_);
+    mat4.perspective(this.matProjection_, 45, width / height, 1, 100);
+    mat4.multiply(matWorld, this.matProjection_, this.matEye_);
     this.gear_.onSizeChanged(width, height);
   }
   /**
@@ -111,7 +112,7 @@ export default class World {
     requestAnimationFrame(this.runner_);
     const gl = this.gl_;
     const canvas = this.canvas_;
-    const worldMat = this.mat_;
+    const matWorld = this.matWorld_;
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
   if(canvas.width !== width || canvas.height !== height) {
@@ -126,14 +127,27 @@ export default class World {
     // canvasを初期化
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    this.gear_.render(worldMat);
+    this.bg_.render(time, matWorld);
+    this.gear_.render(matWorld);
 
     if(this.layer_) {
-      this.layer_.render(time, worldMat);
+      this.layer_.render(time, matWorld);
     }
 
     gl.flush();
   }
+  destroy() {
+    if(this.layer_) {
+      this.layer_.detach();
+      this.layer_.destroy();
+    }
+    this.gear_.destroy();
+    this.bg_.destroy();
+  }
+
+  /****************************************************************************
+   *                              GLSL Helpers                                *
+   ****************************************************************************/
   /**
    * @param {string} src 
    * @returns {WebGLShader}

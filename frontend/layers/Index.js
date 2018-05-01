@@ -36,12 +36,13 @@ export default class Index extends Layer {
   }
   /**
    * @param {number} time 
-   * @param {mat4} worldMat
+   * @param {mat4} matWorld
    */
-  render(time, worldMat) {
-    this.moments_.render(time, worldMat, this.mouseX_, this.mouseY_);
+  render(time, matWorld) {
+    this.moments_.render(time, matWorld, this.mouseX_, this.mouseY_);
   }
 
+  /** @override */
   attach() {
     super.attach();
     this.world.canvas.addEventListener('wheel', this.wheelEventListener_, false);
@@ -49,6 +50,7 @@ export default class Index extends Layer {
     this.fetch(300);
   }
 
+  /** @override */
   detach() {
     this.world.canvas.removeEventListener('wheel', this.wheelEventListener_, false);
     this.world.canvas.removeEventListener('mousemove', this.mouseMoveListener_, false);
@@ -87,6 +89,11 @@ export default class Index extends Layer {
     fetch(`/moment/search?size=${size}`)
       .then(resp => resp.json())
       .then(this.onLoadMoments_.bind(this));
+  }
+
+  /** @override */
+  destroy() {
+    this.moments_.destroy();
   }
 }
 
