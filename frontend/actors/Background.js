@@ -1,6 +1,7 @@
 import World from "../World.js";
 import Moment from "./Moment.js"
 import { mat4, vec4 } from "gl-matrix";
+import { Winter, Spring, Summer, Autumn } from './Seasons.js';
 
 export default class Background {
   /**
@@ -17,10 +18,16 @@ export default class Background {
     this.program_ = world.linkShaders(vs, fs);
 
     this.vertexes_ = world.createArrayBuffer([
-      -30.0, +30.0,  0.00,
-      +30.0, +30.0,  0.00,
-      -30.0, -30.0,  0.00,
-      +30.0, -30.0,  0.00
+      -200.0, +200.0,  0.00,
+      +200.0, +200.0,  0.00,
+      -200.0, -200.0,  0.00,
+      +200.0, -200.0,  0.00
+    ],3);
+    this.norms_ = world.createArrayBuffer([
+      0,0,1,
+      0,0,1,
+      0,0,1,
+      0,0,1,
     ],3);
     this.indecies_ = world.createIndexBuffer(gl.TRIANGLES, [
       2, 1, 0,
@@ -29,11 +36,13 @@ export default class Background {
 
     /** Matrix **/
     this.matModel_ = mat4.identity(mat4.create());
+    //mat4.rotateY(this.matModel_, this.matModel_, -Math.PI/4);
 
     this.matLoc_ = mat4.identity(mat4.create());
-    mat4.translate(this.matLoc_, this.matLoc_, [0, 0, -1]);
+    mat4.translate(this.matLoc_, this.matLoc_, [-2, 0, -5]);
 
-    this.mat_ = mat4.identity(mat4.create());
+    this.matLocModelTmp_ = mat4.identity(mat4.create());
+    this.matTmp_ = mat4.identity(mat4.create());
   }
   /**
    * @param {number} time 
@@ -42,19 +51,39 @@ export default class Background {
   render(time, matWorld) {
     const gl = this.gl_;
     const world = this.world_;
-    const mat = this.mat_;
+    const matTmp = this.matTmp_;
+    const matLocModel = this.matLocModelTmp_;
 
     try {
       this.program_.bind();
       this.vertexes_.bindShader(this.program_, 'position');
+      this.norms_.bindShader(this.program_, 'norm');
+
       this.indecies_.bind();
-      mat4.copy(mat, this.matModel_);
-      mat4.mul(mat, this.matLoc_, mat);
-      mat4.mul(mat, matWorld, mat);
-      gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
+      mat4.identity(matLocModel);
+      mat4.mul(matLocModel, this.matLoc_, matLocModel);
+      mat4.mul(matLocModel, this.matModel_, matLocModel);
+
+      mat4.mul(matTmp, matWorld, matLocModel);
+
+      gl.uniformMatrix4fv(this.program_.uniformLoc('matLocModel'), false, matLocModel);
+      gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, matTmp);
+
       gl.uniform1f(this.program_.uniformLoc('time'), time);
+
+      gl.uniform4fv(this.program_.uniformLoc('winterColor'), Winter.color);
+      gl.uniform4fv(this.program_.uniformLoc('springColor'), Spring.color);
+      gl.uniform4fv(this.program_.uniformLoc('summerColor'), Summer.color);
+      gl.uniform4fv(this.program_.uniformLoc('autumnColor'), Autumn.color);
+
+      gl.uniform4fv(this.program_.uniformLoc('winterPosition'), world.gear.winterLightPos);
+      gl.uniform4fv(this.program_.uniformLoc('springPosition'), world.gear.springLightPos);
+      gl.uniform4fv(this.program_.uniformLoc('summerPosition'), world.gear.summerLightPos);
+      gl.uniform4fv(this.program_.uniformLoc('autumnPosition'), world.gear.autumnLightPos);
+
       this.indecies_.render();
     } finally {
+      this.norms_.unbind();
       this.vertexes_.unbind();
       this.indecies_.unbind();
       this.program_.unbind();
@@ -64,6 +93,7 @@ export default class Background {
     for(let m of this.models_) {
       m.destroy();
     }
+    this.norms_.destroy();
     this.vertexes_.destroy();
     this.indecies_.destroy();
     this.program_.destoy();
@@ -72,11 +102,17 @@ export default class Background {
 
 const vsSrc = `
 attribute vec3 position;
+attribute vec3 norm;
+
+uniform mat4 matLocModel;
 uniform mat4 matrix;
-varying vec2 vPosition;
+
+varying mediump vec3 vPosition;
+varying mediump vec3 vNorm;
 
 void main(void) {
-  vPosition = position.xy;
+  vPosition = (matLocModel * vec4(position, 1.0)).xyz;
+  vNorm     = (matLocModel * vec4(norm,     0.0)).xyz;
   gl_Position = matrix * vec4(position, 1.0);
 }
 `;
@@ -84,7 +120,20 @@ const fsSrc = `
 precision mediump float;
 
 uniform float time;
-varying vec2 vPosition;
+varying vec3 vPosition;
+varying vec3 vNorm;
+
+uniform vec4 winterPosition;
+uniform vec4 winterColor;
+
+uniform vec4 springPosition;
+uniform vec4 springColor;
+
+uniform vec4 summerPosition;
+uniform vec4 summerColor;
+
+uniform vec4 autumnPosition;
+uniform vec4 autumnColor;
 
 // https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
 float rand(vec2 co) {
@@ -125,6 +174,14 @@ float noise(vec2 p){
 	return t;
 }
 
+vec4 calcLight(vec3 lightPosition, vec4 lightColor) {
+  vec3 delta = lightPosition - vPosition;
+  float d = length(delta);
+  vec3 ndelta = normalize(delta);
+  vec3 norm = normalize(vNorm);
+  return lightColor * 10.0 / pow(d, 1.5);
+}
+
 void main(void) {
   float sum = 0.0;
 
@@ -134,6 +191,12 @@ void main(void) {
   n = noise(gl_FragCoord.xy + vec2(-time / 150.0, time / 120.0));
   vec3 cloud2 = vec3(45.0/255.0, 60.0/355.0, 109.0/255.0) * pow(n, 1.0) * 0.3;
 
-  gl_FragColor = vec4(cloud1 + cloud2, 1.0);
+  vec4 lightColor =
+    calcLight(winterPosition.xyz, winterColor) +
+    calcLight(springPosition.xyz, springColor) +
+    calcLight(summerPosition.xyz, summerColor) +
+    calcLight(autumnPosition.xyz, autumnColor);
+
+  gl_FragColor = vec4(cloud1 + cloud2, 1.0) + lightColor;
 }
 `;
