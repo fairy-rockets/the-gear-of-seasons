@@ -43,15 +43,12 @@ export default class Moment {
 
       const a = s;
       const b = -c;
-      for(let m of moments) {
-        const dx = x - m.x_;
-        const dy = y - m.y_;
-        if(Math.abs(dx) > diameter || Math.abs(dy) > diameter) {
-          continue;
-        }
-        if(Math.sqrt(dx * dx + dy * dy) < diameter) {
-          const d = (m.x_ * a) + (m.y_ * b);
-          radius = m.radius_ + Math.sqrt(diameter2 - d*d);
+      for(let other of moments) {
+        const dx = x - other.x_;
+        const dy = y - other.y_;
+        if(Math.abs(dx) <= diameter && Math.abs(dy) <= diameter && (dx * dx + dy * dy) <= diameter2) {
+          const d = (other.x_ * a) + (other.y_ * b);
+          radius = other.radius_ + Math.sqrt(diameter2 - d*d);
           fixed = true;
           break;
         }
