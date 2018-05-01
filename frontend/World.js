@@ -35,6 +35,10 @@ export default class World {
     this.cameraMat_ = mat4.identity(mat4.create());
     this.projMat_ = mat4.identity(mat4.create());
     this.mat_ = mat4.identity(mat4.create());
+
+    //
+    this.cursor_ = false;
+    this.canvas_.style.cursor = 'default';
   }
   /** @public */
   start() {
@@ -60,6 +64,18 @@ export default class World {
   /** @returns {WebGLRenderingContext} */
   get gl() {
     return this.gl_;
+  }
+  /**
+   * @param {boolean} on
+   */
+  set cursor(on) {
+    if(this.cursor_ !== on) {
+      this.canvas_.style.cursor = on ? 'pointer' : 'default';
+      this.cursor_ = on;
+    }
+  }
+  get cursor() {
+    return this.cursor_;
   }
   /**
    * @private
