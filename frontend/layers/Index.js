@@ -19,10 +19,15 @@ export default class Index extends Layer {
    */
   constructor(world) {
     super(world);
+    /** @private */
     this.wheelEventListener_ = this.onWheelEvent_.bind(this);
+    /** @private */
     this.mouseMoveListener_ = this.onMouseMove_.bind(this);
+    /** @private */
     this.moments_ = new Moments(world);
+    /** @private */
     this.mouseX_ = 0;
+    /** @private */
     this.mouseY_ = 0;
 
     this.element.innerHTML = htmlSrc;
@@ -31,7 +36,23 @@ export default class Index extends Layer {
      * @private
      */
     this.selected_ = null;
+    /** @private */
     this.selectedAngle_ = null;
+
+    /** @private */
+    this.tooltip_ = document.createElement('div');
+    this.tooltip_.classList.add('tooltip', 'hidden');
+    this.element_.appendChild(this.tooltip_);
+
+    /** @private */
+    this.tooltipTitle_ = document.createElement('div');
+    this.tooltipTitle_.classList.add('moment-title');
+    this.tooltip_.appendChild(this.tooltipTitle_);
+
+    /** @private */
+    this.tooltipDate_ = document.createElement('div');
+    this.tooltipDate_.classList.add('date');
+    this.tooltip_.appendChild(this.tooltipDate_);
   }
   /**
    * @param {number} time 
@@ -41,52 +62,63 @@ export default class Index extends Layer {
     const m = this.moments_.render(time, matWorld, this.mouseX_, this.mouseY_);
     if(m !== this.selected_) {
       this.selected_ = m;
-      const tooltip = document.getElementById('tooltip');
-      if(m == null) {
-        tooltip.classList.add('hidden');
-      }else{
-        tooltip.classList.remove('hidden');
-        const now = new Date();
-        const date = m.date;
-        let year = now.getFullYear() - date.getFullYear();
-        now.setFullYear(date.getFullYear());
-        let day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
-        if(day > 365/2) {
-          year++;
-          now.setFullYear(date.getFullYear()-1);
-          day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
-        }else if(day < -365/2){
-          year--;
-          now.setFullYear(date.getFullYear()+1);
-          day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
-        }
-        day = Math.floor(day);
-        if(year === 0 && day === 0){
-          tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">今日！</div>`;
-        }else if(year == 0) {
-          if(day > 0) {
-            tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">太陽が空を${day}周戻った頃</div>`;
-          } else {
-            tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">太陽が空を${-day}周した頃</div>`;
-          }
-        }else{
-          if(day == 0){
-            tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">季節の歯車が${year}回転する前</div>`;
-          }else if(day > 0){
-            tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">季節の歯車が${year}回転戻って、<br>さらに太陽が空を${day}周戻った頃</div>`;
-          }else{
-            tooltip.innerHTML = `<div class="moment-title">${m.title}</div><div class="date">季節の歯車が${year}回転戻って、<br>その後太陽が空を${-day}周した頃</div>`;
-          }
-        }
-        this.fixTooltipPosition_(tooltip);
-      }
+      this.onSelectionChanged_(m);
     }
   }
 
   /**
-   * @param {HTMLDivElement} tooltip 
+   * @param {Moment} m
    */
-  fixTooltipPosition_(tooltip) {
+  onSelectionChanged_(m) {
+    const tooltip = this.tooltip_;
+    if(m == null) {
+      tooltip.classList.add('hidden');
+    } else {
+      tooltip.classList.remove('hidden');
+
+      // title
+      this.tooltipTitle_.textContent = m.title;
+
+      const now = new Date();
+      const date = m.date;
+      let year = now.getFullYear() - date.getFullYear();
+      now.setFullYear(date.getFullYear());
+      let day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
+      if(day > 365/2) {
+        year++;
+        now.setFullYear(date.getFullYear()-1);
+        day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
+      }else if(day < -365/2){
+        year--;
+        now.setFullYear(date.getFullYear()+1);
+        day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
+      }
+      day = Math.floor(day);
+      if(year === 0 && day === 0){
+        this.tooltipDate_.textContent = `今日！`;
+      }else if(year == 0) {
+        if(day > 0) {
+          this.tooltipDate_.textContent = `太陽が空を${day}周戻った頃`;
+        } else {
+          this.tooltipDate_.textContent = `太陽が空を${-day}周した頃`;
+        }
+      }else{
+        if(day == 0){
+          this.tooltipDate_.textContent = `季節の歯車が${year}回転する前`;
+        }else if(day > 0){
+          this.tooltipDate_.innerHTML = `季節の歯車が${year}回転戻って、<br>さらに太陽が空を${day}周戻った頃`;
+        }else{
+          this.tooltipDate_.innerHTML = `季節の歯車が${year}回転戻って、<br>その後太陽が空を${-day}周した頃`;
+        }
+      }
+      this.fixTooltipPosition_();
+    }
+  }
+  /**
+   * @private
+   */
+  fixTooltipPosition_() {
+    const tooltip = this.tooltip_;
     const m = this.selected_;
     if((m.screenBottomY + m.screenTopY) / 2 / this.world_.canvas.height >= 0.5) {
       tooltip.style.top = (m.screenTopY - tooltip.clientHeight)+'px';
@@ -135,7 +167,7 @@ export default class Index extends Layer {
     world.gear.angle += event.deltaY * Math.PI / (360 * 10);
     world.gear.angle -= event.deltaX * Math.PI / (360 * 10);
     if(this.selected_) {
-      this.fixTooltipPosition_(document.getElementById('tooltip'))
+      this.fixTooltipPosition_();
     }
   }
 
@@ -176,5 +208,4 @@ const htmlSrc = `
   <a href="">About us</a>
   </div>
 </div>
-<div id="tooltip" class="tooltip"></div>
 `;
