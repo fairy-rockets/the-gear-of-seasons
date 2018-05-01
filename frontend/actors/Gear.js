@@ -31,7 +31,7 @@ export default class Gear {
     this.matTmp_ = mat4.identity(mat4.create());
 
     this.todaysAngle_ = calcTodaysAngle();
-    this.angle_ = this.todaysAngle_;
+    this.angle_ = this.todaysAngle_ - Math.PI/6;
     this.generateModel_(12, 10, 0.6, 1, 0.3);
   }
   /**
@@ -78,13 +78,9 @@ export default class Gear {
     return this.autumnLightPos_;
   }
   /**
-   * 
-   * @param {mat4} mat 
+   * @param {mat4} matWorld 
    */
-  render(matWorld) {
-    const gl = this.gl_;
-    const world = this.world_;
-
+  beforeRender(matWorld) {
     const matModel = this.matModel_;
     const matLoc = this.matLoc_;
 
@@ -104,6 +100,16 @@ export default class Gear {
     vec4.transformMat4(this.springLightPos_, Spring.position, matLocModel);
     vec4.transformMat4(this.summerLightPos_, Summer.position, matLocModel);
     vec4.transformMat4(this.autumnLightPos_, Autumn.position, matLocModel);
+  }
+  /**
+   * @param {mat4} matWorld 
+   */
+  render(matWorld) {
+    const gl = this.gl_;
+    const world = this.world_;
+
+    const matLocModel = this.matLocModel_;
+    const matTmp = this.matTmp_;
 
     try {
       gl.enable(gl.DEPTH_TEST);

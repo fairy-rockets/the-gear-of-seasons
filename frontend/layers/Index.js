@@ -24,6 +24,8 @@ export default class Index extends Layer {
     this.moments_ = new Moments(world);
     this.mouseX_ = 0;
     this.mouseY_ = 0;
+
+    this.element.innerHTML = htmlSrc;
   }
   /**
    * 
@@ -98,3 +100,15 @@ export default class Index extends Layer {
   }
 }
 
+const htmlSrc = `
+<div class="header">
+  <div class="title">
+  <h1>妖精⊸ロケット</h1>
+  季節の歯車
+  </div>
+  <div class="description">
+  <a href="">About us</a>
+  </div>
+</div>
+<div id="tooltip" class="tooltop"></div>
+`;
