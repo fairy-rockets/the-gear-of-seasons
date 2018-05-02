@@ -33,6 +33,7 @@ type momentCacheEntry struct {
 var (
 	embedRegex     = regexp.MustCompile(`\[(link|img|video|audio) ([^\]]+)\]`)
 	paragraphRegex = regexp.MustCompile(`(?ms)(^|\n+|>\n)(.+?)($|\n\n+|\n<)`)
+	blockRegex     = regexp.MustCompile(`<(script|div|pre|hr|ol|ul|video|blockquote|canvas) `)
 	keyValueRegex  = regexp.MustCompile(`([a-z]+)="([^"]*)"`)
 )
 
@@ -71,7 +72,7 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 
 	body = paragraphRegex.ReplaceAllStringFunc(body, func(match string) string {
 		matches := paragraphRegex.FindStringSubmatch(match)
-		if embedRegex.MatchString(matches[2]) {
+		if embedRegex.MatchString(matches[2]) || blockRegex.MatchString(matches[2]) {
 			return match
 		} else {
 			return fmt.Sprintf("%s<p>%s</p>%s", matches[1], matches[2], matches[3])
