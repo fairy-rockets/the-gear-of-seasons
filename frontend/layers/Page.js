@@ -63,8 +63,11 @@ export default class Page extends Layer {
   }
 
   onClose_() {
-    history.back();
-    //this.world.popLayer();
+    if(this.world.canPopLayer()){
+      this.world.popLayer();
+    } else {
+      this.world.openLayer('/');
+    }
   }
 
   /** @param {any} err */
