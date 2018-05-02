@@ -57,6 +57,9 @@ export default class Index extends Layer {
     this.tooltipDate_ = document.createElement('div');
     this.tooltipDate_.classList.add('date');
     this.tooltip_.appendChild(this.tooltipDate_);
+
+    /** @private */
+    this.loaded_ = false;
   }
   /**
    * @param {number} time 
@@ -140,7 +143,9 @@ export default class Index extends Layer {
     this.world.canvas.addEventListener('wheel', this.wheelEventListener_, false);
     this.world.canvas.addEventListener('mousemove', this.mouseMoveListener_, false);
     this.world.canvas.addEventListener('mouseup', this.mouseUpListener_, false);
-    this.fetch(300);
+    if(!this.loaded_) {
+      this.fetch(300);
+    }
   }
   /** @override */
   onDtached() {
@@ -204,6 +209,7 @@ export default class Index extends Layer {
       models.push(model);
     }
     this.moments_.models = models;
+    this.loaded_ = true;
   }
 
   fetch(size) {
