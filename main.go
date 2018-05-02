@@ -38,7 +38,12 @@ func mainLoop() os.Signal {
 
 	srv := web.NewWebServer(*addr, entities, moments)
 	srv.Prepare()
-	go srv.Start()
+	go func() {
+		err := srv.Start()
+		if err != nil {
+			log.Fatalf("Server aborted: %v", err)
+		}
+	}()
 
 	sig := make(chan os.Signal)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)

@@ -41,11 +41,20 @@ export default class Page extends Layer {
   /** @param {string} body */
   onLoad_(body) {
     this.content_.innerHTML = body;
+    for(let src of this.content_.getElementsByTagName('script')) {
+      const dst = document.createElement('script');
+      dst.textContent = src.textContent;
+      dst.src = src.src;
+      dst.async = dst.async;
+      const p = src.parentNode;
+      p.insertBefore(dst, src);
+      p.removeChild(src);
+    }
   }
 
   /** @param {any} err */
   onError_(err) {
-    this.content_.innerHTML = `<h1>エラー！</h1><strong>body</strong>`;
+    this.content_.innerHTML = `<h1>エラー！</h1><strong>${err}</strong>`;
   }
 
   /** @override */

@@ -102,17 +102,17 @@ export default class Index extends Layer {
         this.tooltipDate_.textContent = `今日！`;
       }else if(year == 0) {
         if(day > 0) {
-          this.tooltipDate_.textContent = `太陽が空を${day}周戻った頃`;
+          this.tooltipDate_.textContent = `太陽が空を${day}周する前`;
         } else {
-          this.tooltipDate_.textContent = `太陽が空を${-day}周した頃`;
+          this.tooltipDate_.textContent = `太陽が空を${-day}周した後`;
         }
       }else{
         if(day == 0){
           this.tooltipDate_.textContent = `季節の歯車が${year}回転する前`;
         }else if(day > 0){
-          this.tooltipDate_.innerHTML = `季節の歯車が${year}回転戻って、<br>さらに太陽が空を${day}周戻った頃`;
+          this.tooltipDate_.innerHTML = `季節の歯車が${year}回転戻って、<br>さらに太陽が空を${day}周する前`;
         }else{
-          this.tooltipDate_.innerHTML = `季節の歯車が${year}回転戻って、<br>その後太陽が空を${-day}周した頃`;
+          this.tooltipDate_.innerHTML = `季節の歯車が${year}回転戻って、<br>その後太陽が空を${-day}周した後`;
         }
       }
       this.fixTooltipPosition_();
