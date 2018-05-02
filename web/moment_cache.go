@@ -132,5 +132,4 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 <hr>
 %s`, m.Title, m.DateString(), m.Author, body)
 	return c
-
 }

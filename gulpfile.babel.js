@@ -1,10 +1,12 @@
 import gulp from 'gulp';
 import log from 'fancy-log';
+import del from 'del';
 import * as colors from 'ansi-colors';
+
 import webpackStream from 'webpack-stream';
 import webpack from 'webpack';
-import child from 'child_process';
-import runSeq from 'run-sequence';
+
+import child, { ChildProcess } from 'child_process';
 
 import webpackConfig from './webpack.config.js';
 
@@ -17,51 +19,66 @@ gulp.task('frontend:build', () => {
           .pipe(gulp.dest("_resources/static"));
 });
 
-gulp.task('server:build', (cont) => {
-  const gen = child.spawnSync('go', ['generate', Repo]);
-  if (gen.stderr.length) {
-    gen.stderr.toString()
-        .split('\n')
-        .filter(line => line.length > 0)
-        .forEach(line => log(colors.red(`Error (go build): ${line}`)));
-    cont();
-    return;
-  }
-  const build = child.spawnSync('go', ['build', '-o', Bin, Repo]);
-  if (build.stderr.length) {
-    build.stderr.toString()
-        .split('\n')
-        .filter(line => line.length > 0)
-        .forEach(line => log(colors.red(`Error (go build): ${line}`)));
-  }
-  cont();
-});
-let server = null;
-gulp.task('server:spawn', () => {
-  if (server) {
-    server.kill();
-  }
-  server = child.spawn('.bin/the-gear-of-seasons', []);
-  server.on('error', () => {
-    log(colors.red(`Error (server): ${err}`))
+/**
+ * @param {string[]} args 
+ * @returns {Promise<string>}
+ */
+function exec(args) {
+  return new Promise((resolve, reject) => {
+    log(`Spawn % ${args.map((s) => s.indexOf(' ') < 0 ? s : `"${s}"`).join(' ')}`);
+    const cmd = args.shift();
+    const p = child.spawn(cmd, args);
+    p.stderr.on('data', (err) => {
+      log(colors.red(`Error (${cmd}): ${err}`))
+    });
+    p.once('exit', (code, signal) => {
+      if(code === 0) resolve('ok');
+      else reject(code || signal);
+    });
   });
-  server.on('exit', () => {
-    server = null;
-  });
-  server.stderr.on('data', (data) => {
-    log((`from server:\n${data}`))
-  });
-  return server;
+}
+
+gulp.task('server:build', () => {
+  return del(['.bin/*'])
+    .then(paths => exec(['go', 'generate', Repo]))
+    .then(() => exec(['go', 'build', '-o', Bin, Repo]));
 });
 
-gulp.task('server:reload', (clbk) => runSeq('server:build', 'server:spawn', clbk));
+/** @type {ChildProcess} server */
+let server = null;
+gulp.task('server:spawn', ['server:build'], (clbk) => {
+  const spawn = () => {
+    server = child.spawn('.bin/the-gear-of-seasons', []);
+    server.on('error', (err) => {
+      log(colors.red(`Error (server): ${err}`))
+    });
+    server.stderr.on('data', (data) => {
+      //log((`from server:\n${data}`))
+    });
+    clbk();
+  };
+  if (server) {
+    let s = server;
+    server.once('exit', (code, signal) => {
+      log(`Server@${s.pid} killed: ${code}, ${signal}`)
+      server = null;
+      spawn();
+    });
+    log(`Killing server@${server.pid}...`)
+    server.kill();
+  }else{
+    spawn();
+  }
+});
+
+gulp.task('server:reload', ['server:spawn']);
 
 gulp.task('server:watch', ['server:reload'], () => {
-  return gulp.watch(['**/*.go'], ['server:reload']);
+  return gulp.watch(['**/*.go'], {debounceDelay: 2000}, ['server:reload']);
 });
 
 gulp.task('frontend:watch', ['frontend:build'], () => {
-  return gulp.watch(['frontend/**/*.js'], ['frontend:build']);
+  return gulp.watch(['frontend/**/*.js'], {debounceDelay: 100}, ['frontend:build']);
 });
 
 gulp.task('build', ['server:build', 'frontend:build']);
