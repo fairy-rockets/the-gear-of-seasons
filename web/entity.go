@@ -1,11 +1,9 @@
 package web
 
 import (
-	"net/http"
-
-	"os"
-
 	"io"
+	"net/http"
+	"os"
 
 	"github.com/julienschmidt/httprouter"
 )

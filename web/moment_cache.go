@@ -1,10 +1,9 @@
 package web
 
 import (
-	"sync"
-
 	"fmt"
 	"regexp"
+	"sync"
 
 	"github.com/FairyRockets/the-gear-of-seasons/entity"
 	"github.com/FairyRockets/the-gear-of-seasons/moment"

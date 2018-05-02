@@ -1,13 +1,11 @@
 package web
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
-	"time"
-
-	"fmt"
-
 	"path/filepath"
+	"time"
 
 	"github.com/FairyRockets/the-gear-of-seasons/entity"
 	"github.com/FairyRockets/the-gear-of-seasons/moment"
