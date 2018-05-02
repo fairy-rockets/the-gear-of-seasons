@@ -84,13 +84,32 @@ func (srv *Web) serveMomentSearch(w http.ResponseWriter, r *http.Request, _ http
 		size = 100
 		return
 	}
+	pi2 := math.Pi * 2.0
+	lst := make([][]*momentSummary, size)
 	orig := srv.moments.AsSlice()
+	if size > len(orig) {
+		size = len(orig)
+	}
+	for _, v := range rand.Perm(len(orig)) {
+		s := srv.makeSummary(orig[v])
+		i := int(math.Floor(s.Angle * float64(size) / pi2))
+		lst[i] = append(lst[i], s)
+	}
 	out := make([]*momentSummary, size)
-	for i, v := range rand.Perm(len(orig)) {
-		if i >= size {
-			break
+	cnt := 0
+	step := 0
+end:
+	for cnt < size {
+		for _, v := range lst {
+			if step < len(v) {
+				out[cnt] = v[step]
+				cnt++
+				if cnt >= size {
+					break end
+				}
+			}
 		}
-		out[i] = srv.makeSummary(orig[v])
+		step++
 	}
 	body, err := json.MarshalIndent(out, "", "  ")
 	if err != nil {
