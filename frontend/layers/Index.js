@@ -86,39 +86,7 @@ export default class Index extends Layer {
 
       // title
       this.tooltipTitle_.textContent = m.title;
-
-      const now = new Date();
-      const date = m.date;
-      let year = now.getFullYear() - date.getFullYear();
-      now.setFullYear(date.getFullYear());
-      let day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
-      if(day > 365/2) {
-        year++;
-        now.setFullYear(date.getFullYear()-1);
-        day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
-      }else if(day < -365/2){
-        year--;
-        now.setFullYear(date.getFullYear()+1);
-        day = (now.getTime() - date.getTime()) / (1000 * 24 * 3600);
-      }
-      day = Math.floor(day);
-      if(year === 0 && day === 0){
-        this.tooltipDate_.textContent = `今日！`;
-      }else if(year == 0) {
-        if(day > 0) {
-          this.tooltipDate_.textContent = `太陽が空を${day}周する前`;
-        } else {
-          this.tooltipDate_.textContent = `太陽が空を${-day}周した後`;
-        }
-      }else{
-        if(day == 0){
-          this.tooltipDate_.textContent = `季節の歯車が${year}回転する前`;
-        }else if(day > 0){
-          this.tooltipDate_.innerHTML = `季節の歯車が${year}回転戻って、<br>さらに太陽が空を${day}周する前`;
-        }else{
-          this.tooltipDate_.innerHTML = `季節の歯車が${year}回転戻って、<br>その後太陽が空を${-day}周した後`;
-        }
-      }
+      this.tooltipDate_.innerHTML = m.date;
       this.fixTooltipPosition_();
     }
   }
@@ -205,7 +173,7 @@ export default class Index extends Layer {
     /** @type {Moment[]} */
     const models = [];
     for(let m of moments) {
-      const model = new Moment(world, m.angle, new Date(m.date), m.title, m.permalink, m.image, m.url);
+      const model = new Moment(world, m.angle, m.date, m.title, m.permalink, m.image, m.url);
       model.relocation(models);
       models.push(model);
     }
