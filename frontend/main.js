@@ -1,6 +1,7 @@
 import World from './World';
 import Gear from './actors/Gear';
 import Index from './layers/Index';
+import Page from './layers/Page';
 
 /** @type {World} */
 let world = null;
@@ -27,17 +28,16 @@ function main() {
  */
 function open(pathName) {
   if(pathName == '/') {
-    openIndex();
-  }else if(pathName.startsWith('/i/')){
+    const index = new Index(world);
+    world.pushLayer(index);
+  }else if(pathName.startsWith('/about-us/')){
 
   }else{
-
+    const url = `/moment${pathName}`;
+    const content = fetch(url).then(resp => resp.text());
+    world.pushLayer(new Index(world));
+    world.pushLayer(new Page(world, content));
   }
-}
-
-function openIndex(){
-  const index = new Index(world);
-  world.pushLayer(index);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
