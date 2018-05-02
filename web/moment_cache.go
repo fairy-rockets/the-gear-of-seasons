@@ -32,7 +32,7 @@ type momentCacheEntry struct {
 
 var (
 	embedRegex     = regexp.MustCompile(`\[(link|img|video|audio) ([^\]]+)\]`)
-	paragraphRegex = regexp.MustCompile(`(:?^|\n+|/>\n?)(.+?)(:?$|\n\n+|\n?<)`)
+	paragraphRegex = regexp.MustCompile(`(?ms)(^|\n+|>\n)(.+?)($|\n\n+|\n<)`)
 	keyValueRegex  = regexp.MustCompile(`([a-z]+)="([^"]*)"`)
 )
 
@@ -69,6 +69,14 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 	c := &momentCacheEntry{}
 	body := m.Text
 
+	body = paragraphRegex.ReplaceAllStringFunc(body, func(match string) string {
+		matches := paragraphRegex.FindStringSubmatch(match)
+		if embedRegex.MatchString(matches[2]) {
+			return match
+		} else {
+			return fmt.Sprintf("%s<p>%s</p>%s", matches[1], matches[2], matches[3])
+		}
+	})
 	body = embedRegex.ReplaceAllStringFunc(body, func(embed string) string {
 		matches := embedRegex.FindStringSubmatch(embed)
 		fileType := matches[1]
@@ -115,7 +123,6 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 			return fmt.Sprintf(`<strong class="error">%s not supported</strong>`, fileType)
 		}
 	})
-	body = paragraphRegex.ReplaceAllString(body, "<p>$1</p>")
 	c.body = fmt.Sprintf("<h1>%s</h1>%s", m.Title, body)
 	return c
 
