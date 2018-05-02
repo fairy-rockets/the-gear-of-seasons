@@ -1,21 +1,14 @@
 package web
 
 import (
-	"net/http"
-
-	"strconv"
-
-	"math/rand"
-
-	"time"
-
 	"encoding/json"
-
-	"math"
-
 	"fmt"
-
+	"math"
+	"math/rand"
+	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/FairyRockets/the-gear-of-seasons/entity"
 	"github.com/FairyRockets/the-gear-of-seasons/moment"
