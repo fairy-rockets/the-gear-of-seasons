@@ -68,19 +68,33 @@ export default class World {
     return this.gear_;
   }
   openLayer(pathName) {
+    this.openLayer_(true, pathName);
+  }
+  /** 
+   * @param {boolean} modifyHistory 
+   * @param {string} pathName
+   * @private
+   */
+  openLayer_(modifyHistory, pathName) {
     if(pathName == '/') {
-      const index = new Index(this);
-      this.pushLayer(index);
+      this.pushLayer_(modifyHistory, new Index(this));
     }else if(pathName.startsWith('/about-us/')){
   
     }else{
       const url = `/moment${pathName}`;
       const content = fetch(url).then(resp => resp.text());
-      this.pushLayer(new Page(this, pathName, content));
+      this.pushLayer_(modifyHistory, new Page(this, pathName, content));
     }
   }
   /** @param {Layer} next */
   pushLayer(next) {
+    this.pushLayer_(true, next);
+  }
+  /**
+   * @param {boolean} modifyHistory
+   * @param {Layer} next
+   */
+  pushLayer_(modifyHistory, next) {
     const layers = this.layers_;
     if(layers.length > 0) {
       const current = layers[layers.length-1];
@@ -90,10 +104,12 @@ export default class World {
     layers.push(next);
     document.body.appendChild(next.element);
     next.onAttached();
-    if(history.state === null || history.state === undefined) {
-      history.replaceState(this.layers_.length, '', next.permalink);
-    }else{
-      history.pushState(this.layers_.length, '', next.permalink);
+    if(modifyHistory) {
+      if(history.state === null || history.state === undefined) {
+        history.replaceState(this.layers_.length, '', next.permalink);
+      }else{
+        history.pushState(this.layers_.length, '', next.permalink);
+      }
     }
   }
   /** @returns {boolean} */
@@ -101,6 +117,13 @@ export default class World {
     return this.layers_.length > 1;
   }
   popLayer() {
+    this.popLayer_(true);
+  }
+  /** 
+   * @param {boolean} modifyHistory 
+   * @private
+   */
+  popLayer_(modifyHistory) {
     const layers = this.layers_;
     if(layers.length <= 0) {
       throw new Error("You can't pop empty layer stack.");
@@ -110,7 +133,9 @@ export default class World {
     document.body.removeChild(current.element);
     current.destroy();
 
-    history.back();
+    if(modifyHistory){
+      history.back();
+    }
     const next = layers[layers.length-1];
     document.body.appendChild(next.element);
     next.onAttached();
@@ -125,10 +150,10 @@ export default class World {
     if(cnt === this.layers_.length) {
       return;
     }else if(cnt > this.layers_.length) {
-      this.openLayer(location.pathname);
+      this.openLayer_(false, location.pathname);
     }else{
       while(cnt < this.layers_.length) {
-        this.popLayer();
+        this.popLayer_(false);
       }
     }
   }
