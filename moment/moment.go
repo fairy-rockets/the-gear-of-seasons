@@ -5,9 +5,10 @@ import (
 )
 
 type Moment struct {
-	Date  time.Time `yaml:"date"`
-	Title string    `yaml:"title"`
-	Text  string    `yaml:"text"`
+	Date   time.Time `yaml:"date"`
+	Title  string    `yaml:"title"`
+	Text   string    `yaml:"text"`
+	Author string    `yaml:"author"`
 }
 
 func (m *Moment) Path() string {
