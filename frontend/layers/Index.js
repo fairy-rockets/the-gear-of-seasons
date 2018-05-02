@@ -31,9 +31,9 @@ export default class Index extends Layer {
     /** @private */
     this.moments_ = new Moments(world);
     /** @private */
-    this.mouseX_ = 0;
+    this.mouseX_ = NaN;
     /** @private */
-    this.mouseY_ = 0;
+    this.mouseY_ = NaN;
 
     this.element.innerHTML = htmlSrc;
     /**
@@ -115,9 +115,13 @@ export default class Index extends Layer {
     if(!this.loaded_) {
       this.fetch(300);
     }
+    this.mouseX_ = NaN;
+    this.mouseY_ = NaN;
   }
   /** @override */
   onDtached() {
+    this.mouseX_ = NaN;
+    this.mouseY_ = NaN;
     this.world.cursor = false;
     this.world.canvas.removeEventListener('wheel', this.wheelEventListener_, false);
     this.world.canvas.removeEventListener('mousemove', this.mouseMoveListener_, false);
