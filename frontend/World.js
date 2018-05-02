@@ -74,10 +74,6 @@ export default class World {
     }else if(pathName.startsWith('/about-us/')){
   
     }else{
-      if(this.layers_.length === 0) {
-        this.pushLayer(new Index(this));
-      }
-
       const url = `/moment${pathName}`;
       const content = fetch(url).then(resp => resp.text());
       this.pushLayer(new Page(this, pathName, content));
@@ -85,33 +81,39 @@ export default class World {
   }
   /** @param {Layer} next */
   pushLayer(next) {
-    if(this.layers_.length > 0) {
-      const current = this.layers_[this.layers_.length-1];
+    const layers = this.layers_;
+    if(layers.length > 0) {
+      const current = layers[layers.length-1];
       current.onDtached();
       document.body.removeChild(current.element);
     }
-    this.layers_.push(next);
+    layers.push(next);
     document.body.appendChild(next.element);
     next.onAttached();
-    if(history.state === null || history.state === undefined || history.state === this.layers_.length) {
-      history.replaceState(this.layers_.length, "", next.permalink);
+    if(history.state === null || history.state === undefined) {
+      history.replaceState(this.layers_.length, '', next.permalink);
     }else{
-      history.pushState(this.layers_.length, "", next.permalink);
+      history.pushState(this.layers_.length, '', next.permalink);
     }
   }
+  /** @returns {boolean} */
+  canPopLayer() {
+    return this.layers_.length > 1;
+  }
   popLayer() {
-    if(this.layers_.length == 0) {
-      throw new Error("No layers.");
+    const layers = this.layers_;
+    if(layers.length <= 0) {
+      throw new Error("You can't pop empty layer stack.");
     }
-    const current = this.layers_.pop();
+    const current = layers.pop();
     current.onDtached();
     document.body.removeChild(current.element);
     current.destroy();
 
-    const next = this.layers_[this.layers_.length-1];
+    history.back();
+    const next = layers[layers.length-1];
     document.body.appendChild(next.element);
     next.onAttached();
-    //history.back();
   }
   /** @param {PopStateEvent} ev */
   onPopState_(ev) {
@@ -120,12 +122,14 @@ export default class World {
     }
     ev.preventDefault();
     const cnt = ev.state;
-    if(cnt > this.layers_.length) {
-      this.openLayer(location.pathname);
+    if(cnt === this.layers_.length) {
       return;
-    }
-    while(cnt < this.layers_.length) {
-      this.popLayer();
+    }else if(cnt > this.layers_.length) {
+      this.openLayer(location.pathname);
+    }else{
+      while(cnt < this.layers_.length) {
+        this.popLayer();
+      }
     }
   }
     /** @returns {number} */
