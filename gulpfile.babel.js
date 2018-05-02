@@ -60,11 +60,15 @@ gulp.task('server:spawn', ['server:build'], (clbk) => {
   if (server) {
     let s = server;
     server.once('exit', (code, signal) => {
-      log(`Server@${s.pid} killed: ${code}, ${signal}`)
+      if(signal == null) {
+        log(`Killed  server@${s.pid} with code=${code}`)
+      } else {
+        log(`Killed  server@${s.pid} with signal=${code}`)
+      }
       server = null;
       spawn();
     });
-    log(`Killing server@${server.pid}...`)
+    log(`Killing server@${server.pid} ...`)
     server.kill();
   }else{
     spawn();
