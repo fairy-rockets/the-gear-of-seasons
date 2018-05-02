@@ -31,7 +31,7 @@ type momentCacheEntry struct {
 }
 
 var (
-	embedRegex     = regexp.MustCompile(`\[(link|img|video|audio) ([^\]]+)\]`)
+	embedRegex     = regexp.MustCompile(`\[(link|image|video|audio) ([^\]]+)\]`)
 	paragraphRegex = regexp.MustCompile(`(?ms)(^|\n+|>\n)(.+?)($|\n\n+|\n<)`)
 	blockRegex     = regexp.MustCompile(`<(script|div|pre|hr|ol|ul|video|blockquote|canvas) `)
 	keyValueRegex  = regexp.MustCompile(`([a-z]+)="([^"]*)"`)
@@ -98,7 +98,7 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 				text = v
 			}
 			return fmt.Sprintf(`<a href="%s">%s</a>`, url, text)
-		case "img":
+		case "image":
 			if img, ok := e.(*entity.ImageEntity); ok {
 				c.embedding = append(c.embedding, e)
 				src := fmt.Sprintf("/entity/%s", id)
