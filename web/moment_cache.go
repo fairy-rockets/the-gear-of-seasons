@@ -118,7 +118,7 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 			} else {
 				return fmt.Sprintf(`<strong class="error">Entity(%s) is not video.</strong>`, id)
 			}
-		case "audo":
+		case "audio":
 			return fmt.Sprintf(`<strong class="error">%s not supported</strong>`, fileType)
 		default:
 			return fmt.Sprintf(`<strong class="error">%s not supported</strong>`, fileType)
