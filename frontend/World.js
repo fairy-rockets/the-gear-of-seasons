@@ -4,8 +4,11 @@ import ArrayBuffer from "./gl/ArrayBuffer.js";
 import Program from "./gl/Program.js";
 
 import Gear from "./actors/Gear.js";
-import Layer from "./Layer.js";
 import Background from './actors/Background.js';
+
+import Layer from "./Layer.js";
+import Index from "./layers/Index.js";
+import Page from "./layers/Page.js";
 
 export default class World {
   /**
@@ -41,6 +44,7 @@ export default class World {
     //
     this.cursor_ = false;
     this.canvas_.style.cursor = 'default';
+    window.onpopstate = this.onPopState_.bind(this);
   }
   /** @public */
   start() {
@@ -63,6 +67,22 @@ export default class World {
   get gear() {
     return this.gear_;
   }
+  openLayer(pathName) {
+    if(pathName == '/') {
+      const index = new Index(this);
+      this.pushLayer(index);
+    }else if(pathName.startsWith('/about-us/')){
+  
+    }else{
+      if(this.layers_.length === 0) {
+        this.pushLayer(new Index(this));
+      }
+
+      const url = `/moment${pathName}`;
+      const content = fetch(url).then(resp => resp.text());
+      this.pushLayer(new Page(this, pathName, content));
+    }
+  }
   /** @param {Layer} next */
   pushLayer(next) {
     if(this.layers_.length > 0) {
@@ -73,6 +93,11 @@ export default class World {
     this.layers_.push(next);
     document.body.appendChild(next.element);
     next.onAttached();
+    if(history.state === null || history.state === undefined || history.state === this.layers_.length) {
+      history.replaceState(this.layers_.length, "", next.permalink);
+    }else{
+      history.pushState(this.layers_.length, "", next.permalink);
+    }
   }
   popLayer() {
     if(this.layers_.length == 0) {
@@ -86,6 +111,21 @@ export default class World {
     const next = this.layers_[this.layers_.length-1];
     document.body.appendChild(next.element);
     next.onAttached();
+  }
+  /** @param {PopStateEvent} ev */
+  onPopState_(ev) {
+    if(ev.state === null || ev.state === undefined) {
+      return;
+    }
+    ev.preventDefault();
+    const cnt = ev.state;
+    if(cnt > this.layers_.length) {
+      this.openLayer(location.pathname);
+      return;
+    }
+    while(cnt < this.layers_.length) {
+      this.popLayer();
+    }
   }
     /** @returns {number} */
   get aspect() {

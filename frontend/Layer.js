@@ -5,10 +5,13 @@ import Gear from "./actors/Gear";
 export default class Layer {
   /**
    * @param {World} world 
+   * @param {string} url
    */
-  constructor(world) {
+  constructor(world, permalink) {
     /** @private */
     this.world_ = world;
+    /** @private */
+    this.permalink_ = permalink;
     /** @private */
     this.element_ = document.createElement('div');
     this.element_.className = 'layer-wrapper';
@@ -30,6 +33,9 @@ export default class Layer {
    */
   get gear() {
     return this.world_.gear;
+  }
+  get permalink() {
+    return this.permalink_;
   }
   /** @returns {HTMLDivElement} */
   get element() {
