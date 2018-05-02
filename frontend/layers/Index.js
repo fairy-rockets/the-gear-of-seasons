@@ -12,6 +12,7 @@ import Page from './Page.js';
   @property {number} angle
   @property {string} date
   @property {string} title
+  @property {string} permalink
   @property {string} image
   @property {string} url
 */
@@ -20,7 +21,7 @@ export default class Index extends Layer {
    * @param {World} world 
    */
   constructor(world) {
-    super(world);
+    super(world, '/');
     /** @private */
     this.wheelEventListener_ = this.onWheelEvent_.bind(this);
     /** @private */
@@ -179,7 +180,7 @@ export default class Index extends Layer {
       return;
     }
     const content = fetch(m.url).then(resp => resp.text());
-    this.world.pushLayer(new Page(this.world, content));
+    this.world.pushLayer(new Page(this.world, m.permalink, content));
   }
 
   /**
@@ -204,7 +205,7 @@ export default class Index extends Layer {
     /** @type {Moment[]} */
     const models = [];
     for(let m of moments) {
-      const model = new Moment(world, m.angle, new Date(m.date), m.title, m.image, m.url);
+      const model = new Moment(world, m.angle, new Date(m.date), m.title, m.permalink, m.image, m.url);
       model.relocation(models);
       models.push(model);
     }

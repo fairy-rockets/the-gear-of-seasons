@@ -20,25 +20,9 @@ function main() {
   }
   world.start();
 
-  open(location.pathname);
+  world.openLayer(location.pathname);
 }
 
-/**
- * @param {string} pathName 
- */
-function open(pathName) {
-  if(pathName == '/') {
-    const index = new Index(world);
-    world.pushLayer(index);
-  }else if(pathName.startsWith('/about-us/')){
-
-  }else{
-    const url = `/moment${pathName}`;
-    const content = fetch(url).then(resp => resp.text());
-    world.pushLayer(new Index(world));
-    world.pushLayer(new Page(world, content));
-  }
-}
 
 document.addEventListener('DOMContentLoaded', function() {
   main();

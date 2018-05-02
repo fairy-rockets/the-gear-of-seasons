@@ -16,10 +16,11 @@ import * as debug from '../gl/debug.js';
 export default class Page extends Layer {
   /**
    * @param {World} world 
+   * @param {string} permalink
    * @param {Promise<string>} contentPromise
    */
-  constructor(world, contentPromise) {
-    super(world);
+  constructor(world, permalink, contentPromise) {
+    super(world, permalink);
 
     this.contentWrapper_ = document.createElement('div');
     this.contentWrapper_.classList.add('content-wrapper');
@@ -62,7 +63,8 @@ export default class Page extends Layer {
   }
 
   onClose_() {
-    this.world.popLayer();
+    history.back();
+    //this.world.popLayer();
   }
 
   /** @param {any} err */
