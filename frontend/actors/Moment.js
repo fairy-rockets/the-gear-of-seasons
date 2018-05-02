@@ -9,7 +9,7 @@ export default class Moment {
   /**
    * @param {World} world
    * @param {string} angle 
-   * @param {Date} date 
+   * @param {string} date 
    * @param {string} title 
    * @param {string} permalink
    * @param {string} imageUrl 
@@ -126,7 +126,7 @@ export default class Moment {
   get permalink() {
     return this.permalink_;
   }
-  /** @returns {Date} */
+  /** @returns {string} */
   get date() {
     return this.date_;
   }

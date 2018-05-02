@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/FairyRockets/the-gear-of-seasons/entity"
+	"github.com/disintegration/imaging"
 	"github.com/nfnt/resize"
 	"github.com/oliamb/cutter"
 )
@@ -88,4 +89,28 @@ func (cache *entityCache) FetchThumbnail(e entity.Entity) (string, error) {
 	defer tf.Close()
 	jpeg.Encode(tf, img, nil)
 	return path, nil
+}
+
+func fixOrientation(img image.Image, o string) *image.NRGBA {
+	switch o {
+	case "1":
+		return imaging.Clone(img)
+	case "2":
+		return imaging.FlipV(img)
+	case "3":
+		return imaging.Rotate180(img)
+	case "4":
+		return imaging.Rotate180(imaging.FlipV(img))
+	case "5":
+		return imaging.Rotate270(imaging.FlipV(img))
+	case "6":
+		return imaging.Rotate270(img)
+	case "7":
+		return imaging.Rotate90(imaging.FlipV(img))
+	case "8":
+		return imaging.Rotate90(img)
+	default:
+		log().Errorf("unknown orientation %s, expect 1-8", o)
+		return imaging.Clone(img)
+	}
 }

@@ -123,7 +123,14 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 			return fmt.Sprintf(`<strong class="error">%s not supported</strong>`, fileType)
 		}
 	})
-	c.body = fmt.Sprintf("<h1>%s</h1>%s", m.Title, body)
+	c.body = fmt.Sprintf(`
+<div class="moment-info">
+	<h1 class="moment-title">%s</h1>
+	<span class="moment-date">%s</span>
+	<span class="moment-author">%s</span>
+</div>
+<hr>
+%s`, m.Title, m.DateString(), m.Author, body)
 	return c
 
 }
