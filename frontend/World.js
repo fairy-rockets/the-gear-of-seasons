@@ -111,6 +111,7 @@ export default class World {
     const next = this.layers_[this.layers_.length-1];
     document.body.appendChild(next.element);
     next.onAttached();
+    //history.back();
   }
   /** @param {PopStateEvent} ev */
   onPopState_(ev) {
