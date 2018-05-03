@@ -60,16 +60,18 @@ func (srv *Server) Prepare() error {
 	var err error
 	ents := srv.shelf.FindAllEntities()
 	for i, ent := range ents {
-		if img, ok := ent.(*entity.ImageEntity); ok {
-			if _, err = srv.entityCache.FetchIcon(img); err != nil {
+		switch e := ent.(type) {
+		case *entity.ImageEntity:
+			if _, err = srv.entityCache.FetchIcon(e); err != nil {
 				return err
 			}
-			if _, err = srv.entityCache.FetchMedium(img); err != nil {
+			if _, err = srv.entityCache.FetchMedium(e); err != nil {
 				return err
 			}
-			log().Infof("Entity(%d/%d) prepared.", i, len(ents))
+		default:
+			/* Nothing to do */
 		}
-		log().Infof("Preparing for entry [%d/%d]: Done.", i, len(ents))
+		log().Infof("Entity[%d/%d] prepared.", i, len(ents))
 	}
 	return nil
 }
