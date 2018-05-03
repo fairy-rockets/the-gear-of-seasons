@@ -72,7 +72,7 @@ export default class Page extends Layer {
 
   /** @param {any} err */
   onError_(err) {
-    this.content_.innerHTML = `<h1>エラー！</h1><strong>${err}</strong>`;
+    this.content_.innerHTML = `<h1>エラー！</h1>Error:<strong>${err}</strong>`;
   }
 
   /** @override */
