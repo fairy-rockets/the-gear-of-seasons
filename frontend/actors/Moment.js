@@ -70,24 +70,25 @@ export default class Moment {
     const diameter2 = diameter * diameter;
     const c = this.c_;
     const s = this.s_;
-    let radius = 1.05 + Moment.DiscRadius;
-    let fixed = true;
-    while(fixed) {
-      fixed = false
-      const x = radius * c;
-      const y = radius * s;
+    const a = s;
+    const b = -c;
+    moments.sort((a,b) => a.radius_ - b.radius_);
 
-      const a = s;
-      const b = -c;
-      for(let other of moments) {
-        const dx = x - other.x_;
-        const dy = y - other.y_;
-        if(Math.abs(dx) <= diameter && Math.abs(dy) <= diameter && (dx * dx + dy * dy) <= diameter2) {
-          const d = (other.x_ * a) + (other.y_ * b);
-          radius = other.radius_ + Math.sqrt(diameter2 - d*d);
-          fixed = true;
-          break;
-        }
+    /** @type {number[][]} */
+    const range = []
+    for(let m of moments) {
+      const crossRadius = m.x_ * c + m.y_ * s;
+      //if(crossRadius < 0) continue;
+      const normLength = Math.abs(m.x_ * a + m.y_ * b);
+      //if(normLength > diameter) continue;
+      const delta = Math.sqrt(Math.max(0, diameter2 - Math.pow(normLength, 2)));
+      range.push([crossRadius - delta, crossRadius + delta]);
+    }
+    let radius = 1.05 + Moment.DiscRadius;
+    range.sort((a,b) => a[0]-b[0]);
+    for(let r of range) {
+      if(r[0] <= radius && radius <= r[1]) {
+        radius = Math.max(r[1], radius);
       }
     }
     this.radius_ = radius;
