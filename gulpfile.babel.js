@@ -126,10 +126,14 @@ gulp.task('deploy', [], () => {
   return Promise.all([
     buildServer(exe, 'linux', 'amd64'),
     buildClient()
-  ]).then(() => Promise.all([
-      exec(['scp', exe, 'nodoca:/opt/www/fairy-rockets/gear-of-seasons']),
-      exec(['scp', '-r', '_resources', 'nodoca:/opt/www/fairy-rockets/_resources']),
-  ])).then(() => del(exe));
+  ])
+  .then(() => Promise.all([
+      exec(['scp', exe, 'nodoca:/tmp/gear-of-seasons'])
+        .then(() => exec(['ssh', 'nodoca', 'mv /tmp/gear-of-seasons /opt/www/fairy-rockets/gear-of-seasons'])),
+      exec(['rsync', '-auz', '--delete', '-e', 'ssh', '_resources', 'nodoca:/opt/www/fairy-rockets']),
+  ]))
+  .then(() => exec(['ssh', 'nodoca', 'supervisorctl restart fairy-rockets']))
+  .then(() => del(exe));
 });
 gulp.task('default', ['build']);
 
