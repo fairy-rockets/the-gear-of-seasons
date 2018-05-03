@@ -13,23 +13,23 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type Store struct {
+type Shelf struct {
 	path     string
 	entities map[string]Entity
 }
 
-func NewStore(path string) *Store {
-	return &Store{
+func NewShelf(path string) *Shelf {
+	return &Shelf{
 		path:     path,
 		entities: make(map[string]Entity),
 	}
 }
 
-func (s *Store) Path() string {
+func (s *Shelf) Path() string {
 	return s.path
 }
 
-func (s *Store) Size() int {
+func (s *Shelf) Size() int {
 	return len(s.entities)
 }
 
@@ -50,7 +50,7 @@ func loadMetadata(path string, out interface{}) (Entity, error) {
 	return out.(Entity), nil
 }
 
-func (s *Store) Init() error {
+func (s *Shelf) Init() error {
 	err := filepath.Walk(s.path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -107,11 +107,11 @@ func (s *Store) Init() error {
 	return err
 }
 
-func (s *Store) Lookup(id string) Entity {
+func (s *Shelf) Lookup(id string) Entity {
 	return s.entities[id]
 }
 
-func (s *Store) AsSlice() []Entity {
+func (s *Shelf) AsSlice() []Entity {
 	i := 0
 	lst := make([]Entity, len(s.entities))
 	for _, e := range s.entities {

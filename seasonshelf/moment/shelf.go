@@ -10,22 +10,23 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type Store struct {
+type Shelf struct {
 	path    string
 	moments map[string]*Moment
 }
 
-func NewStore(path string) *Store {
-	return &Store{
+func NewShelf(path string) *Shelf {
+	return &Shelf{
 		path:    path,
 		moments: make(map[string]*Moment),
 	}
-}
 
-func (s *Store) Size() int {
+}
+func (s *Shelf) Size() int {
 	return len(s.moments)
 }
-func (s *Store) AsSlice() []*Moment {
+
+func (s *Shelf) AsSlice() []*Moment {
 	i := 0
 	lst := make([]*Moment, len(s.moments))
 	for _, m := range s.moments {
@@ -35,7 +36,7 @@ func (s *Store) AsSlice() []*Moment {
 	return lst
 }
 
-func (s *Store) Lookup(path string) *Moment {
+func (s *Shelf) Lookup(path string) *Moment {
 	return s.moments[path]
 }
 
@@ -52,7 +53,7 @@ func loadFromFile(path string, out *Moment) error {
 	return yaml.Unmarshal(data, out)
 }
 
-func (s *Store) Init() error {
+func (s *Shelf) Init() error {
 	err := filepath.Walk(s.path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

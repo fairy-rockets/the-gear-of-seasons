@@ -10,23 +10,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FairyRockets/the-gear-of-seasons/entity"
-	"github.com/FairyRockets/the-gear-of-seasons/moment"
+	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/moment"
 	"github.com/julienschmidt/httprouter"
 )
 
-func (srv *Web) serveMoment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (srv *Server) serveMoment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	if r.URL.Path == "/moment/search" {
 		srv.serveMomentSearch(w, r, p)
 		return
 	}
-	m := srv.moments.Lookup(strings.TrimPrefix(r.URL.Path, "/moment"))
+	m := srv.shelf.LookupMoment(strings.TrimPrefix(r.URL.Path, "/moment"))
 	if m == nil {
 		w.WriteHeader(404)
 		return
 	}
 	w.WriteHeader(200)
-	body, _ := srv.momentCache.Fetch(m)
+	body := srv.momentCache.Fetch(m).Body
 	w.Write([]byte(body))
 }
 
@@ -39,11 +39,11 @@ type momentSummary struct {
 	Permalink string  `json:"permalink"`
 }
 
-func (srv *Web) makeSummary(m *moment.Moment) *momentSummary {
+func (srv *Server) makeSummary(m *moment.Moment) *momentSummary {
 	var err error
-	_, entities := srv.momentCache.Fetch(m)
+	embeds := srv.momentCache.Fetch(m).Embeds
 	var img *entity.ImageEntity
-	for _, e := range entities {
+	for _, e := range embeds {
 		var ok bool
 		if img, ok = e.(*entity.ImageEntity); ok {
 			break
@@ -55,9 +55,9 @@ func (srv *Web) makeSummary(m *moment.Moment) *momentSummary {
 
 	imageURL := ""
 	if img != nil {
-		_, err = srv.entityCache.FetchThumbnail(img)
+		_, err = srv.entityCache.FetchIcon(img)
 		if err == nil {
-			imageURL = fmt.Sprintf("/entity/%s/thumbnail", img.GetID())
+			imageURL = fmt.Sprintf("/entity/%s/icon", img.GetID())
 		}
 	}
 
@@ -71,7 +71,7 @@ func (srv *Web) makeSummary(m *moment.Moment) *momentSummary {
 	}
 }
 
-func (srv *Web) serveMomentSearch(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (srv *Server) serveMomentSearch(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	size, err := strconv.Atoi(r.URL.Query().Get("size"))
 	if err != nil {
 		size = 100
@@ -79,7 +79,7 @@ func (srv *Web) serveMomentSearch(w http.ResponseWriter, r *http.Request, _ http
 	}
 	pi2 := math.Pi * 2.0
 	lst := make([][]*momentSummary, size)
-	orig := srv.moments.AsSlice()
+	orig := srv.shelf.FindAllMoments()
 	if size > len(orig) {
 		size = len(orig)
 	}

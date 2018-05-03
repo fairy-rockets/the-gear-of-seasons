@@ -1,32 +1,31 @@
-package web
+package cache
 
 import (
 	"fmt"
 	"regexp"
 	"sync"
 
-	"github.com/FairyRockets/the-gear-of-seasons/entity"
-	"github.com/FairyRockets/the-gear-of-seasons/moment"
+	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf"
+	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/moment"
 )
 
-type momentCache struct {
-	momentStore *moment.Store
-	entityStore *entity.Store
-	mutex       sync.Mutex
-	entries     map[*moment.Moment]*momentCacheEntry
+type MomentCache struct {
+	shelf   *seasonshelf.Shelf
+	mutex   sync.Mutex
+	entries map[*moment.Moment]*Moment
 }
 
-func newMomentCache(entities *entity.Store, moments *moment.Store) *momentCache {
-	return &momentCache{
-		momentStore: moments,
-		entityStore: entities,
-		entries:     make(map[*moment.Moment]*momentCacheEntry),
+func NewMomentCache(shelf *seasonshelf.Shelf) *MomentCache {
+	return &MomentCache{
+		shelf:   shelf,
+		entries: make(map[*moment.Moment]*Moment),
 	}
 }
 
-type momentCacheEntry struct {
-	body      string
-	embedding []entity.Entity
+type Moment struct {
+	Body   string
+	Embeds []entity.Entity
 }
 
 var (
@@ -43,30 +42,30 @@ func parseEmbedFiels(str string) map[string]string {
 	}
 	return kv
 }
-func (cache *momentCache) lookup(m *moment.Moment) (*momentCacheEntry, bool) {
+func (cache *MomentCache) lookup(m *moment.Moment) (*Moment, bool) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 	entry, ok := cache.entries[m]
 	return entry, ok
 }
 
-func (cache *momentCache) set(m *moment.Moment, entry *momentCacheEntry) {
+func (cache *MomentCache) set(m *moment.Moment, entry *Moment) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 	cache.entries[m] = entry
 }
 
-func (cache *momentCache) Fetch(m *moment.Moment) (string, []entity.Entity) {
-	if entry, ok := cache.lookup(m); ok {
-		return entry.body, entry.embedding
+func (cache *MomentCache) Fetch(m *moment.Moment) *Moment {
+	if cached, ok := cache.lookup(m); ok {
+		return cached
 	}
-	entry := cache.compile(m)
-	cache.set(m, entry)
-	return entry.body, entry.embedding
+	cached := cache.compile(m)
+	cache.set(m, cached)
+	return cached
 }
 
-func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
-	c := &momentCacheEntry{}
+func (cache *MomentCache) compile(m *moment.Moment) *Moment {
+	embeds := make([]entity.Entity, 0)
 	body := m.Text
 
 	body = paragraphRegex.ReplaceAllStringFunc(body, func(match string) string {
@@ -85,7 +84,7 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 		if !ok {
 			return fmt.Sprintf(`<strong class="error">No entity field</strong>`)
 		}
-		e := cache.entityStore.Lookup(id)
+		e := cache.shelf.LookupEntity(id)
 		if e == nil {
 			return fmt.Sprintf(`<strong class="error">Entity(%s) not found</strong>`, id)
 		}
@@ -99,9 +98,9 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 			return fmt.Sprintf(`<a href="%s">%s</a>`, url, text)
 		case "image":
 			if img, ok := e.(*entity.ImageEntity); ok {
-				c.embedding = append(c.embedding, e)
-				src := fmt.Sprintf("/entity/%s", id)
-				url := src
+				embeds = append(embeds, e)
+				url := fmt.Sprintf("/entity/%s", id)
+				src := fmt.Sprintf("/entity/%s/medium", id)
 				if v, ok := fields["to"]; ok {
 					url = v
 				}
@@ -111,7 +110,7 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 			}
 		case "video":
 			if video, ok := e.(*entity.VideoEntity); ok {
-				c.embedding = append(c.embedding, e)
+				embeds = append(embeds, e)
 				url := fmt.Sprintf("/entity/%s", id)
 				return fmt.Sprintf(`<video  width="%d" height="%d" preload="metadata" controls="controls"><source type="%s" src="%s" /><a href="%s">Click to play.</a></video>`, video.Width, video.Height, video.MimeType, url, url)
 			} else {
@@ -123,7 +122,7 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 			return fmt.Sprintf(`<strong class="error">%s not supported</strong>`, fileType)
 		}
 	})
-	c.body = fmt.Sprintf(`
+	compiledBody := fmt.Sprintf(`
 <div class="moment-info">
 	<h1 class="moment-title">%s</h1>
 	<span class="moment-date">%s</span>
@@ -131,5 +130,9 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 </div>
 <hr>
 %s`, m.Title, m.DateString(), m.Author, body)
-	return c
+	return &Moment{
+		Embeds: embeds,
+		Body:   compiledBody,
+	}
+
 }

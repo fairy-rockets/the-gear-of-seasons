@@ -6,7 +6,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (srv *Web) serveIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (srv *Server) serveIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
 	t, err := srv.templateOf("index.html")
 	if err != nil {

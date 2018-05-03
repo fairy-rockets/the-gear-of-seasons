@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"path/filepath"
 	"time"
 
-	"github.com/FairyRockets/the-gear-of-seasons/entity"
-	"github.com/FairyRockets/the-gear-of-seasons/moment"
+	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf"
+	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/web/cache"
 	"github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
@@ -19,26 +19,24 @@ const (
 	TemplatesPath = "_resources/templates"
 )
 
-type Web struct {
+type Server struct {
 	impl        *http.Server
 	router      *httprouter.Router
-	entities    *entity.Store
-	moments     *moment.Store
-	momentCache *momentCache
-	entityCache *entityCache
+	shelf       *seasonshelf.Shelf
+	entityCache *cache.EntityCache
+	momentCache *cache.MomentCache
 }
 
 func log() *logrus.Entry {
 	return logrus.WithField("Module", "Web")
 }
 
-func NewWebServer(addr string, entities *entity.Store, moments *moment.Store) *Web {
-	srv := &Web{
+func NewServer(addr string, shelf *seasonshelf.Shelf) *Server {
+	srv := &Server{
 		router:      httprouter.New(),
-		entities:    entities,
-		moments:     moments,
-		momentCache: newMomentCache(entities, moments),
-		entityCache: newEntityCache(entities, filepath.Join(entities.Path(), "_cache")),
+		shelf:       shelf,
+		entityCache: cache.NewEntityCache(shelf, "_cache/entity"),
+		momentCache: cache.NewMomentCache(shelf),
 	}
 	srv.impl = &http.Server{
 		Addr:    addr,
@@ -48,18 +46,37 @@ func NewWebServer(addr string, entities *entity.Store, moments *moment.Store) *W
 	return srv
 }
 
-func (srv *Web) setupRoute() {
+func (srv *Server) setupRoute() {
 	router := srv.router
 	router.GET("/", srv.serveIndex)
 	router.GET("/entity/:id", srv.serveEntity)
-	router.GET("/entity/:id/thumbnail", srv.serveEntityThumbnail)
+	router.GET("/entity/:id/icon", srv.serveEntityIcon)
+	router.GET("/entity/:id/medium", srv.serveEntityMedium)
 	router.GET("/moment/*moment", srv.serveMoment)
 	router.ServeFiles("/static/*filepath", http.Dir(StaticPath))
 }
 
-func (srv *Web) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (srv *Server) Prepare() error {
+	var err error
+	ents := srv.shelf.FindAllEntities()
+	for i, ent := range ents {
+		if img, ok := ent.(*entity.ImageEntity); ok {
+			if _, err = srv.entityCache.FetchIcon(img); err != nil {
+				return err
+			}
+			if _, err = srv.entityCache.FetchMedium(img); err != nil {
+				return err
+			}
+			log().Infof("Entity(%d/%d) prepared.", i, len(ents))
+		}
+		log().Infof("Preparing for entry [%d/%d]: Done.", i, len(ents))
+	}
+	return nil
+}
+
+func (srv *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method == "GET" {
-		m := srv.moments.Lookup(req.URL.Path)
+		m := srv.shelf.LookupMoment(req.URL.Path)
 		if m != nil {
 			srv.serveIndex(w, req, nil)
 			return
@@ -68,20 +85,7 @@ func (srv *Web) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	srv.router.ServeHTTP(w, req)
 }
 
-func (srv *Web) Prepare() {
-	ents := srv.entities.AsSlice()
-	for i, ent := range ents {
-		if _, ok := ent.(*entity.ImageEntity); ok {
-			_, err := srv.entityCache.FetchThumbnail(ent)
-			if err != nil {
-				log().Fatalf("Prepare Thumbnails for %s: %v", ent.GetID(), err)
-			} else {
-				log().Infof("Prepare Thumbnails [%d / %d]", i+1, len(ents))
-			}
-		}
-	}
-}
-func (srv *Web) Start() error {
+func (srv *Server) Start() error {
 	log().Infof("Start at %s", srv.impl.Addr)
 	err := srv.impl.ListenAndServe()
 	if err == http.ErrServerClosed {
@@ -90,17 +94,17 @@ func (srv *Web) Start() error {
 	return err
 }
 
-func (srv *Web) Stop() error {
+func (srv *Server) Stop() error {
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
 	return srv.impl.Shutdown(ctx)
 }
 
-func (srv *Web) setError(w http.ResponseWriter, r *http.Request, err error) {
+func (srv *Server) setError(w http.ResponseWriter, r *http.Request, err error) {
 	w.WriteHeader(501)
 	fmt.Fprintf(w, "Error:\n%v", err)
 }
 
-func (srv *Web) templateOf(files ...string) (*template.Template, error) {
+func (srv *Server) templateOf(files ...string) (*template.Template, error) {
 	for i := range files {
 		files[i] = fmt.Sprintf("%s/%s", TemplatesPath, files[i])
 	}
