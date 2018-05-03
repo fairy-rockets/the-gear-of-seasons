@@ -42,29 +42,29 @@ func parseEmbedFiels(str string) map[string]string {
 	}
 	return kv
 }
-func (cache *MomentCache) lookup(m *moment.Moment) (*Moment, bool) {
-	cache.mutex.Lock()
-	defer cache.mutex.Unlock()
-	entry, ok := cache.entries[m]
+func (mc *MomentCache) lookup(m *moment.Moment) (*Moment, bool) {
+	mc.mutex.Lock()
+	defer mc.mutex.Unlock()
+	entry, ok := mc.entries[m]
 	return entry, ok
 }
 
-func (cache *MomentCache) set(m *moment.Moment, entry *Moment) {
-	cache.mutex.Lock()
-	defer cache.mutex.Unlock()
-	cache.entries[m] = entry
+func (mc *MomentCache) set(m *moment.Moment, entry *Moment) {
+	mc.mutex.Lock()
+	defer mc.mutex.Unlock()
+	mc.entries[m] = entry
 }
 
-func (cache *MomentCache) Fetch(m *moment.Moment) *Moment {
-	if cached, ok := cache.lookup(m); ok {
+func (mc *MomentCache) Fetch(m *moment.Moment) *Moment {
+	if cached, ok := mc.lookup(m); ok {
 		return cached
 	}
-	cached := cache.compile(m)
-	cache.set(m, cached)
+	cached := mc.compile(m)
+	mc.set(m, cached)
 	return cached
 }
 
-func (cache *MomentCache) compile(m *moment.Moment) *Moment {
+func (mc *MomentCache) compile(m *moment.Moment) *Moment {
 	embeds := make([]entity.Entity, 0)
 	body := m.Text
 
@@ -84,7 +84,7 @@ func (cache *MomentCache) compile(m *moment.Moment) *Moment {
 		if !ok {
 			return fmt.Sprintf(`<strong class="error">No entity field</strong>`)
 		}
-		e := cache.shelf.LookupEntity(id)
+		e := mc.shelf.LookupEntity(id)
 		if e == nil {
 			return fmt.Sprintf(`<strong class="error">Entity(%s) not found</strong>`, id)
 		}
@@ -104,7 +104,8 @@ func (cache *MomentCache) compile(m *moment.Moment) *Moment {
 				if v, ok := fields["to"]; ok {
 					url = v
 				}
-				return fmt.Sprintf(`<a href="%s"><img src="%s" width="%d" height="%d"></a>`, url, src, img.Width, img.Height)
+				w, h := calcImageSizeWithMinLength(uint(img.Width), uint(img.Height), MediumSize)
+				return fmt.Sprintf(`<a href="%s"><img src="%s" width="%d" height="%d"></a>`, url, src, w, h)
 			} else {
 				return fmt.Sprintf(`<strong class="error">Entity(%s) is not image.</strong>`, id)
 			}
