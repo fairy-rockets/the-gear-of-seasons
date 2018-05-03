@@ -179,7 +179,7 @@ h1 {
   overflow: scroll;
 }
 
-.content-wrapper .content img {
+.content-wrapper .content img:not(.dont-modify-size) {
   width: auto;
   height: auto;
   display: block;
