@@ -8,9 +8,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (srv *Web) serveEntity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (srv *Server) serveEntity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	e := srv.entities.Lookup(id)
+	e := srv.shelf.LookupEntity(id)
 	if e == nil {
 		w.WriteHeader(404)
 		w.Write([]byte("Not found."))
@@ -27,15 +27,39 @@ func (srv *Web) serveEntity(w http.ResponseWriter, r *http.Request, p httprouter
 	io.Copy(w, f)
 }
 
-func (srv *Web) serveEntityThumbnail(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (srv *Server) serveEntityMedium(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	id := p.ByName("id")
-	e := srv.entities.Lookup(id)
+	e := srv.shelf.LookupEntity(id)
 	if e == nil {
 		w.WriteHeader(404)
 		w.Write([]byte("Not found."))
 		return
 	}
-	path, err := srv.entityCache.FetchThumbnail(e)
+	path, err := srv.entityCache.FetchMedium(e)
+	if err != nil {
+		srv.setError(w, r, err)
+		return
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		srv.setError(w, r, err)
+		return
+	}
+	defer f.Close()
+	w.WriteHeader(200)
+	w.Header().Add("Content-Type", "image/jpeg")
+	io.Copy(w, f)
+}
+
+func (srv *Server) serveEntityIcon(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+	e := srv.shelf.LookupEntity(id)
+	if e == nil {
+		w.WriteHeader(404)
+		w.Write([]byte("Not found."))
+		return
+	}
+	path, err := srv.entityCache.FetchIcon(e)
 	if err != nil {
 		srv.setError(w, r, err)
 		return

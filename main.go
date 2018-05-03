@@ -13,8 +13,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/FairyRockets/the-gear-of-seasons/entity"
-	"github.com/FairyRockets/the-gear-of-seasons/moment"
+	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf"
 	"github.com/FairyRockets/the-gear-of-seasons/web"
 	"github.com/fatih/color"
 )
@@ -22,24 +21,14 @@ import (
 //go:generate bash geninfo.sh
 
 var addr = flag.String("listen", ":8080", "listen")
+var shelfPath = flag.String("shelf", "_shelf", "shelf path")
+
+var shelf *seasonshelf.Shelf
+var server *web.Server
 
 func mainLoop() os.Signal {
-	var err error
-	entities := entity.NewStore("_entities")
-	if err = entities.Init(); err != nil {
-		log.Fatalf("Error while loading entities: %v", err)
-	}
-	moments := moment.NewStore("_moments")
-	if err = moments.Init(); err != nil {
-		log.Fatalf("Error while loading moments: %v", err)
-	}
-
-	log.Infof("%d entities, %d moments", entities.Size(), moments.Size())
-
-	srv := web.NewWebServer(*addr, entities, moments)
-	srv.Prepare()
 	go func() {
-		err := srv.Start()
+		err := server.Start()
 		if err != nil {
 			log.Fatalf("Server aborted: %v", err)
 		}
@@ -49,7 +38,7 @@ func mainLoop() os.Signal {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	select {
 	case s := <-sig:
-		if err := srv.Stop(); err != nil {
+		if err := server.Stop(); err != nil {
 			log.WithField("Module", "Web").Errorf("Error on stopping web: %v", err)
 		} else {
 			log.WithField("Module", "Web").Info("Stopped gracefully.")
@@ -74,6 +63,17 @@ func main() {
 	log.Info("----------------------------------------")
 	log.Info("Initializing...")
 	log.Info("----------------------------------------")
+
+	shelf = seasonshelf.NewShelf(*shelfPath)
+	if err := shelf.Init(); err != nil {
+		log.Fatalf("Failed to prepare shelf: %v", err)
+	}
+	log.Infof("%d entities, %d moments", shelf.NumEntities(), shelf.NumMoments())
+
+	server = web.NewServer(*addr, shelf)
+	if err := server.Prepare(); err != nil {
+		log.Fatalf("Failed to prepare server: %v", err)
+	}
 
 	log.Info(color.GreenString("                                    [OK]"))
 
