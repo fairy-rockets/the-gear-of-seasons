@@ -1,5 +1,9 @@
 #! /bin/bash
 
+REV=$(git log -1 --date=iso --pretty=format:"[%ad] %h %an : %s")
+REV=${REV//\\/\\\\}
+REV=${REV//\"/\\\"}
+
 cat > ${GOFILE%.go}.gen.go <<END
 package ${GOPACKAGE}
 
@@ -12,7 +16,7 @@ func buildAt() string {
 }
 
 func gitRev() string {
-	rev := "$(git log -1 --date=iso --pretty=format:"[%ad] %h %an : %s")"
+	rev := "${REV}"
 	if len(rev) == 0 {
 		return "<not available>"
 	}
