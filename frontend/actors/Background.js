@@ -179,7 +179,7 @@ vec4 calcLight(vec3 lightPosition, vec4 lightColor) {
   float d = length(delta);
   vec3 ndelta = normalize(delta);
   vec3 norm = normalize(vNorm);
-  return lightColor * 10.0 / pow(d, 1.5);
+  return lightColor * 5.0 / pow(d, 1.2);
 }
 
 void main(void) {

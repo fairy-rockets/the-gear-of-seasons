@@ -327,7 +327,7 @@ vec4 calcLight(vec3 lightPosition, vec4 lightColor) {
   float d = length(delta);
   vec3 ndelta = delta / d;
   vec3 norm = normalize(vNorm);
-  return lightColor * clamp(dot(ndelta, norm), 0.4, 1.0) / pow(d / 15.0, 7.0);
+  return lightColor * clamp(dot(ndelta, norm), 0.4, 1.0) / pow(d / 15.0, 5.0);
 }
 
 void main(void) {

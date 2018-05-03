@@ -14,8 +14,8 @@ function rgb(r,g,b) {
   return [Math.pow(r, 2.2), Math.pow(g, 2.2), Math.pow(b, 2.2), 1];
 }
 
-const z = 1.6;
-const r = 1;
+const z = 1.5;
+const r = 1.5;
 
 /**
  * @param {number} angle
