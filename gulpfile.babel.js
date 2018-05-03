@@ -22,7 +22,7 @@ function buildClient() {
             log(colors.red(err));
             this.emit('end');
            })
-          .pipe(gulp.dest("_resources/static"));
+          .pipe(gulp.dest('_resources/static'));
   return new Promise((resolve, reject) => {
     stream.on('finish', resolve).on('error', reject);
   });
