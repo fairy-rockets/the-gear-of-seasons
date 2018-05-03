@@ -41,27 +41,40 @@ func decodeImage(e *entity.ImageEntity) (image.Image, string, error) {
 	return img, format, err
 }
 
-func fixOrientation(img image.Image, o string) *image.NRGBA {
+func fixOrientation(img image.Image, x *exif.Exif) image.Image {
+	tag, err := x.Get(exif.Orientation)
+	if err != nil {
+		if !exif.IsTagNotPresentError(err) {
+			log().Warnf("Failed to read orientation tag: %v", err)
+		}
+		return img
+	}
+	o, err := tag.Int(0)
+	if err != nil {
+		log().Warnf("Failed to read orientation tag: %v", err)
+		return img
+	}
+
 	switch o {
-	case "1":
+	case 1:
 		return imaging.Clone(img)
-	case "2":
+	case 2:
 		return imaging.FlipV(img)
-	case "3":
+	case 3:
 		return imaging.Rotate180(img)
-	case "4":
+	case 4:
 		return imaging.Rotate180(imaging.FlipV(img))
-	case "5":
+	case 5:
 		return imaging.Rotate270(imaging.FlipV(img))
-	case "6":
+	case 6:
 		return imaging.Rotate270(img)
-	case "7":
+	case 7:
 		return imaging.Rotate90(imaging.FlipV(img))
-	case "8":
+	case 8:
 		return imaging.Rotate90(img)
 	default:
-		log().Warnf("unknown orientation %s, expect 1-8", o)
-		return imaging.Clone(img)
+		log().Warnf("unknown orientation %d, expect 1-8", o)
+		return img
 	}
 }
 
@@ -86,8 +99,7 @@ func generateThumbnail(e *entity.ImageEntity, minSize uint) (image.Image, error)
 		img = resize.Resize(minSize, uint(e.Height*int(minSize)/e.Width), img, resize.Bicubic)
 	}
 	if x != nil {
-		orient, _ := x.Get(exif.Orientation)
-		return fixOrientation(img, orient.String()), nil
+		return fixOrientation(img, x), nil
 	}
 	return img, nil
 }

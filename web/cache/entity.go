@@ -21,7 +21,7 @@ const (
 	IconSize = 256
 	IconType = "icon"
 
-	MediumSize = 2560
+	MediumSize = 2048
 	MediumType = "medium"
 )
 
@@ -60,11 +60,12 @@ func (cache *EntityCache) save(e *entity.ImageEntity, thumbType string, img imag
 		return "", err
 	}
 	defer f.Close()
-	err = jpeg.Encode(f, img, nil)
+	err = jpeg.Encode(f, img, &jpeg.Options{Quality: 85})
 	if err != nil {
 		err = fmt.Errorf("failed to encode thumbnail: %v", err)
 		return "", err
 	}
+	os.Chtimes(path, e.Date, e.Date)
 	return path, nil
 }
 
