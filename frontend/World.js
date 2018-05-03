@@ -165,8 +165,8 @@ export default class World {
     if(path === '/') {
       return new Index(this);
     }else if(path.startsWith('/about-us/')){
-      // TODO:
-      return null;
+      const content = fetch('/static/about-us.html').then(resp => resp.text());
+      return new Page(this, '/about-us/', content);
     }else{
       const url = `/moment${path}`;
       const content = fetch(url).then(resp => resp.text());
