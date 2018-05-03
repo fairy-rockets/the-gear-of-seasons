@@ -105,7 +105,7 @@ export default class World {
     document.body.appendChild(next.element);
     next.onAttached();
     if(modifyHistory) {
-      if(history.state === null || history.state === undefined) {
+      if(history.state === this.layers_.length || history.state === null || history.state === undefined) {
         history.replaceState(this.layers_.length, '', next.permalink);
       }else{
         history.pushState(this.layers_.length, '', next.permalink);
@@ -132,13 +132,13 @@ export default class World {
     current.onDtached();
     document.body.removeChild(current.element);
     current.destroy();
+    const next = layers[layers.length-1];
+    document.body.appendChild(next.element);
+    next.onAttached();
 
     if(modifyHistory){
       history.back();
     }
-    const next = layers[layers.length-1];
-    document.body.appendChild(next.element);
-    next.onAttached();
   }
   /** @param {PopStateEvent} ev */
   onPopState_(ev) {
