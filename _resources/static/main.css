@@ -210,6 +210,8 @@ h1 {
 
 .content .moment-info::after {
   clear: both;
+  content: "";
+  display: block;
 }
 
 .content .moment-date {

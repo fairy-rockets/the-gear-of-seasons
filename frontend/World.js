@@ -63,121 +63,6 @@ export default class World {
     // Start animation
     requestAnimationFrame(this.runner_);
   }
-  /** @returns {Gear} */
-  get gear() {
-    return this.gear_;
-  }
-  openLayer(pathName) {
-    this.openLayer_(true, pathName);
-  }
-  /** 
-   * @param {boolean} modifyHistory 
-   * @param {string} pathName
-   * @private
-   */
-  openLayer_(modifyHistory, pathName) {
-    if(pathName == '/') {
-      this.pushLayer_(modifyHistory, new Index(this));
-    }else if(pathName.startsWith('/about-us/')){
-  
-    }else{
-      const url = `/moment${pathName}`;
-      const content = fetch(url).then(resp => resp.text());
-      this.pushLayer_(modifyHistory, new Page(this, pathName, content));
-    }
-  }
-  /** @param {Layer} next */
-  pushLayer(next) {
-    this.pushLayer_(true, next);
-  }
-  /**
-   * @param {boolean} modifyHistory
-   * @param {Layer} next
-   */
-  pushLayer_(modifyHistory, next) {
-    const layers = this.layers_;
-    if(layers.length > 0) {
-      const current = layers[layers.length-1];
-      current.onDtached();
-      document.body.removeChild(current.element);
-    }
-    layers.push(next);
-    document.body.appendChild(next.element);
-    next.onAttached();
-    if(modifyHistory) {
-      if(history.state === this.layers_.length || history.state === null || history.state === undefined) {
-        history.replaceState(this.layers_.length, '', next.permalink);
-      }else{
-        history.pushState(this.layers_.length, '', next.permalink);
-      }
-    }
-  }
-  /** @returns {boolean} */
-  canPopLayer() {
-    return this.layers_.length > 1;
-  }
-  popLayer() {
-    this.popLayer_(true);
-  }
-  /** 
-   * @param {boolean} modifyHistory 
-   * @private
-   */
-  popLayer_(modifyHistory) {
-    const layers = this.layers_;
-    if(layers.length <= 0) {
-      throw new Error("You can't pop empty layer stack.");
-    }
-    const current = layers.pop();
-    current.onDtached();
-    document.body.removeChild(current.element);
-    current.destroy();
-    const next = layers[layers.length-1];
-    document.body.appendChild(next.element);
-    next.onAttached();
-
-    if(modifyHistory){
-      history.back();
-    }
-  }
-  /** @param {PopStateEvent} ev */
-  onPopState_(ev) {
-    if(ev.state === null || ev.state === undefined) {
-      return;
-    }
-    ev.preventDefault();
-    const cnt = ev.state;
-    if(cnt === this.layers_.length) {
-      return;
-    }else if(cnt > this.layers_.length) {
-      this.openLayer_(false, location.pathname);
-    }else{
-      while(cnt < this.layers_.length) {
-        this.popLayer_(false);
-      }
-    }
-  }
-    /** @returns {number} */
-  get aspect() {
-    return this.canvas_.width / this.canvas_.height;
-  }
-  /** @returns {HTMLCanvasElement} */
-  get canvas() {
-    return this.canvas_;
-  }
-  /** @returns {WebGLRenderingContext} */
-  get gl() {
-    return this.gl_;
-  }
-  /**
-   * @param {boolean} on
-   */
-  set cursor(on) {
-    if(this.cursor_ !== on) {
-      this.canvas_.style.cursor = on ? 'pointer' : 'default';
-      this.cursor_ = on;
-    }
-  }
   /**
    * 
    * @param {number} width 
@@ -233,6 +118,155 @@ export default class World {
     }
     this.gear_.destroy();
     this.bg_.destroy();
+  }
+  /****************************************************************************
+   *                              Getter/Setter                               *
+   ****************************************************************************/
+  /** @returns {Gear} */
+  get gear() {
+    return this.gear_;
+  }
+    /** @returns {number} */
+  get aspect() {
+    return this.canvas_.width / this.canvas_.height;
+  }
+  /** @returns {HTMLCanvasElement} */
+  get canvas() {
+    return this.canvas_;
+  }
+  /** @returns {WebGLRenderingContext} */
+  get gl() {
+    return this.gl_;
+  }
+  /**
+   * @param {boolean} on
+   */
+  set cursor(on) {
+    if(this.cursor_ !== on) {
+      this.canvas_.style.cursor = on ? 'pointer' : 'default';
+      this.cursor_ = on;
+    }
+  }
+  /****************************************************************************
+   *                            Layer  Transitions                            *
+   ****************************************************************************/
+  /**
+   * @param {string} path
+   */
+  openLayer(path) {
+    this.pushLayer(this.createLayer_(path));
+  }
+  /**
+   * @param {string} path 
+   * @returns {Layer}
+   * @private
+   */
+  createLayer_(path) {
+    if(path === '/') {
+      return new Index(this);
+    }else if(path.startsWith('/about-us/')){
+      // TODO:
+      return null;
+    }else{
+      const url = `/moment${path}`;
+      const content = fetch(url).then(resp => resp.text());
+      return new Page(this, path, content);
+    }
+  }
+  /** @param {Layer} next */
+  pushLayer(next) {
+    this.pushLayer_(next);
+    const layers = this.layers_;
+    const state = history.state;
+    const emptyState = state === null || state === undefined;
+    if(emptyState) {
+      history.replaceState(1, '', next.permalink);
+    } else if(layers.length !== 1) {
+      history.pushState(state+1, '', next.permalink);
+    }
+  }
+  /**
+   * @param {Layer} next
+   */
+  pushLayer_(next) {
+    const layers = this.layers_;
+    if(layers.length > 0) {
+      const current = layers[layers.length-1];
+      current.onDtached();
+      document.body.removeChild(current.element);
+    }
+    layers.push(next);
+    document.body.appendChild(next.element);
+    next.onAttached();
+  }
+  /** @returns {boolean} */
+  canPopLayer() {
+    return this.layers_.length > 1;
+  }
+  /** @public */
+  popLayer() {
+    this.popLayer_();
+    history.back();
+  }
+  /** @private */
+  popLayer_() {
+    const layers = this.layers_;
+    if(layers.length < 2) {
+      throw new Error(`You can't pop layer stack of length=${layers.length}.`);
+    }
+    const current = layers.pop();
+    current.onDtached();
+    document.body.removeChild(current.element);
+    current.destroy();
+
+    const next = layers[layers.length-1];
+    document.body.appendChild(next.element);
+    next.onAttached();
+  }
+  /** 
+   * @param {Layer} next
+   * @private
+   */
+  replaceLayer_(next) {
+    const layers = this.layers_;
+    if(layers.length <= 1) {
+      throw new Error(`You can't replace layer stack of length=${layers.length}.`);
+    }
+    const current = layers.pop();
+    current.onDtached();
+    document.body.removeChild(current.element);
+    current.destroy();
+
+    layer.push(next);
+    document.body.appendChild(next.element);
+    next.onAttached();
+  }
+  /** @param {PopStateEvent} ev */
+  onPopState_(ev) {
+    const layers = this.layers_;
+    if(ev.state === null || ev.state === undefined) {
+      return;
+    }
+    ev.preventDefault();
+    const cnt = ev.state;
+    const path = location.pathname;
+    const current = this.layers_[this.layers_.length-1];
+    if(current.permalink === path) {
+      return;
+    }
+    let idx = layers.length-1;
+    for(; idx >= 0; --idx) {
+      const layer = layers[idx];
+      if(layer.permalink === path) {
+        break;
+      }
+    }
+    if(idx >= 0) {
+      while(idx < layers.length) {
+        this.popLayer_();
+      }
+    }
+    this.pushLayer_(this.createLayer_(path));
   }
 
   /****************************************************************************
