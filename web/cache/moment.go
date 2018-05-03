@@ -105,7 +105,7 @@ func (mc *MomentCache) compile(m *moment.Moment) *Moment {
 					url = v
 				}
 				w, h := calcImageSizeWithMinLength(uint(img.Width), uint(img.Height), MediumSize)
-				return fmt.Sprintf(`<a href="%s"><img src="%s" width="%d" height="%d"></a>`, url, src, w, h)
+				return fmt.Sprintf(`<a href="%s"><img src="%s" class="embed" width="%d" height="%d"></a>`, url, src, w, h)
 			} else {
 				return fmt.Sprintf(`<strong class="error">Entity(%s) is not image.</strong>`, id)
 			}

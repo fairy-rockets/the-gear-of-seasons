@@ -4,6 +4,7 @@ import Moments from '../actors/Moments.js';
 import Moment from '../actors/Moment.js';
 import { mat4, vec4 } from 'gl-matrix';
 import * as debug from '../gl/debug.js';
+import twemoji from 'twemoji';
 
 /**
   @typedef MomentData
@@ -51,6 +52,8 @@ export default class Page extends Layer {
   /** @param {string} body */
   onLoad_(body) {
     this.content_.innerHTML = body;
+    twemoji.parse(this.content_);
+
     for(let src of this.content_.getElementsByTagName('script')) {
       const dst = document.createElement('script');
       dst.textContent = src.textContent;

@@ -5,6 +5,7 @@ import Moment from '../actors/Moment.js';
 import { mat4, vec4 } from 'gl-matrix';
 import * as debug from '../gl/debug.js';
 import Page from './Page.js';
+import twemoji from 'twemoji';
 
 /**
   @typedef MomentData
@@ -93,6 +94,7 @@ export default class Index extends Layer {
 
       // title
       this.tooltipTitle_.textContent = m.title;
+      twemoji.parse(this.tooltipTitle_);
       this.tooltipDate_.innerHTML = m.date;
       this.fixTooltipPosition_();
     }
