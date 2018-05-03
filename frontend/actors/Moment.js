@@ -78,9 +78,9 @@ export default class Moment {
     const range = []
     for(let m of moments) {
       const crossRadius = m.x_ * c + m.y_ * s;
-      //if(crossRadius < 0) continue;
+      if(crossRadius <= 0) continue;
       const normLength = Math.abs(m.x_ * a + m.y_ * b);
-      //if(normLength > diameter) continue;
+      if(normLength > diameter) continue;
       const delta = Math.sqrt(Math.max(0, diameter2 - Math.pow(normLength, 2)));
       range.push([crossRadius - delta, crossRadius + delta]);
     }
