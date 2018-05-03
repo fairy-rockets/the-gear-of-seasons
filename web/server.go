@@ -49,6 +49,7 @@ func NewServer(addr string, shelf *seasonshelf.Shelf) *Server {
 func (srv *Server) setupRoute() {
 	router := srv.router
 	router.GET("/", srv.serveIndex)
+	router.GET("/about-us/", srv.serveIndex)
 	router.GET("/entity/:id", srv.serveEntity)
 	router.GET("/entity/:id/icon", srv.serveEntityIcon)
 	router.GET("/entity/:id/medium", srv.serveEntityMedium)

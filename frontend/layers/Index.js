@@ -60,6 +60,13 @@ export default class Index extends Layer {
     this.tooltip_.appendChild(this.tooltipDate_);
 
     /** @private */
+    this.aboutUsLink_ = this.element_.querySelector('#about-us-link');
+    this.aboutUsLink_.addEventListener('click', (e) => {
+      e.preventDefault();
+      world.openLayer('/about-us/');
+    });
+
+    /** @private */
     this.loaded_ = false;
   }
   /**
@@ -204,7 +211,7 @@ const htmlSrc = `
   季節の歯車
   </div>
   <div class="description">
-  <a href="">About us</a>
+  <a href="/about-us/" id="about-us-link">About us</a>
   </div>
 </div>
 `;
