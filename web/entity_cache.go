@@ -22,14 +22,14 @@ const (
 )
 
 type entityCache struct {
-	entities *entity.Store
-	path     string
+	store *entity.Store
+	path  string
 }
 
 func newEntityCache(entities *entity.Store, path string) *entityCache {
 	return &entityCache{
-		entities: entities,
-		path:     path,
+		store: entities,
+		path:  path,
 	}
 }
 
