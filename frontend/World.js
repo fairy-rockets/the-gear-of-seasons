@@ -178,9 +178,6 @@ export default class World {
       this.cursor_ = on;
     }
   }
-  get cursor() {
-    return this.cursor_;
-  }
   /**
    * 
    * @param {number} width 

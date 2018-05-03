@@ -10,17 +10,17 @@ import (
 )
 
 type momentCache struct {
-	moments  *moment.Store
-	entities *entity.Store
-	mutex    sync.Mutex
-	entries  map[*moment.Moment]*momentCacheEntry
+	momentStore *moment.Store
+	entityStore *entity.Store
+	mutex       sync.Mutex
+	entries     map[*moment.Moment]*momentCacheEntry
 }
 
 func newMomentCache(entities *entity.Store, moments *moment.Store) *momentCache {
 	return &momentCache{
-		moments:  moments,
-		entities: entities,
-		entries:  make(map[*moment.Moment]*momentCacheEntry),
+		momentStore: moments,
+		entityStore: entities,
+		entries:     make(map[*moment.Moment]*momentCacheEntry),
 	}
 }
 
@@ -85,7 +85,7 @@ func (cache *momentCache) compile(m *moment.Moment) *momentCacheEntry {
 		if !ok {
 			return fmt.Sprintf(`<strong class="error">No entity field</strong>`)
 		}
-		e := cache.entities.Lookup(id)
+		e := cache.entityStore.Lookup(id)
 		if e == nil {
 			return fmt.Sprintf(`<strong class="error">Entity(%s) not found</strong>`, id)
 		}
