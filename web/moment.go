@@ -31,12 +31,12 @@ func (srv *Server) serveMoment(w http.ResponseWriter, r *http.Request, p httprou
 }
 
 type momentSummary struct {
-	Angle     float64 `json:"angle"`
-	Date      string  `json:"date"`
-	Title     string  `json:"title"`
-	Image     string  `json:"image"`
-	URL       string  `json:"url"`
-	Permalink string  `json:"permalink"`
+	Angle    float64 `json:"angle"`
+	Date     string  `json:"date"`
+	Title    string  `json:"title"`
+	Path     string  `json:"path"`
+	ImageURL string  `json:"imageURL"`
+	BodyURL  string  `json:"bodyURL"`
 }
 
 func (srv *Server) makeSummary(m *moment.Moment) *momentSummary {
@@ -62,12 +62,12 @@ func (srv *Server) makeSummary(m *moment.Moment) *momentSummary {
 	}
 
 	return &momentSummary{
-		Angle:     angle * math.Pi * 2,
-		Date:      strings.Replace(m.DateString(), "\n", "<br>", -1),
-		Title:     m.Title,
-		Permalink: m.Path(),
-		Image:     imageURL,
-		URL:       fmt.Sprintf("/moment%s", m.Path()),
+		Angle:    angle * math.Pi * 2,
+		Date:     strings.Replace(m.DateString(), "\n", "<br>", -1),
+		Title:    m.Title,
+		Path:     m.Path(),
+		ImageURL: imageURL,
+		BodyURL:  fmt.Sprintf("/moment%s", m.Path()),
 	}
 }
 
