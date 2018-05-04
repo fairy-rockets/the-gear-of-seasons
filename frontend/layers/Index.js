@@ -13,9 +13,9 @@ import twemoji from 'twemoji';
   @property {number} angle
   @property {string} date
   @property {string} title
-  @property {string} permalink
-  @property {string} image
-  @property {string} url
+  @property {string} path
+  @property {string} imageURL
+  @property {string} bodyURL
 */
 export default class Index extends Layer {
   /**
@@ -160,8 +160,8 @@ export default class Index extends Layer {
     if(!m) {
       return;
     }
-    const content = fetch(m.url).then(resp => resp.text());
-    this.world.pushLayer(new Page(this.world, m.permalink, content));
+    const content = fetch(m.bodyURL).then(resp => resp.text());
+    this.world.pushLayer(new Page(this.world, m.path, content));
   }
 
   /**
@@ -186,7 +186,7 @@ export default class Index extends Layer {
     /** @type {Moment[]} */
     const models = [];
     for(let m of moments) {
-      const model = new Moment(world, m.angle, m.date, m.title, m.permalink, m.image, m.url);
+      const model = new Moment(world, m.angle, m.date, m.title, m.pat, m.imageURL, m.bodyURL);
       model.relocation(models);
       models.push(model);
     }

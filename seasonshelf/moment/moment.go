@@ -9,8 +9,8 @@ import (
 type Moment struct {
 	Date   time.Time `yaml:"date"`
 	Title  string    `yaml:"title"`
-	Text   string    `yaml:"text"`
 	Author string    `yaml:"author"`
+	Text   string    `yaml:"text"`
 }
 
 func (m *Moment) DateString() string {
@@ -51,6 +51,7 @@ func (m *Moment) DateString() string {
 		return fmt.Sprintf("季節の歯車を%d回まきもどしてから、\nさらに太陽を%d周もどした頃", -deltaYear, -deltaDay)
 	}
 }
+
 func (m *Moment) Path() string {
 	return m.Date.Format("/2006/01/02/15:04:05/")
 }

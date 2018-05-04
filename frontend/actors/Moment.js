@@ -11,21 +11,20 @@ export default class Moment {
    * @param {string} angle 
    * @param {string} date 
    * @param {string} title 
-   * @param {string} permalink
-   * @param {string} imageUrl 
-   * @param {string} url
+   * @param {string} path
+   * @param {string} imageURL
+   * @param {string} bodyURL
    */
-  constructor(world, angle, date, title, permalink, imageUrl, url) {
+  constructor(world, angle, date, title, path, imageURL, bodyURL) {
     this.world_ = world;
     this.gl_ = world.gl;
     // params
     this.angle_ = angle;
     this.date_ = date;
     this.title_ = title;
-    this.permalink_ = permalink;
-    this.imageUrl_ = imageUrl;
-    this.url_ = url;
-    this.tex_ = new Texture(world, imageUrl);
+    this.path_ = path;
+    this.bodyURL_ = bodyURL;
+    this.tex_ = new Texture(world, imageURL);
     this.c_ = Math.cos(this.angle_);
     this.s_ = -Math.sin(this.angle_);
     this.radius_ = -1;
@@ -116,16 +115,12 @@ export default class Moment {
     return this.title_;
   }
   /** @returns {string} */
-  get imageUrl() {
-    return this.imageUrl_;
+  get bodyURL() {
+    return this.bodyURL_;
   }
   /** @returns {string} */
-  get url() {
-    return this.url_;
-  }
-  /** @returns {string} */
-  get permalink() {
-    return this.permalink_;
+  get path() {
+    return this.path_;
   }
   /** @returns {string} */
   get date() {
