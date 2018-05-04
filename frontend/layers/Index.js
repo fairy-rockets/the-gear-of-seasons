@@ -8,7 +8,7 @@ import Page from './Page.js';
 import twemoji from 'twemoji';
 
 /**
-  @typedef MomentData
+  @typedef MomentSummary
   @type {object}
   @property {number} angle
   @property {string} date
@@ -179,7 +179,7 @@ export default class Index extends Layer {
   }
 
   /**
-   * @param {MomentData[]} moments 
+   * @param {MomentSummary[]} moments 
    */
   onLoadMoments_(moments) {
     const world = this.world;
