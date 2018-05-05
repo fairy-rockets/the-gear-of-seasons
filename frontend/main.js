@@ -24,6 +24,4 @@ function main() {
 }
 
 
-document.addEventListener('DOMContentLoaded', function() {
-  main();
-}, false);
+document.addEventListener('DOMContentLoaded', main, false);

@@ -186,7 +186,7 @@ export default class Index extends Layer {
     /** @type {Moment[]} */
     const models = [];
     for(let m of moments) {
-      const model = new Moment(world, m.angle, m.date, m.title, m.pat, m.imageURL, m.bodyURL);
+      const model = new Moment(world, m.angle, m.date, m.title, m.path, m.imageURL, m.bodyURL);
       model.relocation(models);
       models.push(model);
     }

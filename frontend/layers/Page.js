@@ -17,11 +17,11 @@ import twemoji from 'twemoji';
 export default class Page extends Layer {
   /**
    * @param {World} world 
-   * @param {string} permalink
+   * @param {string} path
    * @param {Promise<string>} contentPromise
    */
-  constructor(world, permalink, contentPromise) {
-    super(world, permalink);
+  constructor(world, path, contentPromise) {
+    super(world, path);
 
     this.contentWrapper_ = document.createElement('div');
     this.contentWrapper_.classList.add('content-wrapper');

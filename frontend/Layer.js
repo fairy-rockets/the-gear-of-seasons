@@ -5,13 +5,13 @@ import Gear from "./actors/Gear";
 export default class Layer {
   /**
    * @param {World} world 
-   * @param {string} url
+   * @param {string} path
    */
-  constructor(world, permalink) {
+  constructor(world, path) {
     /** @private */
     this.world_ = world;
     /** @private */
-    this.permalink_ = permalink;
+    this.path_ = path;
     /** @private */
     this.element_ = document.createElement('div');
     this.element_.className = 'layer-wrapper';
@@ -34,12 +34,13 @@ export default class Layer {
   get gear() {
     return this.world_.gear;
   }
-  get permalink() {
-    return this.permalink_;
-  }
   /** @returns {HTMLDivElement} */
   get element() {
     return this.element_;
+  }
+  /** @returns {string} */
+  get path() {
+    return this.path_;
   }
   /**
    * @param {number} time 
@@ -52,6 +53,5 @@ export default class Layer {
   onDtached() {
   }
   destroy() {
-
   }
 }

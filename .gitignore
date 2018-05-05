@@ -8,3 +8,4 @@ node_modules/
 _shelf/
 _cache/
 _resources/static/main.js
+_resources/static/admin-*.js
