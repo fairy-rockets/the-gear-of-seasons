@@ -168,8 +168,7 @@ export default class World {
       const content = fetch('/static/about-us.html').then(resp => resp.text());
       return new Page(this, '/about-us/', content);
     }else{
-      const url = `/moment${path}`;
-      const content = fetch(url).then(resp => resp.text());
+      const content = fetch(`/moment${path}`).then(resp => resp.text());
       return new Page(this, path, content);
     }
   }
@@ -180,9 +179,9 @@ export default class World {
     const state = history.state;
     const emptyState = state === null || state === undefined;
     if(emptyState) {
-      history.replaceState(1, '', next.permalink);
+      history.replaceState(1, '', next.path);
     } else if(layers.length !== 1) {
-      history.pushState(state+1, '', next.permalink);
+      history.pushState(state+1, '', next.path);
     }
   }
   /**
@@ -251,13 +250,13 @@ export default class World {
     const cnt = ev.state;
     const path = location.pathname;
     const current = this.layers_[this.layers_.length-1];
-    if(current.permalink === path) {
+    if(current.path === path) {
       return;
     }
     let idx = layers.length-1;
     for(; idx >= 0; --idx) {
       const layer = layers[idx];
-      if(layer.permalink === path) {
+      if(layer.path === path) {
         break;
       }
     }
