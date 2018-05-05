@@ -29,6 +29,10 @@ a:active {
   color: #a8e9a8;
 }
 
+p {
+  text-indent: 1em;
+}
+
 #background{
   position: absolute;
   top: 0;
