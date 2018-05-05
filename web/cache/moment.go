@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"sync"
 
+	"strings"
+
 	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf"
 	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/entity"
 	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/moment"
@@ -30,7 +32,7 @@ type Moment struct {
 
 var (
 	embedRegex     = regexp.MustCompile(`\[(link|image|video|audio) ([^\]]+)\]`)
-	paragraphRegex = regexp.MustCompile(`(?ms)(^|\n+|>\n)(.+?)($|\n\n+|\n<)`)
+	paragraphRegex = regexp.MustCompile(`((\r?\n)+)`)
 	blockRegex     = regexp.MustCompile(`<(script|div|pre|hr|ol|ul|video|blockquote|canvas) `)
 	keyValueRegex  = regexp.MustCompile(`([a-z]+)="([^"]*)"`)
 )
@@ -64,18 +66,25 @@ func (mc *MomentCache) Fetch(m *moment.Moment) *Moment {
 	return cached
 }
 
+func (mc *MomentCache) Preview(m *moment.Moment) *Moment {
+	return mc.compile(m)
+}
+
 func (mc *MomentCache) compile(m *moment.Moment) *Moment {
 	embeds := make([]entity.Entity, 0)
-	body := m.Text
 
-	body = paragraphRegex.ReplaceAllStringFunc(body, func(match string) string {
-		matches := paragraphRegex.FindStringSubmatch(match)
-		if embedRegex.MatchString(matches[2]) || blockRegex.MatchString(matches[2]) {
-			return match
-		} else {
-			return fmt.Sprintf("%s<p>%s</p>%s", matches[1], matches[2], matches[3])
+	paragraphs := paragraphRegex.Split(m.Text, -1)
+
+	for i, paragraph := range paragraphs {
+
+		if embedRegex.MatchString(paragraph) || blockRegex.MatchString(paragraph) {
+			continue
 		}
-	})
+		paragraphs[i] = fmt.Sprintf("<p>%s</p>", paragraph)
+	}
+
+	body := strings.Join(paragraphs, "\n")
+
 	body = embedRegex.ReplaceAllStringFunc(body, func(embed string) string {
 		matches := embedRegex.FindStringSubmatch(embed)
 		fileType := matches[1]
