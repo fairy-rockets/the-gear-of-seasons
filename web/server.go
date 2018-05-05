@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"path/filepath"
+
 	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf"
 	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/entity"
 	"github.com/FairyRockets/the-gear-of-seasons/web/cache"
@@ -31,16 +33,16 @@ func log() *logrus.Entry {
 	return logrus.WithField("Module", "Web")
 }
 
-func NewServer(addr string, shelf *seasonshelf.Shelf) *Server {
+func NewServer(addr string, shelf *seasonshelf.Shelf, cachePath string) *Server {
 	srv := &Server{
 		router:      httprouter.New(),
 		shelf:       shelf,
-		entityCache: cache.NewEntityCache(shelf, "_cache/entity"),
+		entityCache: cache.NewEntityCache(shelf, filepath.Join(cachePath, "entity")),
 		momentCache: cache.NewMomentCache(shelf),
 	}
 	srv.impl = &http.Server{
 		Addr:    addr,
-		Handler: srv,
+		Handler: srv.router,
 	}
 	srv.setupRoute()
 	return srv
@@ -54,7 +56,13 @@ func (srv *Server) setupRoute() {
 	router.GET("/entity/:id/icon", srv.serveEntityIcon)
 	router.GET("/entity/:id/medium", srv.serveEntityMedium)
 	router.GET("/moment/*moment", srv.serveMoment)
+	router.GET("/admin/", srv.serveAdminIndex)
+	router.GET("/admin/new", srv.serveAdminNew)
+	router.GET("/admin/edit/:id", srv.serveAdminEdit)
+	router.POST("/admin/edit/preview", srv.serveAdminEditPreview)
 	router.ServeFiles("/static/*filepath", http.Dir(StaticPath))
+
+	router.NotFound = srv
 }
 
 func (srv *Server) Prepare() error {
@@ -77,15 +85,16 @@ func (srv *Server) Prepare() error {
 	return nil
 }
 
-func (srv *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if req.Method == "GET" {
-		m := srv.shelf.LookupMoment(req.URL.Path)
+func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		m := srv.shelf.LookupMoment(r.URL.Path)
 		if m != nil {
-			srv.serveIndex(w, req, nil)
+			srv.serveIndex(w, r, nil)
 			return
 		}
 	}
-	srv.router.ServeHTTP(w, req)
+	w.WriteHeader(404)
+	fmt.Fprintf(w, "404: Page not found.")
 }
 
 func (srv *Server) Start() error {

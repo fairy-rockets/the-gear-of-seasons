@@ -22,6 +22,7 @@ import (
 
 var addr = flag.String("listen", ":8080", "listen")
 var shelfPath = flag.String("shelf", "_shelf", "shelf path")
+var cachePath = flag.String("cache", "_cache", "cache path")
 
 var shelf *seasonshelf.Shelf
 var server *web.Server
@@ -70,7 +71,7 @@ func main() {
 	}
 	log.Infof("%d entities, %d moments", shelf.NumEntities(), shelf.NumMoments())
 
-	server = web.NewServer(*addr, shelf)
+	server = web.NewServer(*addr, shelf, *cachePath)
 	if err := server.Prepare(); err != nil {
 		log.Fatalf("Failed to prepare server: %v", err)
 	}

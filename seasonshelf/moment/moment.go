@@ -30,7 +30,7 @@ func (m *Moment) DateString() string {
 	}
 
 	deltaYear := origin.Year() - now.Year()
-	deltaDay := int(math.Floor(date.Sub(origin).Hours() / 24.0))
+	deltaDay := int(math.Round(date.Sub(origin).Hours() / 24.0))
 	if deltaYear == 0 && deltaDay == 0 {
 		return "今日！"
 	}
