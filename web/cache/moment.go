@@ -32,7 +32,7 @@ type Moment struct {
 
 var (
 	embedRegex     = regexp.MustCompile(`\[(link|image|video|audio) ([^\]]+)\]`)
-	paragraphRegex = regexp.MustCompile(`((\r?\n)+)`)
+	paragraphRegex = regexp.MustCompile(`((\r?\n){2})`)
 	blockRegex     = regexp.MustCompile(`<(script|div|pre|hr|ol|ul|video|blockquote|canvas) `)
 	keyValueRegex  = regexp.MustCompile(`([a-z]+)="([^"]*)"`)
 )
