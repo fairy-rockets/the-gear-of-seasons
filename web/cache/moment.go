@@ -7,18 +7,18 @@ import (
 
 	"strings"
 
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf"
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/entity"
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/moment"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf/moment"
 )
 
 type MomentCache struct {
-	shelf   *seasonshelf.Shelf
+	shelf   *shelf.Shelf
 	mutex   sync.Mutex
 	entries map[*moment.Moment]*Moment
 }
 
-func NewMomentCache(shelf *seasonshelf.Shelf) *MomentCache {
+func NewMomentCache(shelf *shelf.Shelf) *MomentCache {
 	return &MomentCache{
 		shelf:   shelf,
 		entries: make(map[*moment.Moment]*Moment),

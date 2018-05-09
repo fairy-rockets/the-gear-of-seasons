@@ -8,8 +8,8 @@ import (
 
 	"path/filepath"
 
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf"
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
 	"github.com/FairyRockets/the-gear-of-seasons/web/cache"
 	"github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
@@ -24,7 +24,7 @@ const (
 type Server struct {
 	impl        *http.Server
 	router      *httprouter.Router
-	shelf       *seasonshelf.Shelf
+	shelf       *shelf.Shelf
 	entityCache *cache.EntityCache
 	momentCache *cache.MomentCache
 }
@@ -33,7 +33,7 @@ func log() *logrus.Entry {
 	return logrus.WithField("Module", "Web")
 }
 
-func NewServer(addr string, shelf *seasonshelf.Shelf, cachePath string) *Server {
+func NewServer(addr string, shelf *shelf.Shelf, cachePath string) *Server {
 	srv := &Server{
 		router:      httprouter.New(),
 		shelf:       shelf,

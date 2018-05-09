@@ -1,10 +1,10 @@
-package seasonshelf
+package shelf
 
 import (
 	"path/filepath"
 
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/entity"
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/moment"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf/moment"
 )
 
 // Shelf of Seasons
@@ -16,7 +16,7 @@ type Shelf struct {
 	moments  *moment.Shelf
 }
 
-func NewShelf(path string) *Shelf {
+func New(path string) *Shelf {
 	return &Shelf{
 		Path:     path,
 		entities: entity.NewShelf(filepath.Join(path, "entity")),
