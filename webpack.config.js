@@ -5,6 +5,7 @@ module.exports = {
   context: __dirname,
   entry: {
     'main': __dirname+'/frontend/main.js',
+    'admin-editor': __dirname+'/frontend/admin-editor.js',
   },
   mode: 'development',
   output: {

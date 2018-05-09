@@ -1,0 +1,136 @@
+html {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+
+  background: #080816;
+  color: #e3e8ef;
+}
+
+.sidebar {
+  width: 10em;
+  background: #091f42;
+  color: #e3e8ef;
+}
+
+.sidebar ul {
+  list-style-position: inside;
+  padding: 0.5em;
+}
+
+.sidebar-title {
+  font-size: 100%;
+  margin: 0.5em 1em;
+}
+
+.content {
+  flex-grow: 1;
+}
+
+a:link {
+  color: #ffffff;
+}
+a:visited {
+  color: #ffffff;
+}
+a:hover {
+  color: #89ff89;
+}
+a:active {
+  color: #a8e9a8;
+}
+
+
+/**************************************************************************************************
+  Editor Page
+ **************************************************************************************************/
+
+.editor-container {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+}
+
+.editor-container .editor-wrapper {
+  padding-top: 1em;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5em;
+}
+
+.editor-container .editor-wrapper .space {
+  flex: 1 1 0;
+}
+
+.editor-container .editor-wrapper .editor-title {
+  width: 100%;
+  display: block;
+}
+
+.editor-container .editor-wrapper .editor-bar {
+  margin-top: 0.5em;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.editor-container .editor-wrapper input,
+.editor-container .editor-wrapper .editor-bar option,
+.editor-container .editor-wrapper .editor-bar select,
+.editor-container .editor-wrapper .editor-bar button {
+  font-size: 22px;
+  color: #ddd;
+  background: #111;
+  border: 1px solid white;
+  vertical-align: center;
+}
+
+.editor-container .editor-wrapper #text {
+  flex: 1 1 0;
+  margin-top: 1em;
+  box-sizing: border-box;
+  width: 100%;
+  font-size: 16px;
+  color: #ddd;
+  background: #111;
+}
+
+.editor-container > div {
+  flex: 1 1 0;
+}
+#preview {
+  padding: 0.5em;
+}
+#preview .moment-info::after {
+  clear: both;
+  content: "";
+  display: block;
+}
+
+#preview .moment-date {
+  font-size: small;
+  font-weight: 800;
+}
+
+#preview .moment-author {
+  float: right;
+}

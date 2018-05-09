@@ -12,8 +12,8 @@ import (
 
 	"image"
 
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf"
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
 	"github.com/oliamb/cutter"
 )
 
@@ -26,11 +26,11 @@ const (
 )
 
 type EntityCache struct {
-	shelf *seasonshelf.Shelf
+	shelf *shelf.Shelf
 	path  string
 }
 
-func NewEntityCache(shelf *seasonshelf.Shelf, path string) *EntityCache {
+func NewEntityCache(shelf *shelf.Shelf, path string) *EntityCache {
 	return &EntityCache{
 		shelf: shelf,
 		path:  path,

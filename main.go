@@ -13,7 +13,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf"
+	shelfPkg "github.com/FairyRockets/the-gear-of-seasons/shelf"
 	"github.com/FairyRockets/the-gear-of-seasons/web"
 	"github.com/fatih/color"
 )
@@ -24,7 +24,7 @@ var addr = flag.String("listen", ":8080", "listen")
 var shelfPath = flag.String("shelf", "_shelf", "shelf path")
 var cachePath = flag.String("cache", "_cache", "cache path")
 
-var shelf *seasonshelf.Shelf
+var shelf *shelfPkg.Shelf
 var server *web.Server
 
 func mainLoop() os.Signal {
@@ -65,7 +65,7 @@ func main() {
 	log.Info("Initializing...")
 	log.Info("----------------------------------------")
 
-	shelf = seasonshelf.NewShelf(*shelfPath)
+	shelf = shelfPkg.New(*shelfPath)
 	if err := shelf.Init(); err != nil {
 		log.Fatalf("Failed to prepare shelf: %v", err)
 	}

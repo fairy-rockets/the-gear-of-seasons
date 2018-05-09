@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/entity"
-	"github.com/FairyRockets/the-gear-of-seasons/seasonshelf/moment"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf/moment"
 	"github.com/julienschmidt/httprouter"
 )
 
