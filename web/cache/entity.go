@@ -98,6 +98,7 @@ func (cache *EntityCache) FetchIcon(ent entity.Entity) (string, error) {
 	}
 	return path, nil
 }
+
 func (cache *EntityCache) FetchMedium(ent entity.Entity) (string, error) {
 	e, ok := ent.(*entity.ImageEntity)
 	if !ok {

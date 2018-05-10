@@ -56,10 +56,16 @@ func (srv *Server) setupRoute() {
 	router.GET("/entity/:id/icon", srv.serveEntityIcon)
 	router.GET("/entity/:id/medium", srv.serveEntityMedium)
 	router.GET("/moment/*moment", srv.serveMoment)
+
 	router.GET("/admin/", srv.serveAdminIndex)
+
 	router.GET("/admin/new", srv.serveAdminNew)
+	router.POST("/admin/upload", srv.serveAdminUpload)
+
 	router.GET("/admin/edit/:id", srv.serveAdminEdit)
+
 	router.POST("/admin/edit/preview", srv.serveAdminEditPreview)
+
 	router.ServeFiles("/static/*filepath", http.Dir(StaticPath))
 
 	router.NotFound = srv
@@ -112,8 +118,8 @@ func (srv *Server) Stop() error {
 }
 
 func (srv *Server) setError(w http.ResponseWriter, r *http.Request, err error) {
-	w.WriteHeader(501)
-	fmt.Fprintf(w, "Error:\n%v", err)
+	w.WriteHeader(503)
+	fmt.Fprintf(w, "[Error] %v", err)
 }
 
 func (srv *Server) templateOf(files ...string) (*template.Template, error) {

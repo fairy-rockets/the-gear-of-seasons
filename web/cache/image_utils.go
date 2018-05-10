@@ -3,32 +3,14 @@ package cache
 import (
 	"fmt"
 	"image"
-	"io"
 	"os"
 
 	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/util"
 	"github.com/disintegration/imaging"
 	"github.com/nfnt/resize"
 	"github.com/rwcarlsen/goexif/exif"
-	"github.com/rwcarlsen/goexif/mknote"
 )
-
-func decodeExif(e *entity.ImageEntity) (*exif.Exif, error) {
-	f, err := os.Open(e.GetPath())
-	if err != nil {
-		return nil, err
-	}
-	exif.RegisterParsers(mknote.All...)
-
-	x, err := exif.Decode(f)
-	if err != nil {
-		if err == io.EOF {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return x, nil
-}
 
 func decodeImage(e *entity.ImageEntity) (image.Image, string, error) {
 	f, err := os.Open(e.GetPath())
@@ -95,7 +77,7 @@ func generateThumbnail(e *entity.ImageEntity, minLength uint) (image.Image, erro
 	}
 	var x *exif.Exif
 	if format == "jpeg" {
-		x, err = decodeExif(e)
+		x, err = util.DecodeExifFromFile(e.Path)
 		if err != nil {
 			err = fmt.Errorf("failed to decode exif %s: %v", e.GetPath(), err)
 			return nil, err

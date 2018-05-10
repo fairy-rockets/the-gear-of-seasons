@@ -27,6 +27,7 @@ body {
   width: 10em;
   background: #091f42;
   color: #e3e8ef;
+  flex: 0 0 10em;
 }
 
 .sidebar ul {
@@ -40,7 +41,7 @@ body {
 }
 
 .content {
-  flex-grow: 1;
+  flex: 1 1 0;
 }
 
 a:link {
@@ -117,9 +118,61 @@ a:active {
 .editor-container > div {
   flex: 1 1 0;
 }
+
+.uploader-hover {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  background: #111;
+  opacity: 0.8;
+  color: #ffffff;
+  vertical-align: middle;
+  text-align: center;
+
+  font-size: 60vh;
+  font-weight: 900;
+
+  z-index: 9999;
+}
+
+div.uploader-progress {
+  position: fixed;
+  bottom: 1em;
+  right: 1em;
+
+  width: 10em;
+  padding: 1em;
+  
+  background: #fff;
+  opacity: 0.9;
+  border-radius: 1em;
+
+  display: flex;
+  flex-direction: column;
+}
+
+div.uploader-progress > img {
+  width: 90%;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+  flex: 0 1 0;
+}
+
+div.uploader-progress > progress {
+  width: 90%;
+  margin: 0 auto;
+  display: block;
+  flex: 0 0 0;
+}
+
 #preview {
   padding: 0.5em;
 }
+
 #preview .moment-info::after {
   clear: both;
   content: "";
@@ -134,3 +187,4 @@ a:active {
 #preview .moment-author {
   float: right;
 }
+

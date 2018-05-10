@@ -67,6 +67,14 @@ export default class Editor {
       }}).then(result => result.text())
       .then(body => this.preview_.onChange(body));
   }
+  /**
+   * 
+   * @param {string[]} embeds 
+   */
+  onUpload(embeds) {
+    this.text_.value += '\n' + embeds.join('\n\n');
+    this.executePreviewUpdate_();
+  }
 }
 
 
