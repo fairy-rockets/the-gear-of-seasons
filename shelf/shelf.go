@@ -50,6 +50,10 @@ func (shelf *Shelf) FindAllEntities() []entity.Entity {
 	return shelf.entities.AsSlice()
 }
 
+func (shelf *Shelf) AddImageEntity(mimeType string, buffer []byte) (*entity.ImageEntity, error) {
+	return shelf.entities.AddImage(mimeType, buffer)
+}
+
 // ------------------------------------------------------------------------------------------------
 //   Moments
 // ------------------------------------------------------------------------------------------------
