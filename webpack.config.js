@@ -18,18 +18,11 @@ module.exports = {
   ],
   module: {
     rules: [{
-      test: /\.js$/,
-      use: [{
-          loader: 'babel-loader',
-          options: {
-            presets: [
-              // {modules: false}にしないと import 文が Babel によって CommonJS に変換され、
-              // webpack の Tree Shaking 機能が使えない
-                ['env', {'modules': false}]
-            ]
-          }
-        }]
+      exclude: /node_modules/,
+      loader: 'babel-loader',
+      query: {
+        presets: ['env'],
+      },
     }]
-  }
-
+  },
 };
