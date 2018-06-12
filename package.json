@@ -5,7 +5,8 @@
   "scripts": {
     "build": "gulp build",
     "watch": "gulp watch",
-    "update": "npm-check-updates -u"
+    "deploy": "gulp deploy",
+    "update": "npm-check-updates -u -a"
   },
   "repository": {
     "type": "git",
