@@ -2,25 +2,22 @@ package shelf
 
 import (
 	"path/filepath"
-
-	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
-	"github.com/FairyRockets/the-gear-of-seasons/shelf/moment"
 )
 
-// Shelf of Seasons
+// MomentShelf of Seasons
 type Shelf struct {
 	Path string
 
 	// original data
-	entities *entity.Shelf
-	moments  *moment.Shelf
+	entities *EntityShelf
+	moments  *MomentShelf
 }
 
 func New(path string) *Shelf {
 	return &Shelf{
 		Path:     path,
-		entities: entity.NewShelf(filepath.Join(path, "entity")),
-		moments:  moment.NewShelf(filepath.Join(path, "moment")),
+		entities: newEntityShelf(filepath.Join(path, "entity")),
+		moments:  newMomentShelf(filepath.Join(path, "moment")),
 	}
 }
 
@@ -42,15 +39,15 @@ func (shelf *Shelf) NumEntities() int {
 	return shelf.entities.Size()
 }
 
-func (shelf *Shelf) LookupEntity(id string) entity.Entity {
+func (shelf *Shelf) LookupEntity(id string) Entity {
 	return shelf.entities.Lookup(id)
 }
 
-func (shelf *Shelf) FindAllEntities() []entity.Entity {
+func (shelf *Shelf) FindAllEntities() []Entity {
 	return shelf.entities.AsSlice()
 }
 
-func (shelf *Shelf) AddImageEntity(mimeType string, buffer []byte) (*entity.ImageEntity, error) {
+func (shelf *Shelf) AddImageEntity(mimeType string, buffer []byte) (*ImageEntity, error) {
 	return shelf.entities.AddImage(mimeType, buffer)
 }
 
@@ -62,9 +59,9 @@ func (shelf *Shelf) NumMoments() int {
 	return shelf.moments.Size()
 }
 
-func (shelf *Shelf) LookupMoment(path string) *moment.Moment {
+func (shelf *Shelf) LookupMoment(path string) *Moment {
 	return shelf.moments.Lookup(path)
 }
-func (shelf *Shelf) FindAllMoments() []*moment.Moment {
+func (shelf *Shelf) FindAllMoments() []*Moment {
 	return shelf.moments.AsSlice()
 }

@@ -1,4 +1,4 @@
-package entity
+package shelf
 
 import (
 	"io/ioutil"
@@ -24,23 +24,23 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type Shelf struct {
+type EntityShelf struct {
 	path     string
 	entities map[string]Entity
 }
 
-func NewShelf(path string) *Shelf {
-	return &Shelf{
+func newEntityShelf(path string) *EntityShelf {
+	return &EntityShelf{
 		path:     path,
 		entities: make(map[string]Entity),
 	}
 }
 
-func (s *Shelf) Path() string {
+func (s *EntityShelf) Path() string {
 	return s.path
 }
 
-func (s *Shelf) Size() int {
+func (s *EntityShelf) Size() int {
 	return len(s.entities)
 }
 
@@ -61,7 +61,7 @@ func loadMetadata(path string, out interface{}) (Entity, error) {
 	return out.(Entity), nil
 }
 
-func (s *Shelf) Init() error {
+func (s *EntityShelf) Init() error {
 	err := filepath.Walk(s.path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -127,15 +127,15 @@ func (s *Shelf) Init() error {
 	return err
 }
 
-func (s *Shelf) dirOf(e Entity) string {
+func (s *EntityShelf) dirOf(e Entity) string {
 	return filepath.Join(s.path, strconv.Itoa(e.GetDate().Year()))
 }
 
-func (s *Shelf) Lookup(id string) Entity {
+func (s *EntityShelf) Lookup(id string) Entity {
 	return s.entities[id]
 }
 
-func (s *Shelf) AsSlice() []Entity {
+func (s *EntityShelf) AsSlice() []Entity {
 	i := 0
 	lst := make([]Entity, len(s.entities))
 	for _, e := range s.entities {
@@ -145,7 +145,7 @@ func (s *Shelf) AsSlice() []Entity {
 	return lst
 }
 
-func (s *Shelf) AddImage(mimeType string, buffer []byte) (*ImageEntity, error) {
+func (s *EntityShelf) AddImage(mimeType string, buffer []byte) (*ImageEntity, error) {
 	var err error
 	img, format, err := image.Decode(bytes.NewReader(buffer))
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	"github.com/FairyRockets/the-gear-of-seasons/shelf"
-	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
 	"github.com/FairyRockets/the-gear-of-seasons/web/cache"
 	"github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
@@ -76,7 +75,7 @@ func (srv *Server) Prepare() error {
 	ents := srv.shelf.FindAllEntities()
 	for i, ent := range ents {
 		switch e := ent.(type) {
-		case *entity.ImageEntity:
+		case *shelf.ImageEntity:
 			if _, err = srv.entityCache.FetchIcon(e); err != nil {
 				return err
 			}
