@@ -5,14 +5,14 @@ import (
 	"image"
 	"os"
 
-	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf"
 	"github.com/FairyRockets/the-gear-of-seasons/util"
 	"github.com/disintegration/imaging"
 	"github.com/nfnt/resize"
 	"github.com/rwcarlsen/goexif/exif"
 )
 
-func decodeImage(e *entity.ImageEntity) (image.Image, string, error) {
+func decodeImage(e *shelf.ImageEntity) (image.Image, string, error) {
 	f, err := os.Open(e.GetPath())
 	if err != nil {
 		err = fmt.Errorf("failed to open %s: %v", e.GetPath(), err)
@@ -68,7 +68,7 @@ func calcImageSizeWithMinLength(width, height, minLength uint) (uint, uint) {
 	}
 }
 
-func generateThumbnail(e *entity.ImageEntity, minLength uint) (image.Image, error) {
+func generateThumbnail(e *shelf.ImageEntity, minLength uint) (image.Image, error) {
 	var err error
 	img, format, err := decodeImage(e)
 	if err != nil {

@@ -1,4 +1,4 @@
-package moment
+package shelf
 
 import (
 	"io/ioutil"
@@ -10,23 +10,23 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type Shelf struct {
+type MomentShelf struct {
 	path    string
 	moments map[string]*Moment
 }
 
-func NewShelf(path string) *Shelf {
-	return &Shelf{
+func newMomentShelf(path string) *MomentShelf {
+	return &MomentShelf{
 		path:    path,
 		moments: make(map[string]*Moment),
 	}
 
 }
-func (s *Shelf) Size() int {
+func (s *MomentShelf) Size() int {
 	return len(s.moments)
 }
 
-func (s *Shelf) AsSlice() []*Moment {
+func (s *MomentShelf) AsSlice() []*Moment {
 	i := 0
 	lst := make([]*Moment, len(s.moments))
 	for _, m := range s.moments {
@@ -36,11 +36,11 @@ func (s *Shelf) AsSlice() []*Moment {
 	return lst
 }
 
-func (s *Shelf) Lookup(path string) *Moment {
+func (s *MomentShelf) Lookup(path string) *Moment {
 	return s.moments[path]
 }
 
-func loadFromFile(path string, out *Moment) error {
+func loadMomentFromFile(path string, out *Moment) error {
 	f, err := os.Open(path)
 	if err != nil {
 		log.Fatalf("Failed to open %s: %v", path, err)
@@ -53,7 +53,7 @@ func loadFromFile(path string, out *Moment) error {
 	return yaml.Unmarshal(data, out)
 }
 
-func (s *Shelf) Init() error {
+func (s *MomentShelf) Init() error {
 	err := filepath.Walk(s.path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -63,7 +63,7 @@ func (s *Shelf) Init() error {
 		}
 		if strings.HasSuffix(path, ".yml") {
 			m := &Moment{}
-			err = loadFromFile(path, m)
+			err = loadMomentFromFile(path, m)
 			if err != nil {
 				return err
 			}

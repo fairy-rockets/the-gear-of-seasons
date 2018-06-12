@@ -8,7 +8,7 @@ import (
 
 	"fmt"
 
-	"github.com/FairyRockets/the-gear-of-seasons/shelf/moment"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -59,7 +59,7 @@ func (srv *Server) serveAdminEditPreview(w http.ResponseWriter, r *http.Request,
 		srv.setError(w, r, err)
 		return
 	}
-	m := new(moment.Moment)
+	m := new(shelf.Moment)
 	err = json.Unmarshal(data, m)
 	if err != nil {
 		srv.setError(w, r, err)

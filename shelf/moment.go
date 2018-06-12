@@ -1,4 +1,4 @@
-package moment
+package shelf
 
 import (
 	"fmt"

@@ -8,26 +8,24 @@ import (
 	"strings"
 
 	"github.com/FairyRockets/the-gear-of-seasons/shelf"
-	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
-	"github.com/FairyRockets/the-gear-of-seasons/shelf/moment"
 )
 
 type MomentCache struct {
 	shelf   *shelf.Shelf
 	mutex   sync.Mutex
-	entries map[*moment.Moment]*Moment
+	entries map[*shelf.Moment]*Moment
 }
 
-func NewMomentCache(shelf *shelf.Shelf) *MomentCache {
+func NewMomentCache(sh *shelf.Shelf) *MomentCache {
 	return &MomentCache{
-		shelf:   shelf,
-		entries: make(map[*moment.Moment]*Moment),
+		shelf:   sh,
+		entries: make(map[*shelf.Moment]*Moment),
 	}
 }
 
 type Moment struct {
 	Body   string
-	Embeds []entity.Entity
+	Embeds []shelf.Entity
 }
 
 var (
@@ -44,20 +42,20 @@ func parseEmbedFiels(str string) map[string]string {
 	}
 	return kv
 }
-func (mc *MomentCache) lookup(m *moment.Moment) (*Moment, bool) {
+func (mc *MomentCache) lookup(m *shelf.Moment) (*Moment, bool) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 	entry, ok := mc.entries[m]
 	return entry, ok
 }
 
-func (mc *MomentCache) set(m *moment.Moment, entry *Moment) {
+func (mc *MomentCache) set(m *shelf.Moment, entry *Moment) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 	mc.entries[m] = entry
 }
 
-func (mc *MomentCache) Fetch(m *moment.Moment) *Moment {
+func (mc *MomentCache) Fetch(m *shelf.Moment) *Moment {
 	if cached, ok := mc.lookup(m); ok {
 		return cached
 	}
@@ -66,12 +64,12 @@ func (mc *MomentCache) Fetch(m *moment.Moment) *Moment {
 	return cached
 }
 
-func (mc *MomentCache) Preview(m *moment.Moment) *Moment {
+func (mc *MomentCache) Preview(m *shelf.Moment) *Moment {
 	return mc.compile(m)
 }
 
-func (mc *MomentCache) compile(m *moment.Moment) *Moment {
-	embeds := make([]entity.Entity, 0)
+func (mc *MomentCache) compile(m *shelf.Moment) *Moment {
+	embeds := make([]shelf.Entity, 0)
 
 	paragraphs := paragraphRegex.Split(m.Text, -1)
 
@@ -106,7 +104,7 @@ func (mc *MomentCache) compile(m *moment.Moment) *Moment {
 			}
 			return fmt.Sprintf(`<a href="%s">%s</a>`, url, text)
 		case "image":
-			if img, ok := e.(*entity.ImageEntity); ok {
+			if img, ok := e.(*shelf.ImageEntity); ok {
 				embeds = append(embeds, e)
 				url := fmt.Sprintf("/entity/%s", id)
 				src := fmt.Sprintf("/entity/%s/medium", id)
@@ -119,7 +117,7 @@ func (mc *MomentCache) compile(m *moment.Moment) *Moment {
 				return fmt.Sprintf(`<strong class="error">Entity(%s) is not image.</strong>`, id)
 			}
 		case "video":
-			if video, ok := e.(*entity.VideoEntity); ok {
+			if video, ok := e.(*shelf.VideoEntity); ok {
 				embeds = append(embeds, e)
 				url := fmt.Sprintf("/entity/%s", id)
 				return fmt.Sprintf(`<video  width="%d" height="%d" preload="metadata" controls="controls"><source type="%s" src="%s" /><a href="%s">Click to play.</a></video>`, video.Width, video.Height, video.MimeType, url, url)

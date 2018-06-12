@@ -13,7 +13,6 @@ import (
 	"image"
 
 	"github.com/FairyRockets/the-gear-of-seasons/shelf"
-	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
 	"github.com/oliamb/cutter"
 )
 
@@ -37,17 +36,17 @@ func NewEntityCache(shelf *shelf.Shelf, path string) *EntityCache {
 	}
 }
 
-func (cache *EntityCache) pathOf(e *entity.ImageEntity, thumbType string) string {
+func (cache *EntityCache) pathOf(e *shelf.ImageEntity, thumbType string) string {
 	return filepath.Join(cache.path, thumbType, strconv.Itoa(e.Date.Year()), e.ID+".jpg")
 }
 
-func (cache *EntityCache) lookup(e *entity.ImageEntity, thumbType string) (string, bool) {
+func (cache *EntityCache) lookup(e *shelf.ImageEntity, thumbType string) (string, bool) {
 	path := cache.pathOf(e, thumbType)
 	_, err := os.Stat(path)
 	return path, err == nil
 }
 
-func (cache *EntityCache) save(e *entity.ImageEntity, thumbType string, img image.Image) (string, error) {
+func (cache *EntityCache) save(e *shelf.ImageEntity, thumbType string, img image.Image) (string, error) {
 	var err error
 	path := cache.pathOf(e, thumbType)
 	if err = os.MkdirAll(filepath.Dir(path), 0755); err != nil {
@@ -69,8 +68,8 @@ func (cache *EntityCache) save(e *entity.ImageEntity, thumbType string, img imag
 	return path, nil
 }
 
-func (cache *EntityCache) FetchIcon(ent entity.Entity) (string, error) {
-	e, ok := ent.(*entity.ImageEntity)
+func (cache *EntityCache) FetchIcon(ent shelf.Entity) (string, error) {
+	e, ok := ent.(*shelf.ImageEntity)
 	if !ok {
 		return "", fmt.Errorf("%s is not an image", e.GetPath())
 	}
@@ -99,8 +98,8 @@ func (cache *EntityCache) FetchIcon(ent entity.Entity) (string, error) {
 	return path, nil
 }
 
-func (cache *EntityCache) FetchMedium(ent entity.Entity) (string, error) {
-	e, ok := ent.(*entity.ImageEntity)
+func (cache *EntityCache) FetchMedium(ent shelf.Entity) (string, error) {
+	e, ok := ent.(*shelf.ImageEntity)
 	if !ok {
 		return "", fmt.Errorf("%s is not an image", e.GetPath())
 	}

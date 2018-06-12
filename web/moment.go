@@ -10,8 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/FairyRockets/the-gear-of-seasons/shelf/entity"
-	"github.com/FairyRockets/the-gear-of-seasons/shelf/moment"
+	"github.com/FairyRockets/the-gear-of-seasons/shelf"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -39,13 +38,13 @@ type momentSummary struct {
 	BodyURL  string  `json:"bodyURL"`
 }
 
-func (srv *Server) makeSummary(m *moment.Moment) *momentSummary {
+func (srv *Server) makeSummary(m *shelf.Moment) *momentSummary {
 	var err error
 	embeds := srv.momentCache.Fetch(m).Embeds
-	var img *entity.ImageEntity
+	var img *shelf.ImageEntity
 	for _, e := range embeds {
 		var ok bool
-		if img, ok = e.(*entity.ImageEntity); ok {
+		if img, ok = e.(*shelf.ImageEntity); ok {
 			break
 		}
 	}
