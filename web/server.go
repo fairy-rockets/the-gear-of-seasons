@@ -24,7 +24,7 @@ type Server struct {
 	impl        *http.Server
 	router      *httprouter.Router
 	shelf       *shelf.Shelf
-	entityCache *cache.EntityCache
+	entityCache *cache.EntityCacheShelf
 	momentCache *cache.MomentCacheShelf
 }
 
@@ -36,7 +36,7 @@ func NewServer(addr string, shelf *shelf.Shelf, cachePath string) *Server {
 	srv := &Server{
 		router:      httprouter.New(),
 		shelf:       shelf,
-		entityCache: cache.NewEntityCache(shelf, filepath.Join(cachePath, "entity")),
+		entityCache: cache.NewEntityCacheShelf(shelf, filepath.Join(cachePath, "entity")),
 		momentCache: cache.NewMomentCacheShelf(shelf),
 	}
 	srv.impl = &http.Server{
