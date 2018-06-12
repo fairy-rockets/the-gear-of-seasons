@@ -24,29 +24,29 @@ const (
 	MediumType = "medium"
 )
 
-type EntityCache struct {
+type EntityCacheShelf struct {
 	shelf *shelf.Shelf
 	path  string
 }
 
-func NewEntityCache(shelf *shelf.Shelf, path string) *EntityCache {
-	return &EntityCache{
+func NewEntityCacheShelf(shelf *shelf.Shelf, path string) *EntityCacheShelf {
+	return &EntityCacheShelf{
 		shelf: shelf,
 		path:  path,
 	}
 }
 
-func (cache *EntityCache) pathOf(e *shelf.ImageEntity, thumbType string) string {
+func (cache *EntityCacheShelf) pathOf(e *shelf.ImageEntity, thumbType string) string {
 	return filepath.Join(cache.path, thumbType, strconv.Itoa(e.Date.Year()), e.ID+".jpg")
 }
 
-func (cache *EntityCache) lookup(e *shelf.ImageEntity, thumbType string) (string, bool) {
+func (cache *EntityCacheShelf) lookup(e *shelf.ImageEntity, thumbType string) (string, bool) {
 	path := cache.pathOf(e, thumbType)
 	_, err := os.Stat(path)
 	return path, err == nil
 }
 
-func (cache *EntityCache) save(e *shelf.ImageEntity, thumbType string, img image.Image) (string, error) {
+func (cache *EntityCacheShelf) save(e *shelf.ImageEntity, thumbType string, img image.Image) (string, error) {
 	var err error
 	path := cache.pathOf(e, thumbType)
 	if err = os.MkdirAll(filepath.Dir(path), 0755); err != nil {
@@ -68,7 +68,7 @@ func (cache *EntityCache) save(e *shelf.ImageEntity, thumbType string, img image
 	return path, nil
 }
 
-func (cache *EntityCache) FetchIcon(ent shelf.Entity) (string, error) {
+func (cache *EntityCacheShelf) FetchIcon(ent shelf.Entity) (string, error) {
 	e, ok := ent.(*shelf.ImageEntity)
 	if !ok {
 		return "", fmt.Errorf("%s is not an image", e.GetPath())
@@ -98,7 +98,7 @@ func (cache *EntityCache) FetchIcon(ent shelf.Entity) (string, error) {
 	return path, nil
 }
 
-func (cache *EntityCache) FetchMedium(ent shelf.Entity) (string, error) {
+func (cache *EntityCacheShelf) FetchMedium(ent shelf.Entity) (string, error) {
 	e, ok := ent.(*shelf.ImageEntity)
 	if !ok {
 		return "", fmt.Errorf("%s is not an image", e.GetPath())
