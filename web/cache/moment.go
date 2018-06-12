@@ -159,6 +159,7 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 		}
 	})
 	return &MomentCache{
+		Moment: m,
 		body:   body,
 		embeds: embeds,
 	}
