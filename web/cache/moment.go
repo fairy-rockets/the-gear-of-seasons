@@ -10,22 +10,53 @@ import (
 	"github.com/FairyRockets/the-gear-of-seasons/shelf"
 )
 
-type MomentCache struct {
+type MomentCacheShelf struct {
 	shelf   *shelf.Shelf
 	mutex   sync.Mutex
-	entries map[*shelf.Moment]*Moment
+	entries map[*shelf.Moment]*MomentCache
 }
 
-func NewMomentCache(sh *shelf.Shelf) *MomentCache {
-	return &MomentCache{
+func NewMomentCacheShelf(sh *shelf.Shelf) *MomentCacheShelf {
+	return &MomentCacheShelf{
 		shelf:   sh,
-		entries: make(map[*shelf.Moment]*Moment),
+		entries: make(map[*shelf.Moment]*MomentCache),
 	}
 }
 
-type Moment struct {
-	Body   string
-	Embeds []shelf.Entity
+type MomentCache struct {
+	Moment *shelf.Moment
+	body   string
+	embeds []shelf.Entity
+}
+
+const contentFormat = `
+<div class="moment-info">
+	<h1 class="moment-title">%s</h1>
+	<span class="moment-date">%s</span>
+	<span class="moment-author">%s</span>
+</div>
+<hr>
+%s`
+
+func (cache *MomentCache) Content() string {
+	return fmt.Sprintf(contentFormat,
+		cache.Moment.Title,
+		cache.Moment.DateString(),
+		cache.Moment.Author,
+		cache.body)
+}
+
+func (cache *MomentCache) Embeds() []shelf.Entity {
+	return cache.embeds
+}
+
+func (cache *MomentCache) FindFirstImage() *shelf.ImageEntity {
+	for _, e := range cache.embeds {
+		if img, ok := e.(*shelf.ImageEntity); ok {
+			return img
+		}
+	}
+	return nil
 }
 
 var (
@@ -35,63 +66,60 @@ var (
 	keyValueRegex  = regexp.MustCompile(`([a-z]+)="([^"]*)"`)
 )
 
-func parseEmbedFiels(str string) map[string]string {
+func parseEmbedFields(str string) map[string]string {
 	kv := make(map[string]string)
 	for _, matches := range keyValueRegex.FindAllStringSubmatch(str, -1) {
 		kv[matches[1]] = matches[2]
 	}
 	return kv
 }
-func (mc *MomentCache) lookup(m *shelf.Moment) (*Moment, bool) {
-	mc.mutex.Lock()
-	defer mc.mutex.Unlock()
-	entry, ok := mc.entries[m]
+func (cache *MomentCacheShelf) lookup(m *shelf.Moment) (*MomentCache, bool) {
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
+	entry, ok := cache.entries[m]
 	return entry, ok
 }
 
-func (mc *MomentCache) set(m *shelf.Moment, entry *Moment) {
-	mc.mutex.Lock()
-	defer mc.mutex.Unlock()
-	mc.entries[m] = entry
+func (cache *MomentCacheShelf) set(m *shelf.Moment, entry *MomentCache) {
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
+	cache.entries[m] = entry
 }
 
-func (mc *MomentCache) Fetch(m *shelf.Moment) *Moment {
-	if cached, ok := mc.lookup(m); ok {
+func (cache *MomentCacheShelf) Fetch(m *shelf.Moment) *MomentCache {
+	if cached, ok := cache.lookup(m); ok {
 		return cached
 	}
-	cached := mc.compile(m)
-	mc.set(m, cached)
+	cached := cache.compile(m)
+	cache.set(m, cached)
 	return cached
 }
 
-func (mc *MomentCache) Preview(m *shelf.Moment) *Moment {
-	return mc.compile(m)
+func (cache *MomentCacheShelf) Preview(m *shelf.Moment) *MomentCache {
+	return cache.compile(m)
 }
 
-func (mc *MomentCache) compile(m *shelf.Moment) *Moment {
+func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 	embeds := make([]shelf.Entity, 0)
 
 	paragraphs := paragraphRegex.Split(m.Text, -1)
 
 	for i, paragraph := range paragraphs {
-
 		if embedRegex.MatchString(paragraph) || blockRegex.MatchString(paragraph) {
 			continue
 		}
 		paragraphs[i] = fmt.Sprintf("<p>%s</p>", paragraph)
 	}
-
 	body := strings.Join(paragraphs, "\n")
-
 	body = embedRegex.ReplaceAllStringFunc(body, func(embed string) string {
 		matches := embedRegex.FindStringSubmatch(embed)
 		fileType := matches[1]
-		fields := parseEmbedFiels(matches[2])
+		fields := parseEmbedFields(matches[2])
 		id, ok := fields["entity"]
 		if !ok {
 			return fmt.Sprintf(`<strong class="error">No entity field</strong>`)
 		}
-		e := mc.shelf.LookupEntity(id)
+		e := cache.shelf.LookupEntity(id)
 		if e == nil {
 			return fmt.Sprintf(`<strong class="error">Entity(%s) not found</strong>`, id)
 		}
@@ -130,17 +158,9 @@ func (mc *MomentCache) compile(m *shelf.Moment) *Moment {
 			return fmt.Sprintf(`<strong class="error">%s not supported</strong>`, fileType)
 		}
 	})
-	compiledBody := fmt.Sprintf(`
-<div class="moment-info">
-	<h1 class="moment-title">%s</h1>
-	<span class="moment-date">%s</span>
-	<span class="moment-author">%s</span>
-</div>
-<hr>
-%s`, m.Title, m.DateString(), m.Author, body)
-	return &Moment{
-		Embeds: embeds,
-		Body:   compiledBody,
+	return &MomentCache{
+		body:   body,
+		embeds: embeds,
 	}
 
 }
