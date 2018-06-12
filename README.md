@@ -19,9 +19,9 @@ go get -u "gopkg.in/yaml.v2"
 
 # imaging
 go get -u "github.com/rwcarlsen/goexif"
+go get -u "github.com/disintegration/imaging"
 go get -u "github.com/nfnt/resize"
 go get -u "github.com/oliamb/cutter"
-go get -u "github.com/disintegration/imaging"
 go get -u "github.com/nfnt/resize"
 ```
 
