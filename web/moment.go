@@ -25,7 +25,7 @@ func (srv *Server) serveMoment(w http.ResponseWriter, r *http.Request, p httprou
 		return
 	}
 	w.WriteHeader(200)
-	body := srv.momentCache.Fetch(m).Body
+	body := srv.momentCache.Fetch(m).Content()
 	w.Write([]byte(body))
 }
 
@@ -40,14 +40,8 @@ type momentSummary struct {
 
 func (srv *Server) makeSummary(m *shelf.Moment) *momentSummary {
 	var err error
-	embeds := srv.momentCache.Fetch(m).Embeds
 	var img *shelf.ImageEntity
-	for _, e := range embeds {
-		var ok bool
-		if img, ok = e.(*shelf.ImageEntity); ok {
-			break
-		}
-	}
+	img = srv.momentCache.Fetch(m).FindFirstImage()
 	beg := time.Date(m.Date.Year(), time.January, 1, 0, 0, 0, 0, m.Date.Location())
 	end := time.Date(m.Date.Year()+1, time.January, 1, 0, 0, 0, 0, m.Date.Location())
 	angle := float64(m.Date.Sub(beg)) / float64(end.Sub(beg))

@@ -67,7 +67,7 @@ func (srv *Server) serveAdminEditPreview(w http.ResponseWriter, r *http.Request,
 	}
 	mc := srv.momentCache.Preview(m)
 	w.WriteHeader(200)
-	w.Write([]byte(mc.Body))
+	w.Write([]byte(mc.Content()))
 }
 
 func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
