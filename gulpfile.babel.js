@@ -1,7 +1,7 @@
 import gulp from 'gulp';
 import log from 'fancy-log';
 import del from 'del';
-import * as colors from 'ansi-colors';
+import colors from 'ansi-colors';
 
 import webpackStream from 'webpack-stream';
 import webpack from 'webpack';
@@ -10,7 +10,7 @@ import child, { ChildProcess } from 'child_process';
 
 import webpackConfig from './webpack.config.js';
 
-const Repo = 'github.com/FairyRockets/the-gear-of-seasons';
+const Repo = 'github.com/fairy-rockets/the-gear-of-seasons';
 const Bin = '.bin/the-gear-of-seasons';
 
 /**

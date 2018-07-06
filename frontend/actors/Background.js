@@ -57,7 +57,7 @@ export default class Background {
     try {
       this.program_.bind();
       this.vertexes_.bindShader(this.program_, 'position');
-      this.norms_.bindShader(this.program_, 'norm');
+      //this.norms_.bindShader(this.program_, 'norm');
 
       this.indecies_.bind();
       mat4.identity(matLocModel);
@@ -102,17 +102,14 @@ export default class Background {
 
 const vsSrc = `
 attribute vec3 position;
-attribute vec3 norm;
 
 uniform mat4 matLocModel;
 uniform mat4 matrix;
 
 varying mediump vec3 vPosition;
-varying mediump vec3 vNorm;
 
 void main(void) {
   vPosition = (matLocModel * vec4(position, 1.0)).xyz;
-  vNorm     = (matLocModel * vec4(norm,     0.0)).xyz;
   gl_Position = matrix * vec4(position, 1.0);
 }
 `;
@@ -121,7 +118,6 @@ precision mediump float;
 
 uniform float time;
 varying vec3 vPosition;
-varying vec3 vNorm;
 
 uniform vec4 winterPosition;
 uniform vec4 winterColor;
@@ -178,7 +174,6 @@ vec4 calcLight(vec3 lightPosition, vec4 lightColor) {
   vec3 delta = lightPosition - vPosition;
   float d = length(delta);
   vec3 ndelta = normalize(delta);
-  vec3 norm = normalize(vNorm);
   return lightColor * 5.0 / pow(d, 1.2);
 }
 

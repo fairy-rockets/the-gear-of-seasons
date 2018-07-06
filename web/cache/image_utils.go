@@ -5,8 +5,8 @@ import (
 	"image"
 	"os"
 
-	"github.com/FairyRockets/the-gear-of-seasons/shelf"
-	"github.com/FairyRockets/the-gear-of-seasons/util"
+	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
+	"github.com/fairy-rockets/the-gear-of-seasons/util"
 	"github.com/disintegration/imaging"
 	"github.com/nfnt/resize"
 	"github.com/rwcarlsen/goexif/exif"

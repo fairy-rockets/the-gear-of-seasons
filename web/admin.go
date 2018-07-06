@@ -8,7 +8,7 @@ import (
 
 	"fmt"
 
-	"github.com/FairyRockets/the-gear-of-seasons/shelf"
+	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
 	"github.com/julienschmidt/httprouter"
 )
 
