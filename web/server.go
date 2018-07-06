@@ -85,7 +85,7 @@ func (srv *Server) Prepare() error {
 		default:
 			/* Nothing to do */
 		}
-		log().Infof("Entity[%d/%d] prepared.", i, len(ents))
+		log().Infof("Entity[%d/%d] prepared.", i+1, len(ents))
 	}
 	return nil
 }
