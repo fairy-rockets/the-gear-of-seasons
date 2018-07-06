@@ -57,7 +57,7 @@ export default class Background {
     try {
       this.program_.bind();
       this.vertexes_.bindShader(this.program_, 'position');
-      //this.norms_.bindShader(this.program_, 'norm');
+      //this.norms_.bindShader(this.program_, 'norm'); //TODO: unused
 
       this.indecies_.bind();
       mat4.identity(matLocModel);
