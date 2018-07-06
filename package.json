@@ -10,14 +10,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FairyRockets/the-gear-of-seasons.git"
+    "url": "git+https://github.com/fairy-rockets/the-gear-of-seasons.git"
   },
   "author": "PSI",
   "license": "CC-BY-SA-4.0",
   "bugs": {
-    "url": "https://github.com/FairyRockets/the-gear-of-seasons/issues"
+    "url": "https://github.com/fairy-rockets/the-gear-of-seasons/issues"
   },
-  "homepage": "https://github.com/FairyRockets/the-gear-of-seasons#readme",
+  "homepage": "https://github.com/fairy-rockets/the-gear-of-seasons#readme",
   "devDependencies": {
     "ansi-colors": "^2.0.2",
     "babel-cli": "^6.26.0",

@@ -7,7 +7,7 @@ import (
 
 	"strings"
 
-	"github.com/FairyRockets/the-gear-of-seasons/shelf"
+	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
 )
 
 type MomentCacheShelf struct {

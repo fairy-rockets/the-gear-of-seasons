@@ -8,8 +8,8 @@ import (
 
 	"path/filepath"
 
-	"github.com/FairyRockets/the-gear-of-seasons/shelf"
-	"github.com/FairyRockets/the-gear-of-seasons/web/cache"
+	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
+	"github.com/fairy-rockets/the-gear-of-seasons/web/cache"
 	"github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"

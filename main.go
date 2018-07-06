@@ -13,8 +13,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	shelfPkg "github.com/FairyRockets/the-gear-of-seasons/shelf"
-	"github.com/FairyRockets/the-gear-of-seasons/web"
+	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/shelf"
+	"github.com/fairy-rockets/the-gear-of-seasons/web"
 	"github.com/fatih/color"
 )
 

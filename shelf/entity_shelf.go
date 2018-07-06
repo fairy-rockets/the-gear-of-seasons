@@ -20,7 +20,7 @@ import (
 
 	"strconv"
 
-	"github.com/FairyRockets/the-gear-of-seasons/util"
+	"github.com/fairy-rockets/the-gear-of-seasons/util"
 	"gopkg.in/yaml.v2"
 )
 
