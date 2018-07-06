@@ -70,17 +70,17 @@ func (s *EntityShelf) Init() error {
 			return nil
 		}
 		var e Entity
-		base := filepath.Dir(path)
+		dirName := filepath.Dir(path)
 		if strings.HasSuffix(path, ".image.yml") {
 			ent := &ImageEntity{}
 			e, err = loadMetadata(path, ent)
 			switch ent.MimeType {
 			case "image/gif":
-				ent.Path = filepath.Join(base, ent.ID) + ".gif"
+				ent.Path = filepath.Join(dirName, ent.ID) + ".gif"
 			case "image/jpeg":
-				ent.Path = filepath.Join(base, ent.ID) + ".jpg"
+				ent.Path = filepath.Join(dirName, ent.ID) + ".jpg"
 			case "image/png":
-				ent.Path = filepath.Join(base, ent.ID) + ".png"
+				ent.Path = filepath.Join(dirName, ent.ID) + ".png"
 			default:
 				log.Fatalf("Unknwon image type: %s", ent.MimeType)
 			}
@@ -89,7 +89,7 @@ func (s *EntityShelf) Init() error {
 			e, err = loadMetadata(path, ent)
 			switch ent.MimeType {
 			case "video/mp4":
-				ent.Path = filepath.Join(base, ent.ID) + ".mp4"
+				ent.Path = filepath.Join(dirName, ent.ID) + ".mp4"
 			default:
 				log.Fatalf("Unknwon video type: %s", ent.MimeType)
 			}
@@ -115,9 +115,10 @@ func (s *EntityShelf) Init() error {
 			log.Warnf("Dir mismatched: %s != %s", filepath.Dir(e.GetPath()), s.dirOf(e))
 			// TODO: move?
 		}
-		id := path[:strings.Index(path, ".")]
+		fileName := filepath.Base(path)
+		id := fileName[:strings.Index(fileName, ".")]
 		if id != e.GetID() {
-			log.Warnf("ID mismatched: %s != %s", filepath.Dir(e.GetPath()), s.dirOf(e))
+			log.Warnf("ID mismatched: %s != %s(%s)", id, e.GetID(), e.GetPath())
 			// TODO: move?
 		}
 		s.entities[e.GetID()] = e
