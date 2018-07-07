@@ -69,9 +69,19 @@ function buildServer(dst, os, arch) {
   if(arch) {
     env['GOARCH'] = arch;
   }
+  /** @type {string[]} */
+  let cmd = ['go', 'build', '-o', dst, Repo];
+  if(os || arch) {
+    env['CGO_ENABLED'] = '0';
+    // TODO: to link statically:
+    // https://github.com/golang/go/issues/9344#issuecomment-156317219
+    cmd = ['go', 'build', '-o', dst,
+           '-a', '-installsuffix', 'cgo', '-ldflags', '-s',
+           Repo];
+  }
   return del([dst])
     .then(paths => exec(['go', 'generate', Repo]))
-    .then(() => exec(['go', 'build', '-o', dst, Repo], options));
+    .then(() => exec(cmd, options));
 }
 
 gulp.task('server:build', () => {
