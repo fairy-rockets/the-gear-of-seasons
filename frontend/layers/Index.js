@@ -171,8 +171,25 @@ export default class Index extends Layer {
   onWheelEvent_(event) {
     event.preventDefault();
     const world = this.world;
-    world.gear.angle += event.deltaY * Math.PI / (360 * 10);
-    world.gear.angle -= event.deltaX * Math.PI / (360 * 10);
+    let dx = event.deltaX;
+    let dy = event.deltaY;
+    switch(event.deltaMode) {
+    case WheelEvent.DOM_DELTA_LINE:
+      dx *= 30;
+      dy *= 30;
+    break;
+    case WheelEvent.DOM_DELTA_PIXEL:
+      break;
+    case WheelEvent.DOM_DELTA_PAGE:
+      dx *= 300;
+      dy *= 300;
+      break;
+    default:
+      throw new Error("Unknown delta mode: "+event.deltaMode);
+    }
+    
+    world.gear.angle += dy * Math.PI / (360 * 10);
+    world.gear.angle -= dx * Math.PI / (360 * 10);
     if(this.selected_) {
       this.fixTooltipPosition_();
     }
