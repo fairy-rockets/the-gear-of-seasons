@@ -8,9 +8,9 @@ import (
 
 	"path/filepath"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
 	"github.com/fairy-rockets/the-gear-of-seasons/web/cache"
-	"github.com/Sirupsen/logrus"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
 )
@@ -57,7 +57,6 @@ func (srv *Server) setupRoute() {
 	router.GET("/moment/*moment", srv.serveMoment)
 
 	router.GET("/admin/", srv.serveAdminIndex)
-
 	router.GET("/admin/new", srv.serveAdminNew)
 	router.POST("/admin/upload", srv.serveAdminUpload)
 
