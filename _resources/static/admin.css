@@ -57,6 +57,16 @@ a:active {
   color: #a8e9a8;
 }
 
+p {
+  text-indent: 1em;
+}
+
+img.emoji {
+  height: 1em;
+  width: 1em;
+  margin: 0 .05em 0 .1em;
+  vertical-align: -0.1em;
+}
 
 /**************************************************************************************************
   Editor Page
@@ -171,6 +181,26 @@ div.uploader-progress > progress {
 
 #preview {
   padding: 0.5em;
+}
+
+#preview img {
+  width: auto;
+  height: auto;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+#preview video {
+  width: auto;
+  height: auto;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 #preview .moment-info::after {
