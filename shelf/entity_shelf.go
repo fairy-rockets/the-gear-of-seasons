@@ -154,14 +154,18 @@ func (s *EntityShelf) AddImage(mimeType string, buffer []byte) (*ImageEntity, er
 	}
 
 	e := &ImageEntity{}
+	ext := ""
 
 	switch format {
 	case "jpeg":
 		e.MimeType = "image/jpeg"
+		ext = "jpg"
 	case "png":
 		e.MimeType = "image/png"
+		ext = "png"
 	case "gif":
 		e.MimeType = "image/gif"
+		ext = "gif"
 	default:
 		return nil, fmt.Errorf("unknown image format: %s", format)
 	}
@@ -171,11 +175,13 @@ func (s *EntityShelf) AddImage(mimeType string, buffer []byte) (*ImageEntity, er
 		if err != nil {
 			return nil, err
 		}
-		date, err := x.DateTime()
-		if err != nil {
-			log.Errorf("Failed to decode exif: %v", err)
-		} else {
-			e.Date = date
+		if x != nil {
+			date, err := x.DateTime()
+			if err != nil {
+				log.Errorf("Failed to decode exif: %v", err)
+			} else {
+				e.Date = date
+			}
 		}
 	}
 	hash := md5.Sum(buffer)
@@ -184,5 +190,24 @@ func (s *EntityShelf) AddImage(mimeType string, buffer []byte) (*ImageEntity, er
 	e.Height = img.Bounds().Size().Y
 	e.Description = ""
 
+	// Save image.
+	dirpath := s.dirOf(e)
+	yml,err := yaml.Marshal(e)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize yaml: %v", err)
+	}
+	ymlpath := filepath.Join(dirpath, fmt.Sprintf("%s.image.yml", e.ID))
+	path := filepath.Join(dirpath, fmt.Sprintf("%s.%s", e.ID, ext))
+	e.Path = path
+	err = ioutil.WriteFile(path, buffer, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save image: %v", err)
+	}
+	err = ioutil.WriteFile(ymlpath, yml, 0644)
+	if err != nil {
+		os.Remove(path)
+		return nil, fmt.Errorf("failed to save image metadata: %v", err)
+	}
+	s.entities[e.ID] = e
 	return e, nil
 }
