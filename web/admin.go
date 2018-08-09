@@ -98,6 +98,11 @@ func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ ht
 			srv.setError(w, r, err)
 			break
 		}
+		_, err = srv.entityCache.FetchIcon(img)
+		if err != nil {
+			srv.setError(w, r, err)
+			break
+		}
 		w.WriteHeader(200)
 		fmt.Fprintf(w, "[image entity=\"%s\"]", img.ID)
 	case "video/mp4":

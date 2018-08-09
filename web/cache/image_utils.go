@@ -61,11 +61,16 @@ func fixOrientation(img image.Image, x *exif.Exif) image.Image {
 }
 
 func calcImageSizeWithMinLength(width, height, minLength uint) (uint, uint) {
+	var sw,sh uint
 	if width > height {
-		return width * minLength / height, minLength
+		sw, sh = width * minLength / height, minLength
 	} else {
-		return minLength, height * minLength / width
+		sw,sh = minLength, height * minLength / width
 	}
+	if sw >= width || sh >= height {
+		sw, sh = width, height
+	}
+	return sw,sh
 }
 
 func generateThumbnail(e *shelf.ImageEntity, minLength uint) (image.Image, error) {
@@ -83,9 +88,9 @@ func generateThumbnail(e *shelf.ImageEntity, minLength uint) (image.Image, error
 			return nil, err
 		}
 	}
-	width := img.Bounds().Size().X
-	height := img.Bounds().Size().Y
-	sw, sh := calcImageSizeWithMinLength(uint(width), uint(height), minLength)
+	width := uint(img.Bounds().Size().X)
+	height := uint(img.Bounds().Size().Y)
+	sw, sh := calcImageSizeWithMinLength(width, height, minLength)
 	img = resize.Resize(sw, sh, img, resize.Bicubic)
 	if x != nil {
 		return fixOrientation(img, x), nil
