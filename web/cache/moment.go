@@ -73,6 +73,7 @@ func parseEmbedFields(str string) map[string]string {
 	}
 	return kv
 }
+
 func (cache *MomentCacheShelf) lookup(m *shelf.Moment) (*MomentCache, bool) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
