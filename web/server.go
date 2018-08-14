@@ -21,8 +21,10 @@ const (
 )
 
 type Server struct {
-	impl        *http.Server
-	router      *httprouter.Router
+	omoteImpl   *http.Server
+	uraImpl     *http.Server
+	omoteRouter *httprouter.Router
+	uraRouter   *httprouter.Router
 	shelf       *shelf.Shelf
 	entityCache *cache.EntityCacheShelf
 	momentCache *cache.MomentCacheShelf
@@ -32,41 +34,45 @@ func log() *logrus.Entry {
 	return logrus.WithField("Module", "Web")
 }
 
-func NewServer(addr string, shelf *shelf.Shelf, cachePath string) *Server {
+func NewServer(listenOmote, listenUra string, shelf *shelf.Shelf, cachePath string) *Server {
 	srv := &Server{
-		router:      httprouter.New(),
+		omoteRouter: httprouter.New(),
+		uraRouter:   httprouter.New(),
 		shelf:       shelf,
 		entityCache: cache.NewEntityCacheShelf(shelf, filepath.Join(cachePath, "entity")),
 		momentCache: cache.NewMomentCacheShelf(shelf),
 	}
-	srv.impl = &http.Server{
-		Addr:    addr,
-		Handler: srv.router,
+	srv.omoteImpl = &http.Server{
+		Addr:    listenOmote,
+		Handler: srv.omoteRouter,
+	}
+	srv.uraImpl = &http.Server{
+		Addr:    listenUra,
+		Handler: srv.uraRouter,
 	}
 	srv.setupRoute()
 	return srv
 }
 
 func (srv *Server) setupRoute() {
-	router := srv.router
-	router.GET("/", srv.serveIndex)
-	router.GET("/about-us/", srv.serveIndex)
-	router.GET("/entity/:id", srv.serveEntity)
-	router.GET("/entity/:id/icon", srv.serveEntityIcon)
-	router.GET("/entity/:id/medium", srv.serveEntityMedium)
-	router.GET("/moment/*moment", srv.serveMoment)
+	omote := srv.omoteRouter
+	omote.GET("/", srv.serveIndex)
+	omote.GET("/about-us/", srv.serveIndex)
+	omote.GET("/entity/:id", srv.serveEntity)
+	omote.GET("/entity/:id/icon", srv.serveEntityIcon)
+	omote.GET("/entity/:id/medium", srv.serveEntityMedium)
+	omote.GET("/moment/*moment", srv.serveMoment)
+	omote.ServeFiles("/static/*filepath", http.Dir(StaticPath))
+	omote.NotFound = srv
 
-	router.GET("/editor/", srv.serveAdminIndex)
-	router.GET("/editor/new", srv.serveAdminNew)
-	router.POST("/editor/upload", srv.serveAdminUpload)
+	ura := srv.uraRouter
+	ura.GET("/", srv.serveAdminIndex)
+	ura.GET("/new", srv.serveAdminNew)
+	ura.POST("/upload", srv.serveAdminUpload)
+	ura.POST("/preview", srv.serveAdminEditPreview)
+	ura.ServeFiles("/static/*filepath", http.Dir(StaticPath))
 
-	router.GET("/editor/edit/:id", srv.serveAdminEdit)
-
-	router.POST("/editor/edit/preview", srv.serveAdminEditPreview)
-
-	router.ServeFiles("/static/*filepath", http.Dir(StaticPath))
-
-	router.NotFound = srv
+	ura.NotFound = srv
 }
 
 func (srv *Server) Prepare() error {
@@ -102,8 +108,8 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) Start() error {
-	log().Infof("Start at %s", srv.impl.Addr)
-	err := srv.impl.ListenAndServe()
+	log().Infof("Start Omote Server at %s", srv.omoteImpl.Addr)
+	err := srv.omoteImpl.ListenAndServe()
 	if err == http.ErrServerClosed {
 		err = nil
 	}
@@ -112,7 +118,7 @@ func (srv *Server) Start() error {
 
 func (srv *Server) Stop() error {
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
-	return srv.impl.Shutdown(ctx)
+	return srv.omoteImpl.Shutdown(ctx)
 }
 
 func (srv *Server) setError(w http.ResponseWriter, r *http.Request, err error) {
