@@ -6,18 +6,18 @@
 #### ServerSide
 
 ```bash
-# for logging
+echo 'for logging'
 go get -u "github.com/Sirupsen/logrus"
 go get -u "github.com/fatih/color"
 
-# networking
+echo 'networking'
 go get -u "golang.org/x/net/context"
 go get -u "github.com/julienschmidt/httprouter"
 
-# data serialization
+echo 'data serialization'
 go get -u "gopkg.in/yaml.v2"
 
-# imaging
+echo 'imaging'
 go get -u "github.com/rwcarlsen/goexif"
 go get -u "github.com/disintegration/imaging"
 go get -u "github.com/nfnt/resize"
@@ -30,18 +30,21 @@ go get -u "github.com/nfnt/resize"
 ```bash
 npm install
 
-# to upgrade,
+echo 'to upgrade,'
 
-npm run update # update package.json
-npm update # update package-lock.json
+npm run update
+npm update
 ```
 
 ## Iterative and incremental development
 
 ```bash
 npm run watch
-open http://localhost:8080/
 ```
+
+then,
+
+open [http://localhost:8080/](http://localhost:8080/)(index) or [http://localhost:8081/](http://localhost:8081/)(admin)
 
 ## Build
 
