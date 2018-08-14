@@ -58,7 +58,7 @@ export default class Editor {
       author: this.author_.value,
       text: this.text_.value
     };
-    fetch('/admin/edit/preview', {
+    fetch('/editor/edit/preview', {
       method: 'POST',
       body: JSON.stringify(moment),
       headers: {

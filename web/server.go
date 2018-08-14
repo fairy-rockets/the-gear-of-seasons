@@ -56,13 +56,13 @@ func (srv *Server) setupRoute() {
 	router.GET("/entity/:id/medium", srv.serveEntityMedium)
 	router.GET("/moment/*moment", srv.serveMoment)
 
-	router.GET("/admin/", srv.serveAdminIndex)
-	router.GET("/admin/new", srv.serveAdminNew)
-	router.POST("/admin/upload", srv.serveAdminUpload)
+	router.GET("/editor/", srv.serveAdminIndex)
+	router.GET("/editor/new", srv.serveAdminNew)
+	router.POST("/editor/upload", srv.serveAdminUpload)
 
-	router.GET("/admin/edit/:id", srv.serveAdminEdit)
+	router.GET("/editor/edit/:id", srv.serveAdminEdit)
 
-	router.POST("/admin/edit/preview", srv.serveAdminEditPreview)
+	router.POST("/editor/edit/preview", srv.serveAdminEditPreview)
 
 	router.ServeFiles("/static/*filepath", http.Dir(StaticPath))
 

@@ -1,3 +1,3 @@
-import main from './admin/main-editor.js'
+import main from './editor/main.js'
 
 document.addEventListener('DOMContentLoaded', main, false);

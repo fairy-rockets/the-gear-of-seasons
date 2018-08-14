@@ -1,6 +1,6 @@
-import Editor from "./Editor";
-import Preview from "./Preview";
-import Uploader from "./Uploader";
+import Editor from './Editor.js';
+import Preview from './Preview.js';
+import Uploader from './Uploader.js';
 
 function newEditor() {
   const title = document.getElementById('title');

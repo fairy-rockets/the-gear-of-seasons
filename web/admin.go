@@ -14,7 +14,7 @@ import (
 
 func (srv *Server) serveAdminIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.templateOf("admin/_main.html", "admin/index.html")
+	t, err := srv.templateOf("editor/_main.html", "editor/index.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -28,7 +28,7 @@ func (srv *Server) serveAdminIndex(w http.ResponseWriter, r *http.Request, _ htt
 
 func (srv *Server) serveAdminNew(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.templateOf("admin/_main.html", "admin/editor.html")
+	t, err := srv.templateOf("editor/_main.html", "editor/editor.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -41,7 +41,7 @@ func (srv *Server) serveAdminNew(w http.ResponseWriter, r *http.Request, _ httpr
 
 func (srv *Server) serveAdminEdit(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.templateOf("admin/_main.html", "admin/editor.html")
+	t, err := srv.templateOf("editor/_main.html", "editor/editor.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return
