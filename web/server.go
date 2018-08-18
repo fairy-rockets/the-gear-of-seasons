@@ -32,6 +32,9 @@ type Server struct {
 	momentCache *cache.MomentCacheShelf
 }
 
+type OmoteServer Server
+type UraServer Server
+
 func log() *logrus.Entry {
 	return logrus.WithField("Module", "Web")
 }
@@ -65,7 +68,7 @@ func (srv *Server) setupRoute() {
 	omote.GET("/entity/:id/medium", srv.serveEntityMedium)
 	omote.GET("/moment/*moment", srv.serveMoment)
 	omote.ServeFiles("/static/*filepath", http.Dir(StaticPath))
-	omote.NotFound = srv
+	omote.NotFound = (*OmoteServer)(srv)
 
 	ura := srv.uraRouter
 	ura.GET("/", srv.serveAdminIndex)
@@ -73,15 +76,14 @@ func (srv *Server) setupRoute() {
 	ura.POST("/upload", srv.serveAdminUpload)
 	ura.POST("/preview", srv.serveAdminPreview)
 	ura.POST("/save", srv.serveAdminSave)
-	ura.GET("/moment/*moment", srv.serveAdminMoment)
 	ura.GET("/moments/", srv.serveAdminMoments)
 	ura.GET("/moments/:year", srv.serveAdminMomentLists)
 	ura.GET("/entity/:id", srv.serveEntity)
 	ura.GET("/entity/:id/icon", srv.serveEntityIcon)
 	ura.GET("/entity/:id/medium", srv.serveEntityMedium)
 	ura.ServeFiles("/static/*filepath", http.Dir(StaticPath))
+	ura.NotFound = (*UraServer)(srv)
 
-	ura.NotFound = srv
 }
 
 func (srv *Server) Prepare() error {
@@ -104,11 +106,25 @@ func (srv *Server) Prepare() error {
 	return nil
 }
 
-func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (omoteSrv *OmoteServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	srv := (*Server)(omoteSrv)
 	if r.Method == "GET" {
 		m := srv.shelf.LookupMoment(r.URL.Path)
 		if m != nil {
 			srv.serveIndex(w, r, nil)
+			return
+		}
+	}
+	w.WriteHeader(404)
+	fmt.Fprintf(w, "404: Page not found.")
+}
+
+func (uraSrv *UraServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	srv := (*Server)(uraSrv)
+	if r.Method == "GET" {
+		m := srv.shelf.LookupMoment(r.URL.Path)
+		if m != nil {
+			srv.serveAdminMoment(w, r, nil)
 			return
 		}
 	}
