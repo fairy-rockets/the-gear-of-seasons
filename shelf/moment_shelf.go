@@ -8,6 +8,8 @@ import (
 
 	"strconv"
 
+	"time"
+
 	log "github.com/Sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -42,21 +44,37 @@ func (s *MomentShelf) Lookup(path string) *Moment {
 	return s.moments[path]
 }
 
-func (s *MomentShelf) dirOf(e *Moment) string {
-	return filepath.Join(s.path, strconv.Itoa(e.Date.Year()))
+func (s *MomentShelf) dirOf(t time.Time) string {
+	return filepath.Join(s.path, strconv.Itoa(t.Year()))
 }
 
-func (s *MomentShelf) Save(m *Moment) error {
+func (s *MomentShelf) pathOf(t time.Time) string {
+	return filepath.Join(s.dirOf(t), t.Format("01-02_15:04:05")+".yml")
+}
+
+func (s *MomentShelf) keyOf(t time.Time) string {
+	return t.Format("/2006/01/02/15:04:05/")
+}
+
+func (s *MomentShelf) Save(origTime time.Time, m *Moment) error {
 	data, err := yaml.Marshal(m)
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(s.dirOf(m), m.Date.Format("01-02_15:04:05")+".yml")
+	path := s.pathOf(m.Date)
 	err = ioutil.WriteFile(path, data, 0644)
 	if err != nil {
 		return err
 	}
-	s.moments[m.Path()] = m
+	s.moments[s.keyOf(m.Date)] = m
+	if !origTime.IsZero() {
+		orig := s.pathOf(origTime)
+		err = os.Remove(orig)
+		if err != nil {
+			return err
+		}
+		delete(s.moments, s.keyOf(origTime))
+	}
 	return nil
 }
 

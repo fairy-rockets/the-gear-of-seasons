@@ -49,23 +49,24 @@ func (srv *Server) serveAdminNew(w http.ResponseWriter, r *http.Request, _ httpr
 }
 
 type momentPayload struct {
-	Date   string `json:"date"`
-	Title  string `json:"title"`
-	Author string `json:"author"`
-	Text   string `json:"text"`
+	Date         string `json:"date"`
+	OriginalDate string `json:"original_date"`
+	Title        string `json:"title"`
+	Author       string `json:"author"`
+	Text         string `json:"text"`
 }
 
 const payloadTimeFormat = "2006/01/02 15:04:05"
 
-func readMoment(r io.Reader) (*shelf.Moment, error) {
+func readMoment(r io.Reader) (time.Time, *shelf.Moment, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
-		return nil, err
+		return time.Time{}, nil, err
 	}
 	p := new(momentPayload)
 	err = json.Unmarshal(data, p)
 	if err != nil {
-		return nil, err
+		return time.Time{}, nil, err
 	}
 	m := &shelf.Moment{}
 	m.Author = p.Author
@@ -77,7 +78,15 @@ func readMoment(r io.Reader) (*shelf.Moment, error) {
 			m.Date = t
 		}
 	}
-	return m, nil
+	var origTime time.Time
+	if p.OriginalDate != "" {
+		t, err := time.Parse(payloadTimeFormat, p.OriginalDate)
+		if err == nil {
+			origTime = t
+		}
+	}
+
+	return origTime, m, nil
 }
 
 func momentAsPayload(m *shelf.Moment) *momentPayload {
@@ -86,6 +95,7 @@ func momentAsPayload(m *shelf.Moment) *momentPayload {
 	p.Text = m.Text
 	p.Title = m.Title
 	p.Date = m.Date.Format(payloadTimeFormat)
+	p.OriginalDate = p.Date
 	return p
 }
 
@@ -122,7 +132,7 @@ func (srv *Server) serveAdminEdit(w http.ResponseWriter, r *http.Request, _ http
 
 func (srv *Server) serveAdminPreview(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	m, err := readMoment(r.Body)
+	_, m, err := readMoment(r.Body)
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -134,7 +144,7 @@ func (srv *Server) serveAdminPreview(w http.ResponseWriter, r *http.Request, _ h
 
 func (srv *Server) serveAdminSave(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	m, err := readMoment(r.Body)
+	originalDate, m, err := readMoment(r.Body)
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -149,7 +159,7 @@ func (srv *Server) serveAdminSave(w http.ResponseWriter, r *http.Request, _ http
 			m.Date = time.Now()
 		}
 	}
-	err = srv.momentCache.Save(m)
+	err = srv.momentCache.Save(originalDate, m)
 	if err != nil {
 		srv.setError(w, r, err)
 		return

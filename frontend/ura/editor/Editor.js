@@ -25,6 +25,7 @@ export default class Editor {
     this.author_ = author;
     this.text_ = text;
     this.submit_ = submit;
+    this.original_date_ = date.value;
     this.onChangeEventListener_ = this.onChange_.bind(this);
     /** @type {Preview} */
     this.preview_ = null;
@@ -72,6 +73,7 @@ export default class Editor {
   makeMoment_() {
     return {
       title: this.title_.value,
+      original_date: this.original_date_.length > 0 ? this.original_date_ : null,
       date: this.date_.value.length > 0 ? this.date_.value : null,
       author: this.author_.value,
       text: this.text_.value
