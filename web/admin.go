@@ -12,8 +12,6 @@ import (
 
 	"time"
 
-	"strings"
-
 	"sort"
 
 	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
@@ -55,7 +53,7 @@ func (srv *Server) serveAdminMoment(w http.ResponseWriter, r *http.Request, p ht
 		srv.setError(w, r, err)
 		return
 	}
-	m := srv.shelf.LookupMoment(strings.TrimPrefix(r.URL.Path, "/moment"))
+	m := srv.shelf.LookupMoment(r.URL.Path)
 	if m == nil {
 		w.WriteHeader(404)
 		return
@@ -120,7 +118,7 @@ func (srv *Server) serveAdminSave(w http.ResponseWriter, r *http.Request, _ http
 		Path string `json:"path"`
 	}{
 		Body: mc.Content(),
-		Path: fmt.Sprintf("/moment%s", mc.Moment.Path()),
+		Path: mc.Moment.Path(),
 	})
 	if err != nil {
 		srv.setError(w, r, err)

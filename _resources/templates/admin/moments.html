@@ -8,7 +8,7 @@
     <div class="moment-list">
 
 {{range .Moments}}
-  <a href="/moment{{.Moment.Path}}" class="moment">
+  <a href="{{.Moment.Path}}" class="moment">
       <div class="moment-date">{{.Moment.Date.Format "01/02 15:04:05"}}</div>
       <div class="moment-image"><img src="/entity/{{.FindFirstImage.ID}}/icon/"></div>
       <div class="moment-title">{{.Moment.Title}}</div>
