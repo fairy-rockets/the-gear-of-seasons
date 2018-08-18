@@ -7,19 +7,21 @@ import (
 
 	"strings"
 
+	"time"
+
 	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
 )
 
 type MomentCacheShelf struct {
 	shelf   *shelf.Shelf
 	mutex   sync.Mutex
-	entries map[*shelf.Moment]*MomentCache
+	entries map[string]*MomentCache
 }
 
 func NewMomentCacheShelf(sh *shelf.Shelf) *MomentCacheShelf {
 	return &MomentCacheShelf{
 		shelf:   sh,
-		entries: make(map[*shelf.Moment]*MomentCache),
+		entries: make(map[string]*MomentCache),
 	}
 }
 
@@ -77,14 +79,14 @@ func parseEmbedFields(str string) map[string]string {
 func (cache *MomentCacheShelf) lookup(m *shelf.Moment) (*MomentCache, bool) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
-	entry, ok := cache.entries[m]
+	entry, ok := cache.entries[cache.keyOf(m.Date)]
 	return entry, ok
 }
 
 func (cache *MomentCacheShelf) set(m *shelf.Moment, entry *MomentCache) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
-	cache.entries[m] = entry
+	cache.entries[cache.keyOf(m.Date)] = entry
 }
 
 func (cache *MomentCacheShelf) Fetch(m *shelf.Moment) *MomentCache {
@@ -100,13 +102,20 @@ func (cache *MomentCacheShelf) Preview(m *shelf.Moment) *MomentCache {
 	return cache.compile(m)
 }
 
-func (cache *MomentCacheShelf) Save(m *shelf.Moment) error {
+func (cache *MomentCacheShelf) keyOf(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05")
+}
+
+func (cache *MomentCacheShelf) Save(origTime time.Time, m *shelf.Moment) error {
 	var err error
 
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
-	err = cache.shelf.SaveMoment(m)
+	if !origTime.IsZero() {
+		delete(cache.entries, cache.keyOf(origTime))
+	}
+	err = cache.shelf.SaveMoment(origTime, m)
 	if err != nil {
 		return err
 	}

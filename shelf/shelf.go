@@ -2,6 +2,7 @@ package shelf
 
 import (
 	"path/filepath"
+	"time"
 )
 
 // MomentShelf of Seasons
@@ -51,8 +52,8 @@ func (shelf *Shelf) AddImageEntity(mimeType string, buffer []byte) (*ImageEntity
 	return shelf.entities.AddImage(mimeType, buffer)
 }
 
-func (shelf *Shelf) SaveMoment(m *Moment) error {
-	return shelf.moments.Save(m)
+func (shelf *Shelf) SaveMoment(origTime time.Time, m *Moment) error {
+	return shelf.moments.Save(origTime, m)
 }
 
 // ------------------------------------------------------------------------------------------------
