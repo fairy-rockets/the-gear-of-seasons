@@ -10,6 +10,7 @@ function newEditor() {
   const submit = document.getElementById('submit');
   return new Editor(title, date, author, text, submit);
 }
+
 function newPreview() {
   return new Preview(document.getElementById('preview'));
 }

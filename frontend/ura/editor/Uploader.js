@@ -80,7 +80,7 @@ export default class Uploader {
       const fr = new FileReader();
       fr.onload = event => {
         this.progressImage_.onload = (event) => {
-          fetch('/editor/upload', {
+          fetch('/upload', {
             method: 'POST',
             body: file,
           })

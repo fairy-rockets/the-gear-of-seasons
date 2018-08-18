@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"strconv"
+
 	log "github.com/Sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -38,6 +40,19 @@ func (s *MomentShelf) AsSlice() []*Moment {
 
 func (s *MomentShelf) Lookup(path string) *Moment {
 	return s.moments[path]
+}
+
+func (s *MomentShelf) dirOf(e *Moment) string {
+	return filepath.Join(s.path, strconv.Itoa(e.Date.Year()))
+}
+
+func (s *MomentShelf) Save(m *Moment) error {
+	data, err := yaml.Marshal(m)
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(s.dirOf(m), m.Date.Format("01-02_15:04:05")+".yml")
+	return ioutil.WriteFile(path, data, 0644)
 }
 
 func loadMomentFromFile(path string, out *Moment) error {

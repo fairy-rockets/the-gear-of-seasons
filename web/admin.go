@@ -14,7 +14,7 @@ import (
 
 func (srv *Server) serveAdminIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.templateOf("editor/_main.html", "editor/index.html")
+	t, err := srv.templateOf("admin/_main.html", "admin/index.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -28,7 +28,7 @@ func (srv *Server) serveAdminIndex(w http.ResponseWriter, r *http.Request, _ htt
 
 func (srv *Server) serveAdminNew(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.templateOf("editor/_main.html", "editor/editor.html")
+	t, err := srv.templateOf("admin/_main.html", "admin/editor.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -41,7 +41,7 @@ func (srv *Server) serveAdminNew(w http.ResponseWriter, r *http.Request, _ httpr
 
 func (srv *Server) serveAdminEdit(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.templateOf("editor/_main.html", "editor/editor.html")
+	t, err := srv.templateOf("admin/_main.html", "admin/editor.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -52,7 +52,7 @@ func (srv *Server) serveAdminEdit(w http.ResponseWriter, r *http.Request, _ http
 	}
 }
 
-func (srv *Server) serveAdminEditPreview(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (srv *Server) serveAdminPreview(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -68,6 +68,39 @@ func (srv *Server) serveAdminEditPreview(w http.ResponseWriter, r *http.Request,
 	mc := srv.momentCache.Preview(m)
 	w.WriteHeader(200)
 	w.Write([]byte(mc.Content()))
+}
+
+func (srv *Server) serveAdminSave(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var err error
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		srv.setError(w, r, err)
+		return
+	}
+	m := new(shelf.Moment)
+	err = json.Unmarshal(data, m)
+	if err != nil {
+		srv.setError(w, r, err)
+		return
+	}
+	mc, err := srv.momentCache.Save(m)
+	if err != nil {
+		srv.setError(w, r, err)
+		return
+	}
+	dat, err := json.Marshal(struct {
+		Body string `json:"body"`
+		Path string `json:"path"`
+	}{
+		Body: mc.Content(),
+		Path: mc.Moment.Path(),
+	})
+	if err != nil {
+		srv.setError(w, r, err)
+		return
+	}
+	w.WriteHeader(200)
+	w.Write(dat)
 }
 
 func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
