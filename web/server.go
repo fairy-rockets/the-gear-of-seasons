@@ -8,6 +8,8 @@ import (
 
 	"path/filepath"
 
+	"sync"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
 	"github.com/fairy-rockets/the-gear-of-seasons/web/cache"
@@ -109,16 +111,37 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) Start() error {
 	log().Infof("Start Omote Server at %s", srv.omoteImpl.Addr)
-	err := srv.omoteImpl.ListenAndServe()
-	if err == http.ErrServerClosed {
-		err = nil
+	var wg sync.WaitGroup
+	wg.Add(2)
+	runServer := func(server *http.Server, errP *error) {
+		defer wg.Done()
+		err := server.ListenAndServe()
+		if err == http.ErrServerClosed {
+			err = nil
+		}
+		*errP = err
 	}
-	return err
+	var err1, err2 error
+	go runServer(srv.omoteImpl, &err1)
+	go runServer(srv.uraImpl, &err2)
+	if err1 == nil && err2 == nil {
+		return nil
+	}
+	return fmt.Errorf(`error on runnning servers: 
+omote: %v
+  ura: %v`, err1, err2)
 }
 
 func (srv *Server) Stop() error {
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
-	return srv.omoteImpl.Shutdown(ctx)
+	err1 := srv.omoteImpl.Shutdown(ctx)
+	err2 := srv.uraImpl.Shutdown(ctx)
+	if err1 == nil && err2 == nil {
+		return nil
+	}
+	return fmt.Errorf(`error on shutting down all servers: 
+omote: %v
+  ura: %v`, err1, err2)
 }
 
 func (srv *Server) setError(w http.ResponseWriter, r *http.Request, err error) {
