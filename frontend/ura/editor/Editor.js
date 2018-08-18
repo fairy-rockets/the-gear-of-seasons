@@ -41,16 +41,26 @@ export default class Editor {
     this.preview_ = preview;
     this.text_.addEventListener('input', this.onChangeEventListener_);
     this.title_.addEventListener('input', this.onChangeEventListener_);
+    this.date_.addEventListener('input', this.onChangeEventListener_);
+    this.author_.addEventListener('change', this.onChangeEventListener_);
     this.submit_.addEventListener('click', this.onSaveEventListener_);
+    window.addEventListener('keypress', (event) => {
+      if (!(event.which == 115 && event.ctrlKey) && !(event.which == 19)) return true;
+      window.setTimeout(this.onSaveEventListener_, 0);
+      event.preventDefault();
+      return false;
+    });
     // reload対策
-    if(this.text_.value.length > 0) {
+    if(this.text_.value.length > 0 || this.title_.value.length > 0) {
       this.onChange_();
     }
+    this.submit_.disabled = true;
   }
   /**
    * @private
    */
   onChange_() {
+    this.submit_.disabled = false;
     if(!!this.changeId_) {
       return;
     }
@@ -84,6 +94,7 @@ export default class Editor {
         'Content-Type': 'application/json'
       }}).then(result => result.json())
       .then(result => {
+        this.submit_.disabled = true;
         this.preview_.onChange(result.body);
         history.replaceState(null, null, result.path)
       });
