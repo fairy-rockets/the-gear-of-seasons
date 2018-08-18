@@ -45,7 +45,7 @@ export default class Editor {
     this.author_.addEventListener('change', this.onChangeEventListener_);
     this.submit_.addEventListener('click', this.onSaveEventListener_);
     window.addEventListener('keypress', (event) => {
-      if (!(event.which === 115 && event.ctrlKey) && !(event.which == 19)) return true;
+      if (!(event.which === 115 && event.ctrlKey) && !(event.which === 19)) return true;
       window.setTimeout(this.onSaveEventListener_, 0);
       event.preventDefault();
       return false;
