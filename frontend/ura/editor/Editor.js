@@ -51,7 +51,7 @@ export default class Editor {
    * @private
    */
   onChange_() {
-    if(this.changeId_ !== null) {
+    if(!!this.changeId_) {
       return;
     }
     this.changeId_ = setTimeout(this.executePreviewUpdater_, 500);

@@ -52,7 +52,12 @@ func (s *MomentShelf) Save(m *Moment) error {
 		return err
 	}
 	path := filepath.Join(s.dirOf(m), m.Date.Format("01-02_15:04:05")+".yml")
-	return ioutil.WriteFile(path, data, 0644)
+	err = ioutil.WriteFile(path, data, 0644)
+	if err != nil {
+		return err
+	}
+	s.moments[m.Path()] = m
+	return nil
 }
 
 func loadMomentFromFile(path string, out *Moment) error {

@@ -1,0 +1,21 @@
+{{define "content"}}
+
+<div id="moments">
+    <h2>{{.Year}}年のモーメント</h2>
+    <a href="/moments/{{.LastYear}}">去年</a>
+    <a href="/moments/{{.NextYear}}">来年</a>
+    <hr>
+    <div class="moment-list">
+
+{{range .Moments}}
+  <a href="/moment{{.Moment.Path}}" class="moment">
+      <div class="moment-date">{{.Moment.Date.Format "01/02 15:04:05"}}</div>
+      <div class="moment-image"><img src="/entity/{{.FindFirstImage.ID}}/icon/"></div>
+      <div class="moment-title">{{.Moment.Title}}</div>
+  </a>
+{{end}}
+
+    </div>
+</div>
+
+{{end}}
