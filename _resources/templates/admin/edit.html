@@ -3,7 +3,7 @@
   <div class="editor-wrapper">
     <input class="editor-title" type="text" name="title" id="title" placeholder="タイトル" {{if .}}value="{{html .Title}}"{{end}}/>
     <div class="editor-bar">
-        <input class="editor-date" type="datetime" name="date" id="date" placeholder="2112/09/03 15:33:44" {{if .}}value="{{html .DateStringForAdmin}}"{{end}} />
+        <input class="editor-date" type="datetime" name="date" id="date" placeholder="2112/09/03 15:33:44" {{if .}}value="{{html .Date}}"{{end}} />
         <select name="author" id="author">
           <option value="藤咲かえで" {{if .}}{{if eq .Author "藤咲かえで"}}selected{{end}}{{end}}>藤咲かえで</option>
           <option value="甚三紅もみじ" {{if .}}{{if eq .Author "甚三紅もみじ"}}selected{{end}}{{end}}>甚三紅もみじ</option>

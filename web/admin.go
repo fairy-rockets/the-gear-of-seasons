@@ -48,14 +48,16 @@ func (srv *Server) serveAdminNew(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 }
 
-func readMoment(r io.Reader) (*shelf.Moment, error) {
-	type momentPayload struct {
-		Date   string `json:"date"`
-		Title  string `json:"title"`
-		Author string `json:"author"`
-		Text   string `json:"text"`
-	}
+type momentPayload struct {
+	Date   string `json:"date"`
+	Title  string `json:"title"`
+	Author string `json:"author"`
+	Text   string `json:"text"`
+}
 
+const payloadTimeFormat = "2006/01/02 15:04:05"
+
+func readMoment(r io.Reader) (*shelf.Moment, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -70,12 +72,21 @@ func readMoment(r io.Reader) (*shelf.Moment, error) {
 	m.Text = p.Text
 	m.Title = p.Title
 	if p.Date != "" {
-		t, err := time.Parse("2006/01/02 15:04:05", p.Date)
+		t, err := time.Parse(payloadTimeFormat, p.Date)
 		if err == nil {
 			m.Date = t
 		}
 	}
 	return m, nil
+}
+
+func momentAsPayload(m *shelf.Moment) *momentPayload {
+	p := new(momentPayload)
+	p.Author = m.Author
+	p.Text = m.Text
+	p.Title = m.Title
+	p.Date = m.Date.Format(payloadTimeFormat)
+	return p
 }
 
 func (srv *Server) serveAdminMoment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -91,7 +102,7 @@ func (srv *Server) serveAdminMoment(w http.ResponseWriter, r *http.Request, p ht
 		return
 	}
 	w.WriteHeader(200)
-	err = t.Execute(w, m)
+	err = t.Execute(w, momentAsPayload(m))
 	if err != nil {
 		srv.setError(w, r, err)
 	}
