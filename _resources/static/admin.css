@@ -181,6 +181,8 @@ div.uploader-progress > progress {
 
 #preview {
   padding: 0.5em;
+  overflow: scroll;
+  overflow-x: hidden;
 }
 
 #preview img {
@@ -216,5 +218,37 @@ div.uploader-progress > progress {
 
 #preview .moment-author {
   float: right;
+}
+
+#moments {
+  width: 100%;
+  height: 100%;
+  padding: 0.5em;
+  overflow: scroll;
+  overflow-x: hidden;
+}
+
+.moment-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+a.moment {
+  display: block;
+  background: #091f42;
+  margin: 1em;
+  width: 15em;
+  border: cadetblue 1px solid;
+}
+
+.moment-list .moment-image img{
+  width: 15em;
+  height: 15em;
+}
+
+.moment-list .moment-date{
+  text-align: right;
+  font-size: smaller;
 }
 

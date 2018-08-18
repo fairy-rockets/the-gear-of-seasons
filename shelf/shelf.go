@@ -69,3 +69,13 @@ func (shelf *Shelf) LookupMoment(path string) *Moment {
 func (shelf *Shelf) FindAllMoments() []*Moment {
 	return shelf.moments.AsSlice()
 }
+
+func (shelf *Shelf) FindAllMomentsByYear(year int) []*Moment {
+	ms := make([]*Moment, 0, 100)
+	for _, m := range shelf.moments.moments {
+		if m.Date.Year() == year {
+			ms = append(ms, m)
+		}
+	}
+	return ms
+}
