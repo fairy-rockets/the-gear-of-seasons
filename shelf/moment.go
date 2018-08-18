@@ -58,7 +58,3 @@ func (m *Moment) DateString() string {
 func (m *Moment) Path() string {
 	return m.Date.Format("/2006/01/02/15:04:05/")
 }
-
-func (m *Moment) DateStringForAdmin() string {
-	return m.Date.Format("2006/01/02 15:04:05")
-}
