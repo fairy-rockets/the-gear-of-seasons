@@ -14,6 +14,8 @@ import (
 
 	"sort"
 
+	"io"
+
 	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
 	"github.com/fairy-rockets/the-gear-of-seasons/web/cache"
 	"github.com/julienschmidt/httprouter"
@@ -44,6 +46,36 @@ func (srv *Server) serveAdminNew(w http.ResponseWriter, r *http.Request, _ httpr
 	if err != nil {
 		srv.setError(w, r, err)
 	}
+}
+
+func readMoment(r io.Reader) (*shelf.Moment, error) {
+	type momentPayload struct {
+		Date   string `json:"date"`
+		Title  string `json:"title"`
+		Author string `json:"author"`
+		Text   string `json:"text"`
+	}
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	p := new(momentPayload)
+	err = json.Unmarshal(data, p)
+	if err != nil {
+		return nil, err
+	}
+	m := &shelf.Moment{}
+	m.Author = p.Author
+	m.Text = p.Text
+	m.Title = p.Title
+	if p.Date != "" {
+		t, err := time.Parse("2006/01/02 15:04:05", p.Date)
+		if err != nil {
+			m.Date = t
+		}
+	}
+	return m, nil
 }
 
 func (srv *Server) serveAdminMoment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -79,13 +111,7 @@ func (srv *Server) serveAdminEdit(w http.ResponseWriter, r *http.Request, _ http
 
 func (srv *Server) serveAdminPreview(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		srv.setError(w, r, err)
-		return
-	}
-	m := new(shelf.Moment)
-	err = json.Unmarshal(data, m)
+	m, err := readMoment(r.Body)
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -97,22 +123,28 @@ func (srv *Server) serveAdminPreview(w http.ResponseWriter, r *http.Request, _ h
 
 func (srv *Server) serveAdminSave(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	data, err := ioutil.ReadAll(r.Body)
+	m, err := readMoment(r.Body)
 	if err != nil {
 		srv.setError(w, r, err)
 		return
 	}
-	m := new(shelf.Moment)
-	err = json.Unmarshal(data, m)
+	mc := srv.momentCache.Preview(m)
+	// dateの調整
+	if m.Date.IsZero() {
+		img := mc.FindFirstImage()
+		if img != nil {
+			m.Date = img.Date
+		} else {
+			m.Date = time.Now()
+		}
+	}
+	err = srv.momentCache.Save(m)
 	if err != nil {
 		srv.setError(w, r, err)
 		return
 	}
-	mc, err := srv.momentCache.Save(m)
-	if err != nil {
-		srv.setError(w, r, err)
-		return
-	}
+	mc = srv.momentCache.Fetch(m)
+
 	dat, err := json.Marshal(struct {
 		Body string `json:"body"`
 		Path string `json:"path"`

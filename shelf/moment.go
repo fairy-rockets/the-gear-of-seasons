@@ -15,6 +15,9 @@ type Moment struct {
 
 func (m *Moment) DateString() string {
 	date := m.Date
+	if date.IsZero() {
+		return "わかんない！"
+	}
 	now := time.Now()
 
 	origin0 := time.Date(date.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())

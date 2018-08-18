@@ -100,21 +100,18 @@ func (cache *MomentCacheShelf) Preview(m *shelf.Moment) *MomentCache {
 	return cache.compile(m)
 }
 
-func (cache *MomentCacheShelf) Save(m *shelf.Moment) (*MomentCache, error) {
+func (cache *MomentCacheShelf) Save(m *shelf.Moment) error {
 	var err error
 
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
-	//TODO: dateを画像に応じて変えるのでここで一旦コンパイル
-	mc := cache.compile(m)
-
 	err = cache.shelf.SaveMoment(m)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return mc, nil
+	return nil
 }
 
 func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
@@ -176,13 +173,6 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 			return fmt.Sprintf(`<strong class="error">%s not supported</strong>`, fileType)
 		}
 	})
-	// dateの変更
-	for _, e := range embeds {
-		if img, ok := e.(*shelf.ImageEntity); ok {
-			m.Date = img.Date
-			break
-		}
-	}
 	return &MomentCache{
 		Moment: m,
 		body:   body,

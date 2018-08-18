@@ -68,17 +68,14 @@ export default class Editor {
   }
   /**
    * @private
-   * @returns {Moment}
    */
   makeMoment_() {
-    /** @type {Moment} */
-    const moment = {
+    return {
       title: this.title_.value,
-      date: parseDate(this.date_.value) || new Date(),
+      date: this.date_.value.length > 0 ? this.date_.value : null,
       author: this.author_.value,
       text: this.text_.value
     };
-    return moment;
   }
   /**
    * @private
@@ -121,22 +118,3 @@ export default class Editor {
   }
 }
 
-
-const dateParser = /^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})$/;
-function parseDate(str) {
-  const r = dateParser.exec(str);
-  if(!r || r.length < 7) {
-    return null;
-  }
-  const year = parseInt(r[1]);
-  const month = parseInt(r[2]);
-  const day = parseInt(r[3]);
-
-  const hour = parseInt(r[4]);
-  const minute = parseInt(r[5]);
-  const second = parseInt(r[6]);
-
-  const d = new Date(year, month - 1, day, hour, minute, second, 0);
-
-  return isNaN(d.getTime()) ? null : d;
-}
