@@ -51,6 +51,10 @@ func (shelf *Shelf) AddImageEntity(mimeType string, buffer []byte) (*ImageEntity
 	return shelf.entities.AddImage(mimeType, buffer)
 }
 
+func (shelf *Shelf) SaveMoment(m *Moment) error {
+	return shelf.moments.Save(m)
+}
+
 // ------------------------------------------------------------------------------------------------
 //   Moments
 // ------------------------------------------------------------------------------------------------

@@ -71,7 +71,11 @@ func (srv *Server) setupRoute() {
 	ura.GET("/", srv.serveAdminIndex)
 	ura.GET("/new", srv.serveAdminNew)
 	ura.POST("/upload", srv.serveAdminUpload)
-	ura.POST("/preview", srv.serveAdminEditPreview)
+	ura.POST("/preview", srv.serveAdminPreview)
+	ura.POST("/save", srv.serveAdminSave)
+	ura.GET("/entity/:id", srv.serveEntity)
+	ura.GET("/entity/:id/icon", srv.serveEntityIcon)
+	ura.GET("/entity/:id/medium", srv.serveEntityMedium)
 	ura.ServeFiles("/static/*filepath", http.Dir(StaticPath))
 
 	ura.NotFound = srv
