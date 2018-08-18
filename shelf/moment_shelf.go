@@ -69,11 +69,13 @@ func (s *MomentShelf) Save(origTime time.Time, m *Moment) error {
 	s.moments[s.keyOf(m.Date)] = m
 	if !origTime.IsZero() {
 		orig := s.pathOf(origTime)
-		err = os.Remove(orig)
-		if err != nil {
-			return err
+		if orig != path {
+			err = os.Remove(orig)
+			if err != nil {
+				return err
+			}
+			delete(s.moments, s.keyOf(origTime))
 		}
-		delete(s.moments, s.keyOf(origTime))
 	}
 	return nil
 }
