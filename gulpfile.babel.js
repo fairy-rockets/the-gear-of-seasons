@@ -90,7 +90,7 @@ gulp.task('server:build', () => {
 
 /** @type {ChildProcess} server */
 let server = null;
-gulp.task('server:spawn', ['server:build'], (clbk) => {
+gulp.task('server:spawn', gulp.series('server:build', (clbk) => {
   const spawn = () => {
     server = child.spawn('.bin/the-gear-of-seasons', []);
     server.on('error', (err) => {
@@ -117,21 +117,21 @@ gulp.task('server:spawn', ['server:build'], (clbk) => {
   }else{
     spawn();
   }
-});
+}));
 
-gulp.task('server:reload', ['server:spawn']);
+gulp.task('server:reload', gulp.series('server:spawn'));
 
-gulp.task('server:watch', ['server:reload'], () => {
-  return gulp.watch(['**/*.go'], {debounceDelay: 2000}, ['server:reload']);
-});
+gulp.task('server:watch', gulp.series('server:reload', () => {
+  return gulp.watch(['**/*.go'], {debounceDelay: 2000}, gulp.series('server:reload'));
+}));
 
-gulp.task('client:watch', ['client:build'], () => {
-  return gulp.watch(['frontend/**/*.js'], {debounceDelay: 100}, ['client:build']);
-});
+gulp.task('client:watch', gulp.series('client:build', () => {
+  return gulp.watch(['frontend/**/*.js'], {debounceDelay: 100}, gulp.series('client:build'));
+}));
 
-gulp.task('build', ['server:build', 'client:build']);
-gulp.task('watch', ['server:watch', 'client:watch']);
-gulp.task('deploy', [], () => {
+gulp.task('build', gulp.series('server:build', 'client:build'));
+gulp.task('watch', gulp.series('server:watch', 'client:watch'));
+gulp.task('deploy', () => {
   const exe = 'gear-of-seasons-linux';
   return Promise.all([
     buildServer(exe, 'linux', 'amd64'),
@@ -145,5 +145,5 @@ gulp.task('deploy', [], () => {
   .then(() => exec(['ssh', 'nodoca', 'supervisorctl restart fairy-rockets']))
   .then(() => del(exe));
 });
-gulp.task('default', ['build']);
+gulp.task('default', gulp.series('build'));
 
