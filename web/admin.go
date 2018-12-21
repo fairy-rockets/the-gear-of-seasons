@@ -139,7 +139,7 @@ func (srv *Server) serveAdminPreview(w http.ResponseWriter, r *http.Request, _ h
 	}
 	mc := srv.momentCache.Preview(m)
 	w.WriteHeader(200)
-	w.Write([]byte(mc.Content()))
+	_, _ = w.Write([]byte(mc.Content()))
 }
 
 func (srv *Server) serveAdminSave(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
