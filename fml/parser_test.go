@@ -7,13 +7,17 @@ import (
 func TestExampleSuccess(t *testing.T) {
 	p := NewParser()
 	uta, err := p.Parse(`
-[image k="v"]
 あいうえお
+
+あいうえお
+[image k="v" k2="v2"]
 `)
 	if err != nil {
 		t.Fatal("Could not parse: ", err)
 	}
-	t.Error(uta.Rens[0].ToString())
+	for _, v := range uta.Rens {
+		t.Error(v.ToString())
+	}
 }
 
 func TestExampleFailed(t *testing.T) {
