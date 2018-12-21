@@ -1,6 +1,9 @@
 package fml
 
-import "io"
+import (
+	"io"
+	"strings"
+)
 
 type Parser interface {
 	Parse(text string) (*Uta, error)
@@ -65,17 +68,17 @@ var text parser = func(s *state) (*state, interface{}, error) {
 	for {
 		r := s.at(0)
 		if r == '[' {
-			return s, NewText(string(runes)), nil
+			return s, NewText(strings.TrimSpace(string(runes))), nil
 		}
 		s = s.consume(1)
 		if r == '\r' || r == '\n' {
 			if s.isEmpty() {
-				return s, NewText(string(runes)), nil
+				return s, NewText(strings.TrimSpace(string(runes))), nil
 			}
 			runes = append(runes, r)
 			r = s.at(0)
 			if r == '\r' || r == '\n' {
-				return s.consume(1), NewText(string(runes)), nil
+				return s.consume(1), NewText(strings.TrimSpace(string(runes))), nil
 			}
 		} else {
 			runes = append(runes, r)
@@ -90,9 +93,6 @@ type kv struct {
 
 func refer(name string, conv func(map[string]string) Ren) parser {
 	return func(s *state) (*state, interface{}, error) {
-		if s.isEmpty() {
-			return nil, nil, io.EOF
-		}
 		var err error
 		s, _, err = char('[')(s)
 		if err != nil {

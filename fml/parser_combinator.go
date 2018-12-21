@@ -17,10 +17,6 @@ func isSpace(r rune) bool {
 	return r == ' ' || r == '\t' || r == '\r' || r == '\n'
 }
 
-func isNotNewLine(r rune) bool {
-	return !(r == '\r' || r == '\n')
-}
-
 // ----------------------------------------------------------------------------
 // Skips
 // ----------------------------------------------------------------------------
@@ -117,38 +113,6 @@ func str(expected string) parser {
 	}
 }
 
-func many0(p parser) parser {
-	return func(s *state) (*state, interface{}, error) {
-		var ns *state
-		var res interface{}
-		var err error
-		results := make([]interface{}, 0)
-		for ns, res, err = p(s); err != nil; ns, res, err = p(ns) {
-			results = append(results, res)
-		}
-		return ns, results, nil
-	}
-}
-
-func many1(p parser) parser {
-	return func(s *state) (*state, interface{}, error) {
-		if s.isEmpty() {
-			return nil, nil, io.EOF
-		}
-		var ns *state
-		var res interface{}
-		var err error
-		results := make([]interface{}, 0)
-		for ns, res, err = p(s); err != nil; ns, res, err = p(ns) {
-			results = append(results, res)
-		}
-		if len(results) == 0 {
-			return nil, nil, s.errorf("Expected %s, got %s", funcName(p), string([]rune{s.at(0)}))
-		}
-		return ns, results, nil
-	}
-}
-
 func sep1(p parser, sep parser) parser {
 	return func(s *state) (*state, interface{}, error) {
 		if s.isEmpty() {
@@ -169,12 +133,12 @@ func sep1(p parser, sep parser) parser {
 				break
 			}
 			s = ns
+			results = append(results, res)
 			ns, _, err = sep(s)
 			if err != nil {
 				break
 			}
 			s = ns
-			results = append(results, res)
 		}
 		return s, results, nil
 	}
@@ -196,22 +160,5 @@ func choice(fs ...parser) parser {
 			names = append(names, funcName(f))
 		}
 		return nil, nil, s.errorf("Not matched: %s", strings.Join(names, ", "))
-	}
-}
-
-func seq(ps ...parser) parser {
-	return func(s *state) (*state, interface{}, error) {
-		var result interface{}
-		var err error
-		results := make([]interface{}, 0)
-		st := s.copy()
-		for _, ps := range ps {
-			st, result, err = ps(st)
-			if err != nil {
-				return nil, nil, err
-			}
-			results = append(results, result)
-		}
-		return st, result, nil
 	}
 }
