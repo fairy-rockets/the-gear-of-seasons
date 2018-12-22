@@ -13,9 +13,9 @@ import (
 )
 
 func decodeImage(e *shelf.ImageEntity) (image.Image, string, error) {
-	f, err := os.Open(e.GetPath())
+	f, err := os.Open(e.Path())
 	if err != nil {
-		err = fmt.Errorf("failed to open %s: %v", e.GetPath(), err)
+		err = fmt.Errorf("failed to open %s: %v", e.Path(), err)
 		return nil, "", err
 	}
 	defer f.Close()
@@ -77,14 +77,14 @@ func generateThumbnail(e *shelf.ImageEntity, minLength uint) (image.Image, error
 	var err error
 	img, format, err := decodeImage(e)
 	if err != nil {
-		err = fmt.Errorf("failed to decode %s: %v", e.GetPath(), err)
+		err = fmt.Errorf("failed to decode %s: %v", e.Path(), err)
 		return nil, err
 	}
 	var x *exif.Exif
 	if format == "jpeg" {
 		x, err = util.DecodeExifFromFile(e.Path_)
 		if err != nil {
-			err = fmt.Errorf("failed to decode exif %s: %v", e.GetPath(), err)
+			err = fmt.Errorf("failed to decode exif %s: %v", e.Path(), err)
 			return nil, err
 		}
 	}

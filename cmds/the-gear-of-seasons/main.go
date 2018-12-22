@@ -22,7 +22,7 @@ import (
 
 var listenOmote = flag.String("listen-omote", ":8080", "omote listen")
 var listenUra = flag.String("listen-ura", ":8081", "ura listen")
-var shelfPath = flag.String("old-shelf", "_shelf", "old-shelf path")
+var shelfPath = flag.String("shelf", "_shelf", "old-shelf path")
 var cachePath = flag.String("cache", "_cache", "cache path")
 
 var shelf *shelfPkg.Shelf
