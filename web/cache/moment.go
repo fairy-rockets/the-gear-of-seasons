@@ -144,7 +144,7 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 				url = ren.LinkURL
 			}
 			w, h := calcImageSizeWithMinLength(uint(img.Width), uint(img.Height), MediumSize)
-			buff.WriteString(fmt.Sprintf(`<p><a href="%s"><img src="%s" class="embed" width="%d" height="%d"></a></p>`, url, src, w, h))
+			buff.WriteString(fmt.Sprintf(`<a href="%s"><img src="%s" class="embed" width="%d" height="%d"></a><p></p>`, url, src, w, h))
 		case *fml.Video:
 			if ren.EntityID == "" {
 				buff.WriteString(EmptyEntityIDMessage)
