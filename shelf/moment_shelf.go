@@ -14,23 +14,23 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type MomentShelf struct {
+type momentShelf struct {
 	path    string
 	moments map[string]*Moment
 }
 
-func newMomentShelf(path string) *MomentShelf {
-	return &MomentShelf{
+func newMomentShelf(path string) *momentShelf {
+	return &momentShelf{
 		path:    path,
 		moments: make(map[string]*Moment),
 	}
 
 }
-func (s *MomentShelf) Size() int {
+func (s *momentShelf) Size() int {
 	return len(s.moments)
 }
 
-func (s *MomentShelf) AsSlice() []*Moment {
+func (s *momentShelf) AsSlice() []*Moment {
 	i := 0
 	lst := make([]*Moment, len(s.moments))
 	for _, m := range s.moments {
@@ -40,23 +40,23 @@ func (s *MomentShelf) AsSlice() []*Moment {
 	return lst
 }
 
-func (s *MomentShelf) Lookup(path string) *Moment {
+func (s *momentShelf) Lookup(path string) *Moment {
 	return s.moments[path]
 }
 
-func (s *MomentShelf) dirOf(t time.Time) string {
+func (s *momentShelf) dirOf(t time.Time) string {
 	return filepath.Join(s.path, strconv.Itoa(t.Year()))
 }
 
-func (s *MomentShelf) pathOf(t time.Time) string {
+func (s *momentShelf) pathOf(t time.Time) string {
 	return filepath.Join(s.dirOf(t), t.Format("01-02_15:04:05")+".yml")
 }
 
-func (s *MomentShelf) keyOf(t time.Time) string {
+func (s *momentShelf) keyOf(t time.Time) string {
 	return t.Format("/2006/01/02/15:04:05/")
 }
 
-func (s *MomentShelf) Save(origTime time.Time, m *Moment) error {
+func (s *momentShelf) Save(origTime time.Time, m *Moment) error {
 	data, err := yaml.Marshal(m)
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func loadMomentFromFile(path string, out *Moment) error {
 	return yaml.Unmarshal(data, out)
 }
 
-func (s *MomentShelf) Init() error {
+func (s *momentShelf) Init() error {
 	err := filepath.Walk(s.path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
