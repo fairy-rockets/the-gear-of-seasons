@@ -70,9 +70,10 @@ func (s *EntityShelf) Init() error {
 			return nil
 		}
 		var e Entity
-		dirName := filepath.Dir(path)
-		if strings.HasSuffix(path, ".image.yml") {
+		dirName, fileName := filepath.Split(path)
+		if strings.HasSuffix(fileName, ".image.yml") {
 			ent := &ImageEntity{}
+			ent.ID_ = strings.TrimSuffix(fileName, ".image.yml")
 			e, err = loadMetadata(path, ent)
 			switch ent.MimeType_ {
 			case "image/gif":
@@ -84,8 +85,9 @@ func (s *EntityShelf) Init() error {
 			default:
 				log.Fatalf("Unknwon image type: %s", ent.MimeType_)
 			}
-		} else if strings.HasSuffix(path, ".video.yml") {
+		} else if strings.HasSuffix(fileName, ".video.yml") {
 			ent := &VideoEntity{}
+			ent.ID_ = strings.TrimSuffix(fileName, ".video.yml")
 			e, err = loadMetadata(path, ent)
 			switch ent.MimeType_ {
 			case "video/mp4":
@@ -93,8 +95,9 @@ func (s *EntityShelf) Init() error {
 			default:
 				log.Fatalf("Unknwon video type: %s", ent.MimeType_)
 			}
-		} else if strings.HasSuffix(path, ".audio.yml") {
+		} else if strings.HasSuffix(fileName, ".audio.yml") {
 			ent := &AudioEntity{}
+			ent.ID_ = strings.TrimSuffix(fileName, ".audio.yml")
 			e, err = loadMetadata(path, ent)
 			switch ent.MimeType_ {
 			default:
@@ -113,12 +116,6 @@ func (s *EntityShelf) Init() error {
 		}
 		if filepath.Dir(e.Path()) != s.dirOf(e) {
 			log.Warnf("Dir mismatched: %s != %s", filepath.Dir(e.Path()), s.dirOf(e))
-			// TODO: move?
-		}
-		fileName := filepath.Base(path)
-		id := fileName[:strings.Index(fileName, ".")]
-		if id != e.ID() {
-			log.Warnf("ID_ mismatched: %s != %s(%s)", id, e.ID(), e.Path())
 			// TODO: move?
 		}
 		s.entities[e.ID()] = e

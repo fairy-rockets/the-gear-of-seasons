@@ -71,14 +71,14 @@ func (cache *EntityCacheShelf) save(e *shelf.ImageEntity, thumbType string, img 
 func (cache *EntityCacheShelf) FetchIcon(ent shelf.Entity) (string, error) {
 	e, ok := ent.(*shelf.ImageEntity)
 	if !ok {
-		return "", fmt.Errorf("%s is not an image", e.GetPath())
+		return "", fmt.Errorf("%s is not an image", e.Path())
 	}
 	if url, ok := cache.lookup(e, IconType); ok {
 		return url, nil
 	}
 	img, err := generateThumbnail(e, IconSize)
 	if err != nil {
-		err = fmt.Errorf("failed to generate icon %s: %v", e.GetPath(), err)
+		err = fmt.Errorf("failed to generate icon %s: %v", e.Path(), err)
 		return "", err
 	}
 	img, err = cutter.Crop(img, cutter.Config{
@@ -87,12 +87,12 @@ func (cache *EntityCacheShelf) FetchIcon(ent shelf.Entity) (string, error) {
 		Mode:   cutter.Centered,
 	})
 	if err != nil {
-		err = fmt.Errorf("failed to cut %s: %v", e.GetPath(), err)
+		err = fmt.Errorf("failed to cut %s: %v", e.Path(), err)
 		return "", err
 	}
 	path, err := cache.save(e, IconType, img)
 	if err != nil {
-		err = fmt.Errorf("failed to save icon %s: %v", e.GetPath(), err)
+		err = fmt.Errorf("failed to save icon %s: %v", e.Path(), err)
 		return "", err
 	}
 	return path, nil
@@ -101,19 +101,19 @@ func (cache *EntityCacheShelf) FetchIcon(ent shelf.Entity) (string, error) {
 func (cache *EntityCacheShelf) FetchMedium(ent shelf.Entity) (string, error) {
 	e, ok := ent.(*shelf.ImageEntity)
 	if !ok {
-		return "", fmt.Errorf("%s is not an image", e.GetPath())
+		return "", fmt.Errorf("%s is not an image", e.Path())
 	}
 	if url, ok := cache.lookup(e, MediumType); ok {
 		return url, nil
 	}
 	img, err := generateThumbnail(e, MediumSize)
 	if err != nil {
-		err = fmt.Errorf("failed to generate icon %s: %v", e.GetPath(), err)
+		err = fmt.Errorf("failed to generate icon %s: %v", e.Path(), err)
 		return "", err
 	}
 	path, err := cache.save(e, MediumType, img)
 	if err != nil {
-		err = fmt.Errorf("failed to save icon %s: %v", e.GetPath(), err)
+		err = fmt.Errorf("failed to save icon %s: %v", e.Path(), err)
 		return "", err
 	}
 	return path, nil

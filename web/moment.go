@@ -50,7 +50,7 @@ func (srv *Server) makeSummary(m *shelf.Moment) *momentSummary {
 	if img != nil {
 		_, err = srv.entityCache.FetchIcon(img)
 		if err == nil {
-			imageURL = fmt.Sprintf("/entity/%s/icon", img.GetID())
+			imageURL = fmt.Sprintf("/entity/%s/icon", img.ID())
 		}
 	}
 
