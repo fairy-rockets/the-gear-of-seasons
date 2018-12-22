@@ -12,7 +12,7 @@ type Entity interface {
 	Path() string
 }
 
-type BaseEntity struct {
+type entity struct {
 	ID_          string    `yaml:"-"`
 	Path_        string    `yaml:"-"`
 	Date_        time.Time `yaml:"date"`
@@ -20,34 +20,34 @@ type BaseEntity struct {
 	Description_ string    `yaml:"description"`
 }
 
-func (e *BaseEntity) ID() string {
+func (e *entity) ID() string {
 	return e.ID_
 }
-func (e *BaseEntity) Date() time.Time {
+func (e *entity) Date() time.Time {
 	return e.Date_
 }
-func (e *BaseEntity) MimeType() string {
+func (e *entity) MimeType() string {
 	return e.MimeType_
 }
-func (e *BaseEntity) Description() string {
+func (e *entity) Description() string {
 	return e.Description_
 }
-func (e *BaseEntity) Path() string {
+func (e *entity) Path() string {
 	return e.Path_
 }
 
 type ImageEntity struct {
-	BaseEntity `yaml:",inline"`
-	Width      int `yaml:"width"`
-	Height     int `yaml:"height"`
+	entity `yaml:",inline"`
+	Width  int `yaml:"width"`
+	Height int `yaml:"height"`
 }
 
 type VideoEntity struct {
-	BaseEntity `yaml:",inline"`
-	Width      int `yaml:"width"`
-	Height     int `yaml:"height"`
+	entity `yaml:",inline"`
+	Width  int `yaml:"width"`
+	Height int `yaml:"height"`
 }
 
 type AudioEntity struct {
-	BaseEntity `yaml:",inline"`
+	entity `yaml:",inline"`
 }
