@@ -142,7 +142,7 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 	for _, renI := range uta.Rens {
 		switch ren := renI.(type) {
 		case fml.Text:
-			buff.WriteString(fmt.Sprintf("<p>%s</p>", ren.ToString()))
+			buff.WriteString(fmt.Sprintf(`<p>%s</p>`, ren.ToString()))
 		case *fml.Image:
 			if ren.EntityID == "" {
 				buff.WriteString(EmptyEntityIDMessage)
@@ -150,7 +150,7 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 			}
 			img, ok := cache.shelf.LookupEntity(ren.EntityID).(*shelf.ImageEntity)
 			if !ok {
-				buff.WriteString(fmt.Sprintf(`<strong class="error">Entity[%s] is not an image.</strong>`, ren.EntityID))
+				buff.WriteString(fmt.Sprintf(`<p><strong class="error">Entity[%s] is not an image.</strong></p>`, ren.EntityID))
 				continue
 			}
 			embeds = append(embeds, img)
@@ -160,7 +160,7 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 				url = ren.LinkURL
 			}
 			w, h := calcImageSizeWithMinLength(uint(img.Width), uint(img.Height), MediumSize)
-			buff.WriteString(fmt.Sprintf(`<a href="%s"><img src="%s" class="embed" width="%d" height="%d"></a>`, url, src, w, h))
+			buff.WriteString(fmt.Sprintf(`<p><a href="%s"><img src="%s" class="embed" width="%d" height="%d"></a></p>`, url, src, w, h))
 		case *fml.Video:
 			if ren.EntityID == "" {
 				buff.WriteString(EmptyEntityIDMessage)
@@ -168,7 +168,7 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 			}
 			vid, ok := cache.shelf.LookupEntity(ren.EntityID).(*shelf.VideoEntity)
 			if !ok {
-				buff.WriteString(fmt.Sprintf(`<strong class="error">Entity[%s] is not a video.</strong>`, ren.EntityID))
+				buff.WriteString(fmt.Sprintf(`<p><strong class="error">Entity[%s] is not a video.</strong></p>`, ren.EntityID))
 				continue
 			}
 			embeds = append(embeds, vid)
@@ -181,12 +181,12 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 			}
 			audio, ok := cache.shelf.LookupEntity(ren.EntityID).(*shelf.AudioEntity)
 			if !ok {
-				buff.WriteString(fmt.Sprintf(`<strong class="error">Entity[%s] is not a video.</strong>`, ren.EntityID))
+				buff.WriteString(fmt.Sprintf(`<p><strong class="error">Entity[%s] is not an audio.</strong></p>`, ren.EntityID))
 				continue
 			}
 			embeds = append(embeds, audio)
 			url := fmt.Sprintf(`/entity/%s`, ren.EntityID)
-			buff.WriteString(fmt.Sprintf(` <audio src="%s" preload="auto" controls>`, url))
+			buff.WriteString(fmt.Sprintf(`<audio src="%s" preload="auto" controls>`, url))
 		case *fml.Link:
 			if ren.EntityID == "" {
 				buff.WriteString(EmptyEntityIDMessage)
@@ -197,7 +197,7 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 			if ren.Text != "" {
 				text = ren.Text
 			}
-			buff.WriteString(fmt.Sprintf(`<a href="%s">%s</a>`, url, text))
+			buff.WriteString(fmt.Sprintf(`<p><a href="%s">%s</a></p>`, url, text))
 		case *fml.Markdown:
 			if ren.URL == "" {
 				buff.WriteString(EmptyURLMessage)
