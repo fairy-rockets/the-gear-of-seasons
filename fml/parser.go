@@ -44,7 +44,13 @@ var uta parser = func(s *state) (*state, interface{}, error) {
 	var obj interface{}
 	for {
 		s, _, _ = skip0(s)
-		s, obj, err = choice(text, refer("image", NewImage), refer("video", NewVideo), refer("audio", NewAudio))(s)
+		s, obj, err = choice(
+			text,
+			refer("image", NewImage),
+			refer("video", NewVideo),
+			refer("audio", NewAudio),
+			refer("link", NewLink),
+			refer("markdown", NewMarkdown))(s)
 		if err == io.EOF {
 			break
 		}
@@ -66,6 +72,9 @@ var text parser = func(s *state) (*state, interface{}, error) {
 	}
 	var runes []rune
 	for {
+		if s.isEmpty() {
+			return s, NewText(strings.TrimSpace(string(runes))), nil
+		}
 		r := s.at(0)
 		if r == '[' {
 			return s, NewText(strings.TrimSpace(string(runes))), nil
@@ -100,7 +109,9 @@ func refer(name string, conv func(map[string]string) Ren) parser {
 		}
 		s, _, _ = skip0(s)
 		s, _, err = str(name)(s)
-
+		if err != nil {
+			return nil, nil, err
+		}
 		s, _, err = skip1(s)
 		if err != nil {
 			return nil, nil, err

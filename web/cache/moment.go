@@ -1,11 +1,12 @@
 package cache
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 	"sync"
 
-	"strings"
+	"github.com/fairy-rockets/the-gear-of-seasons/fml"
 
 	"time"
 
@@ -123,65 +124,90 @@ func (cache *MomentCacheShelf) Save(origTime time.Time, m *shelf.Moment) error {
 	return nil
 }
 
+const EmptyEntityIDMessage = `<strong class="error">No entity field</strong>`
+const EmptyURLMessage = `<strong class="error">No url field</strong>`
+
 func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 	embeds := make([]shelf.Entity, 0)
-
-	paragraphs := paragraphRegex.Split(m.Text, -1)
-
-	for i, paragraph := range paragraphs {
-		if embedRegex.MatchString(paragraph) || blockRegex.MatchString(paragraph) {
-			continue
+	uta, err := fml.NewParser().Parse(m.Text)
+	if err != nil {
+		return &MomentCache{
+			Moment: m,
+			body:   err.Error(),
+			embeds: embeds,
 		}
-		paragraphs[i] = fmt.Sprintf("<p>%s</p>", paragraph)
 	}
-	body := strings.Join(paragraphs, "\n")
-	body = embedRegex.ReplaceAllStringFunc(body, func(embed string) string {
-		matches := embedRegex.FindStringSubmatch(embed)
-		fileType := matches[1]
-		fields := parseEmbedFields(matches[2])
-		id, ok := fields["entity"]
-		if !ok {
-			return fmt.Sprintf(`<strong class="error">No entity field</strong>`)
-		}
-		e := cache.shelf.LookupEntity(id)
-		if e == nil {
-			return fmt.Sprintf(`<strong class="error">Entity(%s) not found</strong>`, id)
-		}
-		switch fileType {
-		case "link":
-			url := fmt.Sprintf("/entity/%s", id)
+
+	var buff bytes.Buffer
+	for _, renI := range uta.Rens {
+		switch ren := renI.(type) {
+		case fml.Text:
+			buff.WriteString(fmt.Sprintf("<p>%s</p>", ren.ToString()))
+		case *fml.Image:
+			if ren.EntityID == "" {
+				buff.WriteString(EmptyEntityIDMessage)
+				continue
+			}
+			img, ok := cache.shelf.LookupEntity(ren.EntityID).(*shelf.ImageEntity)
+			if !ok {
+				buff.WriteString(fmt.Sprintf(`<strong class="error">Entity[%s] is not an image.</strong>`, ren.EntityID))
+				continue
+			}
+			embeds = append(embeds, img)
+			url := fmt.Sprintf("/entity/%s", ren.EntityID)
+			src := fmt.Sprintf("/entity/%s/medium", ren.EntityID)
+			if ren.LinkURL != "" {
+				url = ren.LinkURL
+			}
+			w, h := calcImageSizeWithMinLength(uint(img.Width), uint(img.Height), MediumSize)
+			buff.WriteString(fmt.Sprintf(`<a href="%s"><img src="%s" class="embed" width="%d" height="%d"></a>`, url, src, w, h))
+		case *fml.Video:
+			if ren.EntityID == "" {
+				buff.WriteString(EmptyEntityIDMessage)
+				continue
+			}
+			vid, ok := cache.shelf.LookupEntity(ren.EntityID).(*shelf.VideoEntity)
+			if !ok {
+				buff.WriteString(fmt.Sprintf(`<strong class="error">Entity[%s] is not a video.</strong>`, ren.EntityID))
+				continue
+			}
+			embeds = append(embeds, vid)
+			url := fmt.Sprintf("/entity/%s", ren.EntityID)
+			buff.WriteString(fmt.Sprintf(`<video  width="%d" height="%d" preload="metadata" controls="controls"><source type="%s" src="%s" /><a href="%s">Click to play.</a></video>`, vid.Width, vid.Height, vid.MimeType_, url, url))
+		case *fml.Audio:
+			if ren.EntityID == "" {
+				buff.WriteString(EmptyEntityIDMessage)
+				continue
+			}
+			audio, ok := cache.shelf.LookupEntity(ren.EntityID).(*shelf.AudioEntity)
+			if !ok {
+				buff.WriteString(fmt.Sprintf(`<strong class="error">Entity[%s] is not a video.</strong>`, ren.EntityID))
+				continue
+			}
+			embeds = append(embeds, audio)
+			url := fmt.Sprintf(`/entity/%s`, ren.EntityID)
+			buff.WriteString(fmt.Sprintf(` <audio src="%s" preload="auto" controls>`, url))
+		case *fml.Link:
+			if ren.EntityID == "" {
+				buff.WriteString(EmptyEntityIDMessage)
+				continue
+			}
+			url := fmt.Sprintf("/entity/%s", ren.EntityID)
 			text := url
-			if v, ok := fields["text"]; ok {
-				text = v
+			if ren.Text != "" {
+				text = ren.Text
 			}
-			return fmt.Sprintf(`<a href="%s">%s</a>`, url, text)
-		case "image":
-			if img, ok := e.(*shelf.ImageEntity); ok {
-				embeds = append(embeds, e)
-				url := fmt.Sprintf("/entity/%s", id)
-				src := fmt.Sprintf("/entity/%s/medium", id)
-				if v, ok := fields["to"]; ok {
-					url = v
-				}
-				w, h := calcImageSizeWithMinLength(uint(img.Width), uint(img.Height), MediumSize)
-				return fmt.Sprintf(`<a href="%s"><img src="%s" class="embed" width="%d" height="%d"></a>`, url, src, w, h)
-			} else {
-				return fmt.Sprintf(`<strong class="error">Entity(%s) is not image.</strong>`, id)
+			buff.WriteString(fmt.Sprintf(`<a href="%s">%s</a>`, url, text))
+		case *fml.Markdown:
+			if ren.URL == "" {
+				buff.WriteString(EmptyURLMessage)
+				continue
 			}
-		case "video":
-			if video, ok := e.(*shelf.VideoEntity); ok {
-				embeds = append(embeds, e)
-				url := fmt.Sprintf("/entity/%s", id)
-				return fmt.Sprintf(`<video  width="%d" height="%d" preload="metadata" controls="controls"><source type="%s" src="%s" /><a href="%s">Click to play.</a></video>`, video.Width, video.Height, video.MimeType_, url, url)
-			} else {
-				return fmt.Sprintf(`<strong class="error">Entity(%s) is not video.</strong>`, id)
-			}
-		case "audio":
-			return fmt.Sprintf(`<strong class="error">%s not supported</strong>`, fileType)
-		default:
-			return fmt.Sprintf(`<strong class="error">%s not supported</strong>`, fileType)
 		}
-	})
+	}
+
+	body := buff.String()
+
 	return &MomentCache{
 		Moment: m,
 		body:   body,
