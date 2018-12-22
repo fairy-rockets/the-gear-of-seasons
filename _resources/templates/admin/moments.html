@@ -10,7 +10,11 @@
 {{range .Moments}}
   <a href="{{.Moment.Path}}" class="moment">
       <div class="moment-date">{{.Moment.Date.Format "01/02 15:04:05"}}</div>
+      {{if .FindFirstImage}}
       <div class="moment-image"><img src="/entity/{{.FindFirstImage.ID}}/icon/"></div>
+      {{else}}
+          <div class="moment-image"><img src=""></div>
+      {{end}}
       <div class="moment-title">{{.Moment.Title}}</div>
   </a>
 {{end}}

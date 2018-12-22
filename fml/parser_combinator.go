@@ -128,17 +128,16 @@ func sep1(p parser, sep parser) parser {
 		results = append(results, res)
 		for {
 			var ns *state
-			ns, res, err = p(s)
+			ns, _, err = sep(s)
+			if err != nil {
+				break
+			}
+			ns, res, err = p(ns)
 			if err != nil {
 				break
 			}
 			s = ns
 			results = append(results, res)
-			ns, _, err = sep(s)
-			if err != nil {
-				break
-			}
-			s = ns
 		}
 		return s, results, nil
 	}
