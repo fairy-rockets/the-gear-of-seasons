@@ -15,33 +15,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (srv *Server) serveAdminIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var err error
-	t, err := srv.templateOf("admin/_main.html", "admin/index.html")
-	if err != nil {
-		srv.setError(w, r, err)
-		return
-	}
-	err = t.Execute(w, nil)
-	if err != nil {
-		srv.setError(w, r, err)
-	}
-
-}
-
-func (srv *Server) serveAdminNew(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var err error
-	t, err := srv.templateOf("admin/_main.html", "admin/edit.html")
-	if err != nil {
-		srv.setError(w, r, err)
-		return
-	}
-	err = t.Execute(w, nil)
-	if err != nil {
-		srv.setError(w, r, err)
-	}
-}
-
 type momentPayload struct {
 	Date         string `json:"date"`
 	OriginalDate string `json:"original_date"`
@@ -93,7 +66,41 @@ func momentAsPayload(m *shelf.Moment) *momentPayload {
 	return p
 }
 
-func (srv *Server) serveAdminMoment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+// ----------------------------------------------------------------------------
+//  URL handlers
+// ----------------------------------------------------------------------------
+
+// /
+func (srv *Server) serveAdminIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var err error
+	t, err := srv.templateOf("admin/_main.html", "admin/index.html")
+	if err != nil {
+		srv.setError(w, r, err)
+		return
+	}
+	err = t.Execute(w, nil)
+	if err != nil {
+		srv.setError(w, r, err)
+	}
+
+}
+
+// 新規
+func (srv *Server) serveAdminNew(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var err error
+	t, err := srv.templateOf("admin/_main.html", "admin/edit.html")
+	if err != nil {
+		srv.setError(w, r, err)
+		return
+	}
+	err = t.Execute(w, nil)
+	if err != nil {
+		srv.setError(w, r, err)
+	}
+}
+
+// 各モーメントの編集画面
+func (srv *Server) serveAdminEdit(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 	t, err := srv.templateOf("admin/_main.html", "admin/edit.html")
 	if err != nil {
@@ -111,19 +118,8 @@ func (srv *Server) serveAdminMoment(w http.ResponseWriter, r *http.Request, p ht
 		srv.setError(w, r, err)
 	}
 }
-func (srv *Server) serveAdminEdit(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var err error
-	t, err := srv.templateOf("admin/_main.html", "admin/edit.html")
-	if err != nil {
-		srv.setError(w, r, err)
-		return
-	}
-	err = t.Execute(w, nil)
-	if err != nil {
-		srv.setError(w, r, err)
-	}
-}
 
+// モーメントのプレビュー（POST）
 func (srv *Server) serveAdminPreview(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
 	_, m, err := readMoment(r.Body)
@@ -133,9 +129,13 @@ func (srv *Server) serveAdminPreview(w http.ResponseWriter, r *http.Request, _ h
 	}
 	mc := srv.momentCache.Preview(m)
 	w.WriteHeader(200)
-	_, _ = w.Write([]byte(mc.Content()))
+	_, err = w.Write([]byte(mc.Content()))
+	if err != nil {
+		log().Error(err)
+	}
 }
 
+// モーメントの保存
 func (srv *Server) serveAdminSave(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
 	originalDate, m, err := readMoment(r.Body)
@@ -172,9 +172,13 @@ func (srv *Server) serveAdminSave(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 	w.WriteHeader(200)
-	w.Write(dat)
+	_, err = w.Write(dat)
+	if err != nil {
+		log().Error(err)
+	}
 }
 
+// メディアのアップロード
 func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	buffer, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -209,20 +213,32 @@ func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ ht
 			break
 		}
 		w.WriteHeader(200)
-		fmt.Fprintf(w, "[image entity=\"%s\"]", img.ID_)
+		_, err = fmt.Fprintf(w, `[image entity="%s"]`, img.ID_)
+		if err != nil {
+			log().Error(err)
+		}
 	case "video/mp4":
 		/* Video */
 		w.WriteHeader(501)
-		fmt.Fprintf(w, "Not Supported yet: %s\n", mimeType)
+		_, err = fmt.Fprintf(w, "Not Supported yet: %s\n", mimeType)
+		if err != nil {
+			log().Error(err)
+		}
 	default:
 		w.WriteHeader(501)
-		fmt.Fprintf(w, "Unknown Mime-Type: %s\n", mimeType)
+		_, err = fmt.Fprintf(w, "Unknown Mime-Type: %s\n", mimeType)
+		if err != nil {
+			log().Error(err)
+		}
 	}
 }
 
+// モーメント一覧（今年のにリダイレクト）
 func (srv *Server) serveAdminMoments(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	http.Redirect(w, r, fmt.Sprintf("/moments/%d", time.Now().Year()), 302)
 }
+
+// 年別モーメントの一覧
 func (srv *Server) serveAdminMomentLists(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	t, err := srv.templateOf("admin/_main.html", "admin/moments.html")
 	if err != nil {
