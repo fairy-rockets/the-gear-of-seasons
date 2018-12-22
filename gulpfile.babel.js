@@ -10,8 +10,8 @@ import child, { ChildProcess } from 'child_process';
 
 import webpackConfig from './webpack.config.js';
 
-const Repo = 'github.com/fairy-rockets/the-gear-of-seasons';
-const Bin = '.bin/the-gear-of-seasons';
+const ServerPath = 'github.com/fairy-rockets/the-gear-of-seasons/cmds/the-gear-of-seasons';
+const ServerBin  = '.bin/the-gear-of-seasons';
 
 /**
  * @returns {Promise<any>}
@@ -70,22 +70,21 @@ function buildServer(dst, os, arch) {
     env['GOARCH'] = arch;
   }
   /** @type {string[]} */
-  let cmd = ['go', 'build', '-o', dst, Repo];
+  let cmd = ['go', 'build', '-o', dst, ServerPath];
   if(os || arch) {
     env['CGO_ENABLED'] = '0';
     // TODO: to link statically:
     // https://github.com/golang/go/issues/9344#issuecomment-156317219
     cmd = ['go', 'build', '-o', dst,
-           '-a', '-installsuffix', 'cgo', '-ldflags', '-s',
-           Repo];
+           '-a', '-installsuffix', 'cgo', '-ldflags', '-s', ServerPath];
   }
   return del([dst])
-    .then(paths => exec(['go', 'generate', Repo]))
+    .then(paths => exec(['go', 'generate', ServerPath]))
     .then(() => exec(cmd, options));
 }
 
 gulp.task('server:build', () => {
-  return buildServer(Bin);
+  return buildServer(ServerBin);
 });
 
 /** @type {ChildProcess} server */
