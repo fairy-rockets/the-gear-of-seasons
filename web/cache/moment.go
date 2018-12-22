@@ -172,7 +172,7 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 			if video, ok := e.(*shelf.VideoEntity); ok {
 				embeds = append(embeds, e)
 				url := fmt.Sprintf("/entity/%s", id)
-				return fmt.Sprintf(`<video  width="%d" height="%d" preload="metadata" controls="controls"><source type="%s" src="%s" /><a href="%s">Click to play.</a></video>`, video.Width, video.Height, video.MimeType, url, url)
+				return fmt.Sprintf(`<video  width="%d" height="%d" preload="metadata" controls="controls"><source type="%s" src="%s" /><a href="%s">Click to play.</a></video>`, video.Width, video.Height, video.MimeType_, url, url)
 			} else {
 				return fmt.Sprintf(`<strong class="error">Entity(%s) is not video.</strong>`, id)
 			}

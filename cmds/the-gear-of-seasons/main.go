@@ -22,7 +22,7 @@ import (
 
 var listenOmote = flag.String("listen-omote", ":8080", "omote listen")
 var listenUra = flag.String("listen-ura", ":8081", "ura listen")
-var shelfPath = flag.String("shelf", "_shelf", "shelf path")
+var shelfPath = flag.String("old-shelf", "_shelf", "old-shelf path")
 var cachePath = flag.String("cache", "_cache", "cache path")
 
 var shelf *shelfPkg.Shelf
@@ -68,7 +68,7 @@ func main() {
 
 	shelf = shelfPkg.New(*shelfPath)
 	if err := shelf.Init(); err != nil {
-		log.Fatalf("Failed to prepare shelf: %v", err)
+		log.Fatalf("Failed to prepare old-shelf: %v", err)
 	}
 	log.Infof("%d entities, %d moments", shelf.NumEntities(), shelf.NumMoments())
 
