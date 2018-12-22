@@ -5,9 +5,9 @@ import (
 	"image"
 	"os"
 
+	"github.com/disintegration/imaging"
 	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
 	"github.com/fairy-rockets/the-gear-of-seasons/util"
-	"github.com/disintegration/imaging"
 	"github.com/nfnt/resize"
 	"github.com/rwcarlsen/goexif/exif"
 )
@@ -61,16 +61,16 @@ func fixOrientation(img image.Image, x *exif.Exif) image.Image {
 }
 
 func calcImageSizeWithMinLength(width, height, minLength uint) (uint, uint) {
-	var sw,sh uint
+	var sw, sh uint
 	if width > height {
-		sw, sh = width * minLength / height, minLength
+		sw, sh = width*minLength/height, minLength
 	} else {
-		sw,sh = minLength, height * minLength / width
+		sw, sh = minLength, height*minLength/width
 	}
 	if sw >= width || sh >= height {
 		sw, sh = width, height
 	}
-	return sw,sh
+	return sw, sh
 }
 
 func generateThumbnail(e *shelf.ImageEntity, minLength uint) (image.Image, error) {
@@ -82,7 +82,7 @@ func generateThumbnail(e *shelf.ImageEntity, minLength uint) (image.Image, error
 	}
 	var x *exif.Exif
 	if format == "jpeg" {
-		x, err = util.DecodeExifFromFile(e.Path)
+		x, err = util.DecodeExifFromFile(e.Path_)
 		if err != nil {
 			err = fmt.Errorf("failed to decode exif %s: %v", e.GetPath(), err)
 			return nil, err

@@ -37,7 +37,7 @@ func NewEntityCacheShelf(shelf *shelf.Shelf, path string) *EntityCacheShelf {
 }
 
 func (cache *EntityCacheShelf) pathOf(e *shelf.ImageEntity, thumbType string) string {
-	return filepath.Join(cache.path, thumbType, strconv.Itoa(e.Date.Year()), e.ID+".jpg")
+	return filepath.Join(cache.path, thumbType, strconv.Itoa(e.Date_.Year()), e.ID_+".jpg")
 }
 
 func (cache *EntityCacheShelf) lookup(e *shelf.ImageEntity, thumbType string) (string, bool) {
@@ -64,7 +64,7 @@ func (cache *EntityCacheShelf) save(e *shelf.ImageEntity, thumbType string, img 
 		err = fmt.Errorf("failed to encode thumbnail: %v", err)
 		return "", err
 	}
-	os.Chtimes(path, e.Date, e.Date)
+	os.Chtimes(path, e.Date_, e.Date_)
 	return path, nil
 }
 

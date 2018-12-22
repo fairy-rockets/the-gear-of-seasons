@@ -9,6 +9,8 @@ func TestExampleSuccess(t *testing.T) {
 	uta, err := p.Parse(`
 あいうえお
 
+
+
 あいうえお
 [image k="v" k2="v2"]
 `)

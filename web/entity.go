@@ -16,14 +16,14 @@ func (srv *Server) serveEntity(w http.ResponseWriter, r *http.Request, p httprou
 		w.Write([]byte("Not found."))
 		return
 	}
-	f, err := os.Open(e.GetPath())
+	f, err := os.Open(e.Path())
 	if err != nil {
 		srv.setError(w, r, err)
 		return
 	}
 	defer f.Close()
 	w.WriteHeader(200)
-	w.Header().Add("Content-Type", e.GetMimeType())
+	w.Header().Add("Content-Type", e.MimeType())
 	io.Copy(w, f)
 }
 

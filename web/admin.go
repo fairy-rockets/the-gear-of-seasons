@@ -154,7 +154,7 @@ func (srv *Server) serveAdminSave(w http.ResponseWriter, r *http.Request, _ http
 	if m.Date.IsZero() {
 		img := mc.FindFirstImage()
 		if img != nil {
-			m.Date = img.Date
+			m.Date = img.Date_
 		} else {
 			m.Date = time.Now()
 		}
@@ -215,7 +215,7 @@ func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ ht
 			break
 		}
 		w.WriteHeader(200)
-		fmt.Fprintf(w, "[image entity=\"%s\"]", img.ID)
+		fmt.Fprintf(w, "[image entity=\"%s\"]", img.ID_)
 	case "video/mp4":
 		/* Video */
 		w.WriteHeader(501)
