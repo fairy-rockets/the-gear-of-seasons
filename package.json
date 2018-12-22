@@ -6,6 +6,7 @@
     "build": "gulp build",
     "watch": "gulp watch",
     "deploy": "gulp deploy",
+    "backup": "rsync --delete -auzv -e ssh nodoca:/opt/www/fairy-rockets/_shelf/ _shelf/",
     "update": "npm-check-updates -u -a"
   },
   "repository": {
