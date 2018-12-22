@@ -5,13 +5,13 @@ import (
 	"time"
 )
 
-// MomentShelf of Seasons
+// 季節の書架
 type Shelf struct {
 	Path string
 
 	// original data
-	entities *EntityShelf
-	moments  *MomentShelf
+	entities *entityShelf
+	moments  *momentShelf
 }
 
 func New(path string) *Shelf {
