@@ -32,7 +32,7 @@ type Image struct {
 func NewImage(dict map[string]string) Ren {
 	return &Image{
 		EntityID: dict["entity"],
-		LinkURL:  dict["url"],
+		LinkURL:  dict["link"],
 	}
 }
 
