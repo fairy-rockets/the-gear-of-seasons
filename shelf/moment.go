@@ -20,7 +20,7 @@ func (m *Moment) DateString() string {
 	}
 	now := time.Now()
 
-	origin0 := time.Date(date.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())
+	origin0 := time.Date(date.Year()+0, now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())
 	originA := time.Date(date.Year()-1, now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())
 	originB := time.Date(date.Year()+1, now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())
 
