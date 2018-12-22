@@ -124,7 +124,7 @@ func (uraSrv *UraServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		m := srv.shelf.LookupMoment(r.URL.Path)
 		if m != nil {
-			srv.serveAdminMoment(w, r, nil)
+			srv.serveAdminEdit(w, r, nil)
 			return
 		}
 	}
