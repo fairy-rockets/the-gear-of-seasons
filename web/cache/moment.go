@@ -3,7 +3,6 @@ package cache
 import (
 	"bytes"
 	"fmt"
-	"regexp"
 	"sync"
 
 	"github.com/fairy-rockets/the-gear-of-seasons/fml"
@@ -60,21 +59,6 @@ func (cache *MomentCache) FindFirstImage() *shelf.ImageEntity {
 		}
 	}
 	return nil
-}
-
-var (
-	embedRegex     = regexp.MustCompile(`\[(link|image|video|audio) ([^\]]+)\]`)
-	paragraphRegex = regexp.MustCompile(`((\r?\n){2})`)
-	blockRegex     = regexp.MustCompile(`<(script|div|pre|hr|ol|ul|video|blockquote|canvas) `)
-	keyValueRegex  = regexp.MustCompile(`([a-z]+)="([^"]*)"`)
-)
-
-func parseEmbedFields(str string) map[string]string {
-	kv := make(map[string]string)
-	for _, matches := range keyValueRegex.FindAllStringSubmatch(str, -1) {
-		kv[matches[1]] = matches[2]
-	}
-	return kv
 }
 
 func (cache *MomentCacheShelf) lookup(m *shelf.Moment) (*MomentCache, bool) {
