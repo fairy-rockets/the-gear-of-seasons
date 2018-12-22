@@ -18,7 +18,7 @@ import (
 	"github.com/fatih/color"
 )
 
-//go:generate bash geninfo.sh
+//go:generate bash ../geninfo.sh
 
 var listenOmote = flag.String("listen-omote", ":8080", "omote listen")
 var listenUra = flag.String("listen-ura", ":8081", "ura listen")
