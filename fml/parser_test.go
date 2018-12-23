@@ -47,4 +47,20 @@ func TestExampleSuccess(t *testing.T) {
 }
 
 func TestExampleFailed(t *testing.T) {
+	var err error
+	p := NewParser()
+	_, err = p.Parse(`
+[image entity="id" 
+`)
+	if err == nil {
+		t.Fatal(`Should fail: `, err)
+	}
+	uta, err := p.Parse(`
+[image entity="id"
+あいうえお
+[image entity="id" link="https://hexe.net/"]
+`)
+	if err == nil {
+		t.Fatal(`Should fail, got: `, uta.ToString())
+	}
 }

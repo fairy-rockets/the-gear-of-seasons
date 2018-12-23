@@ -135,7 +135,7 @@ func refer(name string, conv func(map[string]string) Ren) parser {
 }
 
 var referAttrKey = manyRunes1(func(r rune) bool {
-	return r != '=' && r != ']' && r != '"'
+	return r != '=' && r != '[' && r != ']' && r != '"' && !isSpace(r)
 })
 
 var referAttrValue = func(s *state) (*state, interface{}, error) {

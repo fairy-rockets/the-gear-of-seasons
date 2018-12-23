@@ -69,6 +69,9 @@ func manyRunes0(f func(rune) bool) parser {
 
 func manyRunes1(f func(rune) bool) parser {
 	return func(s *state) (*state, interface{}, error) {
+		if s.isEmpty() {
+			return nil, nil, io.EOF
+		}
 		cnt := 0
 		for s.index+cnt < len(s.runes) {
 			if !f(s.at(cnt)) {

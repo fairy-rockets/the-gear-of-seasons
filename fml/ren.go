@@ -1,9 +1,24 @@
 package fml
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 type Uta struct {
 	Rens []Ren
+}
+
+func (uta *Uta) ToString() string {
+	var buff bytes.Buffer
+	buff.WriteString("[\n")
+	for _, ren := range uta.Rens {
+		buff.WriteString(" - ")
+		buff.WriteString(ren.ToString())
+		buff.WriteString("\n")
+	}
+	buff.WriteString("]\n")
+	return buff.String()
 }
 
 type Ren interface {
