@@ -78,7 +78,7 @@ func (srv *Server) serveMomentSearch(w http.ResponseWriter, r *http.Request, _ h
 	}
 	for _, v := range rand.Perm(len(orig)) {
 		s := srv.makeSummary(orig[v])
-		i := int(math.Floor(s.Angle * float64(size) / pi2))
+		i := int(math.Round(s.Angle*float64(size)/pi2)) % size
 		lst[i] = append(lst[i], s)
 	}
 	out := make([]*momentSummary, size)
