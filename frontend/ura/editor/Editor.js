@@ -115,7 +115,17 @@ export default class Editor {
    * @param {string[]} embeds 
    */
   onUpload(embeds) {
-    this.text_.value += '\n' + embeds.join('\n\n');
+    const embedsString = embeds.join('\n\n');
+    if (this.text_.selectionStart || this.text_.selectionStart == '0') {
+      const startPos = this.text_.selectionStart;
+      const endPos = this.text_.selectionEnd;
+      this.text_.value =
+            this.text_.value.substring(0, startPos) + '\n' 
+          + embedsString + '\n'
+          + this.text_.value.substring(endPos, this.text_.value.length);
+    } else {
+      this.text_.value += '\n' + embedsString;
+    }
     this.executePreviewUpdate_();
   }
 }
