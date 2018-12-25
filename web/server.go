@@ -95,7 +95,7 @@ func (srv *Server) Prepare() error {
 			if _, err = srv.entityCache.FetchIcon(e); err != nil {
 				return err
 			}
-			if _, err = srv.entityCache.FetchMedium(e); err != nil {
+			if _, err = srv.entityCache.FetchMediumThumbnail(e); err != nil {
 				return err
 			}
 		default:

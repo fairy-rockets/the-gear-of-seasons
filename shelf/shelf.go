@@ -1,6 +1,7 @@
 package shelf
 
 import (
+	"io"
 	"path/filepath"
 	"time"
 )
@@ -50,6 +51,10 @@ func (shelf *Shelf) FindAllEntities() []Entity {
 
 func (shelf *Shelf) AddImageEntity(mimeType string, buffer []byte) (*ImageEntity, error) {
 	return shelf.entities.AddImage(mimeType, buffer)
+}
+
+func (shelf *Shelf) AddVideoEntity(mimeType string, r io.Reader) (*VideoEntity, error) {
+	return shelf.entities.AddVideo(mimeType, r)
 }
 
 func (shelf *Shelf) SaveMoment(origTime time.Time, m *Moment) error {

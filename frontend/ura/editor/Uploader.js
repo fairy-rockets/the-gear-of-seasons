@@ -77,28 +77,33 @@ export default class Uploader {
     const upload = (i) => new Promise((resolve, reject) => {
       this.progressImage_.src = '';
       const file = files[i];
-      const fr = new FileReader();
-      fr.onload = event => {
-        this.progressImage_.onload = (event) => {
-          fetch('/upload', {
-            method: 'POST',
-            body: file,
-          })
-          .then(resp =>
-            resp.status === 200 ?
-              resp.text() :
-              resp.text().then(reason => Promise.reject(`${resp.status}(${resp.statusText}): ${reason}`)))
-          .then(resp => {
-            embeds.push(resp);
-            this.progressBar_.value = i+1;
-            return (i + 1) < files.length ? upload(1 + i) : Promise.resolve(true);
-          }).then(resolve, reject);  
-        };
-        this.progressImage_.src = event.target.result;
+      const execUpload = () => {
+        fetch('/upload', {
+          method: 'POST',
+          body: file,
+        })
+        .then(resp =>
+          resp.status === 200 ?
+            resp.text() :
+            resp.text().then(reason => Promise.reject(`${resp.status}(${resp.statusText}): ${reason}`)))
+        .then(resp => {
+          embeds.push(resp);
+          this.progressBar_.value = i+1;
+          return (i + 1) < files.length ? upload(1 + i) : Promise.resolve(true);
+        }).then(resolve, reject);  
       };
-      fr.onerror = ev => reject(fr.error);
-      fr.onabort = ev => reject(fr.error);
-      fr.readAsDataURL(file);
+      if(file.type.startsWith('image/')){
+        const fr = new FileReader();
+        fr.onload = event => {
+          this.progressImage_.onload = (event) => execUpload();
+          this.progressImage_.src = event.target.result;
+        };
+        fr.onerror = ev => reject(fr.error);
+        fr.onabort = ev => reject(fr.error);
+        fr.readAsDataURL(file);
+      } else if(file.type.startsWith('video/')) {
+        execUpload();
+      }
     });
 
     upload(0).then(() => {
