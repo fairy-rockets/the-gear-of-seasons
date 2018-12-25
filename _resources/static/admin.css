@@ -237,7 +237,7 @@ div.uploader-progress > progress {
   width: 100%;
   height: 100%;
   padding: 0.5em;
-  overflow: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
 }
 
@@ -245,6 +245,8 @@ div.uploader-progress > progress {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
+  overflow: scroll;
+  height: 100%;
 }
 
 a.moment {
