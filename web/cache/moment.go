@@ -157,7 +157,7 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 			}
 			embeds = append(embeds, vid)
 			url := fmt.Sprintf("/entity/%s", ren.EntityID)
-			buff.WriteString(fmt.Sprintf(`<video  width="%d" height="%d" preload="metadata" controls="controls"><source type="%s" src="%s" /><a href="%s">Click to play.</a></video>`, vid.Width, vid.Height, vid.MimeType_, url, url))
+			buff.WriteString(fmt.Sprintf(`<video width="%d" height="%d" preload="metadata" controls="controls"><source type="%s" src="%s" /><a href="%s">Click to play.</a></video>`, vid.Width, vid.Height, vid.MimeType_, url, url))
 		case *fml.Audio:
 			if ren.EntityID == "" {
 				buff.WriteString(EmptyEntityIDMessage)

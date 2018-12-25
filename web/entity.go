@@ -35,7 +35,7 @@ func (srv *Server) serveEntityMedium(w http.ResponseWriter, r *http.Request, p h
 		w.Write([]byte("Not found."))
 		return
 	}
-	path, err := srv.entityCache.FetchMedium(e)
+	path, err := srv.entityCache.FetchMediumThumbnail(e)
 	if err != nil {
 		srv.setError(w, r, err)
 		return

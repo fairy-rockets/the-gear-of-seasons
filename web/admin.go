@@ -180,11 +180,6 @@ func (srv *Server) serveAdminSave(w http.ResponseWriter, r *http.Request, _ http
 
 // メディアのアップロード
 func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	buffer, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		srv.setError(w, r, err)
-		return
-	}
 	mimeType := r.Header.Get("Content-Type")
 	if len(mimeType) == 0 {
 		srv.setError(w, r, fmt.Errorf("empty Content-Type"))
@@ -197,12 +192,17 @@ func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ ht
 		fallthrough
 	case "image/gif":
 		/* Image */
+		buffer, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			srv.setError(w, r, err)
+			return
+		}
 		img, err := srv.shelf.AddImageEntity(mimeType, buffer)
 		if err != nil {
 			srv.setError(w, r, err)
 			break
 		}
-		_, err = srv.entityCache.FetchMedium(img)
+		_, err = srv.entityCache.FetchMediumThumbnail(img)
 		if err != nil {
 			srv.setError(w, r, err)
 			break
@@ -219,14 +219,19 @@ func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ ht
 		}
 	case "video/mp4":
 		/* Video */
-		w.WriteHeader(501)
-		_, err = fmt.Fprintf(w, "Not Supported yet: %s\n", mimeType)
+		vid, err := srv.shelf.AddVideoEntity(mimeType, r.Body)
+		if err != nil {
+			srv.setError(w, r, err)
+			break
+		}
+		w.WriteHeader(200)
+		_, err = fmt.Fprintf(w, `[video entity="%s"]`, vid.ID_)
 		if err != nil {
 			log().Error(err)
 		}
 	default:
 		w.WriteHeader(501)
-		_, err = fmt.Fprintf(w, "Unknown Mime-Type: %s\n", mimeType)
+		_, err := fmt.Fprintf(w, "Unknown Mime-Type: %s\n", mimeType)
 		if err != nil {
 			log().Error(err)
 		}

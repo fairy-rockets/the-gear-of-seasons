@@ -43,9 +43,10 @@ type ImageEntity struct {
 }
 
 type VideoEntity struct {
-	entity `yaml:",inline"`
-	Width  int `yaml:"width"`
-	Height int `yaml:"height"`
+	entity   `yaml:",inline"`
+	Width    int     `yaml:"width"`
+	Height   int     `yaml:"height"`
+	Duration float64 `yaml:"duraton"`
 }
 
 type AudioEntity struct {
