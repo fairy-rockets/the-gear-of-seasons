@@ -23,6 +23,14 @@ go get -u "github.com/disintegration/imaging"
 go get -u "github.com/nfnt/resize"
 go get -u "github.com/oliamb/cutter"
 go get -u "github.com/nfnt/resize"
+
+echo 'video'
+sudo apt get install ffmpeg
+# mac OS:
+#   brew install ffmpeg
+# Fedora or CentOS:
+#   sudo dnf install ffmpeg ffmpeg-devel
+#   sudo yum install ffmpeg ffmpeg-devel
 ```
 
 ### ClientSide
