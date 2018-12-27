@@ -36,7 +36,7 @@ type OmoteServer Server
 type UraServer Server
 
 func log() *logrus.Entry {
-	return logrus.WithField("Module", "Web")
+	return logrus.WithField("Module", "Server")
 }
 
 func NewServer(listenOmote, listenUra string, shelf *shelf.Shelf, cachePath string) *Server {
