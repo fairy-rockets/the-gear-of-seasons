@@ -162,9 +162,11 @@ func (srv *Server) serveAdminSave(w http.ResponseWriter, r *http.Request, _ http
 
 	dat, err := json.Marshal(struct {
 		Body string `json:"body"`
+		Date string `json:"date"`
 		Path string `json:"path"`
 	}{
 		Body: mc.Content(),
+		Date: mc.Moment.Date.Format(payloadTimeFormat),
 		Path: mc.Moment.Path(),
 	})
 	if err != nil {

@@ -95,7 +95,8 @@ export default class Editor {
       .then(result => {
         this.submit_.disabled = true;
         this.preview_.onChange(result.body);
-        history.replaceState(null, null, result.path)
+        this.date_.value = result.date;
+        history.replaceState(null, null, result.path);
       });
   }
   executePreviewUpdate_() {
@@ -120,8 +121,8 @@ export default class Editor {
       const startPos = this.text_.selectionStart;
       const endPos = this.text_.selectionEnd;
       this.text_.value =
-            this.text_.value.substring(0, startPos) + '\n' 
-          + embedsString + '\n'
+            this.text_.value.substring(0, startPos)
+          + embedsString
           + this.text_.value.substring(endPos, this.text_.value.length);
     } else {
       this.text_.value += '\n' + embedsString;
