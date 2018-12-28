@@ -24,6 +24,9 @@ func (s *entityShelf) AddVideo(mimeType string, r io.Reader) (*VideoEntity, erro
 	case "video/mp4":
 		ext = "mp4"
 		break
+	case "video/x-matroska":
+		ext = "mkv"
+		break
 	default:
 		return nil, fmt.Errorf("unsupported video type: %s", mimeType)
 	}

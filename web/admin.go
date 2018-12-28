@@ -220,6 +220,8 @@ func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ ht
 			log().Error(err)
 		}
 	case "video/mp4":
+		fallthrough
+	case "video/x-matroska":
 		/* Video */
 		vid, err := srv.shelf.AddVideoEntity(mimeType, r.Body)
 		if err != nil {
