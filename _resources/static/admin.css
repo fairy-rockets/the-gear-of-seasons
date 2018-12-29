@@ -14,6 +14,7 @@ body {
   overflow: hidden;
   width: 100%;
   height: 100%;
+  min-height: max-content;
 
   display: flex;
   flex-flow: row nowrap;
@@ -81,10 +82,9 @@ img.emoji {
 }
 
 .editor-container .editor-wrapper {
-  padding-top: 1em;
   display: flex;
   flex-direction: column;
-  padding: 0.5em;
+  padding: 1em 0.5em 0.5em 0.5em;
 }
 
 .editor-container .editor-wrapper .space {
@@ -233,20 +233,20 @@ div.uploader-progress > progress {
   float: right;
 }
 
-#moments {
+#moments-container {
   width: 100%;
   height: 100%;
-  padding: 0.5em;
   overflow-y: auto;
-  overflow-x: hidden;
+}
+
+#moments {
+  padding: 0.5em;
 }
 
 .moment-list {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  overflow: scroll;
-  height: 100%;
 }
 
 a.moment {
