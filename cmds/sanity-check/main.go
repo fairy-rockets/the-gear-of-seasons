@@ -1,17 +1,17 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"flag"
 	_ "image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+	"io"
 	"os"
 
 	log "github.com/Sirupsen/logrus"
-
-	"os/signal"
-	"syscall"
 
 	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/shelf"
 	"github.com/fairy-rockets/the-gear-of-seasons/web"
@@ -28,27 +28,6 @@ var cachePath = flag.String("cache", "_cache", "cache path")
 var shelf *shelfPkg.Shelf
 var server *web.Server
 
-func mainLoop() os.Signal {
-	go func() {
-		err := server.Start()
-		if err != nil {
-			log.Fatalf("Server aborted: %v", err)
-		}
-	}()
-
-	sig := make(chan os.Signal)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	select {
-	case s := <-sig:
-		if err := server.Stop(); err != nil {
-			log.WithField("Module", "Web").Errorf("Error on stopping web: %v", err)
-		} else {
-			log.WithField("Module", "Web").Info("Stopped gracefully.")
-		}
-		return s
-	}
-}
-
 func printLogo() {
 	log.Info("****************************************")
 	log.Info(color.BlueString("  the-gear-of-seasons  "))
@@ -64,26 +43,41 @@ func main() {
 	flag.Parse()
 	log.Info("----------------------------------------")
 	log.Info("Initializing...")
-	log.Info("----------------------------------------")
-
 	shelf = shelfPkg.New(*shelfPath)
 	if err := shelf.Init(); err != nil {
 		log.Fatalf("Failed to prepare shelf: %v", err)
 	}
 	log.Infof("%d entities, %d moments", shelf.NumEntities(), shelf.NumMoments())
 
-	server = web.NewServer(*listenOmote, *listenUra, shelf, *cachePath)
-	if err := server.Prepare(); err != nil {
-		log.Fatalf("Failed to prepare server: %v", err)
+	log.Info(color.GreenString("[OK]"))
+	log.Info("----------------------------------------")
+	log.Info("Checking Entities...")
+	ents := shelf.FindAllEntities()
+	for i, ent := range ents {
+		checkEntity(ent)
+		if (i+1)%100 == 0 {
+			log.Infof("%d/%d(%d%%) ...", i+1, len(ents), (i+1)*100/len(ents))
+		}
 	}
+	log.Info(color.GreenString("[OK]"))
+}
 
-	log.Info(color.GreenString("                                    [OK]"))
-
-	log.Info("----------------------------------------")
-	log.Info("Initialized.")
-	log.Info("----------------------------------------")
-
-	s := mainLoop()
-
-	log.Fatalf("Signal (%v) received, stopping\n", s)
+func checkEntity(ent shelfPkg.Entity) {
+	f, err := os.Open(ent.Path())
+	if err != nil {
+		log.Fatalf("Sanity check failed: %v\npath: %s", err, ent.Path())
+	}
+	defer f.Close()
+	hasher := md5.New()
+	_, err = io.Copy(hasher, f)
+	if err != nil {
+		log.Fatalf("Sanity check failed: %v\npath: %s", err, ent.Path())
+	}
+	hash := hex.EncodeToString(hasher.Sum(nil)[:])
+	if ent.ID() != hash {
+		log.Fatalf(`Sanity check failed: hash mismatched!
+path: %s
+expected: %s
+actual: %s`, err, ent.Path(), hash, ent.ID())
+	}
 }
