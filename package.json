@@ -4,6 +4,7 @@
   "description": "the heart of hexe.net",
   "scripts": {
     "build": "gulp build",
+    "check": "go generate github.com/fairy-rockets/the-gear-of-seasons/cmds/sanity-check && go build -o .bin/sanity-check github.com/fairy-rockets/the-gear-of-seasons/cmds/sanity-check && .bin/sanity-check",
     "watch": "gulp watch",
     "deploy": "gulp deploy",
     "backup": "rsync --delete -auzv -e ssh nodoca:/opt/www/fairy-rockets/_shelf/ _shelf/",

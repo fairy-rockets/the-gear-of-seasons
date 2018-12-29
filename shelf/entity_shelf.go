@@ -107,7 +107,7 @@ func (s *entityShelf) Init() error {
 			// TODO: move?
 		}
 		s.entities[e.ID()] = e
-		log.Infof("Entity: %s (%s)", e.ID(), e.MimeType())
+		log.Debugf("Entity: %s (%s)", e.ID(), e.MimeType())
 		return nil
 	})
 	return err

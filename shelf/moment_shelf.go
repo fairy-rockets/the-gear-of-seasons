@@ -108,7 +108,7 @@ func (s *momentShelf) Init() error {
 				return err
 			}
 			s.moments[m.Path()] = m
-			log.Infof("Moment %s -> %s", m.Path(), m.Title)
+			log.Debugf("Moment %s -> %s", m.Path(), m.Title)
 		}
 		return nil
 	})
