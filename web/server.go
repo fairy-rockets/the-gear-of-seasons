@@ -169,7 +169,7 @@ omote: %v
 
 func (srv *Server) setError(w http.ResponseWriter, r *http.Request, err error) {
 	w.WriteHeader(503)
-	fmt.Fprintf(w, "[Error] %v", err)
+	http.Error(w, fmt.Sprintf("[Error] %v", err), http.StatusInternalServerError)
 }
 
 func (srv *Server) templateOf(files ...string) (*template.Template, error) {

@@ -187,6 +187,12 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 				buff.WriteString(EmptyURLMessage)
 				continue
 			}
+			md, err := fetchMarkdown(ren.URL)
+			if err != nil {
+				buff.WriteString(fmt.Sprintf(`<p><strong class="error">Failed to embed markdown(%s): %v</strong></p>`, ren.URL, err))
+			} else {
+				buff.WriteString(md)
+			}
 		}
 	}
 

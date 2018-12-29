@@ -31,6 +31,9 @@ sudo apt get install ffmpeg
 # Fedora or CentOS:
 #   sudo dnf install ffmpeg ffmpeg-devel
 #   sudo yum install ffmpeg ffmpeg-devel
+
+echo 'embedding markdown'
+go get -u "github.com/russross/blackfriday"
 ```
 
 ### ClientSide
