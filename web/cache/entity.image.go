@@ -63,6 +63,11 @@ func (cache *EntityCacheShelf) FetchMediumThumbnail(ent shelf.Entity) (string, e
 	return path, nil
 }
 
+func (cache *EntityCacheShelf) removeImage(e *shelf.ImageEntity) error {
+
+	return nil //cache.shelf.Remove(e)
+}
+
 // ----------------------------------------------------------------------------
 
 func (cache *EntityCacheShelf) thumbnailPathOf(e *shelf.ImageEntity, thumbType string) string {

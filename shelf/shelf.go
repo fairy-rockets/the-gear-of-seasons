@@ -49,6 +49,16 @@ func (shelf *Shelf) FindAllEntities() []Entity {
 	return shelf.entities.AsSlice()
 }
 
+func (shelf *Shelf) FindAllEntitiesByYear(year int) []Entity {
+	es := make([]Entity, 0, 100)
+	for _, e := range shelf.entities.entities {
+		if e.Date().Year() == year {
+			es = append(es, e)
+		}
+	}
+	return es
+}
+
 func (shelf *Shelf) AddImageEntity(mimeType string, buffer []byte) (*ImageEntity, error) {
 	return shelf.entities.AddImage(mimeType, buffer)
 }

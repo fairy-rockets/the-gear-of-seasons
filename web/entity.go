@@ -1,7 +1,6 @@
 package web
 
 import (
-	"io"
 	"net/http"
 	"os"
 
@@ -9,6 +8,7 @@ import (
 )
 
 func (srv *Server) serveEntity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	var err error
 	id := p.ByName("id")
 	e := srv.shelf.LookupEntity(id)
 	if e == nil {
@@ -16,15 +16,12 @@ func (srv *Server) serveEntity(w http.ResponseWriter, r *http.Request, p httprou
 		w.Write([]byte("Not found."))
 		return
 	}
-	f, err := os.Open(e.Path())
+	_, err = os.Stat(e.Path())
 	if err != nil {
 		srv.setError(w, r, err)
 		return
 	}
-	defer f.Close()
-	w.WriteHeader(200)
-	w.Header().Add("Content-Type", e.MimeType())
-	io.Copy(w, f)
+	http.ServeFile(w, r, e.Path())
 }
 
 func (srv *Server) serveEntityMedium(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -40,15 +37,12 @@ func (srv *Server) serveEntityMedium(w http.ResponseWriter, r *http.Request, p h
 		srv.setError(w, r, err)
 		return
 	}
-	f, err := os.Open(path)
+	_, err = os.Stat(path)
 	if err != nil {
 		srv.setError(w, r, err)
 		return
 	}
-	defer f.Close()
-	w.WriteHeader(200)
-	w.Header().Add("Content-Type", "image/jpeg")
-	io.Copy(w, f)
+	http.ServeFile(w, r, path)
 }
 
 func (srv *Server) serveEntityIcon(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -64,13 +58,10 @@ func (srv *Server) serveEntityIcon(w http.ResponseWriter, r *http.Request, p htt
 		srv.setError(w, r, err)
 		return
 	}
-	f, err := os.Open(path)
+	_, err = os.Stat(path)
 	if err != nil {
 		srv.setError(w, r, err)
 		return
 	}
-	defer f.Close()
-	w.WriteHeader(200)
-	w.Header().Add("Content-Type", "image/jpeg")
-	io.Copy(w, f)
+	http.ServeFile(w, r, path)
 }

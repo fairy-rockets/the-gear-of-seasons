@@ -6,7 +6,7 @@
     }else if(host === "ura.hexe.net") {
         location.href = href.replace(host, "hexe.net");
     }else{
-        location.href = "https://hexe.net/";
+        location.href = "http://hexe.net/";
     }
 })();
 

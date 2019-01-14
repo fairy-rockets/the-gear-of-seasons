@@ -8,7 +8,7 @@ import (
 
 func (srv *Server) serveIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.templateOf("index.html")
+	t, err := srv.parseTemplate("index.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return

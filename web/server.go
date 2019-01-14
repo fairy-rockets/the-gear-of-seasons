@@ -78,6 +78,9 @@ func (srv *Server) setupRoute() {
 	ura.POST("/save", srv.serveAdminSave)
 	ura.GET("/moments/", srv.serveAdminMoments)
 	ura.GET("/moments/:year", srv.serveAdminMomentLists)
+	ura.GET("/entities/", srv.serveAdminEntities)
+	ura.GET("/entities/:year", srv.serveAdminEntityLists)
+	ura.DELETE("/entity/:id", srv.serveAdminDeleteEntity)
 	ura.GET("/entity/:id", srv.serveEntity)
 	ura.GET("/entity/:id/icon", srv.serveEntityIcon)
 	ura.GET("/entity/:id/medium", srv.serveEntityMedium)
@@ -172,9 +175,23 @@ func (srv *Server) setError(w http.ResponseWriter, r *http.Request, err error) {
 	http.Error(w, fmt.Sprintf("[Error] %v", err), http.StatusInternalServerError)
 }
 
-func (srv *Server) templateOf(files ...string) (*template.Template, error) {
+func (srv *Server) parseTemplate(base string, files ...string) (*template.Template, error) {
+	t := template.New(filepath.Base(base))
+	base = fmt.Sprintf("%s/%s", TemplatesPath, base)
 	for i := range files {
 		files[i] = fmt.Sprintf("%s/%s", TemplatesPath, files[i])
 	}
-	return template.ParseFiles(files...)
+	allFiles := append([]string{base}, files...)
+	return t.ParseFiles(allFiles...)
+}
+
+func (srv *Server) parseTemplateWithFuncs(funcs template.FuncMap, base string, files ...string) (*template.Template, error) {
+	t := template.New(filepath.Base(base))
+	t.Funcs(funcs)
+	base = fmt.Sprintf("%s/%s", TemplatesPath, base)
+	for i := range files {
+		files[i] = fmt.Sprintf("%s/%s", TemplatesPath, files[i])
+	}
+	allFiles := append([]string{base}, files...)
+	return t.ParseFiles(allFiles...)
 }
