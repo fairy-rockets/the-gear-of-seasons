@@ -50,7 +50,7 @@ func (srv *Server) serveEntityIcon(w http.ResponseWriter, r *http.Request, p htt
 	e := srv.shelf.LookupEntity(id)
 	if e == nil {
 		w.WriteHeader(404)
-		w.Write([]byte("Not found."))
+		_, _ = w.Write([]byte("Not found."))
 		return
 	}
 	path, err := srv.entityCache.FetchIcon(e)

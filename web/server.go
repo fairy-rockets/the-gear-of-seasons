@@ -28,8 +28,8 @@ type Server struct {
 	omoteRouter *httprouter.Router
 	uraRouter   *httprouter.Router
 	shelf       *shelf.Shelf
-	entityCache *cache.EntityCacheShelf
-	momentCache *cache.MomentCacheShelf
+	entityCache *cache.EntityCache
+	momentCache *cache.MomentCache
 }
 
 type OmoteServer Server
@@ -44,8 +44,8 @@ func NewServer(listenOmote, listenUra string, shelf *shelf.Shelf, cachePath stri
 		omoteRouter: httprouter.New(),
 		uraRouter:   httprouter.New(),
 		shelf:       shelf,
-		entityCache: cache.NewEntityCacheShelf(shelf, filepath.Join(cachePath, "entity")),
-		momentCache: cache.NewMomentCacheShelf(shelf),
+		entityCache: cache.NewEntityCache(shelf, filepath.Join(cachePath, "entity")),
+		momentCache: cache.NewMomentCache(shelf),
 	}
 	srv.omoteImpl = &http.Server{
 		Addr:    listenOmote,
@@ -119,7 +119,7 @@ func (omoteSrv *OmoteServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.WriteHeader(404)
-	fmt.Fprintf(w, "404: Page not found.")
+	_, _ = fmt.Fprintf(w, "404: Page not found.")
 }
 
 func (uraSrv *UraServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +132,7 @@ func (uraSrv *UraServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.WriteHeader(404)
-	fmt.Fprintf(w, "404: Page not found.")
+	_, _ = fmt.Fprintf(w, "404: Page not found.")
 }
 
 func (srv *Server) Start() error {

@@ -255,7 +255,7 @@ func (srv *Server) serveAdminMomentLists(w http.ResponseWriter, r *http.Request,
 		year = time.Now().Year()
 	}
 	ms := srv.shelf.FindAllMomentsByYear(year)
-	mcs := make([]*cache.MomentCache, 0, len(ms))
+	mcs := make([]*cache.MomentCacheItem, 0, len(ms))
 	for _, m := range ms {
 		mcs = append(mcs, srv.momentCache.Fetch(m))
 	}
@@ -266,7 +266,7 @@ func (srv *Server) serveAdminMomentLists(w http.ResponseWriter, r *http.Request,
 		LastYear int
 		Year     int
 		NextYear int
-		Moments  []*cache.MomentCache
+		Moments  []*cache.MomentCacheItem
 	}{
 		LastYear: year - 1,
 		Year:     year,

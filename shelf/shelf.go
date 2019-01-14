@@ -24,10 +24,15 @@ func New(path string) *Shelf {
 }
 
 func (shelf *Shelf) Init() error {
-	if err := shelf.entities.Init(); err != nil {
+	var err error
+	// Entity
+	err = shelf.entities.Init()
+	if err != nil {
 		return err
 	}
-	if err := shelf.moments.Init(); err != nil {
+	// Moment
+	err = shelf.moments.Init()
+	if err != nil {
 		return err
 	}
 	return nil
@@ -67,10 +72,6 @@ func (shelf *Shelf) AddVideoEntity(mimeType string, r io.Reader) (*VideoEntity, 
 	return shelf.entities.AddVideo(mimeType, r)
 }
 
-func (shelf *Shelf) SaveMoment(origTime time.Time, m *Moment) error {
-	return shelf.moments.Save(origTime, m)
-}
-
 // ------------------------------------------------------------------------------------------------
 //   Moments
 // ------------------------------------------------------------------------------------------------
@@ -82,6 +83,7 @@ func (shelf *Shelf) NumMoments() int {
 func (shelf *Shelf) LookupMoment(path string) *Moment {
 	return shelf.moments.Lookup(path)
 }
+
 func (shelf *Shelf) FindAllMoments() []*Moment {
 	return shelf.moments.AsSlice()
 }
@@ -94,4 +96,8 @@ func (shelf *Shelf) FindAllMomentsByYear(year int) []*Moment {
 		}
 	}
 	return ms
+}
+
+func (shelf *Shelf) SaveMoment(origTime time.Time, m *Moment) error {
+	return shelf.moments.Save(origTime, m)
 }
