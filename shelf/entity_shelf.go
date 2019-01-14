@@ -62,6 +62,7 @@ func (s *entityShelf) Init() error {
 		if strings.HasSuffix(fileName, ".image.yml") {
 			ent := &ImageEntity{}
 			ent.ID_ = strings.TrimSuffix(fileName, ".image.yml")
+			ent.MetaPath_ = path
 			e, err = loadMetadata(path, ent)
 			switch ent.MimeType_ {
 			case "image/gif":
@@ -76,6 +77,7 @@ func (s *entityShelf) Init() error {
 		} else if strings.HasSuffix(fileName, ".video.yml") {
 			ent := &VideoEntity{}
 			ent.ID_ = strings.TrimSuffix(fileName, ".video.yml")
+			ent.MetaPath_ = path
 			e, err = loadMetadata(path, ent)
 			switch ent.MimeType_ {
 			case "video/mp4":
@@ -86,6 +88,7 @@ func (s *entityShelf) Init() error {
 		} else if strings.HasSuffix(fileName, ".audio.yml") {
 			ent := &AudioEntity{}
 			ent.ID_ = strings.TrimSuffix(fileName, ".audio.yml")
+			ent.MetaPath_ = path
 			e, err = loadMetadata(path, ent)
 			switch ent.MimeType_ {
 			default:
@@ -129,4 +132,28 @@ func (s *entityShelf) AsSlice() []Entity {
 		i++
 	}
 	return lst
+}
+
+func (s *entityShelf) Remove(e Entity) error {
+	var err error
+	tmpDir := filepath.Join(s.path, "tmp")
+	err = os.MkdirAll(tmpDir, 0755)
+	if err != nil {
+		return err
+	}
+	{
+		dst := filepath.Join(tmpDir, filepath.Base(e.MetaPath()))
+		err = os.Rename(e.MetaPath(), dst)
+		if err != nil {
+			return err
+		}
+	}
+	{
+		dst := filepath.Join(tmpDir, filepath.Base(e.Path()))
+		err = os.Rename(e.Path(), dst)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

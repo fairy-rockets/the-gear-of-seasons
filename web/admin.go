@@ -73,7 +73,7 @@ func momentAsPayload(m *shelf.Moment) *momentPayload {
 // /
 func (srv *Server) serveAdminIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.templateOf("admin/_main.html", "admin/index.html")
+	t, err := srv.parseTemplate("admin/_main.html", "admin/index.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -88,7 +88,7 @@ func (srv *Server) serveAdminIndex(w http.ResponseWriter, r *http.Request, _ htt
 // 新規
 func (srv *Server) serveAdminNew(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.templateOf("admin/_main.html", "admin/edit.html")
+	t, err := srv.parseTemplate("admin/_main.html", "admin/edit.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -102,7 +102,7 @@ func (srv *Server) serveAdminNew(w http.ResponseWriter, r *http.Request, _ httpr
 // 各モーメントの編集画面
 func (srv *Server) serveAdminEdit(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
-	t, err := srv.templateOf("admin/_main.html", "admin/edit.html")
+	t, err := srv.parseTemplate("admin/_main.html", "admin/edit.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -188,11 +188,7 @@ func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ ht
 		return
 	}
 	switch mimeType {
-	case "image/jpeg":
-		fallthrough
-	case "image/png":
-		fallthrough
-	case "image/gif":
+	case "image/jpeg", "image/png", "image/gif":
 		/* Image */
 		buffer, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -219,9 +215,7 @@ func (srv *Server) serveAdminUpload(w http.ResponseWriter, r *http.Request, _ ht
 		if err != nil {
 			log().Error(err)
 		}
-	case "video/mp4":
-		fallthrough
-	case "video/x-matroska":
+	case "video/mp4", "video/x-matroska":
 		/* Video */
 		vid, err := srv.shelf.AddVideoEntity(mimeType, r.Body)
 		if err != nil {
@@ -249,7 +243,7 @@ func (srv *Server) serveAdminMoments(w http.ResponseWriter, r *http.Request, _ h
 
 // 年別モーメントの一覧
 func (srv *Server) serveAdminMomentLists(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	t, err := srv.templateOf("admin/_main.html", "admin/moments.html")
+	t, err := srv.parseTemplate("admin/_main.html", "admin/moments.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -281,5 +275,68 @@ func (srv *Server) serveAdminMomentLists(w http.ResponseWriter, r *http.Request,
 	})
 	if err != nil {
 		srv.setError(w, r, err)
+	}
+}
+
+// エンティティ一覧（今年のにリダイレクト）
+func (srv *Server) serveAdminEntities(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	http.Redirect(w, r, fmt.Sprintf("/entities/%d", time.Now().Year()), 302)
+}
+
+// 年別エンティティの一覧
+func (srv *Server) serveAdminEntityLists(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	funcs := make(map[string]interface{})
+	funcs["isImage"] = func(entity shelf.Entity) bool {
+		_, ok := entity.(*shelf.ImageEntity)
+		return ok
+	}
+	funcs["isVideo"] = func(entity shelf.Entity) bool {
+		_, ok := entity.(*shelf.VideoEntity)
+		return ok
+	}
+	t, err := srv.parseTemplateWithFuncs(funcs, "admin/_main.html", "admin/entities.html")
+	if err != nil {
+		srv.setError(w, r, err)
+		return
+	}
+
+	year, err := strconv.Atoi(p.ByName("year"))
+	if err != nil {
+		year = time.Now().Year()
+	}
+	es := srv.shelf.FindAllEntitiesByYear(year)
+	sort.Slice(es, func(i, j int) bool {
+		return es[i].Date().After(es[j].Date())
+	})
+	w.WriteHeader(200)
+	err = t.Execute(w, struct {
+		LastYear int
+		Year     int
+		NextYear int
+		Entities []shelf.Entity
+	}{
+		LastYear: year - 1,
+		Year:     year,
+		NextYear: year + 1,
+		Entities: es,
+	})
+	if err != nil {
+		srv.setError(w, r, err)
+	}
+}
+
+func (srv *Server) serveAdminDeleteEntity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+	var err error
+	ent := srv.shelf.LookupEntity(id)
+	if ent == nil {
+		w.WriteHeader(404)
+		_, _ = w.Write([]byte("Not found."))
+		return
+	}
+	err = srv.entityCache.Remove(ent)
+	if ent != nil {
+		srv.setError(w, r, err)
+		return
 	}
 }

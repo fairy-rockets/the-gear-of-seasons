@@ -62,6 +62,11 @@ func (s *momentShelf) Save(origTime time.Time, m *Moment) error {
 		return err
 	}
 	path := s.pathOf(m.Date)
+	dir := filepath.Dir(path)
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
+		return err
+	}
 	err = ioutil.WriteFile(path, data, 0644)
 	if err != nil {
 		return err

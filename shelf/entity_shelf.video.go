@@ -82,6 +82,14 @@ func (s *entityShelf) AddVideo(mimeType string, r io.Reader) (*VideoEntity, erro
 	path := filepath.Join(dirpath, fmt.Sprintf("%s.%s", e.ID_, ext))
 	e.Path_ = path
 
+	{
+		dir := filepath.Dir(path)
+		err = os.MkdirAll(dir, 0755)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	_, err = tmpfile.Seek(0, io.SeekStart)
 	if err != nil {
 		return nil, err
