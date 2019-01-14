@@ -94,12 +94,12 @@ func (s *entityShelf) AddVideo(mimeType string, r io.Reader) (*VideoEntity, erro
 	if err != nil {
 		return nil, err
 	}
-	f, err := os.Create(path)
+	tmpfilePath := tmpfile.Name()
+	err = tmpfile.Close()
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
-	_, err = io.Copy(f, tmpfile)
+	err = os.Rename(tmpfilePath, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save video: %v", err)
 	}

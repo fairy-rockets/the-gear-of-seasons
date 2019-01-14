@@ -15,19 +15,19 @@ const (
 	MediumType = "medium"
 )
 
-type EntityCacheShelf struct {
+type EntityCache struct {
 	shelf *shelf.Shelf
 	path  string
 }
 
-func NewEntityCacheShelf(shelf *shelf.Shelf, path string) *EntityCacheShelf {
-	return &EntityCacheShelf{
+func NewEntityCache(shelf *shelf.Shelf, path string) *EntityCache {
+	return &EntityCache{
 		shelf: shelf,
 		path:  path,
 	}
 }
 
-func (cache *EntityCacheShelf) Remove(entity shelf.Entity) error {
+func (cache *EntityCache) Remove(entity shelf.Entity) error {
 	switch e := entity.(type) {
 	case *shelf.ImageEntity:
 		return cache.removeImage(e)

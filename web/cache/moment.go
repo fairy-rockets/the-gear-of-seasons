@@ -12,23 +12,23 @@ import (
 	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
 )
 
-type MomentCacheShelf struct {
+type MomentCache struct {
 	shelf   *shelf.Shelf
 	mutex   sync.Mutex
-	entries map[string]*MomentCache
+	entries map[string]*MomentCacheItem
 }
 
-func NewMomentCacheShelf(sh *shelf.Shelf) *MomentCacheShelf {
-	return &MomentCacheShelf{
-		shelf:   sh,
-		entries: make(map[string]*MomentCache),
-	}
-}
-
-type MomentCache struct {
+type MomentCacheItem struct {
 	Moment *shelf.Moment
 	body   string
 	embeds []shelf.Entity
+}
+
+func NewMomentCache(sh *shelf.Shelf) *MomentCache {
+	return &MomentCache{
+		shelf:   sh,
+		entries: make(map[string]*MomentCacheItem),
+	}
 }
 
 const contentFormat = `
@@ -40,7 +40,7 @@ const contentFormat = `
 <hr>
 %s`
 
-func (cache *MomentCache) Content() string {
+func (cache *MomentCacheItem) Content() string {
 	return fmt.Sprintf(contentFormat,
 		cache.Moment.Title,
 		cache.Moment.DateString(),
@@ -48,11 +48,11 @@ func (cache *MomentCache) Content() string {
 		cache.body)
 }
 
-func (cache *MomentCache) Embeds() []shelf.Entity {
+func (cache *MomentCacheItem) Embeds() []shelf.Entity {
 	return cache.embeds
 }
 
-func (cache *MomentCache) FindFirstImage() *shelf.ImageEntity {
+func (cache *MomentCacheItem) FindFirstImage() *shelf.ImageEntity {
 	for _, e := range cache.embeds {
 		if img, ok := e.(*shelf.ImageEntity); ok {
 			return img
@@ -61,20 +61,20 @@ func (cache *MomentCache) FindFirstImage() *shelf.ImageEntity {
 	return nil
 }
 
-func (cache *MomentCacheShelf) lookup(m *shelf.Moment) (*MomentCache, bool) {
+func (cache *MomentCache) lookup(m *shelf.Moment) (*MomentCacheItem, bool) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 	entry, ok := cache.entries[cache.keyOf(m.Date)]
 	return entry, ok
 }
 
-func (cache *MomentCacheShelf) set(m *shelf.Moment, entry *MomentCache) {
+func (cache *MomentCache) set(m *shelf.Moment, entry *MomentCacheItem) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 	cache.entries[cache.keyOf(m.Date)] = entry
 }
 
-func (cache *MomentCacheShelf) Fetch(m *shelf.Moment) *MomentCache {
+func (cache *MomentCache) Fetch(m *shelf.Moment) *MomentCacheItem {
 	if cached, ok := cache.lookup(m); ok {
 		return cached
 	}
@@ -83,15 +83,15 @@ func (cache *MomentCacheShelf) Fetch(m *shelf.Moment) *MomentCache {
 	return cached
 }
 
-func (cache *MomentCacheShelf) Preview(m *shelf.Moment) *MomentCache {
+func (cache *MomentCache) Preview(m *shelf.Moment) *MomentCacheItem {
 	return cache.compile(m)
 }
 
-func (cache *MomentCacheShelf) keyOf(t time.Time) string {
+func (cache *MomentCache) keyOf(t time.Time) string {
 	return t.Format("2006-01-02 15:04:05")
 }
 
-func (cache *MomentCacheShelf) Save(origTime time.Time, m *shelf.Moment) error {
+func (cache *MomentCache) Save(origTime time.Time, m *shelf.Moment) error {
 	var err error
 
 	cache.mutex.Lock()
@@ -111,11 +111,11 @@ func (cache *MomentCacheShelf) Save(origTime time.Time, m *shelf.Moment) error {
 const EmptyEntityIDMessage = `<strong class="error">No entity field</strong>`
 const EmptyURLMessage = `<strong class="error">No url field</strong>`
 
-func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
+func (cache *MomentCache) compile(m *shelf.Moment) *MomentCacheItem {
 	embeds := make([]shelf.Entity, 0)
 	uta, err := fml.NewParser().Parse(m.Text)
 	if err != nil {
-		return &MomentCache{
+		return &MomentCacheItem{
 			Moment: m,
 			body:   err.Error(),
 			embeds: embeds,
@@ -198,7 +198,7 @@ func (cache *MomentCacheShelf) compile(m *shelf.Moment) *MomentCache {
 
 	body := buff.String()
 
-	return &MomentCache{
+	return &MomentCacheItem{
 		Moment: m,
 		body:   body,
 		embeds: embeds,

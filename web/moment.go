@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -26,7 +27,7 @@ func (srv *Server) serveMoment(w http.ResponseWriter, r *http.Request, p httprou
 	}
 	w.WriteHeader(200)
 	body := srv.momentCache.Fetch(m).Content()
-	w.Write([]byte(body))
+	http.ServeContent(w, r, m.Title, m.Date, bytes.NewReader([]byte(body)))
 }
 
 type momentSummary struct {
@@ -102,5 +103,5 @@ end:
 		srv.setError(w, r, err)
 		return
 	}
-	w.Write(body)
+	http.ServeContent(w, r, "search", time.Now(), bytes.NewReader(body))
 }

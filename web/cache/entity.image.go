@@ -12,7 +12,7 @@ import (
 	"github.com/oliamb/cutter"
 )
 
-func (cache *EntityCacheShelf) FetchIcon(ent shelf.Entity) (string, error) {
+func (cache *EntityCache) FetchIcon(ent shelf.Entity) (string, error) {
 	e, ok := ent.(*shelf.ImageEntity)
 	if !ok {
 		return "", fmt.Errorf("%s is not an image", e.Path())
@@ -42,7 +42,7 @@ func (cache *EntityCacheShelf) FetchIcon(ent shelf.Entity) (string, error) {
 	return path, nil
 }
 
-func (cache *EntityCacheShelf) FetchMediumThumbnail(ent shelf.Entity) (string, error) {
+func (cache *EntityCache) FetchMediumThumbnail(ent shelf.Entity) (string, error) {
 	e, ok := ent.(*shelf.ImageEntity)
 	if !ok {
 		return "", fmt.Errorf("%s is not an image", e.Path())
@@ -63,24 +63,24 @@ func (cache *EntityCacheShelf) FetchMediumThumbnail(ent shelf.Entity) (string, e
 	return path, nil
 }
 
-func (cache *EntityCacheShelf) removeImage(e *shelf.ImageEntity) error {
+func (cache *EntityCache) removeImage(e *shelf.ImageEntity) error {
 
 	return nil //cache.shelf.Remove(e)
 }
 
 // ----------------------------------------------------------------------------
 
-func (cache *EntityCacheShelf) thumbnailPathOf(e *shelf.ImageEntity, thumbType string) string {
+func (cache *EntityCache) thumbnailPathOf(e *shelf.ImageEntity, thumbType string) string {
 	return filepath.Join(cache.path, thumbType, strconv.Itoa(e.Date_.Year()), e.ID_+".jpg")
 }
 
-func (cache *EntityCacheShelf) lookupThumbnail(e *shelf.ImageEntity, thumbType string) (string, bool) {
+func (cache *EntityCache) lookupThumbnail(e *shelf.ImageEntity, thumbType string) (string, bool) {
 	path := cache.thumbnailPathOf(e, thumbType)
 	_, err := os.Stat(path)
 	return path, err == nil
 }
 
-func (cache *EntityCacheShelf) saveThumbnail(e *shelf.ImageEntity, thumbType string, img image.Image) (string, error) {
+func (cache *EntityCache) saveThumbnail(e *shelf.ImageEntity, thumbType string, img image.Image) (string, error) {
 	var err error
 	path := cache.thumbnailPathOf(e, thumbType)
 	if err = os.MkdirAll(filepath.Dir(path), 0755); err != nil {
