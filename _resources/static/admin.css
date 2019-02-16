@@ -160,6 +160,10 @@ img.emoji {
   z-index: 9999;
 }
 
+.uploader-hover * {
+  pointer-events: none;
+}
+
 div.uploader-progress {
   position: fixed;
   bottom: 1em;

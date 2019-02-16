@@ -31,7 +31,7 @@ export default class Uploader {
 
     this.hoverDialog_ = document.createElement('div');
     this.hoverDialog_.classList.add('uploader-hover');
-    this.hoverDialog_.textContent = '⬆';
+    this.hoverDialog_.innerHTML = '<div>⬆</div>';
 
     /** @member {HTMLDivElement} */
     this.progressDialog_ = document.createElement('div');
@@ -55,11 +55,12 @@ export default class Uploader {
     this.hoverDialog_.addEventListener('drop', this.dropListener_, false);
     this.hoverDialog_.addEventListener('dragleave', this.dragEndListener_, false);
     this.hoverDialog_.addEventListener('dragend', this.dragEndListener_, false);
+    this.hoverDialog_.addEventListener('dragexit', this.dragEndListener_, false);
   }
 
   /**
    * 
-   * @param {FileList} files 
+   * @param {FileList} files_
    */
   upload_(files_) {
     this.target_.appendChild(this.progressDialog_);
@@ -95,7 +96,7 @@ export default class Uploader {
       if(file.type.startsWith('image/')){
         const fr = new FileReader();
         fr.onload = event => {
-          this.progressImage_.onload = (event) => execUpload();
+          this.progressImage_.onload = (ev) => execUpload();
           this.progressImage_.src = event.target.result;
         };
         fr.onerror = ev => reject(fr.error);
