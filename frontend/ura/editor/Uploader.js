@@ -55,7 +55,6 @@ export default class Uploader {
     this.hoverDialog_.addEventListener('drop', this.dropListener_, false);
     this.hoverDialog_.addEventListener('dragleave', this.dragEndListener_, false);
     this.hoverDialog_.addEventListener('dragend', this.dragEndListener_, false);
-    this.hoverDialog_.addEventListener('dragexit', this.dragEndListener_, false);
   }
 
   /**
