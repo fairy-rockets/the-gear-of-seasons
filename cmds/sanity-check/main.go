@@ -14,19 +14,14 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/shelf"
-	"github.com/fairy-rockets/the-gear-of-seasons/web"
 	"github.com/fatih/color"
 )
 
 //go:generate bash ../geninfo.sh
 
-var listenOmote = flag.String("listen-omote", ":8080", "omote listen")
-var listenUra = flag.String("listen-ura", ":8081", "ura listen")
 var shelfPath = flag.String("shelf", "_shelf", "old-shelf path")
-var cachePath = flag.String("cache", "_cache", "cache path")
 
 var shelf *shelfPkg.Shelf
-var server *web.Server
 
 func printLogo() {
 	log.Info("****************************************")

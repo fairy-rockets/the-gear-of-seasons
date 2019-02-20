@@ -1,4 +1,4 @@
-package web
+package ura
 
 import (
 	"net/http"
@@ -8,7 +8,7 @@ import (
 
 func (srv *Server) serveIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.parseTemplate("index.html")
+	t, err := srv.parseTemplate("admin/_main.html", "admin/index.html")
 	if err != nil {
 		srv.setError(w, r, err)
 		return
@@ -17,4 +17,5 @@ func (srv *Server) serveIndex(w http.ResponseWriter, r *http.Request, _ httprout
 	if err != nil {
 		srv.setError(w, r, err)
 	}
+
 }

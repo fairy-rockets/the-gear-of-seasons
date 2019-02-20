@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/fairy-rockets/the-gear-of-seasons/web/omote"
+	"github.com/fairy-rockets/the-gear-of-seasons/web/ura"
+
 	"path/filepath"
 
 	"sync"
@@ -13,7 +16,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
 	"github.com/fairy-rockets/the-gear-of-seasons/web/cache"
-	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
 )
 
@@ -23,70 +25,30 @@ const (
 )
 
 type Server struct {
-	omoteImpl   *http.Server
-	uraImpl     *http.Server
-	omoteRouter *httprouter.Router
-	uraRouter   *httprouter.Router
+	omoteServer *omote.Server
+	uraServer   *ura.Server
 	shelf       *shelf.Shelf
 	entityCache *cache.EntityCache
 	momentCache *cache.MomentCache
 }
-
-type OmoteServer Server
-type UraServer Server
 
 func log() *logrus.Entry {
 	return logrus.WithField("Module", "Server")
 }
 
 func NewServer(listenOmote, listenUra string, shelf *shelf.Shelf, cachePath string) *Server {
+	entityCache := cache.NewEntityCache(shelf, filepath.Join(cachePath, "entity"))
+	momentCache := cache.NewMomentCache(shelf)
+
 	srv := &Server{
-		omoteRouter: httprouter.New(),
-		uraRouter:   httprouter.New(),
+		omoteServer: omote.NewServer(listenOmote, entityCache, momentCache),
+		uraServer:   ura.NewServer(listenOmote, entityCache, momentCache),
 		shelf:       shelf,
-		entityCache: cache.NewEntityCache(shelf, filepath.Join(cachePath, "entity")),
-		momentCache: cache.NewMomentCache(shelf),
+		entityCache: entityCache,
+		momentCache: momentCache,
 	}
-	srv.omoteImpl = &http.Server{
-		Addr:    listenOmote,
-		Handler: srv.omoteRouter,
-	}
-	srv.uraImpl = &http.Server{
-		Addr:    listenUra,
-		Handler: srv.uraRouter,
-	}
-	srv.setupRoute()
+
 	return srv
-}
-
-func (srv *Server) setupRoute() {
-	omote := srv.omoteRouter
-	omote.GET("/", srv.serveIndex)
-	omote.GET("/about-us/", srv.serveIndex)
-	omote.GET("/entity/:id", srv.serveEntity)
-	omote.GET("/entity/:id/icon", srv.serveEntityIcon)
-	omote.GET("/entity/:id/medium", srv.serveEntityMedium)
-	omote.GET("/moment/*moment", srv.serveMoment)
-	omote.ServeFiles("/static/*filepath", http.Dir(StaticPath))
-	omote.NotFound = (*OmoteServer)(srv)
-
-	ura := srv.uraRouter
-	ura.GET("/", srv.serveAdminIndex)
-	ura.GET("/new", srv.serveAdminNew)
-	ura.POST("/upload", srv.serveAdminUpload)
-	ura.POST("/preview", srv.serveAdminPreview)
-	ura.POST("/save", srv.serveAdminSave)
-	ura.GET("/moments/", srv.serveAdminMoments)
-	ura.GET("/moments/:year", srv.serveAdminMomentLists)
-	ura.GET("/entities/", srv.serveAdminEntities)
-	ura.GET("/entities/:year", srv.serveAdminEntityLists)
-	ura.DELETE("/entity/:id", srv.serveAdminDeleteEntity)
-	ura.GET("/entity/:id", srv.serveEntity)
-	ura.GET("/entity/:id/icon", srv.serveEntityIcon)
-	ura.GET("/entity/:id/medium", srv.serveEntityMedium)
-	ura.ServeFiles("/static/*filepath", http.Dir(StaticPath))
-	ura.NotFound = (*UraServer)(srv)
-
 }
 
 func (srv *Server) Prepare() error {
@@ -107,32 +69,6 @@ func (srv *Server) Prepare() error {
 		log().Infof("Entity[%d/%d] prepared.", i+1, len(ents))
 	}
 	return nil
-}
-
-func (omoteSrv *OmoteServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	srv := (*Server)(omoteSrv)
-	if r.Method == "GET" {
-		m := srv.shelf.LookupMoment(r.URL.Path)
-		if m != nil {
-			srv.serveIndex(w, r, nil)
-			return
-		}
-	}
-	w.WriteHeader(404)
-	_, _ = fmt.Fprintf(w, "404: Page not found.")
-}
-
-func (uraSrv *UraServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	srv := (*Server)(uraSrv)
-	if r.Method == "GET" {
-		m := srv.shelf.LookupMoment(r.URL.Path)
-		if m != nil {
-			srv.serveAdminEdit(w, r, nil)
-			return
-		}
-	}
-	w.WriteHeader(404)
-	_, _ = fmt.Fprintf(w, "404: Page not found.")
 }
 
 func (srv *Server) Start() error {
