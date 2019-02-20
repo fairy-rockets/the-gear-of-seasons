@@ -20,9 +20,16 @@ import (
 
 //go:generate bash ../geninfo.sh
 
-var listenOmote = flag.String("listen-omote", ":8080", "omote listen")
-var listenUra = flag.String("listen-ura", ":8081", "ura listen")
-var shelfPath = flag.String("shelf", "_shelf", "old-shelf path")
+// Listen
+var omoteListen = flag.String("listen-omote", ":8080", "omote listen")
+var uraListen = flag.String("listen-ura", ":8081", "ura listen")
+
+// URL
+var omoteURL = flag.String("omote-url", ":8080", "omote listen")
+var uraURL = flag.String("ura-url", ":8081", "ura listen")
+
+// Path
+var shelfPath = flag.String("shelf", "_shelf", "shelf path")
 var cachePath = flag.String("cache", "_cache", "cache path")
 
 var shelf *shelfPkg.Shelf
@@ -72,7 +79,7 @@ func main() {
 	}
 	log.Infof("%d entities, %d moments", shelf.NumEntities(), shelf.NumMoments())
 
-	server = web.NewServer(*listenOmote, *listenUra, shelf, *cachePath)
+	server = web.NewServer(*omoteListen, *uraListen, shelf, *cachePath)
 	if err := server.Prepare(); err != nil {
 		log.Fatalf("Failed to prepare server: %v", err)
 	}

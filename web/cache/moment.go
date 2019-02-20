@@ -31,7 +31,8 @@ func NewMomentCache(sh *shelf.Shelf) *MomentCache {
 	}
 }
 
-const contentFormat = `
+func (cache *MomentCacheItem) Content() string {
+	const htmlFormat = `
 <div class="moment-info">
 	<h1 class="moment-title">%s</h1>
 	<span class="moment-date">%s</span>
@@ -39,9 +40,7 @@ const contentFormat = `
 </div>
 <hr>
 %s`
-
-func (cache *MomentCacheItem) Content() string {
-	return fmt.Sprintf(contentFormat,
+	return fmt.Sprintf(htmlFormat,
 		cache.Moment.Title,
 		cache.Moment.DateString(),
 		cache.Moment.Author,
@@ -108,10 +107,10 @@ func (cache *MomentCache) Save(origTime time.Time, m *shelf.Moment) error {
 	return nil
 }
 
-const EmptyEntityIDMessage = `<strong class="error">No entity field</strong>`
-const EmptyURLMessage = `<strong class="error">No url field</strong>`
-
 func (cache *MomentCache) compile(m *shelf.Moment) *MomentCacheItem {
+	const EmptyEntityIDMessage = `<strong class="error">No entity field</strong>`
+	const EmptyURLMessage = `<strong class="error">No url field</strong>`
+
 	embeds := make([]shelf.Entity, 0)
 	uta, err := fml.NewParser().Parse(m.Text)
 	if err != nil {

@@ -1,4 +1,4 @@
-package web
+package omote
 
 import (
 	"net/http"
