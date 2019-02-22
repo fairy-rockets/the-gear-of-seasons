@@ -1,12 +1,12 @@
 package shelf
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
-	"strconv"
+	"github.com/fairy-rockets/the-gear-of-seasons/storage"
 
 	"time"
 
@@ -14,14 +14,16 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const momentPath = "moment"
+
 type momentShelf struct {
-	path    string
+	storage *storage.Storage
 	moments map[string]*Moment
 }
 
-func newMomentShelf(path string) *momentShelf {
+func newMomentShelf(storage *storage.Storage) *momentShelf {
 	return &momentShelf{
-		path:    path,
+		storage: storage,
 		moments: make(map[string]*Moment),
 	}
 
@@ -40,75 +42,62 @@ func (s *momentShelf) AsSlice() []*Moment {
 	return lst
 }
 
-func (s *momentShelf) Lookup(path string) *Moment {
-	return s.moments[path]
+func (s *momentShelf) Lookup(url string) *Moment {
+	return s.moments[url]
 }
 
-func (s *momentShelf) dirOf(t time.Time) string {
-	return filepath.Join(s.path, strconv.Itoa(t.Year()))
-}
-
-func (s *momentShelf) pathOf(t time.Time) string {
-	return filepath.Join(s.dirOf(t), t.Format("01-02_15:04:05")+".yml")
-}
-
-func (s *momentShelf) keyOf(t time.Time) string {
+func (s *momentShelf) calcURL(t time.Time) string {
 	return t.Format("/2006/01/02/15:04:05/")
 }
 
+func (s *momentShelf) calcFilePath(t time.Time) (string, string) {
+	return strconv.Itoa(t.Year()), t.Format("01-02_15:04:05") + ".yml"
+}
+
 func (s *momentShelf) Save(origTime time.Time, m *Moment) error {
-	data, err := yaml.Marshal(m)
+	yamlData, err := yaml.Marshal(m)
 	if err != nil {
 		return err
 	}
-	path := s.pathOf(m.Date)
-	dir := filepath.Dir(path)
-	err = os.MkdirAll(dir, 0755)
+	newDir, newName := s.calcFilePath(m.Date)
+	err = s.storage.Mkdir(newDir)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(path, data, 0644)
+	err = s.storage.WriteFile(filepath.Join(newDir, newName), yamlData)
 	if err != nil {
 		return err
 	}
-	s.moments[s.keyOf(m.Date)] = m
+	s.moments[s.calcURL(m.Date)] = m
 	if !origTime.IsZero() {
-		orig := s.pathOf(origTime)
-		if orig != path {
-			err = os.Remove(orig)
+		oldDir, oldName := s.calcFilePath(origTime)
+		if !(oldDir == newDir && oldName == newName) {
+			err = s.storage.Remove(filepath.Join(oldDir, oldName))
 			if err != nil {
 				return err
 			}
-			delete(s.moments, s.keyOf(origTime))
+			delete(s.moments, s.calcURL(origTime))
 		}
 	}
 	return nil
 }
 
-func loadMomentFromFile(path string, out *Moment) error {
-	f, err := os.Open(path)
+func loadMomentFromFile(s *storage.Storage, path string, out *Moment) error {
+	data, err := s.ReadFile(path)
 	if err != nil {
 		log.Fatalf("Failed to open %s: %v", path, err)
-	}
-	defer f.Close()
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		return err
 	}
 	return yaml.Unmarshal(data, out)
 }
 
 func (s *momentShelf) Init() error {
-	err := filepath.Walk(s.path, func(path string, info os.FileInfo, err error) error {
+	return s.storage.WalkFiles(momentPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() {
-			return nil
-		}
 		if strings.HasSuffix(path, ".yml") {
 			m := &Moment{}
-			err = loadMomentFromFile(path, m)
+			err = loadMomentFromFile(s.storage, path, m)
 			if err != nil {
 				return err
 			}
@@ -117,5 +106,4 @@ func (s *momentShelf) Init() error {
 		}
 		return nil
 	})
-	return err
 }

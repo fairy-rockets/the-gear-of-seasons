@@ -7,29 +7,30 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/fairy-rockets/the-gear-of-seasons/web/util"
 	"github.com/julienschmidt/httprouter"
 )
 
 // 新規
 func (srv *Server) serveNew(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.parseTemplate("admin/_main.html", "admin/edit.html")
+	t, err := srv.templateGen.Parse("admin/_main.html").Parse("admin/edit.html").Bulld()
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 		return
 	}
 	err = t.Execute(w, nil)
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 	}
 }
 
 // 各モーメントの編集画面
 func (srv *Server) serveEdit(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
-	t, err := srv.parseTemplate("admin/_main.html", "admin/edit.html")
+	t, err := srv.templateGen.Parse("admin/_main.html").Parse("admin/edit.html").Bulld()
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 		return
 	}
 	m := srv.shelf.LookupMoment(r.URL.Path)
@@ -40,7 +41,7 @@ func (srv *Server) serveEdit(w http.ResponseWriter, r *http.Request, p httproute
 	w.WriteHeader(200)
 	err = t.Execute(w, momentAsPayload(m))
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 	}
 }
 
@@ -49,7 +50,7 @@ func (srv *Server) servePreview(w http.ResponseWriter, r *http.Request, _ httpro
 	var err error
 	_, m, err := readMoment(r.Body)
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 		return
 	}
 	mc := srv.momentCache.Preview(m)
@@ -65,7 +66,7 @@ func (srv *Server) serveSave(w http.ResponseWriter, r *http.Request, _ httproute
 	var err error
 	originalDate, m, err := readMoment(r.Body)
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 		return
 	}
 	mc := srv.momentCache.Preview(m)
@@ -80,7 +81,7 @@ func (srv *Server) serveSave(w http.ResponseWriter, r *http.Request, _ httproute
 	}
 	err = srv.momentCache.Save(originalDate, m)
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 		return
 	}
 	mc = srv.momentCache.Fetch(m)
@@ -95,7 +96,7 @@ func (srv *Server) serveSave(w http.ResponseWriter, r *http.Request, _ httproute
 		Path: mc.Moment.Path(),
 	})
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 		return
 	}
 	w.WriteHeader(200)
@@ -109,7 +110,7 @@ func (srv *Server) serveSave(w http.ResponseWriter, r *http.Request, _ httproute
 func (srv *Server) serveUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	mimeType := r.Header.Get("Content-Type")
 	if len(mimeType) == 0 {
-		srv.setError(w, r, fmt.Errorf("empty Content-Type"))
+		util.SetError(w, r, fmt.Errorf("empty Content-Type"))
 		return
 	}
 	switch mimeType {
@@ -117,22 +118,22 @@ func (srv *Server) serveUpload(w http.ResponseWriter, r *http.Request, _ httprou
 		/* Image */
 		buffer, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			srv.setError(w, r, err)
+			util.SetError(w, r, err)
 			return
 		}
 		img, err := srv.shelf.AddImageEntity(mimeType, buffer)
 		if err != nil {
-			srv.setError(w, r, err)
+			util.SetError(w, r, err)
 			break
 		}
 		_, err = srv.entityCache.FetchMediumThumbnail(img)
 		if err != nil {
-			srv.setError(w, r, err)
+			util.SetError(w, r, err)
 			break
 		}
 		_, err = srv.entityCache.FetchIcon(img)
 		if err != nil {
-			srv.setError(w, r, err)
+			util.SetError(w, r, err)
 			break
 		}
 		w.WriteHeader(200)
@@ -144,7 +145,7 @@ func (srv *Server) serveUpload(w http.ResponseWriter, r *http.Request, _ httprou
 		/* Video */
 		vid, err := srv.shelf.AddVideoEntity(mimeType, r.Body)
 		if err != nil {
-			srv.setError(w, r, err)
+			util.SetError(w, r, err)
 			break
 		}
 		w.WriteHeader(200)

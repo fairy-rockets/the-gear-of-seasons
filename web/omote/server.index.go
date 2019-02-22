@@ -3,18 +3,19 @@ package omote
 import (
 	"net/http"
 
+	"github.com/fairy-rockets/the-gear-of-seasons/web/util"
 	"github.com/julienschmidt/httprouter"
 )
 
 func (srv *Server) serveIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.parseTemplate("index.html")
+	t, err := srv.templateGen.Parse("index.html").Bulld()
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 		return
 	}
 	err = t.Execute(w, nil)
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 	}
 }

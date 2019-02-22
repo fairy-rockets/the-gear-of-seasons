@@ -6,8 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"image"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -16,9 +14,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func (s *entityShelf) AddImage(mimeType string, buffer []byte) (*ImageEntity, error) {
+func (s *entityShelf) AddImage(mimeType string, imageBuffer []byte) (*ImageEntity, error) {
 	var err error
-	img, format, err := image.Decode(bytes.NewReader(buffer))
+	img, format, err := image.Decode(bytes.NewReader(imageBuffer))
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +39,7 @@ func (s *entityShelf) AddImage(mimeType string, buffer []byte) (*ImageEntity, er
 	}
 	e.Date_ = time.Now()
 	if format == "jpeg" {
-		x, err := util.DecodeExif(bytes.NewReader(buffer))
+		x, err := util.DecodeExif(bytes.NewReader(imageBuffer))
 		if err != nil {
 			return nil, err
 		}
@@ -54,28 +52,27 @@ func (s *entityShelf) AddImage(mimeType string, buffer []byte) (*ImageEntity, er
 			}
 		}
 	}
-	hash := md5.Sum(buffer)
+	hash := md5.Sum(imageBuffer)
 	e.ID_ = hex.EncodeToString(hash[:])
 	e.Width = img.Bounds().Size().X
 	e.Height = img.Bounds().Size().Y
 	e.Description_ = ""
 
 	// Save image.
-	dirpath := s.dirOf(e)
-	yml, err := yaml.Marshal(e)
+	dir := s.calcDir(e)
+	yamlData, err := yaml.Marshal(e)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize yaml: %v", err)
 	}
-	ymlpath := filepath.Join(dirpath, fmt.Sprintf("%s.image.yml", e.ID_))
-	path := filepath.Join(dirpath, fmt.Sprintf("%s.%s", e.ID_, ext))
-	e.Path_ = path
-	err = ioutil.WriteFile(path, buffer, 0644)
+	yamlPath := filepath.Join(dir, fmt.Sprintf("%s.image.yml", e.ID_))
+	imagePath := filepath.Join(dir, fmt.Sprintf("%s.%s", e.ID_, ext))
+	e.Path_ = imagePath
+	err = s.storage.WriteFile(imagePath, imageBuffer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save image: %v", err)
 	}
-	err = ioutil.WriteFile(ymlpath, yml, 0644)
+	err = s.storage.WriteFile(yamlPath, yamlData)
 	if err != nil {
-		os.Remove(path)
 		return nil, fmt.Errorf("failed to save image metadata: %v", err)
 	}
 	s.entities[e.ID_] = e

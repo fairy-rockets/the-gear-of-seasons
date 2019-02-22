@@ -2,24 +2,25 @@ package shelf
 
 import (
 	"io"
-	"path/filepath"
 	"time"
+
+	"github.com/fairy-rockets/the-gear-of-seasons/storage"
 )
 
 // 季節の書架
 type Shelf struct {
-	Path string
+	storage *storage.Storage
 
 	// original data
 	entities *entityShelf
 	moments  *momentShelf
 }
 
-func New(path string) *Shelf {
+func New(storage *storage.Storage) *Shelf {
 	return &Shelf{
-		Path:     path,
-		entities: newEntityShelf(filepath.Join(path, "entity")),
-		moments:  newMomentShelf(filepath.Join(path, "moment")),
+		storage:  storage,
+		entities: newEntityShelf(storage),
+		moments:  newMomentShelf(storage),
 	}
 }
 

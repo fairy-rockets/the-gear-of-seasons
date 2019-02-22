@@ -8,13 +8,15 @@ import (
 	_ "image/png"
 	"os"
 
+	storagePkg "github.com/fairy-rockets/the-gear-of-seasons/storage"
+
 	log "github.com/Sirupsen/logrus"
 
 	"os/signal"
 	"syscall"
 
 	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/shelf"
-	"github.com/fairy-rockets/the-gear-of-seasons/web"
+	serverPkg "github.com/fairy-rockets/the-gear-of-seasons/web"
 	"github.com/fatih/color"
 )
 
@@ -25,15 +27,15 @@ var omoteListen = flag.String("listen-omote", ":8080", "omote listen")
 var uraListen = flag.String("listen-ura", ":8081", "ura listen")
 
 // URL
-var omoteURL = flag.String("omote-url", ":8080", "omote listen")
-var uraURL = flag.String("ura-url", ":8081", "ura listen")
+var omoteURL = flag.String("url-omote", "http://localhost:8080/", "omote URL")
+var uraURL = flag.String("url-ura", "http://localhost:8081/", "ura listen")
 
 // Path
 var shelfPath = flag.String("shelf", "_shelf", "shelf path")
 var cachePath = flag.String("cache", "_cache", "cache path")
 
 var shelf *shelfPkg.Shelf
-var server *web.Server
+var server *serverPkg.Server
 
 func mainLoop() os.Signal {
 	go func() {
@@ -72,14 +74,17 @@ func main() {
 	log.Info("----------------------------------------")
 	log.Info("Initializing...")
 	log.Info("----------------------------------------")
-
-	shelf = shelfPkg.New(*shelfPath)
+	storage, err := storagePkg.NewStorage(*shelfPath)
+	if err != nil {
+		log.Fatalf("Failed to prepare storage: %v", err)
+	}
+	shelf = shelfPkg.New(storage)
 	if err := shelf.Init(); err != nil {
 		log.Fatalf("Failed to prepare shelf: %v", err)
 	}
 	log.Infof("%d entities, %d moments", shelf.NumEntities(), shelf.NumMoments())
 
-	server = web.NewServer(*omoteListen, *uraListen, shelf, *cachePath)
+	server = serverPkg.NewServer(*omoteListen, *uraListen, shelf, *cachePath)
 	if err := server.Prepare(); err != nil {
 		log.Fatalf("Failed to prepare server: %v", err)
 	}
