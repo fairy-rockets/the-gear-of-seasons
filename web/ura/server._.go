@@ -70,6 +70,12 @@ func (srv *Server) setupRoute() {
 
 	// static
 	r.ServeFiles("/static/*filepath", http.Dir(srv.staticPath))
+
+	// entity (redirect)
+	r.GET("/entity/:id", srv.serveEntity)
+	r.GET("/entity/:id/icon", srv.serveEntityIcon)
+	r.GET("/entity/:id/medium", srv.serveEntityMedium)
+
 }
 
 func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {

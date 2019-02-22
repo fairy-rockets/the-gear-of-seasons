@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fairy-rockets/the-gear-of-seasons/storage"
-
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -17,11 +15,11 @@ import (
 const momentPath = "moment"
 
 type momentShelf struct {
-	storage *storage.Storage
+	storage *Storage
 	moments map[string]*Moment
 }
 
-func newMomentShelf(storage *storage.Storage) *momentShelf {
+func newMomentShelf(storage *Storage) *momentShelf {
 	return &momentShelf{
 		storage: storage,
 		moments: make(map[string]*Moment),
@@ -82,7 +80,7 @@ func (s *momentShelf) Save(origTime time.Time, m *Moment) error {
 	return nil
 }
 
-func loadMomentFromFile(s *storage.Storage, path string, out *Moment) error {
+func loadMomentFromFile(s *Storage, path string, out *Moment) error {
 	data, err := s.ReadFile(path)
 	if err != nil {
 		log.Fatalf("Failed to open %s: %v", path, err)

@@ -3,20 +3,18 @@ package shelf
 import (
 	"io"
 	"time"
-
-	"github.com/fairy-rockets/the-gear-of-seasons/storage"
 )
 
 // 季節の書架
 type Shelf struct {
-	storage *storage.Storage
+	storage *Storage
 
 	// original data
 	entities *entityShelf
 	moments  *momentShelf
 }
 
-func New(storage *storage.Storage) *Shelf {
+func New(storage *Storage) *Shelf {
 	return &Shelf{
 		storage:  storage,
 		entities: newEntityShelf(storage),

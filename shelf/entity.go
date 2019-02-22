@@ -10,12 +10,14 @@ type Entity interface {
 	MimeType() string
 	Description() string
 	Path() string
+	SystemPath() string
 	MetaPath() string
 }
 
 type entity struct {
 	ID_          string    `yaml:"-"`
 	Path_        string    `yaml:"-"`
+	SystemPath_  string    `yaml:"-"`
 	MetaPath_    string    `yaml:"-"`
 	Date_        time.Time `yaml:"date"`
 	MimeType_    string    `yaml:"mime-type"`
@@ -25,17 +27,25 @@ type entity struct {
 func (e *entity) ID() string {
 	return e.ID_
 }
+
 func (e *entity) Date() time.Time {
 	return e.Date_
 }
+
 func (e *entity) MimeType() string {
 	return e.MimeType_
 }
+
 func (e *entity) Description() string {
 	return e.Description_
 }
+
 func (e *entity) Path() string {
 	return e.Path_
+}
+
+func (e *entity) SystemPath() string {
+	return e.SystemPath_
 }
 
 func (e *entity) MetaPath() string {

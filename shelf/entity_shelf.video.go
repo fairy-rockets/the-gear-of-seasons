@@ -79,6 +79,7 @@ func (s *entityShelf) AddVideo(mimeType string, r io.Reader) (*VideoEntity, erro
 	yamlPath := filepath.Join(dir, fmt.Sprintf("%s.video.yml", e.ID_))
 	videoPath := filepath.Join(dir, fmt.Sprintf("%s.%s", e.ID_, ext))
 	e.Path_ = videoPath
+	e.SystemPath_ = s.storage.path(e.Path_)
 
 	if err = s.storage.Mkdir(dir); err != nil {
 		return nil, err

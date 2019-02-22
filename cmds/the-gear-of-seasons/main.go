@@ -8,8 +8,6 @@ import (
 	_ "image/png"
 	"os"
 
-	storagePkg "github.com/fairy-rockets/the-gear-of-seasons/storage"
-
 	log "github.com/Sirupsen/logrus"
 
 	"os/signal"
@@ -74,7 +72,7 @@ func main() {
 	log.Info("----------------------------------------")
 	log.Info("Initializing...")
 	log.Info("----------------------------------------")
-	storage, err := storagePkg.NewStorage(*shelfPath)
+	storage, err := shelfPkg.NewStorage(*shelfPath)
 	if err != nil {
 		log.Fatalf("Failed to prepare storage: %v", err)
 	}

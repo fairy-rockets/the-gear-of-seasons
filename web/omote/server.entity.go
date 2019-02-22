@@ -17,12 +17,12 @@ func (srv *Server) serveEntity(w http.ResponseWriter, r *http.Request, p httprou
 		_, _ = w.Write([]byte("Not found."))
 		return
 	}
-	_, err = os.Stat(e.Path())
+	_, err = os.Stat(e.SystemPath())
 	if err != nil {
 		util.SetError(w, r, err)
 		return
 	}
-	http.ServeFile(w, r, e.Path())
+	http.ServeFile(w, r, e.SystemPath())
 }
 
 func (srv *Server) serveEntityMedium(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
