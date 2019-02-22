@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fairy-rockets/the-gear-of-seasons/storage"
-
 	log "github.com/Sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -17,11 +15,11 @@ import (
 const EntityPath = "entity"
 
 type entityShelf struct {
-	storage  *storage.Storage
+	storage  *Storage
 	entities map[string]Entity
 }
 
-func newEntityShelf(storage *storage.Storage) *entityShelf {
+func newEntityShelf(storage *Storage) *entityShelf {
 	return &entityShelf{
 		storage:  storage,
 		entities: make(map[string]Entity),
@@ -32,7 +30,7 @@ func (s *entityShelf) Size() int {
 	return len(s.entities)
 }
 
-func loadMetadata(storage *storage.Storage, path string, out Entity) (Entity, error) {
+func loadMetadata(storage *Storage, path string, out Entity) (Entity, error) {
 	f, err := storage.OpenFile(path)
 	if err != nil {
 		log.Fatalf("Failed to open %s: %v", path, err)
@@ -73,6 +71,7 @@ func (s *entityShelf) Init() error {
 			default:
 				log.Fatalf("Unknwon image type: %s", ent.MimeType_)
 			}
+			ent.SystemPath_ = s.storage.path(ent.Path_)
 		} else if strings.HasSuffix(fileName, ".video.yml") {
 			ent := &VideoEntity{}
 			ent.ID_ = strings.TrimSuffix(fileName, ".video.yml")
@@ -86,6 +85,7 @@ func (s *entityShelf) Init() error {
 			default:
 				log.Fatalf("Unknwon video type: %s", ent.MimeType_)
 			}
+			ent.SystemPath_ = s.storage.path(ent.Path_)
 		} else if strings.HasSuffix(fileName, ".audio.yml") {
 			ent := &AudioEntity{}
 			ent.ID_ = strings.TrimSuffix(fileName, ".audio.yml")
@@ -97,6 +97,7 @@ func (s *entityShelf) Init() error {
 			default:
 				log.Fatalf("Unknwon audio type: %s", ent.MimeType_)
 			}
+			ent.Path_ = s.storage.path(ent.Path_)
 		} else {
 			//Continue...
 			return nil
@@ -116,7 +117,7 @@ func (s *entityShelf) Init() error {
 }
 
 func (s *entityShelf) calcDir(e Entity) string {
-	return strconv.Itoa(e.Date().Year())
+	return filepath.Join(EntityPath, strconv.Itoa(e.Date().Year()))
 }
 
 func (s *entityShelf) Lookup(id string) Entity {

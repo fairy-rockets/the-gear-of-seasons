@@ -38,7 +38,11 @@ func main() {
 	flag.Parse()
 	log.Info("----------------------------------------")
 	log.Info("Initializing...")
-	shelf = shelfPkg.New(*shelfPath)
+	storage, err := shelfPkg.NewStorage(*shelfPath)
+	if err != nil {
+		log.Fatalf("Failed to prepare storage: %v", err)
+	}
+	shelf = shelfPkg.New(storage)
 	if err := shelf.Init(); err != nil {
 		log.Fatalf("Failed to prepare shelf: %v", err)
 	}
@@ -58,21 +62,21 @@ func main() {
 }
 
 func checkEntity(ent shelfPkg.Entity) {
-	f, err := os.Open(ent.Path())
+	f, err := os.Open(ent.SystemPath())
 	if err != nil {
-		log.Fatalf("Sanity check failed: %v\npath: %s", err, ent.Path())
+		log.Fatalf("Sanity check failed: %v\npath: %s", err, ent.SystemPath())
 	}
 	defer f.Close()
 	hasher := md5.New()
 	_, err = io.Copy(hasher, f)
 	if err != nil {
-		log.Fatalf("Sanity check failed: %v\npath: %s", err, ent.Path())
+		log.Fatalf("Sanity check failed: %v\npath: %s", err, ent.SystemPath())
 	}
 	hash := hex.EncodeToString(hasher.Sum(nil)[:])
 	if ent.ID() != hash {
 		log.Fatalf(`Sanity check failed: hash mismatched!
 path: %s
 expected: %s
-actual: %s`, err, ent.Path(), hash, ent.ID())
+actual: %s`, err, ent.SystemPath(), hash, ent.ID())
 	}
 }

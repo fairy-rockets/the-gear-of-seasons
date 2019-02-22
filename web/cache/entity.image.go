@@ -15,14 +15,14 @@ import (
 func (cache *EntityCache) FetchIcon(ent shelf.Entity) (string, error) {
 	e, ok := ent.(*shelf.ImageEntity)
 	if !ok {
-		return "", fmt.Errorf("%s is not an image", e.Path())
+		return "", fmt.Errorf("%s is not an image", e.SystemPath())
 	}
 	if url, ok := cache.lookupThumbnail(e, IconType); ok {
 		return url, nil
 	}
 	img, err := generateThumbnail(e, IconSize)
 	if err != nil {
-		err = fmt.Errorf("failed to generate icon %s: %v", e.Path(), err)
+		err = fmt.Errorf("failed to generate icon %s: %v", e.SystemPath(), err)
 		return "", err
 	}
 	img, err = cutter.Crop(img, cutter.Config{
@@ -31,12 +31,12 @@ func (cache *EntityCache) FetchIcon(ent shelf.Entity) (string, error) {
 		Mode:   cutter.Centered,
 	})
 	if err != nil {
-		err = fmt.Errorf("failed to cut %s: %v", e.Path(), err)
+		err = fmt.Errorf("failed to cut %s: %v", e.SystemPath(), err)
 		return "", err
 	}
 	path, err := cache.saveThumbnail(e, IconType, img)
 	if err != nil {
-		err = fmt.Errorf("failed to save icon %s: %v", e.Path(), err)
+		err = fmt.Errorf("failed to save icon %s: %v", e.SystemPath(), err)
 		return "", err
 	}
 	return path, nil
@@ -45,19 +45,19 @@ func (cache *EntityCache) FetchIcon(ent shelf.Entity) (string, error) {
 func (cache *EntityCache) FetchMediumThumbnail(ent shelf.Entity) (string, error) {
 	e, ok := ent.(*shelf.ImageEntity)
 	if !ok {
-		return "", fmt.Errorf("%s is not an image", e.Path())
+		return "", fmt.Errorf("%s is not an image", e.SystemPath())
 	}
 	if url, ok := cache.lookupThumbnail(e, MediumType); ok {
 		return url, nil
 	}
 	img, err := generateThumbnail(e, MediumSize)
 	if err != nil {
-		err = fmt.Errorf("failed to generate icon %s: %v", e.Path(), err)
+		err = fmt.Errorf("failed to generate icon %s: %v", e.SystemPath(), err)
 		return "", err
 	}
 	path, err := cache.saveThumbnail(e, MediumType, img)
 	if err != nil {
-		err = fmt.Errorf("failed to save icon %s: %v", e.Path(), err)
+		err = fmt.Errorf("failed to save icon %s: %v", e.SystemPath(), err)
 		return "", err
 	}
 	return path, nil

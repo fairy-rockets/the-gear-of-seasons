@@ -1,4 +1,4 @@
-package storage
+package shelf
 
 import (
 	"fmt"
@@ -7,11 +7,12 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
 const trashPrefix = ".trash"
-const tmpPrefix = ".tmp"
+const tmpPrefix = "_tmp"
 
 type Storage struct {
 	// Path of Storage
@@ -40,6 +41,11 @@ func (s *Storage) path(path string) string {
 }
 
 func (s *Storage) OpenTempFile(ext string) (string, *os.File, error) {
+	ext = strings.TrimLeft(ext, ".")
+	err := os.MkdirAll(filepath.Join(s.dirPath, tmpPrefix), 0755)
+	if err != nil {
+		return "", nil, err
+	}
 	date := time.Now().Format(`20060102-150405`)
 	randNum := rand.Intn(10000)
 	path := fmt.Sprintf(`%s_%04d.%s`, date, randNum, ext)
@@ -131,7 +137,7 @@ func (s *Storage) WriteFile(path string, content []byte) error {
 	if err != nil {
 		return err
 	}
-	return os.Rename(name, s.path(path))
+	return os.Rename(s.path(name), s.path(path))
 }
 
 func (s *Storage) ReadFile(path string) ([]byte, error) {

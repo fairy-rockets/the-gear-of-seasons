@@ -67,6 +67,7 @@ func (s *entityShelf) AddImage(mimeType string, imageBuffer []byte) (*ImageEntit
 	yamlPath := filepath.Join(dir, fmt.Sprintf("%s.image.yml", e.ID_))
 	imagePath := filepath.Join(dir, fmt.Sprintf("%s.%s", e.ID_, ext))
 	e.Path_ = imagePath
+	e.SystemPath_ = s.storage.path(imagePath)
 	err = s.storage.WriteFile(imagePath, imageBuffer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save image: %v", err)
