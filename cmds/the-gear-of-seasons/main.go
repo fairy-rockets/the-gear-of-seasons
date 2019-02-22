@@ -24,10 +24,6 @@ import (
 var omoteListen = flag.String("listen-omote", ":8080", "omote listen")
 var uraListen = flag.String("listen-ura", ":8081", "ura listen")
 
-// URL
-var omoteURL = flag.String("url-omote", "http://localhost:8080/", "omote URL")
-var uraURL = flag.String("url-ura", "http://localhost:8081/", "ura listen")
-
 // Path
 var shelfPath = flag.String("shelf", "_shelf", "shelf path")
 var cachePath = flag.String("cache", "_cache", "cache path")
