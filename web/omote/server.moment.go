@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fairy-rockets/the-gear-of-seasons/web/util"
+
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -23,7 +25,6 @@ func (srv *Server) serveMoment(w http.ResponseWriter, r *http.Request, p httprou
 		w.WriteHeader(404)
 		return
 	}
-	w.WriteHeader(200)
 	body := srv.momentCache.Fetch(m).Content()
 	http.ServeContent(w, r, m.Title, m.Date, bytes.NewReader([]byte(body)))
 }
@@ -63,7 +64,7 @@ end:
 	}
 	body, err := json.MarshalIndent(out, "", "  ")
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 		return
 	}
 	http.ServeContent(w, r, "search", time.Now(), bytes.NewReader(body))

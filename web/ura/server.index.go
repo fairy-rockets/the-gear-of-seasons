@@ -3,19 +3,21 @@ package ura
 import (
 	"net/http"
 
+	"github.com/fairy-rockets/the-gear-of-seasons/web/util"
+
 	"github.com/julienschmidt/httprouter"
 )
 
 func (srv *Server) serveIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var err error
-	t, err := srv.parseTemplate("admin/_main.html", "admin/index.html")
+	t, err := srv.templateGen.Parse("admin/_main.html").Parse("admin/index.html").Bulld()
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 		return
 	}
 	err = t.Execute(w, nil)
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 	}
 
 }

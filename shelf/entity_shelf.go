@@ -8,32 +8,32 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fairy-rockets/the-gear-of-seasons/storage"
+
 	log "github.com/Sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
+const EntityPath = "entity"
+
 type entityShelf struct {
-	path     string
+	storage  *storage.Storage
 	entities map[string]Entity
 }
 
-func newEntityShelf(path string) *entityShelf {
+func newEntityShelf(storage *storage.Storage) *entityShelf {
 	return &entityShelf{
-		path:     path,
+		storage:  storage,
 		entities: make(map[string]Entity),
 	}
-}
-
-func (s *entityShelf) Path() string {
-	return s.path
 }
 
 func (s *entityShelf) Size() int {
 	return len(s.entities)
 }
 
-func loadMetadata(path string, out interface{}) (Entity, error) {
-	f, err := os.Open(path)
+func loadMetadata(storage *storage.Storage, path string, out Entity) (Entity, error) {
+	f, err := storage.OpenFile(path)
 	if err != nil {
 		log.Fatalf("Failed to open %s: %v", path, err)
 	}
@@ -46,16 +46,13 @@ func loadMetadata(path string, out interface{}) (Entity, error) {
 	if err != nil {
 		return nil, err
 	}
-	return out.(Entity), nil
+	return out, nil
 }
 
 func (s *entityShelf) Init() error {
-	err := filepath.Walk(s.path, func(path string, info os.FileInfo, err error) error {
+	return s.storage.WalkFiles(EntityPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
-		}
-		if info.IsDir() {
-			return nil
 		}
 		var e Entity
 		dirName, fileName := filepath.Split(path)
@@ -63,7 +60,9 @@ func (s *entityShelf) Init() error {
 			ent := &ImageEntity{}
 			ent.ID_ = strings.TrimSuffix(fileName, ".image.yml")
 			ent.MetaPath_ = path
-			e, err = loadMetadata(path, ent)
+			if e, err = loadMetadata(s.storage, path, ent); err != nil {
+				return err
+			}
 			switch ent.MimeType_ {
 			case "image/gif":
 				ent.Path_ = filepath.Join(dirName, ent.ID_) + ".gif"
@@ -78,7 +77,9 @@ func (s *entityShelf) Init() error {
 			ent := &VideoEntity{}
 			ent.ID_ = strings.TrimSuffix(fileName, ".video.yml")
 			ent.MetaPath_ = path
-			e, err = loadMetadata(path, ent)
+			if e, err = loadMetadata(s.storage, path, ent); err != nil {
+				return err
+			}
 			switch ent.MimeType_ {
 			case "video/mp4":
 				ent.Path_ = filepath.Join(dirName, ent.ID_) + ".mp4"
@@ -89,7 +90,9 @@ func (s *entityShelf) Init() error {
 			ent := &AudioEntity{}
 			ent.ID_ = strings.TrimSuffix(fileName, ".audio.yml")
 			ent.MetaPath_ = path
-			e, err = loadMetadata(path, ent)
+			if e, err = loadMetadata(s.storage, path, ent); err != nil {
+				return err
+			}
 			switch ent.MimeType_ {
 			default:
 				log.Fatalf("Unknwon audio type: %s", ent.MimeType_)
@@ -98,26 +101,22 @@ func (s *entityShelf) Init() error {
 			//Continue...
 			return nil
 		}
-		if err != nil {
-			return err
-		}
-		_, err = os.Stat(e.Path())
-		if err != nil {
+		if !s.storage.Exists(e.Path()) {
 			return fmt.Errorf("file not found: %s", e.Path())
 		}
-		if filepath.Dir(e.Path()) != s.dirOf(e) {
-			log.Warnf("Dir mismatched: %s != %s", filepath.Dir(e.Path()), s.dirOf(e))
+		expectedDir := s.calcDir(e)
+		if filepath.Dir(e.Path()) != expectedDir {
+			log.Warnf("Dir mismatched: %s != %s", filepath.Dir(e.Path()), expectedDir)
 			// TODO: move?
 		}
 		s.entities[e.ID()] = e
 		log.Debugf("Entity: %s (%s)", e.ID(), e.MimeType())
 		return nil
 	})
-	return err
 }
 
-func (s *entityShelf) dirOf(e Entity) string {
-	return filepath.Join(s.path, strconv.Itoa(e.Date().Year()))
+func (s *entityShelf) calcDir(e Entity) string {
+	return strconv.Itoa(e.Date().Year())
 }
 
 func (s *entityShelf) Lookup(id string) Entity {
@@ -132,28 +131,4 @@ func (s *entityShelf) AsSlice() []Entity {
 		i++
 	}
 	return lst
-}
-
-func (s *entityShelf) Remove(e Entity) error {
-	var err error
-	tmpDir := filepath.Join(s.path, "tmp")
-	err = os.MkdirAll(tmpDir, 0755)
-	if err != nil {
-		return err
-	}
-	{
-		dst := filepath.Join(tmpDir, filepath.Base(e.MetaPath()))
-		err = os.Rename(e.MetaPath(), dst)
-		if err != nil {
-			return err
-		}
-	}
-	{
-		dst := filepath.Join(tmpDir, filepath.Base(e.Path()))
-		err = os.Rename(e.Path(), dst)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

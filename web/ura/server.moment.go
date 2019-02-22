@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fairy-rockets/the-gear-of-seasons/web/cache"
+	"github.com/fairy-rockets/the-gear-of-seasons/web/util"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -18,9 +19,9 @@ func (srv *Server) serveMoments(w http.ResponseWriter, r *http.Request, _ httpro
 
 // 年別モーメントの一覧
 func (srv *Server) serveMomentsLists(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	t, err := srv.parseTemplate("admin/_main.html", "admin/moments.html")
+	t, err := srv.templateGen.Parse("admin/_main.html").Parse("admin/moments.html").Bulld()
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 		return
 	}
 
@@ -49,6 +50,6 @@ func (srv *Server) serveMomentsLists(w http.ResponseWriter, r *http.Request, p h
 		Moments:  mcs,
 	})
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 	}
 }

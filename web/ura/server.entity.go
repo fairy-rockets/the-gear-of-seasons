@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
+	"github.com/fairy-rockets/the-gear-of-seasons/web/util"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -18,18 +19,19 @@ func (srv *Server) serveEntities(w http.ResponseWriter, r *http.Request, _ httpr
 
 // 年別エンティティの一覧
 func (srv *Server) serveEntitiesLists(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	funcs := make(map[string]interface{})
-	funcs["isImage"] = func(entity shelf.Entity) bool {
+	b := srv.templateGen.Parse("admin/_main.html")
+	b.Parse("admin/entities.html")
+	b.AddFunc("isImage", func(entity shelf.Entity) bool {
 		_, ok := entity.(*shelf.ImageEntity)
 		return ok
-	}
-	funcs["isVideo"] = func(entity shelf.Entity) bool {
+	})
+	b.AddFunc("isVideo", func(entity shelf.Entity) bool {
 		_, ok := entity.(*shelf.VideoEntity)
 		return ok
-	}
-	t, err := srv.parseTemplateWithFuncs(funcs, "admin/_main.html", "admin/entities.html")
+	})
+	t, err := b.Bulld()
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 		return
 	}
 
@@ -54,6 +56,6 @@ func (srv *Server) serveEntitiesLists(w http.ResponseWriter, r *http.Request, p 
 		Entities: es,
 	})
 	if err != nil {
-		srv.setError(w, r, err)
+		util.SetError(w, r, err)
 	}
 }

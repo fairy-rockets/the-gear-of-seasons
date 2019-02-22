@@ -5,6 +5,7 @@
   "scripts": {
     "build": "gulp build",
     "check": "go generate github.com/fairy-rockets/the-gear-of-seasons/cmds/sanity-check && go build -o .bin/sanity-check github.com/fairy-rockets/the-gear-of-seasons/cmds/sanity-check && .bin/sanity-check",
+    "gc": "go generate github.com/fairy-rockets/the-gear-of-seasons/cmds/garbage-collect && go build -o .bin/garbage-collect github.com/fairy-rockets/the-gear-of-seasons/cmds/garbage-collect && .bin/garbage-collect",
     "watch": "gulp watch",
     "deploy": "gulp deploy",
     "backup": "rsync --delete -auzv -e ssh nodoca:/opt/www/fairy-rockets/_shelf/ _shelf/",
@@ -33,7 +34,7 @@
     "gulp": "^4.0.0",
     "gulp-babel": "^8.0.0",
     "npm-check-updates": "^2.15.0",
-    "webpack": "^4.29.4",
+    "webpack": "^4.29.5",
     "webpack-cli": "^3.2.3",
     "webpack-stream": "^5.2.1",
     "write-file-webpack-plugin": "^4.5.0"

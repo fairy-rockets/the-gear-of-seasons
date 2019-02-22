@@ -24,9 +24,9 @@ type MomentCacheItem struct {
 	embeds []shelf.Entity
 }
 
-func NewMomentCache(sh *shelf.Shelf) *MomentCache {
+func NewMomentCache(shelf *shelf.Shelf) *MomentCache {
 	return &MomentCache{
-		shelf:   sh,
+		shelf:   shelf,
 		entries: make(map[string]*MomentCacheItem),
 	}
 }

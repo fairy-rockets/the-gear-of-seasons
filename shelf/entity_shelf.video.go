@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -31,24 +29,24 @@ func (s *entityShelf) AddVideo(mimeType string, r io.Reader) (*VideoEntity, erro
 		return nil, fmt.Errorf("unsupported video type: %s", mimeType)
 	}
 
-	tmpfile, err := ioutil.TempFile("", "fairy-rockets-video")
+	tempPath, tempFile, err := s.storage.OpenTempFile(ext)
 	if err != nil {
 		return nil, err
 	}
-	defer os.Remove(tmpfile.Name())
+	defer s.storage.Remove(tempPath)
 
-	_, err = io.Copy(tmpfile, r)
+	_, err = io.Copy(tempFile, r)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = tmpfile.Seek(0, io.SeekStart)
+	_, err = tempFile.Seek(0, io.SeekStart)
 	if err != nil {
 		return nil, err
 	}
 
 	e := &VideoEntity{}
-	e.Width, e.Height, e.Duration, err = decodeVideoMetadata(tmpfile)
+	e.Width, e.Height, e.Duration, err = decodeVideoMetadata(tempFile)
 	if err != nil {
 		return nil, err
 	}
@@ -56,13 +54,13 @@ func (s *entityShelf) AddVideo(mimeType string, r io.Reader) (*VideoEntity, erro
 	e.MimeType_ = mimeType
 	e.Date_ = time.Now()
 
-	_, err = tmpfile.Seek(0, io.SeekStart)
+	_, err = tempFile.Seek(0, io.SeekStart)
 	if err != nil {
 		return nil, err
 	}
 
 	hash := md5.New()
-	_, err = io.Copy(hash, tmpfile)
+	_, err = io.Copy(hash, tempFile)
 	if err != nil {
 		return nil, err
 	}
@@ -71,42 +69,39 @@ func (s *entityShelf) AddVideo(mimeType string, r io.Reader) (*VideoEntity, erro
 	e.Description_ = ""
 
 	// Save image.
-	dirpath := s.dirOf(e)
+	dir := s.calcDir(e)
 	yml, err := yaml.Marshal(e)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize yaml: %v", err)
 	}
 
-	ymlpath := filepath.Join(dirpath, fmt.Sprintf("%s.video.yml", e.ID_))
-	path := filepath.Join(dirpath, fmt.Sprintf("%s.%s", e.ID_, ext))
-	e.Path_ = path
+	yamlPath := filepath.Join(dir, fmt.Sprintf("%s.video.yml", e.ID_))
+	videoPath := filepath.Join(dir, fmt.Sprintf("%s.%s", e.ID_, ext))
+	e.Path_ = videoPath
 
-	{
-		dir := filepath.Dir(path)
-		err = os.MkdirAll(dir, 0755)
-		if err != nil {
-			return nil, err
-		}
+	if err = s.storage.Mkdir(dir); err != nil {
+		return nil, err
 	}
 
-	_, err = tmpfile.Seek(0, io.SeekStart)
+	_, err = tempFile.Seek(0, io.SeekStart)
 	if err != nil {
 		return nil, err
 	}
-	tmpfilePath := tmpfile.Name()
-	err = tmpfile.Close()
+
+	err = tempFile.Close()
 	if err != nil {
 		return nil, err
 	}
-	err = os.Rename(tmpfilePath, path)
+
+	err = s.storage.Rename(tempPath, videoPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save video: %v", err)
 	}
 
-	err = ioutil.WriteFile(ymlpath, yml, 0644)
+	err = s.storage.WriteFile(yamlPath, yml)
 	if err != nil {
-		os.Remove(path)
+		_ = s.storage.Remove(videoPath)
 		return nil, fmt.Errorf("failed to save video, metadata: %v", err)
 	}
 	s.entities[e.ID_] = e
