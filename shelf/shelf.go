@@ -71,6 +71,10 @@ func (shelf *Shelf) AddVideoEntity(mimeType string, r io.Reader) (*VideoEntity, 
 	return shelf.entities.AddVideo(mimeType, r)
 }
 
+func (shelf *Shelf) RemoveEntity(entity Entity) error {
+	return shelf.entities.Remove(entity)
+}
+
 // ------------------------------------------------------------------------------------------------
 //   Moments
 // ------------------------------------------------------------------------------------------------

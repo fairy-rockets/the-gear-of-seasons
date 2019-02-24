@@ -68,6 +68,7 @@ func (s *entityShelf) AddImage(mimeType string, imageBuffer []byte) (*ImageEntit
 	imagePath := filepath.Join(dir, fmt.Sprintf("%s.%s", e.ID_, ext))
 	e.Path_ = imagePath
 	e.SystemPath_ = s.storage.path(imagePath)
+	e.MetaPath_ = yamlPath
 	err = s.storage.WriteFile(imagePath, imageBuffer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save image: %v", err)
@@ -78,4 +79,17 @@ func (s *entityShelf) AddImage(mimeType string, imageBuffer []byte) (*ImageEntit
 	}
 	s.entities[e.ID_] = e
 	return e, nil
+}
+
+func (s *entityShelf) RemoveImage(e *ImageEntity) error {
+	var err error
+	err = s.storage.Remove(e.Path())
+	if err != nil {
+		return err
+	}
+	err = s.storage.Remove(e.MetaPath())
+	if err != nil {
+		return err
+	}
+	return nil
 }
