@@ -49,7 +49,7 @@ func (s *momentShelf) calcURL(t time.Time) string {
 }
 
 func (s *momentShelf) calcFilePath(t time.Time) (string, string) {
-	return strconv.Itoa(t.Year()), t.Format("01-02_15:04:05") + ".yml"
+	return filepath.Join(momentPath, strconv.Itoa(t.Year())), t.Format("01-02_15:04:05") + ".yml"
 }
 
 func (s *momentShelf) Save(origTime time.Time, m *Moment) error {
