@@ -182,7 +182,7 @@ func (s *Storage) Mkdir(path string) error {
 }
 
 func (s *Storage) Remove(path string) error {
-	return os.RemoveAll(s.path(path))
+	return os.Remove(s.path(path))
 }
 
 func (s *Storage) Rename(old, new string) error {
