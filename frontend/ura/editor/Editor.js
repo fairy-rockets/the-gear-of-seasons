@@ -96,6 +96,7 @@ export default class Editor {
         this.submit_.disabled = true;
         this.preview_.onChange(result.body);
         this.date_.value = result.date;
+        this.original_date_ = result.date;
         history.replaceState(null, null, result.path);
       });
   }
