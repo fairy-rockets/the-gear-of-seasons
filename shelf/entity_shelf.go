@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -114,6 +115,17 @@ func (s *entityShelf) Init() error {
 		log.Debugf("Entity: %s (%s)", e.ID(), e.MimeType())
 		return nil
 	})
+}
+
+func (s *entityShelf) Remove(e Entity) error {
+	switch entity := e.(type) {
+	case *ImageEntity:
+		return s.RemoveImage(entity)
+	case *VideoEntity:
+		return s.RemoveVideo(entity)
+	default:
+		return fmt.Errorf("unkown entity: %v", reflect.TypeOf(e))
+	}
 }
 
 func (s *entityShelf) calcDir(e Entity) string {

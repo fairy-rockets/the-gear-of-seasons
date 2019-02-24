@@ -80,6 +80,7 @@ func (s *entityShelf) AddVideo(mimeType string, r io.Reader) (*VideoEntity, erro
 	videoPath := filepath.Join(dir, fmt.Sprintf("%s.%s", e.ID_, ext))
 	e.Path_ = videoPath
 	e.SystemPath_ = s.storage.path(e.Path_)
+	e.MetaPath_ = yamlPath
 
 	if err = s.storage.Mkdir(dir); err != nil {
 		return nil, err
@@ -107,6 +108,19 @@ func (s *entityShelf) AddVideo(mimeType string, r io.Reader) (*VideoEntity, erro
 	}
 	s.entities[e.ID_] = e
 	return e, nil
+}
+
+func (s *entityShelf) RemoveVideo(e *VideoEntity) error {
+	var err error
+	err = s.storage.Remove(e.Path())
+	if err != nil {
+		return err
+	}
+	err = s.storage.Remove(e.MetaPath())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // ----------------------------------------------------------------------------

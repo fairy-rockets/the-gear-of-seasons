@@ -11,11 +11,11 @@ import (
 	"time"
 )
 
-const trashPrefix = ".trash"
+const trashPrefix = "_trash"
 const tmpPrefix = "_tmp"
 
 type Storage struct {
-	// Path of Storage
+	// Path of Storagec
 	dirPath string
 }
 
@@ -182,7 +182,12 @@ func (s *Storage) Mkdir(path string) error {
 }
 
 func (s *Storage) Remove(path string) error {
-	return os.Remove(s.path(path))
+	dir := filepath.Dir(path)
+	err := os.MkdirAll(s.path(filepath.Join(trashPrefix, dir)), 0755)
+	if err != nil {
+		return err
+	}
+	return os.Rename(s.path(path), s.path(filepath.Join(trashPrefix, path)))
 }
 
 func (s *Storage) Rename(old, new string) error {
