@@ -322,6 +322,15 @@ uniform vec4 summerColor;
 uniform vec4 autumnPosition;
 uniform vec4 autumnColor;
 
+/*
+vec3 rand(vec3 v) {
+  float x = fract(sin(dot(v.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+  float y = fract(sin(dot(v.xy, vec2(94.6095, 20.477))) * 54153.0181496);
+  float z = fract(sin(dot(v.xy, vec2(35.3341, 75.520))) * 77860.8037050);
+  return vec3(x, y, z) * vec3(2.0, 2.0, 2.0) - vec3(1.0, 1.0, 1.0);
+}
+*/
+
 vec4 calcLight(vec3 lightPosition, vec4 lightColor) {
   vec3 delta = lightPosition - vPosition;
   float d = length(delta);
