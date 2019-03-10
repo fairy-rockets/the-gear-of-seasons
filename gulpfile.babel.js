@@ -13,24 +13,23 @@ import webpackConfig from './webpack.config.js';
 const ServerPath = 'github.com/fairy-rockets/the-gear-of-seasons/cmds/the-gear-of-seasons';
 const ServerBin  = '.bin/the-gear-of-seasons';
 
-/**
- * @returns {Promise<any>}
- */
-function buildClient() {
+async function buildClient() {
   const stream = webpackStream(webpackConfig, webpack)
           .on('error', function(err) {
             log(colors.red(err));
             this.emit('end');
            })
           .pipe(gulp.dest('_resources/static'));
-  return new Promise((resolve, reject) => {
-    stream.on('finish', resolve).on('error', reject);
+  /**
+   * @type {boolean} result
+   */
+  const result = await new Promise((resolve, reject) => {
+    stream.on('finish', () => resolve(true)).on('error', reject);
   });
+  return result;
 }
 
-gulp.task('client:build', () => {
-  return buildClient();
-});
+gulp.task('client:build', buildClient);
 
 /**
  * @param {string[]} args 
@@ -58,7 +57,7 @@ function exec(args, options) {
  * @param {string} [arch] 
  * @returns {Promise<string>}
  */
-function buildServer(dst, os, arch) {
+async function buildServer(dst, os, arch) {
   /** @type {child.SpawnOptions} */
   const options = {};
   const env = Object.create( process.env );
@@ -78,35 +77,37 @@ function buildServer(dst, os, arch) {
     cmd = ['go', 'build', '-o', dst,
            '-a', '-installsuffix', 'cgo', '-ldflags', '-s', ServerPath];
   }
-  return del([dst])
-    .then(paths => exec(['go', 'generate', ServerPath]))
-    .then(() => exec(cmd, options));
+  await del([dst]);
+  await exec(['go', 'generate', ServerPath]);
+  const result = await exec(cmd, options);
+  return result;
 }
 
-gulp.task('server:build', () => {
-  return buildServer(ServerBin);
-});
+gulp.task('server:build', () => buildServer(ServerBin));
 
 /** @type {ChildProcess} server */
 let server = null;
-gulp.task('server:spawn', gulp.series('server:build', (clbk) => {
+gulp.task('server:reload', (clbk) => {
   const spawn = () => {
-    server = child.spawn('.bin/the-gear-of-seasons', []);
-    server.on('error', (err) => {
-      log(colors.red(`Error (server): ${err}`))
-    });
-    server.stderr.on('data', (data) => {
-      //log((`from server:\n${data}`))
-    });
-    clbk();
+    try {
+      server = child.spawn('.bin/the-gear-of-seasons', []);
+      server.on('error', (err) => {
+        log(colors.red(`Error (server): ${err}`))
+      });
+      server.stderr.on('data', (data) => {
+        //log((`from server:\n${data}`))
+      });
+    } finally {
+      clbk();
+    }
   };
-  if (server) {
+  if (!!server) {
     let s = server;
     server.once('exit', (code, signal) => {
       if(signal == null) {
-        log(`Killed  server@${s.pid} with code=${code}`)
+        log(`Killed server@${s.pid} with code=${code}`)
       } else {
-        log(`Killed  server@${s.pid} with signal=${code}`)
+        log(`Killed server@${s.pid} with signal=${code}`)
       }
       server = null;
       spawn();
@@ -116,33 +117,32 @@ gulp.task('server:spawn', gulp.series('server:build', (clbk) => {
   }else{
     spawn();
   }
-}));
+});
 
-gulp.task('server:reload', gulp.series('server:spawn'));
-
-gulp.task('server:watch', gulp.series('server:reload', () => {
-  return gulp.watch(['**/*.go'], {debounceDelay: 2000}, gulp.series('server:reload'));
+gulp.task('server:watch', gulp.series('server:build', 'server:reload', () => {
+  return gulp.watch(['**/*.go'], {debounceDelay: 2000}, gulp.series('server:build', 'server:reload'));
 }));
 
 gulp.task('client:watch', gulp.series('client:build', () => {
-  return gulp.watch(['frontend/**/*.js'], {debounceDelay: 100}, gulp.series('client:build'));
+  return gulp.watch(['frontend/**/*.js'], {debounceDelay: 100}, gulp.task('client:build'));
 }));
 
-gulp.task('build', gulp.series('server:build', 'client:build'));
-gulp.task('watch', gulp.series('server:watch', 'client:watch'));
-gulp.task('deploy', () => {
+gulp.task('build', gulp.parallel('server:build', 'client:build'));
+gulp.task('watch', gulp.parallel('server:watch', 'client:watch'));
+
+async function deploy() {
   const exe = 'gear-of-seasons-linux';
-  return Promise.all([
+  const result = await Promise.all([
     buildServer(exe, 'linux', 'amd64'),
     buildClient()
-  ])
-  .then(() => Promise.all([
-      exec(['scp', exe, 'nodoca:/tmp/gear-of-seasons'])
-        .then(() => exec(['ssh', 'nodoca', 'mv /tmp/gear-of-seasons /opt/www/fairy-rockets/gear-of-seasons'])),
-      exec(['rsync', '-auz', '--delete', '-e', 'ssh', '_resources', 'nodoca:/opt/www/fairy-rockets']),
-  ]))
-  .then(() => exec(['ssh', 'nodoca', 'supervisorctl restart fairy-rockets']))
-  .then(() => del(exe));
-});
+  ]);
+  await exec(['scp', exe, 'nodoca:/tmp/gear-of-seasons']);
+  await exec(['ssh', 'nodoca', 'mv /tmp/gear-of-seasons /opt/www/fairy-rockets/gear-of-seasons']);
+  await exec(['rsync', '-auz', '--delete', '-e', 'ssh', '_resources', 'nodoca:/opt/www/fairy-rockets']);
+  await exec(['ssh', 'nodoca', 'supervisorctl restart fairy-rockets']);
+  await del(exe);
+}
+gulp.task('deploy', deploy);
+
 gulp.task('default', gulp.series('build'));
 
