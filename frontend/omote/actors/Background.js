@@ -178,8 +178,6 @@ vec4 calcLight(vec3 lightPosition, vec4 lightColor) {
 }
 
 void main(void) {
-  float sum = 0.0;
-
   float n = noise(gl_FragCoord.xy + vec2(30000.0 - time / 80.0, 30000.0 - time / 60.0));
   vec3 cloud1 = vec3(pow(n, 3.0) * 0.7);
 
