@@ -16,7 +16,7 @@ export default class World {
    * @returns {World}
    */
   static fromCanvas(canvas) {
-    const gl = canvas.getContext('webgl');
+    const gl = canvas.getContext('webgl2');
     if(!gl) {
       return null;
     }
