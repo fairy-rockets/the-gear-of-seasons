@@ -10,7 +10,7 @@ import (
 
 	"github.com/fairy-rockets/the-gear-of-seasons/fml"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/shelf"
 	"github.com/fatih/color"

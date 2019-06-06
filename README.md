@@ -7,7 +7,7 @@
 
 ```bash
 echo 'for logging'
-go get -u "github.com/Sirupsen/logrus"
+go get -u "github.com/sirupsen/logrus"
 go get -u "github.com/fatih/color"
 
 echo 'networking'
@@ -33,7 +33,9 @@ sudo apt get install ffmpeg
 #   sudo yum install ffmpeg ffmpeg-devel
 
 echo 'embedding markdown'
-go get -u "github.com/russross/blackfriday"
+go get -u "gopkg.in/russross/blackfriday.v2"
+echo 'workaround: https://github.com/russross/blackfriday/issues/491'
+go mod edit -replace=gopkg.in/russross/blackfriday.v2@v2.0.1=github.com/russross/blackfriday/v2@v2.0.1
 ```
 
 ### ClientSide
