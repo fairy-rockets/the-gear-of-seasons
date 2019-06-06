@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/russross/blackfriday"
+	"gopkg.in/russross/blackfriday.v2"
 )
 
 func fetchMarkdown(url string) (string, error) {
@@ -18,6 +18,6 @@ func fetchMarkdown(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	html := blackfriday.MarkdownCommon(body)
+	html := blackfriday.Run(body)
 	return string(html), nil
 }

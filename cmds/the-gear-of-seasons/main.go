@@ -8,7 +8,7 @@ import (
 	_ "image/png"
 	"os"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"os/signal"
 	"syscall"

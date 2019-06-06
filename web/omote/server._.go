@@ -7,7 +7,7 @@ import (
 
 	"github.com/fairy-rockets/the-gear-of-seasons/web/util"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
 	"github.com/fairy-rockets/the-gear-of-seasons/web/cache"
