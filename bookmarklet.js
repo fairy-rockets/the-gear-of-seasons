@@ -2,11 +2,11 @@
     const host = location.host;
     const href = location.href;
     if(host === 'hexe.net') {
-        location.href = href.replace('http://hexe.net/', 'https://ura.hexe.net/');
+        location.href = href.replace('https://hexe.net/', 'https://ura.hexe.net/');
     }else if(host === 'ura.hexe.net') {
-        location.href = href.replace('https://ura.hexe.net/', "http://hexe.net/");
+        location.href = href.replace('https://ura.hexe.net/', "https://hexe.net/");
     }else{
-        location.href = "http://hexe.net/";
+        location.href = "https://hexe.net/";
     }
 })();
 
