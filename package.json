@@ -8,7 +8,7 @@
     "gc": "go generate github.com/fairy-rockets/the-gear-of-seasons/cmds/garbage-collect && go build -o .bin/garbage-collect github.com/fairy-rockets/the-gear-of-seasons/cmds/garbage-collect && .bin/garbage-collect",
     "watch": "gulp watch",
     "deploy": "gulp deploy",
-    "backup": "rsync --delete -auzv -e ssh nodoca:/opt/www/fairy-rockets/_shelf/ _shelf/",
+    "backup": "rsync --delete -auzv -e ssh nodoca:/opt/www/hexe.net/gear-of-seasons/_shelf/ _shelf/",
     "update": "npm-check-updates -u"
   },
   "repository": {
