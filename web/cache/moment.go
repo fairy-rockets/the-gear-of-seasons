@@ -34,7 +34,7 @@ func NewMomentCache(shelf *shelf.Shelf) *MomentCache {
 func (cache *MomentCacheItem) Content() string {
 	const htmlFormat = `
 <div class="moment-info">
-	<h1 class="moment-title">%s</h1>
+	<h1 class="moment-title title">%s</h1>
 	<span class="moment-date">%s</span>
 	<span class="moment-author">%s</span>
 </div>
