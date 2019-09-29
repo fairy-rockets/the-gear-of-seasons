@@ -37,6 +37,10 @@ export default class Page extends Layer {
     this.contentWrapper_.appendChild(this.backButton_);
 
     this.closeListener_ = this.onClose_.bind(this);
+    /** @type {string} */
+    this.prevTitle_ = "";
+    /** @type {string} */
+    this.title_ = "";
 
     this.backButton_.addEventListener('mouseup', this.closeListener_, false);
 
@@ -63,9 +67,17 @@ export default class Page extends Layer {
       p.insertBefore(dst, src);
       p.removeChild(src);
     }
+
+    this.prevTitle_ = document.title;
+    const titles = this.content_.getElementsByClassName("title");
+    if(titles.length > 0) {
+      this.title_ = titles[0].textContent;
+      document.title = `${this.title_} :: the gear of seasons`;
+    }
   }
 
   onClose_() {
+    document.title = this.prevTitle_;
     if(this.world.canPopLayer()) {
       this.world.popLayer();
     } else {
