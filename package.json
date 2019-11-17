@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "the heart of hexe.net",
   "scripts": {
-    "build": "gulp build",
-    "check": "go generate github.com/fairy-rockets/the-gear-of-seasons/cmds/sanity-check && go build -o .bin/sanity-check github.com/fairy-rockets/the-gear-of-seasons/cmds/sanity-check && .bin/sanity-check",
-    "gc": "go generate github.com/fairy-rockets/the-gear-of-seasons/cmds/garbage-collect && go build -o .bin/garbage-collect github.com/fairy-rockets/the-gear-of-seasons/cmds/garbage-collect && .bin/garbage-collect",
+    "build": "go generate ./... && go build -o .bin/ ./...",
+    "check": "npm run build && .bin/sanity-check",
+    "gc": "npm run build && .bin/garbage-collect",
     "start": "gulp watch",
     "deploy": "gulp deploy",
     "pull": "rsync --delete -auzv -e ssh hexe.net:/opt/www/hexe.net/gear-of-seasons/_shelf/ _shelf/",
