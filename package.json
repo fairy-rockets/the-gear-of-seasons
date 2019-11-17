@@ -8,8 +8,8 @@
     "gc": "npm run build && .bin/garbage-collect",
     "start": "gulp watch",
     "deploy": "gulp deploy",
-    "pull": "rsync --delete -auzv -e ssh hexe.net:/opt/www/hexe.net/gear-of-seasons/_shelf/ _shelf/",
-    "push": "rsync --delete -auzv -e ssh _shelf/ hexe.net:/opt/www/hexe.net/gear-of-seasons/_shelf/",
+    "pull": "rsync --delete -auzv -e ssh hexe.net:/opt/www/hexe.net/the-gear-of-seasons/_shelf/ _shelf/",
+    "push": "rsync --delete -auzv -e ssh _shelf/ hexe.net:/opt/www/hexe.net/the-gear-of-seasons/_shelf/",
     "update": "npm-check-updates -u"
   },
   "repository": {
