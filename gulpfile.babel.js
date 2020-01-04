@@ -137,8 +137,8 @@ async function deploy() {
     buildClient()
   ]);
   await exec(['scp', exe, 'hexe.net:/tmp/the-gear-of-seasons']);
-  await exec(['ssh', 'nodoca', 'mv /tmp/the-gear-of-seasons /opt/www/hexe.net/gear-of-seasons/the-gear-of-seasons']);
-  await exec(['rsync', '-auz', '--delete', '-e', 'ssh', '_resources', 'nodoca:/opt/www/hexe.net/gear-of-seasons/']);
+  await exec(['ssh', 'nodoca', 'mv /tmp/the-gear-of-seasons /opt/www/hexe.net/the-gear-of-seasons/the-gear-of-seasons']);
+  await exec(['rsync', '-auz', '--delete', '-e', 'ssh', '_resources', 'nodoca:/opt/www/hexe.net/the-gear-of-seasons/']);
   await exec(['ssh', 'nodoca', 'supervisorctl restart fairy-rockets']);
   await del(exe);
 }
