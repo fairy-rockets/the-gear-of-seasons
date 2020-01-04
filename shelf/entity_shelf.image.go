@@ -60,6 +60,9 @@ func (s *entityShelf) AddImage(mimeType string, imageBuffer []byte) (*ImageEntit
 
 	// Save image.
 	dir := s.calcDir(e)
+	if err = s.storage.Mkdir(dir); err != nil {
+		return nil, fmt.Errorf("failed to create dir for dir: %v", err)
+	}
 	yamlData, err := yaml.Marshal(e)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize yaml: %v", err)
