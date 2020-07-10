@@ -11,7 +11,7 @@
     "gc": "npm run build && .bin/garbage-collect",
     "pull": "rsync --delete -auzv -e ssh hexe.net:/opt/www/hexe.net/the-gear-of-seasons/_shelf/ _shelf/",
     "push": "rsync --delete -auzv -e ssh _shelf/ hexe.net:/opt/www/hexe.net/the-gear-of-seasons/_shelf/",
-    "update": "npm-check-updates -u"
+    "up": "npm-check-updates -u && npm install && npm audit fix"
   },
   "repository": {
     "type": "git",
@@ -24,11 +24,11 @@
   },
   "homepage": "https://github.com/fairy-rockets/the-gear-of-seasons#readme",
   "devDependencies": {
-    "@babel/cli": "^7.8.4",
-    "@babel/core": "^7.9.6",
-    "@babel/plugin-transform-runtime": "^7.9.6",
-    "@babel/preset-env": "^7.9.6",
-    "@babel/register": "^7.9.0",
+    "@babel/cli": "^7.10.4",
+    "@babel/core": "^7.10.4",
+    "@babel/plugin-transform-runtime": "^7.10.4",
+    "@babel/preset-env": "^7.10.4",
+    "@babel/register": "^7.10.4",
     "ansi-colors": "^4.1.1",
     "babel-loader": "^8.1.0",
     "child_process": "^1.0.2",
@@ -36,14 +36,14 @@
     "fancy-log": "^1.3.3",
     "gulp": "^4.0.2",
     "gulp-babel": "^8.0.0",
-    "npm-check-updates": "^6.0.1",
+    "npm-check-updates": "^7.0.1",
     "webpack": "^4.43.0",
-    "webpack-cli": "^3.3.11",
+    "webpack-cli": "^3.3.12",
     "webpack-stream": "^5.2.1",
     "write-file-webpack-plugin": "^4.5.1"
   },
   "dependencies": {
-    "@babel/runtime": "^7.9.6",
+    "@babel/runtime": "^7.10.4",
     "gl-matrix": "^3.3.0",
     "twemoji": "^13.0.0"
   }
