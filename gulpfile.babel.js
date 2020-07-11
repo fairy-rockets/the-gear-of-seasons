@@ -137,9 +137,9 @@ async function deploy() {
     buildClient()
   ]);
   await exec(['scp', exe, 'hexe.net:/tmp/the-gear-of-seasons']);
-  await exec(['ssh', 'nodoca', 'mv /tmp/the-gear-of-seasons /opt/www/hexe.net/the-gear-of-seasons/the-gear-of-seasons']);
-  await exec(['rsync', '-auz', '--delete', '-e', 'ssh', '_resources', 'nodoca:/opt/www/hexe.net/the-gear-of-seasons/']);
-  await exec(['ssh', 'nodoca', 'supervisorctl restart fairy-rockets']);
+  await exec(['ssh', 'nodoca', 'mv /tmp/the-gear-of-seasons /opt/books/the-gear-of-seasons']);
+  await exec(['rsync', '-auz', '--delete', '-e', 'ssh', '_resources', 'nodoca:/opt/books/the-gear-of-seasons']);
+  await exec(['ssh', 'nodoca', 'docker-compose -f /opt/books/the-gear-of-seasons/docker-compose.yml restart']);
   await del(exe);
 }
 gulp.task('deploy', deploy);
