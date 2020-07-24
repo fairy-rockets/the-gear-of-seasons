@@ -12,7 +12,7 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/fairy-rockets/the-gear-of-seasons/fml"
+	"github.com/fairy-rockets/the-gear-of-seasons/pkg/fml"
 
 	log "github.com/sirupsen/logrus"
 

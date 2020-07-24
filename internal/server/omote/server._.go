@@ -1,21 +1,21 @@
-package ura
+package omote
 
 import (
 	"context"
 	"fmt"
 	"net/http"
 
-	"github.com/fairy-rockets/the-gear-of-seasons/web/util"
+	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/util"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/cache"
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
-	"github.com/fairy-rockets/the-gear-of-seasons/web/cache"
 	"github.com/julienschmidt/httprouter"
 )
 
 func log() *logrus.Entry {
-	return logrus.WithField("Module", "UraSrv")
+	return logrus.WithField("Module", "OmoteSrv")
 }
 
 type Server struct {
@@ -53,36 +53,25 @@ func (srv *Server) setupRoute() {
 
 	// index
 	r.GET("/", srv.serveIndex)
+	r.GET("/about-us/", srv.serveIndex)
 
-	// 編集
-	r.GET("/new", srv.serveNew)
-	r.POST("/preview", srv.servePreview)
-	r.POST("/save", srv.serveSave)
-	r.POST("/upload", srv.serveUpload)
-
-	// moments
-	r.GET("/moments/", srv.serveMoments)
-	r.GET("/moments/:year", srv.serveMomentsLists)
-
-	// entities
-	r.GET("/entities/", srv.serveEntities)
-	r.GET("/entities/:year", srv.serveEntitiesLists)
-
-	// static
-	r.ServeFiles("/static/*filepath", http.Dir(srv.staticPath))
-
-	// entity (redirect)
+	// entity
 	r.GET("/entity/:id", srv.serveEntity)
 	r.GET("/entity/:id/icon", srv.serveEntityIcon)
 	r.GET("/entity/:id/medium", srv.serveEntityMedium)
 
+	// moment
+	r.GET("/moment/*moment", srv.serveMoment)
+
+	// static
+	r.ServeFiles("/static/*filepath", http.Dir(srv.staticPath))
 }
 
 func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		m := srv.shelf.LookupMoment(r.URL.Path)
 		if m != nil {
-			srv.serveEdit(w, r, nil)
+			srv.serveIndex(w, r, nil)
 			return
 		}
 	}
@@ -91,7 +80,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) Start() error {
-	log().Infof("Start Ura Server at %s", srv.impl.Addr)
+	log().Infof("Start Omote Server at %s", srv.impl.Addr)
 	return srv.impl.ListenAndServe()
 }
 

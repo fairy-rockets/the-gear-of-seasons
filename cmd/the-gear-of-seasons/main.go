@@ -13,8 +13,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	serverPkg "github.com/fairy-rockets/the-gear-of-seasons/internal/server"
 	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
-	serverPkg "github.com/fairy-rockets/the-gear-of-seasons/web"
 	"github.com/fatih/color"
 )
 
@@ -78,7 +78,7 @@ func main() {
 	}
 	log.Infof("%d entities, %d moments", shelf.NumEntities(), shelf.NumMoments())
 
-	server = serverPkg.NewServer(*omoteListen, *uraListen, shelf, *cachePath)
+	server = serverPkg.New(*omoteListen, *uraListen, shelf, *cachePath)
 	if err := server.Prepare(); err != nil {
 		log.Fatalf("Failed to prepare server: %v", err)
 	}

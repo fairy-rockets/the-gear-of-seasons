@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/fairy-rockets/the-gear-of-seasons/fml"
+	"github.com/fairy-rockets/the-gear-of-seasons/pkg/fml"
 
 	"time"
 

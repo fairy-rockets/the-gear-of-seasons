@@ -1,10 +1,10 @@
-package omote
+package ura
 
 import (
 	"net/http"
 	"os"
 
-	"github.com/fairy-rockets/the-gear-of-seasons/web/util"
+	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/util"
 	"github.com/julienschmidt/httprouter"
 )
 
