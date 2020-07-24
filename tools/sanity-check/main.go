@@ -20,7 +20,7 @@ import (
 	"github.com/fatih/color"
 )
 
-//go:generate bash ../../scripts/geninfo.sh
+//go:generate bash ../../scripts/generate-buildinfo.sh
 
 var shelfPath = flag.String("shelf", "_shelf", "shelf path")
 

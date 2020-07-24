@@ -18,7 +18,7 @@ import (
 	"github.com/fatih/color"
 )
 
-//go:generate bash ../../scripts/geninfo.sh
+//go:generate bash ../../scripts/generate-buildinfo.sh
 
 // Listen
 var omoteListen = flag.String("listen-omote", ":8080", "omote listen")
