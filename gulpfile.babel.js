@@ -10,7 +10,7 @@ import child, { ChildProcess } from 'child_process';
 
 import webpackConfig from './webpack.config.js';
 
-const ServerPath = 'github.com/fairy-rockets/the-gear-of-seasons/cmds/the-gear-of-seasons';
+const ServerPath = 'github.com/fairy-rockets/the-gear-of-seasons/cmd/the-gear-of-seasons';
 const ServerBin  = '.bin/the-gear-of-seasons';
 
 async function buildClient() {
