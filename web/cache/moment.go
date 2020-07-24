@@ -9,7 +9,7 @@ import (
 
 	"time"
 
-	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
+	"github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
 )
 
 type MomentCache struct {

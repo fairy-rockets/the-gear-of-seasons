@@ -13,12 +13,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/shelf"
+	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
 	serverPkg "github.com/fairy-rockets/the-gear-of-seasons/web"
 	"github.com/fatih/color"
 )
 
-//go:generate bash ../geninfo.sh
+//go:generate bash ../../scripts/geninfo.sh
 
 // Listen
 var omoteListen = flag.String("listen-omote", ":8080", "omote listen")

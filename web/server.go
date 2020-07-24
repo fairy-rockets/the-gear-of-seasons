@@ -12,9 +12,9 @@ import (
 
 	"sync"
 
-	"github.com/sirupsen/logrus"
-	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
+	"github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
 	"github.com/fairy-rockets/the-gear-of-seasons/web/cache"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
