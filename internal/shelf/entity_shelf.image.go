@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fairy-rockets/the-gear-of-seasons/internal/util"
 	log "github.com/sirupsen/logrus"
-	"github.com/fairy-rockets/the-gear-of-seasons/util"
 	"gopkg.in/yaml.v2"
 )
 

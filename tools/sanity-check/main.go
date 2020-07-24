@@ -1,22 +1,26 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"flag"
 	_ "image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+	"io"
+	"os"
 	"reflect"
 
 	"github.com/fairy-rockets/the-gear-of-seasons/fml"
 
 	log "github.com/sirupsen/logrus"
 
-	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/shelf"
+	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
 	"github.com/fatih/color"
 )
 
-//go:generate bash ../geninfo.sh
+//go:generate bash ../../scripts/geninfo.sh
 
 var shelfPath = flag.String("shelf", "_shelf", "shelf path")
 
@@ -47,19 +51,30 @@ func main() {
 	}
 	log.Infof("%d entities, %d moments", shelf.NumEntities(), shelf.NumMoments())
 
-	log.Info(color.GreenString("[OK]"))
-
 	entities := shelf.FindAllEntities()
 	moments := shelf.FindAllMoments()
 
-	usedEntities := make(map[string]shelfPkg.Entity)
-
+	log.Info(color.GreenString("[OK]"))
+	{
+		log.Info("----------------------------------------")
+		log.Info("Checking Entities...")
+		percent := 0
+		for i, ent := range entities {
+			checkEntity(ent)
+			percentNext := int(100.0 * float64(i+1) / float64(len(entities)))
+			if percentNext > percent {
+				percent = percentNext
+				log.Infof("%d/%d(%d%%) ...", i+1, len(entities), percent)
+			}
+		}
+		log.Info(color.GreenString("[OK]"))
+	}
 	{
 		log.Info("----------------------------------------")
 		log.Info("Checking Moments...")
 		percent := 0
 		for i, m := range moments {
-			checkMoments(m, shelf, usedEntities)
+			checkMoments(m, shelf)
 			percentNext := int(100.0 * float64(i+1) / float64(len(moments)))
 			if percentNext > percent {
 				percent = percentNext
@@ -67,27 +82,30 @@ func main() {
 			}
 		}
 		log.Info(color.GreenString("[OK]"))
-		log.Info("----------------------------------------")
 	}
-
-	for _, entity := range entities {
-		e1, ok := usedEntities[entity.ID()]
-		if ok && e1 != entity {
-			log.Fatalf("id=%s duplicated: %s vs %s", entity.ID(), e1.Path(), entity.Path())
-		}
-		if !ok {
-			err = shelf.RemoveEntity(entity)
-			if err == nil {
-				log.Infof("Unused entity %s(%s) removed", entity.ID(), entity.Path())
-			} else {
-				log.Fatalf("Failed to remove unused entity %s(%s): %v", entity.ID(), entity.Path(), err)
-			}
-		}
-	}
-	log.Info(color.GreenString("[OK]"))
 }
 
-func checkMoments(m *shelfPkg.Moment, shelf *shelfPkg.Shelf, usedEntities map[string]shelfPkg.Entity) {
+func checkEntity(ent shelfPkg.Entity) {
+	f, err := os.Open(ent.SystemPath())
+	if err != nil {
+		log.Fatalf("Sanity check failed: %v\npath: %s", err, ent.SystemPath())
+	}
+	defer f.Close()
+	hasher := md5.New()
+	_, err = io.Copy(hasher, f)
+	if err != nil {
+		log.Fatalf("Sanity check failed: %v\npath: %s", err, ent.SystemPath())
+	}
+	hash := hex.EncodeToString(hasher.Sum(nil)[:])
+	if ent.ID() != hash {
+		log.Fatalf(`Sanity check failed: hash mismatched!
+path: %s
+expected: %s
+actual: %s`, err, ent.SystemPath(), hash, ent.ID())
+	}
+}
+
+func checkMoments(m *shelfPkg.Moment, shelf *shelfPkg.Shelf) {
 	p := fml.NewParser()
 	rens, err := p.Parse(m.Text)
 	if err != nil {
@@ -100,24 +118,30 @@ func checkMoments(m *shelfPkg.Moment, shelf *shelfPkg.Shelf, usedEntities map[st
 		case *fml.Image:
 			id = v.EntityID
 			entity = shelf.LookupEntity(id)
+			if entity == nil {
+				log.Fatalf("[%s] [image id=%s] is not found", m.Path(), id)
+			}
 			if _, ok := entity.(*shelfPkg.ImageEntity); !ok {
 				log.Fatalf("[%s] id=%s(%s) is not an Image: %v", m.Path(), id, entity.Path(), reflect.TypeOf(entity))
 			}
 		case *fml.Audio:
 			id = v.EntityID
 			entity = shelf.LookupEntity(id)
+			if entity == nil {
+				log.Fatalf("[%s] [audio id=%s] is not found", m.Path(), id)
+			}
 			if _, ok := entity.(*shelfPkg.AudioEntity); !ok {
 				log.Fatalf("[%s] id=%s(%s) is not an Audio: %v", m.Path(), id, entity.Path(), reflect.TypeOf(entity))
 			}
 		case *fml.Video:
 			id = v.EntityID
 			entity = shelf.LookupEntity(id)
+			if entity == nil {
+				log.Fatalf("[%s] [video id=%s] is not found", m.Path(), id)
+			}
 			if _, ok := entity.(*shelfPkg.VideoEntity); !ok {
 				log.Fatalf("[%s] id=%s(%s) is not an Video: %v", m.Path(), id, entity.Path(), reflect.TypeOf(entity))
 			}
-		default:
-			continue
 		}
-		usedEntities[id] = entity
 	}
 }

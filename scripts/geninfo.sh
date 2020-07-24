@@ -4,7 +4,7 @@ REV=$(git log -1 --date=iso --pretty=format:"[%ad] %h %an : %s")
 REV=${REV//\\/\\\\}
 REV=${REV//\"/\\\"}
 
-cat > ${GOFILE%.go}.gen.go <<END
+cat > "${GOFILE%.go}".gen.go <<END
 package ${GOPACKAGE}
 
 import (

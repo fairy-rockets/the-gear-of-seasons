@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/fairy-rockets/the-gear-of-seasons/shelf"
+	"github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
 	"github.com/fairy-rockets/the-gear-of-seasons/web/util"
 	"github.com/julienschmidt/httprouter"
 )

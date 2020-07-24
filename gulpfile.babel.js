@@ -6,7 +6,7 @@ import colors from 'ansi-colors';
 import webpackStream from 'webpack-stream';
 import webpack from 'webpack';
 
-import child, { ChildProcess } from 'child_process';
+import child, {ChildProcess} from 'child_process';
 
 import webpackConfig from './webpack.config.js';
 
@@ -79,8 +79,7 @@ async function buildServer(dst, os, arch) {
   }
   await del([dst]);
   await exec(['go', 'generate', ServerPath]);
-  const result = await exec(cmd, options);
-  return result;
+  return await exec(cmd, options);
 }
 
 gulp.task('server:build', () => buildServer(ServerBin));
