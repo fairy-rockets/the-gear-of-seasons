@@ -1,19 +1,19 @@
-package web
+package server
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/fairy-rockets/the-gear-of-seasons/web/omote"
-	"github.com/fairy-rockets/the-gear-of-seasons/web/ura"
-	"github.com/fairy-rockets/the-gear-of-seasons/web/util"
+	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/omote"
+	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/ura"
+	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/util"
 
 	"path/filepath"
 
 	"sync"
 
+	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/cache"
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
-	"github.com/fairy-rockets/the-gear-of-seasons/web/cache"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -35,7 +35,7 @@ func log() *logrus.Entry {
 	return logrus.WithField("Module", "Server")
 }
 
-func NewServer(listenOmote, listenUra string, shelf *shelf.Shelf, cachePath string) *Server {
+func New(listenOmote, listenUra string, shelf *shelf.Shelf, cachePath string) *Server {
 	entityCache := cache.NewEntityCache(shelf, filepath.Join(cachePath, "entity"))
 	momentCache := cache.NewMomentCache(shelf)
 	templateGen := util.NewTemplateBuilderGenerator(TemplatesPath)
