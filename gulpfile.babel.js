@@ -123,7 +123,7 @@ gulp.task('server:watch', gulp.series('server:build', 'server:reload', () => {
 }));
 
 gulp.task('client:watch', gulp.series('client:build', () => {
-  return gulp.watch(['frontend/**/*.js'], {debounceDelay: 100}, gulp.task('client:build'));
+  return gulp.watch(['web/**/*.js'], {debounceDelay: 100}, gulp.task('client:build'));
 }));
 
 gulp.task('build', gulp.parallel('server:build', 'client:build'));

@@ -4,8 +4,8 @@ const WriteFilePlugin = require('write-file-webpack-plugin');
 module.exports = {
   context: __dirname,
   entry: {
-    'main': __dirname+'/frontend/omote/main.js',
-    'admin-editor': __dirname+'/frontend/ura/admin-editor.js',
+    'main': __dirname+'/web/omote/main.js',
+    'admin-editor': __dirname+'/web/ura/admin-editor.js',
   },
   mode: 'development',
   output: {
