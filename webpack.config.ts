@@ -1,10 +1,10 @@
-const path = require('path');
-const WriteFilePlugin = require('write-file-webpack-plugin');
+import * as webpack from "webpack";
+import WriteFilePlugin from "write-file-webpack-plugin";
 
-module.exports = {
+const config: webpack.Configuration = {
   context: __dirname,
   entry: {
-    'main': __dirname+'/web/omote/main.js',
+    'main': __dirname+'/web/omote/main.ts',
     'admin-editor': __dirname+'/web/ura/admin-editor.js',
   },
   mode: 'development',
@@ -19,6 +19,10 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.ts$/,
+        use: 'ts-loader'
+      },
+      {
         test: /\.m?js$/,
         exclude: /node_modules/,
         use: {
@@ -31,3 +35,5 @@ module.exports = {
     ]
   }
 };
+
+export default config;
