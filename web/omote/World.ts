@@ -1,39 +1,39 @@
 import {mat4, vec3, vec4} from 'gl-matrix';
-import IndexBuffer from "./gl/IndexBuffer.js";
-import ArrayBuffer from "./gl/ArrayBuffer.js";
-import Program from "./gl/Program.js";
+import IndexBuffer from "./gl/IndexBuffer";
+import ArrayBuffer from "./gl/ArrayBuffer";
+import Program from "./gl/Program";
 
-import Gear from "./actors/Gear.js";
-import Background from './actors/Background.js';
+import Gear from "./actors/Gear";
+import Background from './actors/Background';
 
-import Layer from "./Layer.js";
-import Index from "./layers/Index.js";
-import Page from "./layers/Page.js";
+import Layer from "./Layer";
+import Index from "./layers/Index";
+import Page from "./layers/Page";
 
 export default class World {
-  /**
-   * @param {HTMLCanvasElement} canvas 
-   * @returns {World}
-   */
-  static fromCanvas(canvas) {
+  private readonly canvas_ : HTMLCanvasElement;
+  private readonly gl_ : WebGLRenderingContext;
+  private readonly runner_: (time: number) => void;
+  private readonly gear_: Gear;
+  private readonly bg_: Background;
+  private readonly layers_: Layer[];
+  private readonly matEye_: mat4;
+  private readonly matProjection_: mat4;
+  private readonly matWorld_: mat4;
+  private cursor_: boolean;
+  static fromCanvas(canvas: HTMLCanvasElement): World | null {
     const gl = canvas.getContext('webgl2');
     if(!gl) {
       return null;
     }
     return new World(canvas, gl);
   }
-  /**
-   * @param {HTMLCanvasElement} canvas 
-   * @param {WebGLRenderingContext} gl 
-   * @private
-   */
-  constructor(canvas, gl) {
+  private constructor(canvas: HTMLCanvasElement, gl: WebGLRenderingContext) {
     this.canvas_ = canvas;
     this.gl_ = gl;
     this.runner_ = this.render_.bind(this);
     this.gear_ = new Gear(this);
     this.bg_ = new Background(this);
-    /** @type {Layer[]} */
     this.layers_ = [];
 
     // WorldMatrix
@@ -46,8 +46,8 @@ export default class World {
     this.canvas_.style.cursor = 'default';
     window.onpopstate = this.onPopState_.bind(this);
   }
-  /** @public */
-  start() {
+
+  public start() {
     // init OpenGL
     const gl = this.gl_;
     gl.enable(gl.CULL_FACE);
@@ -63,12 +63,8 @@ export default class World {
     // Start animation
     requestAnimationFrame(this.runner_);
   }
-  /**
-   * 
-   * @param {number} width 
-   * @param {number} height 
-   */
-  onSizeChanged(width, height) {
+
+  onSizeChanged(width: number, height: number) {
     const gl = this.gl_;
     const matWorld = this.matWorld_;
     gl.viewport(0, 0, width, height);
@@ -76,18 +72,15 @@ export default class World {
     mat4.multiply(matWorld, this.matProjection_, this.matEye_);
     this.gear_.onSizeChanged(width, height);
   }
-  /**
-   * @param {number} time 
-   * @private
-   */
-  render_(time) {
+
+  private render_(time: number) {
     requestAnimationFrame(this.runner_);
     const gl = this.gl_;
     const canvas = this.canvas_;
     const matWorld = this.matWorld_;
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
-  if(canvas.width !== width || canvas.height !== height) {
+    if(canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
       this.onSizeChanged(width, height);
@@ -112,36 +105,36 @@ export default class World {
     gl.flush();
   }
   destroy() {
-    if(this.layer_) {
-      this.layer_.detach();
-      this.layer_.destroy();
+    while(this.layers_.length > 0) {
+      const layer: Layer = this.layers_.pop()!;
+      layer.onDtached();
+      layer.destroy();
     }
+    
     this.gear_.destroy();
     this.bg_.destroy();
   }
   /****************************************************************************
    *                              Getter/Setter                               *
    ****************************************************************************/
-  /** @returns {Gear} */
-  get gear() {
+
+   get gear(): Gear {
     return this.gear_;
   }
-    /** @returns {number} */
-  get aspect() {
+
+  get aspect(): number {
     return this.canvas_.width / this.canvas_.height;
   }
-  /** @returns {HTMLCanvasElement} */
-  get canvas() {
+
+  get canvas(): HTMLCanvasElement {
     return this.canvas_;
   }
-  /** @returns {WebGLRenderingContext} */
-  get gl() {
+
+  get gl(): WebGLRenderingContext {
     return this.gl_;
   }
-  /**
-   * @param {boolean} on
-   */
-  set cursor(on) {
+
+  set cursor(on: boolean) {
     if(this.cursor_ !== on) {
       this.canvas_.style.cursor = on ? 'pointer' : 'default';
       this.cursor_ = on;
@@ -150,18 +143,11 @@ export default class World {
   /****************************************************************************
    *                            Layer  Transitions                            *
    ****************************************************************************/
-  /**
-   * @param {string} path
-   */
-  openLayer(path) {
+  openLayer(path: string) {
     this.pushLayer(this.createLayer_(path));
   }
-  /**
-   * @param {string} path 
-   * @returns {Layer}
-   * @private
-   */
-  createLayer_(path) {
+
+  private createLayer_(path: string): Layer {
     if(path === '/') {
       return new Index(this);
     }else if(path.startsWith('/about-us/')){
@@ -172,8 +158,8 @@ export default class World {
       return new Page(this, path, content);
     }
   }
-  /** @param {Layer} next */
-  pushLayer(next) {
+
+  pushLayer(next: Layer) {
     this.pushLayer_(next);
     const layers = this.layers_;
     const state = history.state;
@@ -184,10 +170,8 @@ export default class World {
       history.pushState(state+1, '', next.path);
     }
   }
-  /**
-   * @param {Layer} next
-   */
-  pushLayer_(next) {
+
+  pushLayer_(next: Layer) {
     const layers = this.layers_;
     if(layers.length > 0) {
       const current = layers[layers.length-1];
@@ -198,22 +182,22 @@ export default class World {
     document.body.appendChild(next.element);
     next.onAttached();
   }
-  /** @returns {boolean} */
-  canPopLayer() {
+
+  canPopLayer(): boolean {
     return this.layers_.length > 1;
   }
-  /** @public */
-  popLayer() {
+
+  public popLayer() {
     this.popLayer_();
     history.back();
   }
-  /** @private */
-  popLayer_() {
+
+  private popLayer_() {
     const layers = this.layers_;
     if(layers.length < 2) {
       throw new Error(`You can't pop layer stack of length=${layers.length}.`);
     }
-    const current = layers.pop();
+    const current = layers.pop()!;
     current.onDtached();
     document.body.removeChild(current.element);
     current.destroy();
@@ -222,26 +206,23 @@ export default class World {
     document.body.appendChild(next.element);
     next.onAttached();
   }
-  /** 
-   * @param {Layer} next
-   * @private
-   */
-  replaceLayer_(next) {
+
+  private replaceLayer_(next: Layer) {
     const layers = this.layers_;
     if(layers.length <= 1) {
       throw new Error(`You can't replace layer stack of length=${layers.length}.`);
     }
-    const current = layers.pop();
+    const current = layers.pop()!;
     current.onDtached();
     document.body.removeChild(current.element);
     current.destroy();
 
-    layer.push(next);
+    layers.push(next);
     document.body.appendChild(next.element);
     next.onAttached();
   }
-  /** @param {PopStateEvent} ev */
-  onPopState_(ev) {
+
+  onPopState_(ev: PopStateEvent) {
     const layers = this.layers_;
     if(ev.state === null || ev.state === undefined) {
       return;
@@ -271,31 +252,20 @@ export default class World {
   /****************************************************************************
    *                              GLSL Helpers                                *
    ****************************************************************************/
-  /**
-   * @param {string} src 
-   * @returns {WebGLShader}
-   */
-  compileFragmentShader(src) {
+
+   compileFragmentShader(src: string): WebGLShader {
     const gl = this.gl_;
     return this.compileShader_(gl.FRAGMENT_SHADER, src);
   }
-  /**
-   * @param {string} src 
-   * @returns {WebGLShader}
-   */
-  compileVertexShader(src) {
+
+  compileVertexShader(src: string): WebGLShader {
     const gl = this.gl_;
     return this.compileShader_(gl.VERTEX_SHADER, src);
   }
-  /**
-   * @param {number} type
-   * @param {string} src 
-   * @private
-   * @returns {WebGLShader}
-   */
-  compileShader_(type, src) {
+
+  private compileShader_(type: number, src: string): WebGLShader {
     const gl = this.gl_;
-    const shader = gl.createShader(type);
+    const shader = gl.createShader(type)!;
     gl.shaderSource(shader, src);
     gl.compileShader(shader);
     if(gl.getShaderParameter(shader, gl.COMPILE_STATUS)){
@@ -309,18 +279,13 @@ export default class World {
       }else{
         console.error(`Error while compiling unknown shader type(${type}):`, src, err);
       }
-      throw new Error(err);
-      return null;
+      throw new Error(err ? err : undefined);
     }
   }
-  /**
-   * @param {WebGLShader} vs
-   * @param {WebGLShader} fs
-   * @returns {Program}
-   */
-  linkShaders(vs, fs) {
+
+  linkShaders(vs: WebGLShader, fs: WebGLShader): Program {
     const gl = this.gl_;
-    const program = gl.createProgram();
+    const program = gl.createProgram()!;
     gl.attachShader(program, vs);
     gl.attachShader(program, fs);
     gl.linkProgram(program);
@@ -331,16 +296,11 @@ export default class World {
     }else{
       const err = gl.getProgramInfoLog(program);
       console.error('Error while linking shaders:', err);
-      throw new Error(err);
-      return null;
+      throw new Error(err ? err : undefined);
     }
   }
-  /**
-   * @param {Uint16Array|number[]} data 
-   * @param {number} mode
-   * @returns {IndexBuffer}
-   */
-  createIndexBuffer(mode, data) {
+
+  createIndexBuffer(mode: number, data: Uint16Array|number[]): IndexBuffer {
     const gl = this.gl_;
     const buff = gl.createBuffer();
     if(data instanceof Array) {
@@ -351,12 +311,8 @@ export default class World {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     return new IndexBuffer(gl, mode, buff, data.length);
   }
-  /**
-   * @param {Float32Array|number[]} data
-   * @param {number} elemSize 
-   * @returns {ArrayBuffer}
-   */
-  createArrayBuffer(data, elemSize) {
+
+  createArrayBuffer(data: Float32Array|number[], elemSize: number): ArrayBuffer {
     const gl = this.gl_;
     const buff = gl.createBuffer();
     if(data instanceof Array) {

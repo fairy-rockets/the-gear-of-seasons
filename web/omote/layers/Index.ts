@@ -7,74 +7,62 @@ import * as debug from '../gl/debug.js';
 import Page from './Page.js';
 import twemoji from 'twemoji';
 
-/**
-  @typedef MomentSummary
-  @type {object}
-  @property {number} angle
-  @property {string} date
-  @property {string} title
-  @property {string} path
-  @property {string} imageURL
-  @property {string} bodyURL
-*/
+interface MomentSummary{
+  angle: number;
+  date: string;
+  title: string;
+  path: string;
+  imageURL: string;
+  bodyURL: string;
+}
+
 export default class Index extends Layer {
-  /**
-   * @param {World} world 
-   */
-  constructor(world) {
+  private readonly wheelEventListener_: (ev: WheelEvent) => void;
+  private readonly mouseMoveListener_: (ev: MouseEvent) => void;
+  private readonly mouseUpListener_: (ev: MouseEvent) => void;
+  private readonly moments_: Moments[];
+  private mouseX_: number;
+  private mouseY_: number;
+  private selected_: Moment;
+  private readonly tooltip_: HTMLDivElement;
+  private readonly tooltipTitle_: HTMLDivElement;
+  private readonly tooltipDate_: HTMLDivElement;
+  private readonly aboutUsLink_: HTMLElement;
+  private loaded_: boolean;
+  constructor(world: World) {
     super(world, '/');
-    /** @private */
     this.wheelEventListener_ = this.onWheelEvent_.bind(this);
-    /** @private */
     this.mouseMoveListener_ = this.onMouseMove_.bind(this);
-    /** @private */
     this.mouseUpListener_ = this.onMouseUp_.bind(this);
-    /** @private */
     this.moments_ = new Moments(world);
-    /** @private */
     this.mouseX_ = NaN;
-    /** @private */
     this.mouseY_ = NaN;
 
     this.element.innerHTML = htmlSrc;
-    /**
-     * @type {Moment}
-     * @private
-     */
     this.selected_ = null;
-    /** @private */
-    this.selectedAngle_ = null;
 
-    /** @private */
     this.tooltip_ = document.createElement('div');
     this.tooltip_.classList.add('tooltip', 'hidden');
     this.element_.appendChild(this.tooltip_);
 
-    /** @private */
     this.tooltipTitle_ = document.createElement('div');
     this.tooltipTitle_.classList.add('moment-title');
     this.tooltip_.appendChild(this.tooltipTitle_);
 
-    /** @private */
     this.tooltipDate_ = document.createElement('div');
     this.tooltipDate_.classList.add('date');
     this.tooltip_.appendChild(this.tooltipDate_);
 
-    /** @private */
-    this.aboutUsLink_ = this.element_.querySelector('#about-us-link');
+    this.aboutUsLink_ = this.element_.querySelector<HTMLElement>('#about-us-link')!;
     this.aboutUsLink_.addEventListener('click', (e) => {
       e.preventDefault();
       world.openLayer('/about-us/');
     });
 
-    /** @private */
     this.loaded_ = false;
   }
-  /**
-   * @param {number} time 
-   * @param {mat4} matWorld
-   */
-  render(time, matWorld) {
+
+  render(time: number, matWorld: mat4) {
     const m = this.moments_.render(time, matWorld, this.mouseX_, this.mouseY_);
     if(m !== this.selected_) {
       this.selected_ = m;
@@ -82,10 +70,7 @@ export default class Index extends Layer {
     }
   }
 
-  /**
-   * @param {Moment} m
-   */
-  onSelectionChanged_(m) {
+  private onSelectionChanged_(m: Moment) {
     const tooltip = this.tooltip_;
     if(m == null) {
       tooltip.classList.add('hidden');
@@ -116,7 +101,6 @@ export default class Index extends Layer {
 
   /** @override */
   onAttached() {
-    super.onAttached();
     this.world.cursor = false;
     this.world.canvas.addEventListener('wheel', this.wheelEventListener_, false);
     this.world.canvas.addEventListener('mousemove', this.mouseMoveListener_, false);
@@ -135,13 +119,9 @@ export default class Index extends Layer {
     this.world.canvas.removeEventListener('wheel', this.wheelEventListener_, false);
     this.world.canvas.removeEventListener('mousemove', this.mouseMoveListener_, false);
     this.world.canvas.removeEventListener('mouseup', this.mouseUpListener_, false);
-    super.onDtached();
   }
 
-  /**
-   * @param {MouseEvent} ev 
-   */
-  onMouseMove_(ev) {
+  onMouseMove_(ev: MouseEvent) {
     ev.preventDefault();
     const canvas = this.world.canvas;
     const hw = canvas.width/2;
@@ -151,10 +131,7 @@ export default class Index extends Layer {
     this.mouseY_ = -(ev.clientY - hh) / hh;
   }
 
-  /**
-   * @param {MouseEvent} ev 
-   */
-  onMouseUp_(ev) {
+  onMouseUp_(ev: MouseEvent) {
     ev.preventDefault();
     const m = this.selected_;
     if(!m) {
@@ -168,7 +145,7 @@ export default class Index extends Layer {
    * 
    * @param {WheelEvent} event 
    */
-  onWheelEvent_(event) {
+  onWheelEvent_(event: WheelEvent) {
     event.preventDefault();
     const world = this.world;
     let dx = event.deltaX;
@@ -195,13 +172,9 @@ export default class Index extends Layer {
     }
   }
 
-  /**
-   * @param {MomentSummary[]} moments 
-   */
-  onLoadMoments_(moments) {
+  onLoadMoments_(moments: MomentSummary) {
     const world = this.world;
-    /** @type {Moment[]} */
-    const models = [];
+    const models: Moment[] = [];
     for(let m of moments) {
       const model = new Moment(world, m.angle, m.date, m.title, m.path, m.imageURL, m.bodyURL);
       model.relocation(models);
@@ -211,13 +184,12 @@ export default class Index extends Layer {
     this.loaded_ = true;
   }
 
-  fetch(size) {
+  fetch(size: number) {
     fetch(`/moment/search?size=${size}`)
       .then(resp => resp.json())
       .then(this.onLoadMoments_.bind(this));
   }
 
-  /** @override */
   destroy() {
     this.moments_.destroy();
   }

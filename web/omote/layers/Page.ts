@@ -1,26 +1,20 @@
-import World from '../World.js'
-import Layer from '../Layer.js';
+import World from '../World'
+import Layer from '../Layer';
 import Moments from '../actors/Moments.js';
-import Moment from '../actors/Moment.js';
+import Moment from '../actors/Moment';
 import { mat4, vec4 } from 'gl-matrix';
-import * as debug from '../gl/debug.js';
+import * as debug from '../gl/debug';
 import twemoji from 'twemoji';
 
-/**
-  @typedef MomentData
-  @type {object}
-  @property {number} angle
-  @property {string} date
-  @property {string} title
-  @property {string} image
-*/
 export default class Page extends Layer {
-  /**
-   * @param {World} world 
-   * @param {string} path
-   * @param {Promise<string>} contentPromise
-   */
-  constructor(world, path, contentPromise) {
+
+  private readonly contentWrapper_: HTMLDivElement;
+  private readonly content_: HTMLDivElement;
+  private readonly backButton_: HTMLDivElement;
+  private readonly closeListener_: () => void;
+  private prevTitle_: string;
+  private title_: string;
+  constructor(world: World, path: string, contentPromise: Promise<string>) {
     super(world, path);
 
     this.contentWrapper_ = document.createElement('div');
@@ -37,33 +31,29 @@ export default class Page extends Layer {
     this.contentWrapper_.appendChild(this.backButton_);
 
     this.closeListener_ = this.onClose_.bind(this);
-    /** @type {string} */
     this.prevTitle_ = "";
-    /** @type {string} */
     this.title_ = "";
 
     this.backButton_.addEventListener('mouseup', this.closeListener_, false);
 
     contentPromise.then(this.onLoad_.bind(this), this.onError_.bind(this));
   }
-  /**
-   * @param {number} time 
-   * @param {mat4} matWorld
-   */
-  render(time, matWorld) {
+
+  render(time: number, matWorld: mat4) {
   }
 
-  /** @param {string} body */
-  onLoad_(body) {
+  onLoad_(body: string) {
     this.content_.innerHTML = body;
     twemoji.parse(this.content_);
 
-    for(let src of this.content_.getElementsByTagName('script')) {
+    const contents = this.content_.getElementsByTagName('script');
+    for(let i = 0; i < contents.length; ++i) {
+      const src = contents[i];
       const dst = document.createElement('script');
       dst.textContent = src.textContent;
       dst.src = src.src;
       dst.async = dst.async;
-      const p = src.parentNode;
+      const p = src.parentNode!;
       p.insertBefore(dst, src);
       p.removeChild(src);
     }
@@ -71,7 +61,7 @@ export default class Page extends Layer {
     this.prevTitle_ = document.title;
     const titles = this.content_.getElementsByClassName("title");
     if(titles.length > 0) {
-      this.title_ = titles[0].textContent;
+      this.title_ = titles[0].textContent ?? "";
       document.title = `${this.title_} :: the gear of seasons`;
     }
   }
@@ -85,19 +75,15 @@ export default class Page extends Layer {
     }
   }
 
-  /** @param {any} err */
-  onError_(err) {
+  onError_(err: any) {
     this.content_.innerHTML = `<h1>エラー！</h1>Error:<strong>${err}</strong>`;
   }
 
-  /** @override */
   onAttached() {
-    super.onAttached();
     this.world.canvas.addEventListener('mouseup', this.closeListener_, false);
   }
-  /** @override */
+
   onDtached() {
-    super.onDtached();
     this.world.canvas.removeEventListener('mouseup', this.closeListener_, false);
   }
 
