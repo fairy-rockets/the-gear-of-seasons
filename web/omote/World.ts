@@ -283,7 +283,7 @@ export default class World {
     }
   }
 
-  linkShaders(vs: WebGLShader, fs: WebGLShader): Program {
+  linkShaders(vs: WebGLShader, fs: WebGLShader): WebGLProgram {
     const gl = this.gl_;
     const program = gl.createProgram()!;
     gl.attachShader(program, vs);

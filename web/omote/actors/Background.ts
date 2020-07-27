@@ -1,13 +1,23 @@
-import World from "../World.js";
-import Moment from "./Moment.js"
-import { mat4, vec4 } from "gl-matrix";
+import World from "../World";
+import Moment from "./Moment"
+import Program from "../gl/Program";
+import ArrayBuffer from "../gl/ArrayBuffer";
+import IndexBuffer from "../gl/IndexBuffer";
+import { mat4, vec4, ReadonlyMat4 } from "gl-matrix";
 import { Winter, Spring, Summer, Autumn } from './Seasons.js';
 
 export default class Background {
-  /**
-   * @param {World} world 
-   */
-  constructor(world) {
+  private readonly world_: World;
+  private readonly gl_: WebGLRenderingContext;
+  private readonly program_: Program;
+  private vertexes_: ArrayBuffer;
+  private norms_: ArrayBuffer;
+  private indecies_: IndexBuffer;
+  private readonly matModel_: mat4;
+  private readonly matLoc_: mat4;
+  private readonly matLocModelTmp_: mat4;
+  private readonly matTmp_: mat4;
+  constructor(world: World) {
     this.world_ = world;
     this.gl_ = world.gl;
 
@@ -44,11 +54,7 @@ export default class Background {
     this.matLocModelTmp_ = mat4.identity(mat4.create());
     this.matTmp_ = mat4.identity(mat4.create());
   }
-  /**
-   * @param {number} time 
-   * @param {mat4} mat 
-   */
-  render(time, matWorld) {
+  render(time: number, matWorld: ReadonlyMat4) {
     const gl = this.gl_;
     const world = this.world_;
     const matTmp = this.matTmp_;
@@ -90,9 +96,6 @@ export default class Background {
     }
   }
   destroy() {
-    for(let m of this.models_) {
-      m.destroy();
-    }
     this.norms_.destroy();
     this.vertexes_.destroy();
     this.indecies_.destroy();

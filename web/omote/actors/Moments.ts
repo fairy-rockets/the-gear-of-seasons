@@ -1,14 +1,26 @@
 import World from "../World.js";
-import Moment from "./Moment.js"
+import Moment from "./Moment.js";
+import Program from "../gl/Program";
+import ArrayBuffer from "../gl/ArrayBuffer";
+import IndexBuffer from "../gl/IndexBuffer";
 import { mat4, vec4 } from "gl-matrix";
 
 const Scale = Moment.DiscRadius;
 
 export default class Moments {
-  /**
-   * @param {World} world 
-   */
-  constructor(world) {
+  private readonly world_: World;
+  private readonly gl_: WebGLRenderingContext;
+  private readonly program_: Program;
+  private readonly vertexes_: ArrayBuffer;
+  private readonly texCoords_: ArrayBuffer;
+  private readonly indecies_: IndexBuffer;
+  private readonly matModel_: mat4;
+  private readonly mat_: mat4;
+  private readonly mouseTmpMat_: mat4;
+  private readonly mouseTmpVec_: vec4;
+  private readonly momentPosTmpVec_: vec4;
+  private readonly models_: Moment[] | null;
+  constructor(world: World) {
     this.world_ = world;
     this.gl_ = world.gl;
 
@@ -35,7 +47,6 @@ export default class Moments {
       1, 2, 3
     ]);
 
-    /** Matrix **/
     this.matModel_ = mat4.identity(mat4.create());
     this.mat_ = mat4.identity(mat4.create());
 
@@ -46,13 +57,9 @@ export default class Moments {
     this.mouseTmpVec_ = vec4.create();
     this.momentPosTmpVec_ = vec4.create();
 
-    /** @type {Moment[]} */
     this.models_ = null;
   }
-  /**
-   * @param {Moment[]} m
-   */
-  set models(ms) {
+  set models(ms: Moment[]) {
     if(this.models_) {
       for(let m of this.models_) {
         m.destroy();
@@ -60,14 +67,8 @@ export default class Moments {
     }
     this.models_ = ms;
   }
-  /**
-   * @param {number} time 
-   * @param {mat4} mat 
-   * @param {number} mouseX
-   * @param {number} mouseY
-   * @returns {Moment} 
-   */
-  render(time, matWorld, mouseX, mouseY) {
+
+  render(time: number, matWorld: mat4, mouseX: number, mouseY: number) {
     const gl = this.gl_;
     const world = this.world_;
     const gear = world.gear;
@@ -77,14 +78,12 @@ export default class Moments {
     const hh = world.canvas.height/2;
 
     const matModel = this.matModel_;
-    const matLoc = this.matLoc_;
 
     if(!this.models_) {
       return;
     }
 
-    /** @type {Moment} */
-    let selected = null;
+    let selected: Moment | null = null;
 
     try {
       gl.enable(gl.BLEND);
@@ -128,7 +127,7 @@ export default class Moments {
 
         // Lets render!
         gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
-        gl.uniform1i(this.program_.uniformLoc('hovered'), hovered);
+        gl.uniform1i(this.program_.uniformLoc('hovered'), hovered ? 1 : 0);
         this.indecies_.render();
       }
       world.cursor = hit;

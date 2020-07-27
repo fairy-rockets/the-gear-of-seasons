@@ -1,12 +1,12 @@
-import World from "../World.js";
-import { mat4, vec3, vec4 } from "gl-matrix";
+import World from "../World";
+import Program from "../gl/Program";
+import ArrayBuffer from "../gl/ArrayBuffer";
+import IndexBuffer from "../gl/IndexBuffer";
+import { mat4, vec4, ReadonlyMat4 } from "gl-matrix";
 
 import { Winter, Spring, Summer, Autumn } from './Seasons.js';
 
-/**
- * @returns {number}
- */
-function calcTodaysAngle() {
+function calcTodaysAngle(): number {
   const now = new Date();
   const beg = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
   const end = new Date(now.getFullYear(), 11, 31, 12, 59, 59, 999);
@@ -14,10 +14,25 @@ function calcTodaysAngle() {
 }
 
 export default class Gear {
-  /**
-   * @param {World} world 
-   */
-  constructor(world) {
+  private readonly world_: World;
+  private readonly gl_: WebGLRenderingContext;
+  private readonly program_: Program;
+  private readonly matModel_: mat4;
+  private readonly matLoc_: mat4;
+  private readonly matLocModel_: mat4;
+  private readonly matTmp_: mat4;
+  private readonly todaysAngle_: number;
+  private angle_: number;
+
+  private readonly winterLightPos_: vec4;
+  private readonly springLightPos_: vec4;
+  private readonly summerLightPos_: vec4;
+  private readonly autumnLightPos_: vec4;
+
+  private vertexes_: ArrayBuffer;
+  private norms_: ArrayBuffer;
+  private indecies_: IndexBuffer;
+constructor(world: World) {
     this.world_ = world;
     this.gl_ = world.gl;
     const vs = world.compileVertexShader(vsSrc);
@@ -32,14 +47,15 @@ export default class Gear {
 
     this.todaysAngle_ = calcTodaysAngle();
     this.angle_ = this.todaysAngle_ - Math.PI/6;
+
+    this.winterLightPos_ = vec4.create();
+    this.springLightPos_ = vec4.create();
+    this.summerLightPos_ = vec4.create();
+    this.autumnLightPos_ = vec4.create();
     this.generateModel_(12, 10, 0.6, 1, 0.3);
   }
-  /**
-   * @param {number} width 
-   * @param {number} height 
-   * @public
-   */
-  onSizeChanged(width, height) {
+
+  onSizeChanged(width: number, height: number) {
     const aspect = width / height;
     const matModel = this.matModel_;
     const matLoc = this.matLoc_;
@@ -49,38 +65,31 @@ export default class Gear {
     mat4.scale(matModel, matModel, [10, 10, 10]);
     mat4.translate(matLoc, matLoc, [-0.8 * aspect, 0.8, -1.5]);
   }
-  /** @param {number} v */
-  set angle(v) {
+  set angle(v: number) {
     this.angle_ = v;
   }
-  /** @returns {number} */
-  get angle() {
+  get angle(): number {
     return this.angle_;
   }
-  /** @returns {mat4} */
-  get matrix() {
+  get matrix(): mat4 {
     return this.matLocModel_;
   }
-  /** @returns {vec3} */
-  get winterLightPos() {
+  get winterLightPos(): vec4 {
     return this.winterLightPos_;
   }
-  /** @returns {vec3} */
-  get springLightPos() {
+  get springLightPos(): vec4 {
     return this.springLightPos_;
   }
-  /** @returns {vec3} */
-  get summerLightPos() {
+  get summerLightPos(): vec4 {
     return this.summerLightPos_;
   }
-  /** @returns {vec3} */
-  get autumnLightPos() {
+  get autumnLightPos(): vec4 {
     return this.autumnLightPos_;
   }
   /**
    * @param {mat4} matWorld 
    */
-  beforeRender(matWorld) {
+  beforeRender(matWorld: ReadonlyMat4) {
     const matModel = this.matModel_;
     const matLoc = this.matLoc_;
 
@@ -104,7 +113,7 @@ export default class Gear {
   /**
    * @param {mat4} matWorld 
    */
-  render(matWorld) {
+  render(matWorld: mat4) {
     const gl = this.gl_;
     const world = this.world_;
 
@@ -146,28 +155,15 @@ export default class Gear {
     }
   }
 
-  /**
-   * 
-   * @param {number} numCogs 
-   * @param {number} numDivs
-   * @param {number} innerRadius 
-   * @param {number} outerRadius 
-   * @param {number} depth
-   * @private
-   */
-  generateModel_(numCogs, numDivs, innerRadius, outerRadius, depth) {
+  generateModel_(numCogs: number, numDivs: number, innerRadius: number, outerRadius: number, depth: number) {
     const pi2 = Math.PI * 2;
-    this.winterLightPos_ = vec4.create();
-    this.springLightPos_ = vec4.create();
-    this.summerLightPos_ = vec4.create();
-    this.autumnLightPos_ = vec4.create();
 
     /** @type {number[]} */
-    const vertexes = [];
+    const vertexes: number[] = [];
     /** @type {number[]} */
-    const indecies = [];
+    const indecies: number[] = [];
     /** @type {number[]} */
-    const norms = [];
+    const norms: number[] = [];
 
     const totalLines = numCogs * numDivs * 2;
 
@@ -276,9 +272,9 @@ export default class Gear {
     const world = this.world_;
     const gl = this.gl_;
 
-    this.vertexes_ = world.createArrayBuffer(vertexes, 3);
-    this.norms_ = world.createArrayBuffer(norms, 3);
-    this.indecies_ = world.createIndexBuffer(gl.TRIANGLES, indecies);
+    this.vertexes_ = world.createArrayBuffer(vertexes, 3)!;
+    this.norms_ = world.createArrayBuffer(norms, 3)!;
+    this.indecies_ = world.createIndexBuffer(gl.TRIANGLES, indecies)!;
   }
   destroy() {
     this.vertexes_.destroy();
