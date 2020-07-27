@@ -1,25 +1,33 @@
-import World from "../World.js";
+import World from "../World";
 import { vec2 } from "gl-matrix";
-import Texture from "../gl/Texture.js";
+import Texture from "../gl/Texture";
 
 export default class Moment {
-  static get DiscRadius() {
+  static get DiscRadius(): number {
     return 0.2;
   }
-  /**
-   * @param {World} world
-   * @param {string} angle 
-   * @param {string} date 
-   * @param {string} title 
-   * @param {string} path
-   * @param {string} imageURL
-   * @param {string} bodyURL
-   */
-  constructor(world, angle, date, title, path, imageURL, bodyURL) {
+  private readonly world_: World;
+  private readonly gl_: WebGLRenderingContext;
+  private readonly angle_: number;
+  private readonly date_: string;
+  private readonly title_: string;
+  private readonly path_: string;
+  private readonly bodyURL_: string;
+  private tex_: Texture | null;
+  private readonly c_: number;
+  private readonly s_: number;
+  private radius_: number;
+  private x_: number;
+  private y_: number;
+  private screenTopX_: number;
+  private screenTopY_: number;
+  private screenBottomX_: number;
+  private screenBottomY_: number;
+  constructor(world: World, angle: string, date: string, title: string, path: string, imageURL: string, bodyURL: string) {
     this.world_ = world;
     this.gl_ = world.gl;
     // params
-    this.angle_ = angle;
+    this.angle_ = parseFloat(angle);
     this.date_ = date;
     this.title_ = title;
     this.path_ = path;
@@ -36,35 +44,28 @@ export default class Moment {
     this.screenBottomX_ = 0;
     this.screenBottomY_ = 0;
   }
-  setScreenTop(screenTopX, screenTopY) {
+  setScreenTop(screenTopX: number, screenTopY: number) {
     this.screenTopX_ = screenTopX;
     this.screenTopY_ = screenTopY;
   }
-  setScreenBottom(screenBottomX, screenBottomY) {
+  setScreenBottom(screenBottomX: number, screenBottomY: number) {
     this.screenBottomX_ = screenBottomX;
     this.screenBottomY_ = screenBottomY;
   }
-  /** @type {number} */
-  get screenTopX() {
+  get screenTopX(): number {
     return this.screenTopX_;
   }
-  /** @type {number} */
-  get screenTopY() {
+  get screenTopY(): number {
     return this.screenTopY_;
   }
-  /** @type {number} */
-  get screenBottomX() {
+  get screenBottomX(): number {
     return this.screenBottomX_;
   }
-  /** @type {number} */
-  get screenBottomY() {
+  get screenBottomY(): number {
     return this.screenBottomY_;
   }
-  /**
-   * 
-   * @param {Moment[]} moments 
-   */
-  relocation(moments) {
+
+  relocation(moments: Moment[]) {
     const diameter = Moment.DiscRadius * 2;
     const diameter2 = diameter * diameter;
     const c = this.c_;
@@ -74,7 +75,7 @@ export default class Moment {
     moments.sort((a,b) => a.radius_ - b.radius_);
 
     /** @type {number[][]} */
-    const range = []
+    const range: number[][] = []
     for(let m of moments) {
       const crossRadius = m.x_ * c + m.y_ * s;
       if(crossRadius <= 0) continue;
@@ -98,32 +99,26 @@ export default class Moment {
     this.tex_.destroy();
     this.tex_=null;
   }
-  /** @returns {number} */
-  get x() {
+  get x(): number {
     return this.x_;
   }
-  /** @returns {number} */
-  get y() {
+  get y(): number {
     return this.y_;
   }
-  /** @returns {Texture} */
-  get tex() {
-    return this.tex_;
+  get tex(): Texture {
+    return this.tex_!;
   }
-  /** @returns {string} */
-  get title() {
+
+  get title(): string {
     return this.title_;
   }
-  /** @returns {string} */
-  get bodyURL() {
+  get bodyURL(): string {
     return this.bodyURL_;
   }
-  /** @returns {string} */
-  get path() {
+  get path(): string {
     return this.path_;
   }
-  /** @returns {string} */
-  get date() {
+  get date(): string {
     return this.date_;
   }
 }
