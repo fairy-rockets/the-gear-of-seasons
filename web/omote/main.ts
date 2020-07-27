@@ -3,12 +3,10 @@ import Gear from './actors/Gear';
 import Index from './layers/Index';
 import Page from './layers/Page';
 
-/** @type {World} */
-let world = null;
+let world: World | null = null;
 
 function main() {
-  /** @type {HTMLCanvasElement} */
-  const canvas = document.getElementById('background');
+  const canvas: HTMLCanvasElement = document.getElementById('background') as HTMLCanvasElement;
   if(!canvas) {
     document.body.innerHTML='<h1>No canvas</h1>';
     return;
@@ -22,6 +20,5 @@ function main() {
 
   world.openLayer(location.pathname);
 }
-
 
 document.addEventListener('DOMContentLoaded', main, false);
