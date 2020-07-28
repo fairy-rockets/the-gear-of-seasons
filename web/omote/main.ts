@@ -1,7 +1,4 @@
 import World from './World';
-import Gear from './actors/Gear';
-import Index from './layers/Index';
-import Page from './layers/Page';
 
 let world: World | null = null;
 

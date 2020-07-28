@@ -1,9 +1,0 @@
-{
-  "presets": ["@babel/preset-env"],
-  "plugins": [
-    ["@babel/transform-runtime", {
-      "regenerator": true
-    }]
-  ]
-}
-// https://babeljs.io/docs/en/configuration

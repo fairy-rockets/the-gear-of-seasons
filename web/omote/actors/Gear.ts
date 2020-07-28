@@ -4,7 +4,7 @@ import ArrayBuffer from "../gl/ArrayBuffer";
 import IndexBuffer from "../gl/IndexBuffer";
 import { mat4, vec4, ReadonlyMat4 } from "gl-matrix";
 
-import { Winter, Spring, Summer, Autumn } from './Seasons.js';
+import { Winter, Spring, Summer, Autumn } from './Seasons';
 
 function calcTodaysAngle(): number {
   const now = new Date();
@@ -29,10 +29,10 @@ export default class Gear {
   private readonly summerLightPos_: vec4;
   private readonly autumnLightPos_: vec4;
 
-  private vertexes_: ArrayBuffer;
-  private norms_: ArrayBuffer;
-  private indecies_: IndexBuffer;
-constructor(world: World) {
+  private vertexes_: ArrayBuffer | null = null;
+  private norms_: ArrayBuffer | null = null;
+  private indecies_: IndexBuffer | null = null;
+  constructor(world: World) {
     this.world_ = world;
     this.gl_ = world.gl;
     const vs = world.compileVertexShader(vsSrc);
@@ -127,8 +127,8 @@ constructor(world: World) {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
       this.program_.bind();
-      this.vertexes_.bindShader(this.program_, 'position');
-      this.norms_.bindShader(this.program_, 'norm');
+      this.vertexes_!.bindShader(this.program_, 'position');
+      this.norms_!.bindShader(this.program_, 'norm');
 
       gl.uniformMatrix4fv(this.program_.uniformLoc('matLocModel'), false, matLocModel);
       gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, matTmp);
@@ -143,14 +143,14 @@ constructor(world: World) {
       gl.uniform4fv(this.program_.uniformLoc('summerPosition'), this.summerLightPos_);
       gl.uniform4fv(this.program_.uniformLoc('autumnPosition'), this.autumnLightPos_);
 
-      this.indecies_.bind();
-      this.indecies_.render();
+      this.indecies_!.bind();
+      this.indecies_!.render();
     } finally {
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
-      this.vertexes_.unbind();
-      this.norms_.unbind();
-      this.indecies_.unbind();
+      this.vertexes_!.unbind();
+      this.norms_!.unbind();
+      this.indecies_!.unbind();
       this.program_.unbind();
     }
   }
@@ -277,9 +277,9 @@ constructor(world: World) {
     this.indecies_ = world.createIndexBuffer(gl.TRIANGLES, indecies)!;
   }
   destroy() {
-    this.vertexes_.destroy();
-    this.norms_.destroy();
-    this.indecies_.destroy();
+    this.vertexes_?.destroy();
+    this.norms_?.destroy();
+    this.indecies_?.destroy();
     this.program_.destoy();
   }
 }

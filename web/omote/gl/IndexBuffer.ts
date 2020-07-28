@@ -1,11 +1,9 @@
 export default class IndexBuffer{
-  /**
-   * @param {WebGLRenderingContext} gl 
-   * @param {number} mode 
-   * @param {WebGLBuffer} buff
-   * @param {number} length
-   */
-  constructor(gl, mode, buff, length) {
+  private readonly gl_: WebGLRenderingContext;
+  private readonly mode_: number;
+  private buff_: WebGLBuffer | null;
+  public readonly length: number;
+  constructor(gl: WebGLRenderingContext, mode: number, buff: WebGLBuffer, length: number) {
     this.gl_ = gl;
     this.mode_ = mode;
     this.buff_ = buff;

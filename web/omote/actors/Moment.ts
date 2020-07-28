@@ -23,11 +23,11 @@ export default class Moment {
   private screenTopY_: number;
   private screenBottomX_: number;
   private screenBottomY_: number;
-  constructor(world: World, angle: string, date: string, title: string, path: string, imageURL: string, bodyURL: string) {
+  constructor(world: World, angle: number, date: string, title: string, path: string, imageURL: string, bodyURL: string) {
     this.world_ = world;
     this.gl_ = world.gl;
     // params
-    this.angle_ = parseFloat(angle);
+    this.angle_ = angle;
     this.date_ = date;
     this.title_ = title;
     this.path_ = path;
@@ -96,8 +96,8 @@ export default class Moment {
     this.y_ = s * radius;
   }
   destroy() {
-    this.tex_.destroy();
-    this.tex_=null;
+    this.tex_?.destroy();
+    this.tex_ = null;
   }
   get x(): number {
     return this.x_;

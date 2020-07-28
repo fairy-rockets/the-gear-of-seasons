@@ -1,9 +1,9 @@
-import World from "../World.js";
-import Moment from "./Moment.js";
+import World from "../World";
+import Moment from "./Moment";
 import Program from "../gl/Program";
 import ArrayBuffer from "../gl/ArrayBuffer";
 import IndexBuffer from "../gl/IndexBuffer";
-import { mat4, vec4 } from "gl-matrix";
+import { mat4, vec4, ReadonlyVec4, ReadonlyMat4 } from "gl-matrix";
 
 const Scale = Moment.DiscRadius;
 
@@ -19,7 +19,7 @@ export default class Moments {
   private readonly mouseTmpMat_: mat4;
   private readonly mouseTmpVec_: vec4;
   private readonly momentPosTmpVec_: vec4;
-  private readonly models_: Moment[] | null;
+  private models_: Moment[] | null;
   constructor(world: World) {
     this.world_ = world;
     this.gl_ = world.gl;
@@ -68,7 +68,7 @@ export default class Moments {
     this.models_ = ms;
   }
 
-  render(time: number, matWorld: mat4, mouseX: number, mouseY: number) {
+  render(time: number, matWorld: mat4, mouseX: number, mouseY: number): Moment | null {
     const gl = this.gl_;
     const world = this.world_;
     const gear = world.gear;
@@ -80,7 +80,7 @@ export default class Moments {
     const matModel = this.matModel_;
 
     if(!this.models_) {
-      return;
+      return null;
     }
 
     let selected: Moment | null = null;
@@ -140,14 +140,7 @@ export default class Moments {
     }
     return selected;
   }
-  /**
-   * 
-   * @param {mat4} mat 
-   * @param {number} x 
-   * @param {number} y 
-   * @returns {number[]}
-   */
-  calcMousePos_(mat, x, y) {
+  calcMousePos_(mat: ReadonlyMat4, x: number, y: number): [number, number] {
     const tmpMat = this.mouseTmpMat_;
     const tmpVec = this.mouseTmpVec_;
     mat4.set(tmpMat,
@@ -163,8 +156,10 @@ export default class Moments {
   }
 
   destroy() {
-    for(let m of this.models_) {
-      m.destroy();
+    if(this.models_) {
+      for(let m of this.models_) {
+        m.destroy();
+      }
     }
     this.vertexes_.destroy();
     this.texCoords_.destroy();

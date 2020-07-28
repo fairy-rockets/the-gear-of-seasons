@@ -1,25 +1,27 @@
 import Editor from "./Editor";
 
 export default class Uploader {
-  /**
-   * 
-   * @param {HTMLElement} target 
-   * @param {HTMLInputElement} button
-   */
-  constructor(target, button) {
+  private readonly target_: HTMLElement;
+  private readonly button_: HTMLInputElement;
+  private editor_: Editor | null;
+  private readonly fileButton_: HTMLInputElement;
+  private readonly dragStartListener_: (e: DragEvent) => void;
+  private readonly dragEndListener_: (e: DragEvent) => void;
+  private readonly dropListener_: (e: DragEvent) => void;
+  private readonly hoverDialog_: HTMLDivElement;
+  private readonly progressDialog_: HTMLDivElement;
+  private readonly progressImage_: HTMLImageElement;
+  private readonly progressBar_: HTMLProgressElement;
+  constructor(target: HTMLElement, button: HTMLInputElement) {
     this.target_ = target;
     this.button_ = button;
-    /**
-     * @member {Editor} editor_
-     * @private
-     */
     this.editor_ = null;
 
-    /** @member {HTMLInputElement} fileButton_ */
     this.fileButton_ = document.createElement('input');
     this.fileButton_.type = 'file';
     this.fileButton_.multiple = true;
-    this.button_.addEventListener('click', (e) => {
+
+    this.button_.addEventListener('click', (e: MouseEvent) => {
       e.preventDefault();
       this.fileButton_.click();
     }, false);
@@ -33,21 +35,17 @@ export default class Uploader {
     this.hoverDialog_.classList.add('uploader-hover');
     this.hoverDialog_.innerHTML = '<div>⬆</div>';
 
-    /** @member {HTMLDivElement} */
     this.progressDialog_ = document.createElement('div');
     this.progressDialog_.classList.add('uploader-progress');
-    /** @member {HTMLImageElement} */
+
     this.progressImage_ = document.createElement('img');
     this.progressDialog_.appendChild(this.progressImage_);
-    /** @member {HTMLProgressElement} */
+
     this.progressBar_ = document.createElement('progress');
     this.progressDialog_.appendChild(this.progressBar_);
   }
-  /**
-   * 
-   * @param {Editor} editor 
-   */
-  init(editor) {
+
+  init(editor: Editor) {
     this.editor_ = editor;
 
     this.target_.addEventListener('dragover', this.dragStartListener_, false);
@@ -57,24 +55,15 @@ export default class Uploader {
     this.hoverDialog_.addEventListener('dragend', this.dragEndListener_, false);
   }
 
-  /**
-   * 
-   * @param {FileList} files_
-   */
-  upload_(files_) {
+  upload_(files_: FileList) {
     this.target_.appendChild(this.progressDialog_);
-    /** @type {File[]} files */
-    const files = Array.from(files_);
+
+    const files: File[] = Array.from(files_);
     this.progressBar_.max = files.length;
 
-    /** @type {string[]} */
-    const embeds = [];
+    const embeds: string[] = [];
 
-    /**
-     * @param {number} i
-     * @returns {Promise<boolean>}
-     */
-    const upload = (i) => new Promise((resolve, reject) => {
+    const upload: (i: number) => Promise<boolean> = (i: number) => new Promise((resolve, reject) => {
       this.progressImage_.src = '';
       const file = files[i];
       const execUpload = () => {
@@ -95,8 +84,8 @@ export default class Uploader {
       if(file.type.startsWith('image/')){
         const fr = new FileReader();
         fr.onload = event => {
-          this.progressImage_.onload = (ev) => execUpload();
-          this.progressImage_.src = event.target.result;
+          this.progressImage_.onload = () => execUpload();
+          this.progressImage_.src = event.target!.result as string;
         };
         fr.onerror = ev => reject(fr.error);
         fr.onabort = ev => reject(fr.error);
@@ -108,29 +97,24 @@ export default class Uploader {
 
     upload(0).then(() => {
       this.target_.removeChild(this.progressDialog_);
-      this.editor_.onUpload(embeds);
+      this.editor_!.onUpload(embeds);
     }).catch((err) => {
       console.error(err);
       this.target_.removeChild(this.progressDialog_);
     });
   }
 
-  /**
-   * @param {DragEvent} e
-   */
-  onDrop_(e) {
+
+  onDrop_(e: DragEvent) {
     e.stopPropagation();
     e.preventDefault();
     if(!!this.hoverDialog_.parentNode) {
       this.target_.removeChild(this.hoverDialog_);
     }
-    this.upload_(e.dataTransfer.files);
+    this.upload_(e.dataTransfer!.files);
   }
 
-  /**
-   * @param {DragEvent} e
-   */
-  onDragStart_(e) {
+  onDragStart_(e: DragEvent) {
     e.stopPropagation();
     e.preventDefault();
     if(!this.hoverDialog_.parentNode) {
@@ -138,10 +122,7 @@ export default class Uploader {
     }
   }
 
-  /**
-   * @param {DragEvent} e
-   */
-  onDragEnd_(e) {
+  onDragEnd_(e: DragEvent) {
     e.stopPropagation();
     e.preventDefault();
     if(!!this.hoverDialog_.parentNode) {
@@ -149,13 +130,9 @@ export default class Uploader {
     }
   }
 
-  /**
-   * 
-   * @param {Event} e 
-   */
-  onButtonChange_(e) {
+  onButtonChange_(e: Event) {
     e.preventDefault();
-    if(this.fileButton_.files.length <= 0) {
+    if(this.fileButton_.files == null || this.fileButton_.files.length <= 0) {
       return;
     }
     this.upload_(this.fileButton_.files);

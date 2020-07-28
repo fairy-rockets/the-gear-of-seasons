@@ -1,13 +1,11 @@
 import Program from "./Program";
 
 export default class ArrayBuffer{
-  /**
-   * @param {WebGLRenderingContext} gl 
-   * @param {WebGLBuffer} buff
-   * @param {number} elemSize
-   * @param {number} length
-   */
-  constructor(gl, buff, elemSize, length) {
+  private readonly gl_: WebGLRenderingContext;
+  private buff_: WebGLBuffer | null;
+  public readonly elemSize: number;
+  public readonly length: number;
+  constructor(gl: WebGLRenderingContext, buff: WebGLBuffer, elemSize: number, length: number) {
     this.gl_ = gl;
     this.buff_ = buff;
     this.elemSize = elemSize;
@@ -17,12 +15,7 @@ export default class ArrayBuffer{
     const gl = this.gl_;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buff_);
   }
-  /**
-   * 
-   * @param {Program} prog 
-   * @param {string} attrName
-   */
-  bindShader(prog, attrName) {
+  bindShader(prog: Program, attrName: string) {
     const gl = this.gl_;
     const pos = prog.attributeLoc(attrName);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buff_);

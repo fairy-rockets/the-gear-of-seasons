@@ -1,10 +1,10 @@
-import World from '../World.js'
-import Layer from '../Layer.js';
-import Moments from '../actors/Moments.js';
-import Moment from '../actors/Moment.js';
+import World from '../World'
+import Layer from '../Layer';
+import Moments from '../actors/Moments';
+import Moment from '../actors/Moment';
 import { mat4, vec4 } from 'gl-matrix';
-import * as debug from '../gl/debug.js';
-import Page from './Page.js';
+import * as debug from '../gl/debug';
+import Page from './Page';
 import twemoji from 'twemoji';
 
 interface MomentSummary{
@@ -20,10 +20,10 @@ export default class Index extends Layer {
   private readonly wheelEventListener_: (ev: WheelEvent) => void;
   private readonly mouseMoveListener_: (ev: MouseEvent) => void;
   private readonly mouseUpListener_: (ev: MouseEvent) => void;
-  private readonly moments_: Moments[];
+  private readonly moments_: Moments;
   private mouseX_: number;
   private mouseY_: number;
-  private selected_: Moment;
+  private selected_: Moment | null;
   private readonly tooltip_: HTMLDivElement;
   private readonly tooltipTitle_: HTMLDivElement;
   private readonly tooltipDate_: HTMLDivElement;
@@ -64,7 +64,7 @@ export default class Index extends Layer {
 
   render(time: number, matWorld: mat4) {
     const m = this.moments_.render(time, matWorld, this.mouseX_, this.mouseY_);
-    if(m !== this.selected_) {
+    if(m !== null && m !== this.selected_) {
       this.selected_ = m;
       this.onSelectionChanged_(m);
     }
@@ -90,6 +90,9 @@ export default class Index extends Layer {
   fixTooltipPosition_() {
     const tooltip = this.tooltip_;
     const m = this.selected_;
+    if(m == null) {
+      return;
+    }
     if((m.screenBottomY + m.screenTopY) / 2 / this.world_.canvas.height >= 0.5) {
       tooltip.style.top = (m.screenTopY - tooltip.clientHeight)+'px';
       tooltip.style.left = (m.screenTopX - tooltip.clientWidth/2)+'px';
@@ -172,7 +175,7 @@ export default class Index extends Layer {
     }
   }
 
-  onLoadMoments_(moments: MomentSummary) {
+  onLoadMoments_(moments: MomentSummary[]) {
     const world = this.world;
     const models: Moment[] = [];
     for(let m of moments) {
