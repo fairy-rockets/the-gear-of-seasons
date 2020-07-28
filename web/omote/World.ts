@@ -283,7 +283,7 @@ export default class World {
     }
   }
 
-  linkShaders(vs: WebGLShader, fs: WebGLShader): WebGLProgram {
+  linkShaders(vs: WebGLShader, fs: WebGLShader): Program {
     const gl = this.gl_;
     const program = gl.createProgram()!;
     gl.attachShader(program, vs);
@@ -302,7 +302,7 @@ export default class World {
 
   createIndexBuffer(mode: number, data: Uint16Array|number[]): IndexBuffer {
     const gl = this.gl_;
-    const buff = gl.createBuffer();
+    const buff = gl.createBuffer()!;
     if(data instanceof Array) {
       data = new Uint16Array(data);
     }
@@ -314,7 +314,7 @@ export default class World {
 
   createArrayBuffer(data: Float32Array|number[], elemSize: number): ArrayBuffer {
     const gl = this.gl_;
-    const buff = gl.createBuffer();
+    const buff = gl.createBuffer()!;
     if(data instanceof Array) {
       data = new Float32Array(data);
     }

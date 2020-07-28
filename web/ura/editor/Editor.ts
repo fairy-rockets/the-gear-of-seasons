@@ -1,25 +1,32 @@
 import Preview from "./Preview";
 import { throws } from "assert";
 
-/**
-  @typedef Moment
-  @type {object}
-  @property {string} title
-  @property {string} date
-  @property {string} author
-  @property {string} text
-*/
+interface MomentSave {
+  title: string;
+  original_date: string | null;
+  date: string | null;
+  author: string;
+  text: string;
+}
 
+interface MomentSaveResult {
+  path: string;
+  date: string;
+  body: string;
+}
 export default class Editor {
-  /**
-   * 
-   * @param {HTMLInputElement} title 
-   * @param {HTMLInputElement} date 
-   * @param {HTMLSelectElement} author 
-   * @param {HTMLTextAreaElement} text 
-   * @param {HTMLButtonElement} submit
-   */
-  constructor(title, date, author, text, submit) {
+  private readonly title_: HTMLInputElement;
+  private readonly date_: HTMLInputElement;
+  private readonly author_: HTMLSelectElement;
+  private readonly text_: HTMLTextAreaElement;
+  private readonly submit_: HTMLButtonElement;
+  private original_date_: string;
+  private readonly onChangeEventListener_: () => void;
+  private preview_: Preview | null;
+  private changeId_: NodeJS.Timeout | null;
+  executePreviewUpdater_: () => void;
+  onSaveEventListener_: () => void;
+  constructor(title: HTMLInputElement, date: HTMLInputElement, author: HTMLSelectElement, text: HTMLTextAreaElement, submit: HTMLButtonElement) {
     this.title_ = title;
     this.date_ = date;
     this.author_ = author;
@@ -27,18 +34,13 @@ export default class Editor {
     this.submit_ = submit;
     this.original_date_ = date.value;
     this.onChangeEventListener_ = this.onChange_.bind(this);
-    /** @type {Preview} */
     this.preview_ = null;
-    /** @type {number|null} */
     this.changeId_ = null;
     this.executePreviewUpdater_ = this.executePreviewUpdate_.bind(this);
     this.onSaveEventListener_ = this.onSave_.bind(this);
   }
-  /**
-   * 
-   * @param {Preview} preview 
-   */
-  init(preview) {
+
+  init(preview: Preview) {
     this.preview_ = preview;
     this.text_.addEventListener('input', this.onChangeEventListener_);
     this.title_.addEventListener('input', this.onChangeEventListener_);
@@ -67,10 +69,7 @@ export default class Editor {
     }
     this.changeId_ = setTimeout(this.executePreviewUpdater_, 500);
   }
-  /**
-   * @private
-   */
-  makeMoment_() {
+  makeMoment_(): MomentSave {
     return {
       title: this.title_.value,
       original_date: this.original_date_.length > 0 ? this.original_date_ : null,
@@ -92,12 +91,12 @@ export default class Editor {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       }}).then(result => result.json())
-      .then(result => {
+      .then((result: MomentSaveResult) => {
         this.submit_.disabled = true;
-        this.preview_.onChange(result.body);
+        this.preview_!.onChange(result.body);
         this.date_.value = result.date;
         this.original_date_ = result.date;
-        history.replaceState(null, null, result.path);
+        history.replaceState(null, moment.title, result.path);
       });
   }
   executePreviewUpdate_() {
@@ -110,15 +109,12 @@ export default class Editor {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       }}).then(result => result.text())
-      .then(body => this.preview_.onChange(body));
+      .then(body => this.preview_!.onChange(body));
   }
-  /**
-   * 
-   * @param {string[]} embeds 
-   */
-  onUpload(embeds) {
+
+  onUpload(embeds: string[]) {
     const embedsString = embeds.join('\n\n');
-    if (this.text_.selectionStart || this.text_.selectionStart == '0') {
+    if (this.text_.selectionStart || this.text_.selectionStart === 0) {
       const startPos = this.text_.selectionStart;
       const endPos = this.text_.selectionEnd;
       this.text_.value =

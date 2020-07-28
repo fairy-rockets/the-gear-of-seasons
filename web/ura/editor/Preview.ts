@@ -1,27 +1,17 @@
 import Editor from "./Editor";
 
 export default class Preview {
-  /**
-   * 
-   * @param {HTMLDivElement} container 
-   */
-  constructor(container) {
+  private readonly container_: HTMLDivElement;
+  private editor_: Editor | null;
+  constructor(container: HTMLDivElement) {
     this.container_ = container;
     /** @type {Editor} */
     this.editor_ = null;
   }
-  /**
-   * 
-   * @param {Editor} editor 
-   */
-  init(editor) {
+  init(editor: Editor) {
     this.editor_ = editor;
   }
-  /**
-   * 
-   * @param {string} body 
-   */
-  onChange(body) {
+  onChange(body: string) {
     this.container_.innerHTML = body;
   }
 }

@@ -1,6 +1,6 @@
 import World from '../World'
 import Layer from '../Layer';
-import Moments from '../actors/Moments.js';
+import Moments from '../actors/Moments';
 import Moment from '../actors/Moment';
 import { mat4, vec4 } from 'gl-matrix';
 import * as debug from '../gl/debug';

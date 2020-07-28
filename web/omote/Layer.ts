@@ -3,7 +3,7 @@ import { mat4 } from "gl-matrix";
 import Gear from "./actors/Gear";
 
 export default abstract class Layer {
-  private readonly world_: World;
+  protected readonly world_: World;
   private readonly path_: string;
   protected readonly element_: HTMLDivElement;
   constructor(world: World, path: string) {
