@@ -11,7 +11,7 @@
     "gc": "npm run build && .bin/garbage-collect",
     "pull": "rsync --delete -auzv -e ssh hexe.net:/opt/www/hexe.net/the-gear-of-seasons/_shelf/ _shelf/",
     "push": "rsync --delete -auzv -e ssh _shelf/ hexe.net:/opt/www/hexe.net/the-gear-of-seasons/_shelf/",
-    "up": "npm-check-updates -u && npm install && npm audit fix"
+    "up": "npm-check-updates -u && npm install && npm dedupe && npm audit fix"
   },
   "repository": {
     "type": "git",
@@ -36,17 +36,17 @@
     "fancy-log": "^1.3.3",
     "gulp": "^4.0.2",
     "gulp-typescript": "^6.0.0-alpha.1",
-    "npm-check-updates": "^7.0.1",
+    "npm-check-updates": "^7.0.2",
     "ts-loader": "^8.0.1",
     "ts-node": "^8.10.2",
     "typescript": "^3.9.7",
-    "webpack": "^4.43.0",
+    "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12",
     "webpack-stream": "^5.2.1",
     "write-file-webpack-plugin": "^4.5.1"
   },
   "dependencies": {
     "gl-matrix": "^3.3.0",
-    "twemoji": "^13.0.0"
+    "twemoji": "^13.0.1"
   }
 }
