@@ -49,6 +49,7 @@ async function buildServer(dst: string, os: string | null = null, arch: string |
   const options: child.SpawnOptions = {};
   const env = Object.create( process.env );
   options.env = env;
+  env['GO111MODULE'] = 'on';
   if(os) {
     env['GOOS'] = os;
   }
