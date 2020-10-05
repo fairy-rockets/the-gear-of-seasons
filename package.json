@@ -5,7 +5,7 @@
   "scripts": {
     "start": "gulp watch",
     "deploy": "gulp deploy",
-    "build": "mkdir -p .bin/ && go generate ./... && go build -o .bin/ ./... && gulp 'client:build'",
+    "build": "gulp 'build'",
     "clean": "rm -Rf .bin/",
     "check": "npm run build && .bin/sanity-check",
     "gc": "npm run build && .bin/garbage-collect",
