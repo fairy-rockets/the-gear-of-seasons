@@ -15,7 +15,7 @@ const ServerPath = 'github.com/fairy-rockets/the-gear-of-seasons/cmd/the-gear-of
 const ServerBin  = '.bin/the-gear-of-seasons';
 
 async function clean(): Promise<void> {
-  await fs.rmdir('.bin');
+  await del('.bin');
 }
 
 async function buildClient() {
