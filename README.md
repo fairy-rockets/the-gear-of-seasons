@@ -1,3 +1,6 @@
+[![Build on Linux](https://github.com/fairy-rockets/the-gear-of-seasons/workflows/Build%20on%20Linux/badge.svg)](https://github.com/fairy-rockets/the-gear-of-seasons/actions?query=workflow%3A%22Build+on+Linux%22)
+[![Build on macOS](https://github.com/fairy-rockets/the-gear-of-seasons/workflows/Build%20on%20macOS/badge.svg)](https://github.com/fairy-rockets/the-gear-of-seasons/actions?query=workflow%3A%22Build+on+macOS%22)
+[![Build on Windows](https://github.com/fairy-rockets/the-gear-of-seasons/workflows/Build%20on%20Windows/badge.svg)](https://github.com/fairy-rockets/the-gear-of-seasons/actions?query=workflow%3A%22Build+on+Windows%22)
 
 # How to build
 

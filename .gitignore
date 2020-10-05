@@ -1,9 +1,7 @@
-.*
-!.gitignore
-**/*.gen.go
 *.gen.go
-.idea/
-node_modules/
+/.idea/
+/.bin/
+/node_modules/
 
 _shelf/
 _cache/
