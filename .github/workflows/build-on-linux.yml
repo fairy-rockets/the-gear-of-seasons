@@ -21,4 +21,6 @@ jobs:
           node-version: '> 14.0'
           check-latest: true
       - name: Build
-        run: npm run build
+        run: |
+          npm install
+          npm run build
