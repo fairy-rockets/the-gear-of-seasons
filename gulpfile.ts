@@ -2,6 +2,8 @@ import gulp from 'gulp';
 import log from 'fancy-log';
 import del from 'del';
 import colors from 'ansi-colors';
+import path from 'path'
+import fs from 'fs'
 
 import webpackStream from 'webpack-stream';
 import webpack from 'webpack';
@@ -43,6 +45,7 @@ function exec(args: string[], options: child.SpawnOptions): Promise<string> {
 }
 
 async function buildServer(dst: string, os: string | null = null, arch: string | null = null): Promise<string> {
+  fs.mkdirSync(path.dirname(dst), {recursive: true});
   const options: child.SpawnOptions = {};
   const env = Object.create( process.env );
   options.env = env;
