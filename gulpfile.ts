@@ -3,7 +3,7 @@ import log from 'fancy-log';
 import del from 'del';
 import colors from 'ansi-colors';
 import path from 'path'
-import fs from 'fs'
+import {promises as fs} from 'fs'
 
 import webpackStream from 'webpack-stream';
 import webpack from 'webpack';
@@ -13,6 +13,10 @@ import webpackConfig from "./webpack.config";
 
 const ServerPath = 'github.com/fairy-rockets/the-gear-of-seasons/cmd/the-gear-of-seasons';
 const ServerBin  = '.bin/the-gear-of-seasons';
+
+async function clean(): Promise<void> {
+  await fs.rmdir('.bin');
+}
 
 async function buildClient() {
   const stream = webpackStream(webpackConfig, webpack.prototype)
@@ -64,7 +68,7 @@ async function buildServer(dst: string, os: string | null = null, arch: string |
            '-a', '-installsuffix', 'cgo', '-ldflags', '-s', ServerPath];
   }
   await del([dst]);
-  fs.mkdirSync(path.dirname(dst), {recursive: true});
+  await fs.mkdir(path.dirname(dst), {recursive: true});
   await exec(['go', 'generate', ServerPath], options);
   return await exec(cmd, options);
 }
@@ -114,6 +118,7 @@ gulp.task('client:watch', gulp.series('client:build', () => {
 
 gulp.task('build', gulp.parallel('server:build', 'client:build'));
 gulp.task('watch', gulp.parallel('server:watch', 'client:watch'));
+gulp.task('clean', clean);
 
 async function deploy() {
   const exe = 'gear-of-seasons-linux';

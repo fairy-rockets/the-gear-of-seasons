@@ -5,8 +5,8 @@
   "scripts": {
     "start": "gulp watch",
     "deploy": "gulp deploy",
-    "build": "gulp 'build'",
-    "clean": "rm -Rf .bin/",
+    "build": "gulp build",
+    "clean": "gulp clean",
     "check": "npm run build && .bin/sanity-check",
     "gc": "npm run build && .bin/garbage-collect",
     "pull": "rsync --delete -auzv -e ssh hexe.net:/opt/www/hexe.net/the-gear-of-seasons/_shelf/ _shelf/",
