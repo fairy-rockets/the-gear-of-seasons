@@ -25,3 +25,10 @@ jobs:
           npm install
           node_modules/.bin/gulp --tasks
           npm run build
+      - uses: actions/upload-artifact@v2
+        with:
+          name: the-gear-of-seasons
+          path: |
+            .bin/
+            _resources/static/main.js
+            _resources/static/admin-*.js
