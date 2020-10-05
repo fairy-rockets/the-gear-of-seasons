@@ -45,7 +45,6 @@ function exec(args: string[], options: child.SpawnOptions): Promise<string> {
 }
 
 async function buildServer(dst: string, os: string | null = null, arch: string | null = null): Promise<string> {
-  fs.mkdirSync(path.dirname(dst), {recursive: true});
   const options: child.SpawnOptions = {};
   const env = Object.create( process.env );
   options.env = env;
@@ -65,6 +64,7 @@ async function buildServer(dst: string, os: string | null = null, arch: string |
            '-a', '-installsuffix', 'cgo', '-ldflags', '-s', ServerPath];
   }
   await del([dst]);
+  fs.mkdirSync(path.dirname(dst), {recursive: true});
   await exec(['go', 'generate', ServerPath], options);
   return await exec(cmd, options);
 }
@@ -117,7 +117,7 @@ gulp.task('watch', gulp.parallel('server:watch', 'client:watch'));
 
 async function deploy() {
   const exe = 'gear-of-seasons-linux';
-  const result = await Promise.all([
+  await Promise.all([
     buildServer(exe, 'linux', 'amd64'),
     buildClient()
   ]);
