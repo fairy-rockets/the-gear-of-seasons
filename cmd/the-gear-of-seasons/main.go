@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	serverPkg "github.com/fairy-rockets/the-gear-of-seasons/internal/server"
 	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
@@ -85,6 +86,10 @@ func main() {
 	log.Info("Initializing...")
 	log.Info("----------------------------------------")
 	log.Info("Log System Initialized.")
+	{
+		name, offset := time.Now().Zone()
+		log.Info("Current timezone", zap.String("name", name), zap.Int("offset", offset))
+	}
 
 	storage, err := shelfPkg.NewStorage(*shelfPath)
 	if err != nil {

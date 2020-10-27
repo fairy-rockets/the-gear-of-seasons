@@ -7,7 +7,12 @@ all: \
 
 .PHONY: clean
 clean:
+	gulp clean
 	rm -Rfv .bin
+
+.PHONY: deploy
+deploy:
+	npm run deploy
 
 .bin/the-gear-of-seasons: $(shell find . -type f -name *.go)
 	npm run build
