@@ -10,6 +10,7 @@ import (
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/util"
 	"github.com/nfnt/resize"
 	"github.com/rwcarlsen/goexif/exif"
+	"go.uber.org/zap"
 )
 
 func decodeImage(e *shelf.ImageEntity) (image.Image, string, error) {
@@ -24,16 +25,17 @@ func decodeImage(e *shelf.ImageEntity) (image.Image, string, error) {
 }
 
 func fixOrientation(img image.Image, x *exif.Exif) image.Image {
+	log := zap.L()
 	tag, err := x.Get(exif.Orientation)
 	if err != nil {
 		if !exif.IsTagNotPresentError(err) {
-			log().Warnf("Failed to read orientation tag: %v", err)
+			log.Warn("Failed to read orientation tag", zap.Error(err))
 		}
 		return img
 	}
 	o, err := tag.Int(0)
 	if err != nil {
-		log().Warnf("Failed to read orientation tag: %v", err)
+		log.Warn("Failed to read orientation tag", zap.Error(err))
 		return img
 	}
 
@@ -55,7 +57,7 @@ func fixOrientation(img image.Image, x *exif.Exif) image.Image {
 	case 8:
 		return imaging.Rotate90(img)
 	default:
-		log().Warnf("unknown orientation %d, expect 1-8", o)
+		log.Warn("Unknown orientation found. 1-8 expected", zap.Int("orientation", o))
 		return img
 	}
 }

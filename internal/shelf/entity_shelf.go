@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 )
 
@@ -32,9 +32,10 @@ func (s *entityShelf) Size() int {
 }
 
 func loadMetadata(storage *Storage, path string, out Entity) (Entity, error) {
+	log := zap.L()
 	f, err := storage.OpenFile(path)
 	if err != nil {
-		log.Fatalf("Failed to open %s: %v", path, err)
+		log.Fatal("Failed to open file", zap.String("path", path), zap.Error(err))
 	}
 	defer f.Close()
 	data, err := ioutil.ReadAll(f)
@@ -49,6 +50,7 @@ func loadMetadata(storage *Storage, path string, out Entity) (Entity, error) {
 }
 
 func (s *entityShelf) Init() error {
+	log := zap.L()
 	return s.storage.WalkFiles(EntityPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -70,7 +72,7 @@ func (s *entityShelf) Init() error {
 			case "image/png":
 				ent.Path_ = filepath.Join(dirName, ent.ID_) + ".png"
 			default:
-				log.Fatalf("Unknwon image type: %s", ent.MimeType_)
+				log.Fatal("Unknown image type", zap.String("mime-type", ent.MimeType_))
 			}
 			ent.SystemPath_ = s.storage.path(ent.Path_)
 		} else if strings.HasSuffix(fileName, ".video.yml") {
@@ -84,7 +86,7 @@ func (s *entityShelf) Init() error {
 			case "video/mp4":
 				ent.Path_ = filepath.Join(dirName, ent.ID_) + ".mp4"
 			default:
-				log.Fatalf("Unknwon video type: %s", ent.MimeType_)
+				log.Fatal("Unknown video type", zap.String("mime-type", ent.MimeType_))
 			}
 			ent.SystemPath_ = s.storage.path(ent.Path_)
 		} else if strings.HasSuffix(fileName, ".audio.yml") {
@@ -96,7 +98,7 @@ func (s *entityShelf) Init() error {
 			}
 			switch ent.MimeType_ {
 			default:
-				log.Fatalf("Unknwon audio type: %s", ent.MimeType_)
+				log.Fatal("Unknwon audio type", zap.String("mime-type", ent.MimeType_))
 			}
 			ent.Path_ = s.storage.path(ent.Path_)
 		} else {
@@ -108,11 +110,11 @@ func (s *entityShelf) Init() error {
 		}
 		expectedDir := s.calcDir(e)
 		if filepath.Dir(e.Path()) != expectedDir {
-			log.Warnf("Dir mismatched: %s != %s", filepath.Dir(e.Path()), expectedDir)
+			log.Warn("Dir mismatched", zap.String("expected", expectedDir), zap.String("actual", filepath.Dir(e.Path())))
 			// TODO: move?
 		}
 		s.entities[e.ID()] = e
-		log.Debugf("Entity: %s (%s)", e.ID(), e.MimeType())
+		log.Debug("Reading Entity", zap.String("id", e.ID()), zap.String("mime-type", e.MimeType()))
 		return nil
 	})
 }

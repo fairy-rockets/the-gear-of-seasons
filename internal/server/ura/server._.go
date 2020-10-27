@@ -6,17 +6,12 @@ import (
 	"net/http"
 
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/util"
-
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/cache"
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
 	"github.com/julienschmidt/httprouter"
 )
-
-func log() *logrus.Entry {
-	return logrus.WithField("Module", "UraSrv")
-}
 
 type Server struct {
 	// 特有
@@ -91,7 +86,8 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) Start() error {
-	log().Infof("Start Ura Server at %s", srv.impl.Addr)
+	log := zap.L()
+	log.Info("Ura HTTP server started", zap.String("listen-address", srv.impl.Addr))
 	return srv.impl.ListenAndServe()
 }
 

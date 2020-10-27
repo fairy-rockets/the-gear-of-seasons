@@ -2,23 +2,25 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	_ "image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"os"
-
-	log "github.com/sirupsen/logrus"
-
 	"os/signal"
 	"syscall"
 
 	serverPkg "github.com/fairy-rockets/the-gear-of-seasons/internal/server"
 	shelfPkg "github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
-	"github.com/fatih/color"
+	"github.com/mattn/go-isatty"
+	"go.uber.org/zap"
 )
 
 //go:generate bash ../../scripts/generate-buildinfo.sh
+
+// logging
+var standardLog = flag.Bool("standard-log", false, "Show log human readably")
 
 // Listen
 var omoteListen = flag.String("listen-omote", ":8080", "omote listen")
@@ -32,10 +34,11 @@ var shelf *shelfPkg.Shelf
 var server *serverPkg.Server
 
 func mainLoop() os.Signal {
+	log := zap.L()
 	go func() {
 		err := server.Start()
 		if err != nil {
-			log.Fatalf("Server aborted: %v", err)
+			log.Fatal("Server aborted: %v", zap.Error(err))
 		}
 	}()
 
@@ -44,46 +47,59 @@ func mainLoop() os.Signal {
 	select {
 	case s := <-sig:
 		if err := server.Stop(); err != nil {
-			log.WithField("Module", "Web").Errorf("Error on stopping web: %v", err)
+			log.Error("Failed to stop web server", zap.Error(err))
 		} else {
-			log.WithField("Module", "Web").Info("Stopped gracefully.")
+			log.Info("Web server stopped gracefully")
 		}
 		return s
 	}
 }
 
 func printLogo() {
+	log := zap.L()
 	log.Info("****************************************")
-	log.Info(color.BlueString("  the-gear-of-seasons  "))
+	log.Info("  the-gear-of-seasons  ")
 	log.Info("****************************************")
-	log.Info(color.MagentaString("%s", gitRev()))
-	log.Infof("Build at: %s", color.MagentaString("%s", buildAt()))
+	log.Info("Build info", zap.String("revision", gitRev()), zap.String("build-at", buildAt()))
 }
 
 func main() {
-	//var err error
+	var err error
+	var log *zap.Logger
 
 	printLogo()
 	flag.Parse()
+	// Check is terminal
+	if *standardLog || isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()) {
+		log, err = zap.NewDevelopment()
+	} else {
+		log, err = zap.NewProduction()
+	}
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Failed to create logger: %v", err)
+		os.Exit(-1)
+	}
+	undo := zap.ReplaceGlobals(log)
+	defer undo()
 	log.Info("----------------------------------------")
 	log.Info("Initializing...")
 	log.Info("----------------------------------------")
+	log.Info("Log System Initialized.")
+
 	storage, err := shelfPkg.NewStorage(*shelfPath)
 	if err != nil {
-		log.Fatalf("Failed to prepare storage: %v", err)
+		log.Fatal("Failed to prepare storage", zap.Error(err))
 	}
 	shelf = shelfPkg.New(storage)
 	if err := shelf.Init(); err != nil {
-		log.Fatalf("Failed to prepare shelf: %v", err)
+		log.Fatal("Failed to prepare shelf", zap.Error(err))
 	}
-	log.Infof("%d entities, %d moments", shelf.NumEntities(), shelf.NumMoments())
+	log.Info("Initialized", zap.Int("num-entities", shelf.NumEntities()), zap.Int("num-moments", shelf.NumMoments()))
 
 	server = serverPkg.New(*omoteListen, *uraListen, shelf, *cachePath)
 	if err := server.Prepare(); err != nil {
-		log.Fatalf("Failed to prepare server: %v", err)
+		log.Fatal("Failed to prepare server", zap.Error(err))
 	}
-
-	log.Info(color.GreenString("                                    [OK]"))
 
 	log.Info("----------------------------------------")
 	log.Info("Initialized.")
@@ -91,5 +107,5 @@ func main() {
 
 	s := mainLoop()
 
-	log.Fatalf("Signal (%v) received, stopping\n", s)
+	log.Fatal("Signal received, stopping\n", zap.String("signal", s.String()))
 }
