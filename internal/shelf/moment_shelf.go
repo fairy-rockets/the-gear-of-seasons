@@ -5,10 +5,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 )
 
@@ -81,14 +80,16 @@ func (s *momentShelf) Save(origTime time.Time, m *Moment) error {
 }
 
 func loadMomentFromFile(s *Storage, path string, out *Moment) error {
+	log := zap.L()
 	data, err := s.ReadFile(path)
 	if err != nil {
-		log.Fatalf("Failed to open %s: %v", path, err)
+		log.Fatal("Failed to open file", zap.String("path", path), zap.Error(err))
 	}
 	return yaml.Unmarshal(data, out)
 }
 
 func (s *momentShelf) Init() error {
+	log := zap.L()
 	return s.storage.WalkFiles(momentPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -100,7 +101,7 @@ func (s *momentShelf) Init() error {
 				return err
 			}
 			s.moments[m.Path()] = m
-			log.Debugf("Moment %s -> %s", m.Path(), m.Title)
+			log.Debug("Reading moment", zap.String("path", m.Path()), zap.String("title", m.Title))
 		}
 		return nil
 	})

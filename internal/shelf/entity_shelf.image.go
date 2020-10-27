@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/util"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 )
 
 func (s *entityShelf) AddImage(mimeType string, imageBuffer []byte) (*ImageEntity, error) {
+	log := zap.L()
 	var err error
 	img, format, err := image.Decode(bytes.NewReader(imageBuffer))
 	if err != nil {
@@ -46,7 +47,7 @@ func (s *entityShelf) AddImage(mimeType string, imageBuffer []byte) (*ImageEntit
 		if x != nil {
 			date, err := x.DateTime()
 			if err != nil {
-				log.Errorf("Failed to decode exif: %v", err)
+				log.Error("Failed to decode exif", zap.Error(err))
 			} else {
 				e.Date_ = date
 			}

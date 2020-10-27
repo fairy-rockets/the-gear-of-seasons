@@ -9,6 +9,7 @@ import (
 
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/util"
 	"github.com/julienschmidt/httprouter"
+	"go.uber.org/zap"
 )
 
 // 新規
@@ -47,6 +48,7 @@ func (srv *Server) serveEdit(w http.ResponseWriter, r *http.Request, p httproute
 
 // モーメントのプレビュー（POST）
 func (srv *Server) servePreview(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	log := zap.L()
 	var err error
 	_, m, err := readMoment(r.Body)
 	if err != nil {
@@ -57,12 +59,13 @@ func (srv *Server) servePreview(w http.ResponseWriter, r *http.Request, _ httpro
 	w.WriteHeader(200)
 	_, err = w.Write([]byte(mc.Content()))
 	if err != nil {
-		log().Error(err)
+		log.Error("Failed to write to a response", zap.Error(err))
 	}
 }
 
 // モーメントの保存
 func (srv *Server) serveSave(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	log := zap.L()
 	var err error
 	originalDate, m, err := readMoment(r.Body)
 	if err != nil {
@@ -102,12 +105,13 @@ func (srv *Server) serveSave(w http.ResponseWriter, r *http.Request, _ httproute
 	w.WriteHeader(200)
 	_, err = w.Write(dat)
 	if err != nil {
-		log().Error(err)
+		log.Error("Failed to write to a response", zap.Error(err))
 	}
 }
 
 // メディアのアップロード
 func (srv *Server) serveUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	log := zap.L()
 	mimeType := r.Header.Get("Content-Type")
 	if len(mimeType) == 0 {
 		util.SetError(w, r, fmt.Errorf("empty Content-Type"))
@@ -139,7 +143,7 @@ func (srv *Server) serveUpload(w http.ResponseWriter, r *http.Request, _ httprou
 		w.WriteHeader(200)
 		_, err = fmt.Fprintf(w, `[image entity="%s"]`, img.ID_)
 		if err != nil {
-			log().Error(err)
+			log.Error("Failed to write to a response", zap.Error(err))
 		}
 	case "video/mp4", "video/x-matroska":
 		/* Video */
@@ -151,13 +155,13 @@ func (srv *Server) serveUpload(w http.ResponseWriter, r *http.Request, _ httprou
 		w.WriteHeader(200)
 		_, err = fmt.Fprintf(w, `[video entity="%s"]`, vid.ID_)
 		if err != nil {
-			log().Error(err)
+			log.Error("Failed to write to a response", zap.Error(err))
 		}
 	default:
 		w.WriteHeader(501)
 		_, err := fmt.Fprintf(w, "Unknown Mime-Type: %s\n", mimeType)
 		if err != nil {
-			log().Error(err)
+			log.Error("Failed to write to a response", zap.Error(err))
 		}
 	}
 }

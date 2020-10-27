@@ -7,6 +7,7 @@ import (
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/omote"
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/ura"
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/util"
+	"go.uber.org/zap"
 
 	"path/filepath"
 
@@ -14,7 +15,6 @@ import (
 
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/server/cache"
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -29,10 +29,6 @@ type Server struct {
 	shelf       *shelf.Shelf
 	entityCache *cache.EntityCache
 	momentCache *cache.MomentCache
-}
-
-func log() *logrus.Entry {
-	return logrus.WithField("Module", "Server")
 }
 
 func New(listenOmote, listenUra string, shelf *shelf.Shelf, cachePath string) *Server {
@@ -52,6 +48,7 @@ func New(listenOmote, listenUra string, shelf *shelf.Shelf, cachePath string) *S
 }
 
 func (srv *Server) Prepare() error {
+	log := zap.L()
 	var err error
 	ents := srv.shelf.FindAllEntities()
 	for i, ent := range ents {
@@ -66,7 +63,7 @@ func (srv *Server) Prepare() error {
 		default:
 			/* Nothing to do */
 		}
-		log().Infof("Entity[%d/%d] prepared.", i+1, len(ents))
+		log.Info("Entity prepared", zap.Int("cnt", i+1), zap.Int("total", len(ents)))
 	}
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/fairy-rockets/the-gear-of-seasons/internal/shelf"
 	"github.com/oliamb/cutter"
+	"go.uber.org/zap"
 )
 
 func (cache *EntityCache) FetchIcon(ent shelf.Entity) (string, error) {
@@ -81,6 +82,7 @@ func (cache *EntityCache) lookupThumbnail(e *shelf.ImageEntity, thumbType string
 }
 
 func (cache *EntityCache) saveThumbnail(e *shelf.ImageEntity, thumbType string, img image.Image) (string, error) {
+	log := zap.L()
 	var err error
 	path := cache.thumbnailPathOf(e, thumbType)
 	if err = os.MkdirAll(filepath.Dir(path), 0755); err != nil {
@@ -100,7 +102,7 @@ func (cache *EntityCache) saveThumbnail(e *shelf.ImageEntity, thumbType string, 
 	}
 	err = os.Chtimes(path, e.Date_, e.Date_)
 	if err != nil {
-		log().Error(err)
+		log.Error("Failed to change time", zap.String("path", path), zap.Error(err))
 	}
 	return path, nil
 }
