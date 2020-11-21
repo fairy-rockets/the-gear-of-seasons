@@ -1,5 +1,6 @@
 ### Vert.x ###
 .vertx/
+/build/
 
 ### Eclipse ###
 
