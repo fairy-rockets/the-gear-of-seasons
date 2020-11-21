@@ -46,11 +46,14 @@ dependencies {
   testImplementation("org.junit.jupiter:junit-jupiter:$junitJupiterVersion")
 }
 
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.kotlinOptions.jvmTarget = "11"
+// https://youtrack.jetbrains.com/issue/KT-43380#focus=Comments-27-4516152.0-0
+tasks.withType<KotlinCompile>().all {
+  kotlinOptions.jvmTarget = "11"
+}
 
 tasks.withType<ShadowJar> {
-  archiveClassifier.set("fat")
+  archiveClassifier.set("")
+  archiveVersion.set("")
   manifest {
     attributes(mapOf("Main-Verticle" to mainVerticleName))
   }
