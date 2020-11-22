@@ -1,2 +1,8 @@
 shelf:
   path: '_shelf'
+omote:
+  base-url: 'https://hexe.net/'
+  listen: 'localhost:8888'
+ura:
+  base-url: "https://ura.hexe.net/"
+  listen: 'localhost:9999'
