@@ -14,6 +14,7 @@ version = "1.0.0-SNAPSHOT"
 repositories {
   mavenCentral()
   jcenter()
+  maven("https://jitpack.io")
 }
 
 val kotlinVersion = "1.4.10"
@@ -36,12 +37,16 @@ dependencies {
   implementation("org.slf4j:slf4j-api:$slf4jVersion")
   implementation("org.slf4j:slf4j-simple:$slf4jVersion")
   implementation("io.vertx:vertx-config:$vertxVersion")
+  implementation("io.vertx:vertx-config-yaml:$vertxVersion")
   implementation("io.vertx:vertx-web-templ-handlebars:$vertxVersion")
   implementation("io.vertx:vertx-web:$vertxVersion")
   implementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion")
   implementation("io.vertx:vertx-json-schema:$vertxVersion")
   implementation("io.vertx:vertx-lang-kotlin:$vertxVersion")
   implementation(kotlin("stdlib-jdk8"))
+  implementation("org.yaml:snakeyaml:1.26")
+  implementation("com.github.beosign:snakeyaml-anno:1.1.1")
+
   testImplementation("io.vertx:vertx-junit5:$vertxVersion")
   testImplementation("org.junit.jupiter:junit-jupiter:$junitJupiterVersion")
 }
