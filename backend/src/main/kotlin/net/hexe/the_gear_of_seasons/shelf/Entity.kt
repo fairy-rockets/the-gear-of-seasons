@@ -11,19 +11,63 @@ sealed class Entity() {
   var id: String = ""
   var description: String = ""
   var date: Date = Date(0)
+
   @YamlProperty(key = "mime-type")
   var mimeType: String = "application/octet-stream"
+  abstract fun metaFilename(): String
+  abstract fun dataFilename(): String
 }
 
 class Image() : Entity() {
+  companion object {
+    const val kYamlExtension = ".image.yml"
+  }
   var width: Int = 0
   var height: Int = 0
+
+  override fun metaFilename(): String {
+    return "$id$kYamlExtension"
+  }
+  override fun dataFilename(): String =
+    when(mimeType) {
+      "image/gif" -> "$id.gif"
+      "image/jpeg" -> "$id.jpg"
+      "image/png" -> "$id.png"
+      else -> "$id.?"
+    }
 }
 
 class Video() : Entity() {
+  companion object {
+    const val kYamlExtension = ".video.yml"
+  }
+  var width: Int = 0
+  var height: Int = 0
+  var duration: Float = 0.0f
+
+  override fun metaFilename(): String {
+    return "$id${kYamlExtension}"
+  }
+  override fun dataFilename(): String =
+    when(mimeType) {
+      "video/mp4" -> "$id.mp4"
+      "video/x-matroska" -> "$id.mkv"
+      else -> "$id.?"
+    }
 }
 
 class Audio() : Entity() {
+  companion object {
+    const val kYamlExtension = ".audio.yml"
+  }
+
+  override fun metaFilename(): String {
+    return "$id${kYamlExtension}"
+  }
+  override fun dataFilename(): String =
+    when(mimeType) {
+      else -> "$id.?"
+    }
 }
 
 class EntityPropertyUtils : PropertyUtils() {
