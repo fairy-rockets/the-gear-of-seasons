@@ -8,6 +8,6 @@ class IndexController {
   suspend fun index(ctx: RoutingContext) {
     val templ = HandlebarsTemplateEngine.create(ctx.vertx())
     val resp = ctx.response()
-    resp.end(templ.render(mutableMapOf(), "omote/index").await()).await()
+    resp.end(templ.render(mutableMapOf(), "omote/templates/index").await()).await()
   }
 }
