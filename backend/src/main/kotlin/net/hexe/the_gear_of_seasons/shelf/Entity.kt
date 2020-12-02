@@ -4,10 +4,17 @@ import de.beosign.snakeyamlanno.property.YamlProperty
 import org.yaml.snakeyaml.constructor.Constructor
 import org.yaml.snakeyaml.introspector.Property
 import org.yaml.snakeyaml.introspector.PropertyUtils
-import java.util.*
+import java.time.Instant
 import kotlin.reflect.KClass
+import java.time.ZoneId
+import java.nio.file.Paths
+
+import java.time.LocalDateTime
+import java.util.*
+
 
 sealed class Entity() {
+  var dir: String = ""
   var id: String = ""
   var description: String = ""
   var date: Date = Date(0)
@@ -16,6 +23,9 @@ sealed class Entity() {
   var mimeType: String = "application/octet-stream"
   abstract fun metaFilename(): String
   abstract fun dataFilename(): String
+  fun metaPath(): String = Paths.get(dir, metaFilename()).toAbsolutePath().toString()
+  fun dataPath(): String = Paths.get(dir, dataFilename()).toAbsolutePath().toString()
+  fun localTime(): LocalDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault())
 }
 
 class Image() : Entity() {
@@ -43,7 +53,7 @@ class Video() : Entity() {
   }
   var width: Int = 0
   var height: Int = 0
-  var duration: Float = 0.0f
+  var duraton: Float = 0.0f
 
   override fun metaFilename(): String {
     return "$id${kYamlExtension}"

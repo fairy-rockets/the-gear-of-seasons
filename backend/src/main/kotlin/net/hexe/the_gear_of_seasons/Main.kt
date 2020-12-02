@@ -23,7 +23,7 @@ fun main(args: Array<String>) {
       log.error(th)
       err = th
     } finally {
-      vertx.close().await()
+      //vertx.close().await()
     }
   }
   if(err != null) {
@@ -45,6 +45,10 @@ suspend fun start(vertx: Vertx, args: Array<String>) {
   vertx.deployVerticle(
     net.hexe.the_gear_of_seasons.shelf.ShelfVerticle::class.java,
     DeploymentOptions().setInstances(1).setWorker(true).setWorkerPoolName("ShelfWorker").setConfig(config)
+  ).await()
+  vertx.deployVerticle(
+    net.hexe.the_gear_of_seasons.shelf.CacheVerticle::class.java,
+    DeploymentOptions().setInstances(1).setWorker(true).setWorkerPoolName("CacheWorker").setConfig(config)
   ).await()
   vertx.deployVerticle(
     net.hexe.the_gear_of_seasons.omote.OmoteVerticle::class.java,
