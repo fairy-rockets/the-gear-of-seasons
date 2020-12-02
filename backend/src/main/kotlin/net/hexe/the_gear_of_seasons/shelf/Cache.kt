@@ -36,7 +36,7 @@ class Cache(private val vertx: Vertx, private val path: String) {
     }
     log.info("Done: $args")
   }
-  private suspend fun prepare(image: Image): MutableList<Future<Unit>> {
+  private suspend fun prepareImage(image: Image): MutableList<Future<Unit>> {
     val frag = image.id.take(2)
     val fs = vertx.fileSystem()
     fs.mkdirs(Paths.get(path, "medium", frag).toString())
@@ -92,24 +92,27 @@ class Cache(private val vertx: Vertx, private val path: String) {
     }
     return tasks
   }
-  private fun prepare(video: Video): MutableList<Future<Unit>> {
+  private suspend fun prepareVideo(video: Video): MutableList<Future<Unit>> {
     return mutableListOf()
   }
-  private fun prepare(audio: Audio): MutableList<Future<Unit>> {
+  private suspend fun prepareAudio(audio: Audio): MutableList<Future<Unit>> {
     return mutableListOf()
   }
+  private suspend fun prepare(entity: Entity): MutableList<Future<Unit>> =
+    when(entity) {
+      is Image -> prepareImage(entity)
+      is Video -> prepareVideo(entity)
+      is Audio -> prepareAudio(entity)
+    }
+
   suspend fun prepare() {
     val tasks = mutableListOf<Future<Unit>>()
     val bus = vertx.eventBus()
     val entities =
-      bus.request<ShelfVerticle.ListResponse>("shelf.list", ShelfVerticle.ListRequest(null))
+      bus.request<ShelfVerticle.ListResponse>("shelf.request.list", ShelfVerticle.ListRequest(null))
       .await().body().entities
     for(entity in entities) {
-      tasks.addAll(when(entity) {
-        is Image -> prepare(entity)
-        is Video -> prepare(entity)
-        is Audio -> prepare(entity)
-      })
+      tasks.addAll(prepare(entity))
     }
     CompositeFuture.join(tasks.toList()).onSuccess {
       log.info("Cache Prepared!!")

@@ -23,9 +23,9 @@ class ShelfVerticle : CoroutineVerticle() {
     bus.registerDefaultCodec(FetchRequest::class.java, IdentityCodec(FetchRequest::class.java))
     bus.registerDefaultCodec(ListResponse::class.java, IdentityCodec(ListResponse::class.java))
     bus.registerDefaultCodec(ListRequest::class.java, IdentityCodec(ListRequest::class.java))
-    fetchReqConsumer = bus.consumer("shelf.fetch")
-    listReqConsumer = bus.consumer("shelf.list")
-    fetchReqConsumer.handler(this::entityRequest)
+    fetchReqConsumer = bus.consumer("shelf.request.fetch")
+    listReqConsumer = bus.consumer("shelf.request.list")
+    fetchReqConsumer.handler(this::fetchRequest)
     listReqConsumer.handler(this::listRequest)
   }
   override suspend fun stop() {
@@ -42,7 +42,7 @@ class ShelfVerticle : CoroutineVerticle() {
     }
     msg.reply(ListResponse(entities))
   }
-  private fun entityRequest(msg: Message<FetchRequest>) {
+  private fun fetchRequest(msg: Message<FetchRequest>) {
     val req = msg.body()
     if(!shelf.entities.containsKey(req.id)){
       msg.reply(null)
