@@ -1,3 +1,6 @@
+/_shelf/
+/_cache/
+
 ### Vert.x ###
 .vertx/
 /build/
