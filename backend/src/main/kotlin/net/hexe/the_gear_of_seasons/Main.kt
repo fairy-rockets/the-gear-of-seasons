@@ -9,7 +9,6 @@ import io.vertx.config.ConfigRetriever
 import io.vertx.core.impl.logging.LoggerFactory
 import io.vertx.core.json.JsonObject
 import kotlinx.coroutines.*
-import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
   val log = LoggerFactory.getLogger("main")
@@ -20,6 +19,7 @@ fun main(args: Array<String>) {
       log.info("Launched")
       start(vertx, args)
     } catch (th: Throwable) {
+      vertx.close().await()
       log.error(th)
       err = th
     } finally {
