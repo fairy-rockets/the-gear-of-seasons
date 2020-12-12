@@ -130,6 +130,7 @@ class Parser(buf: String) {
       skipSpaces()
       map[key] = value
     }
+    expect("]")
     return map
   }
   private fun parseEmbedding(): Block {
@@ -167,6 +168,7 @@ class Parser(buf: String) {
   }
   private fun parseParagraph(): ParagraphBlock {
     val buff = StringBuilder()
+    buff.append(consume1())
     do {
       buff.append(consumeUntil { ch -> ch != '[' || ch == '\n' })
     } while(!eof() && look1() != '\n')
@@ -176,8 +178,9 @@ class Parser(buf: String) {
     skipLines()
     val blocks = mutableListOf<Block>()
     while(!eof()) {
-      val link = tryParse(this::parseEmbedding)
-      if(link != null) {
+      val embed = tryParse(this::parseEmbedding)
+      if(embed != null) {
+        blocks.add(embed)
         continue
       }
       blocks.add(parseParagraph())
