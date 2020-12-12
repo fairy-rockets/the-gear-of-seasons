@@ -1,7 +1,7 @@
 package net.hexe.the_gear_of_seasons.fml
 
 import net.hexe.the_gear_of_seasons.shelf.*
-import java.lang.Integer.min
+import java.lang.StringBuilder
 
 class Parser(buf: String) {
   val buff: String = buf
@@ -17,7 +17,7 @@ class Parser(buf: String) {
     }
   }
   private fun lookUntil(p: (Char) -> Boolean): Pair<String, Int> {
-    val result = StringBuffer()
+    val result = StringBuilder()
     var cur = pos
     while(cur < buff.length && p(buff[cur])) {
       result.append(buff[cur])
@@ -29,12 +29,25 @@ class Parser(buf: String) {
    * Buffer Consumer
    ************************************************************************* */
   private fun consume(n: Int): String {
-    val str = buff.substring(pos, pos+n)
-    pos = min(buff.length, pos + n)
-    return str
+    return if (pos + n <= buff.length) {
+      val str = buff.substring(pos, pos+n)
+      pos += n
+      str
+    } else {
+      throw ParseError()
+    }
+  }
+  private fun consume1(): Char {
+    return if (pos < buff.length) {
+      val c = buff[pos]
+      pos++
+      c
+    } else {
+      throw ParseError()
+    }
   }
   private fun consumeUntil(p: (Char) -> Boolean): String {
-    val result = StringBuffer()
+    val result = StringBuilder()
     while(!eof() && p(buff[pos])) {
       result.append(buff[pos])
       pos++
@@ -67,15 +80,43 @@ class Parser(buf: String) {
    * Observe states
    ************************************************************************* */
   private fun eof():Boolean = buff.length <= pos
-
+  /* **************************************************************************
+   * Observe states
+   ************************************************************************* */
+  private fun <R> tryParse(p: () -> R): R? {
+    val original = pos
+    return try {
+      p()
+    } catch(e: ParseError) {
+      pos = original
+      null
+    }
+  }
   /* **************************************************************************
    * Items
    ************************************************************************* */
   private fun parseKey(): String {
-    return "TODO"
+    return consumeUntil { p -> p.isLetterOrDigit() }
   }
   private fun parseValue(): String {
-    return "TODO"
+    expect("\"")
+    val sb = StringBuilder()
+    while(look1() != '"') {
+      val ch = consume1()
+      if(ch == '\\') {
+        val next = consume1()
+        when(next) {
+          'n' -> sb.append('\n')
+          'r' -> sb.append('\r')
+          '\\' -> sb.append('\\')
+          else -> throw ParseError()
+        }
+      } else {
+        sb.append(ch)
+      }
+    }
+    expect("\"")
+    return sb.toString()
   }
   private fun parseBracket(): MutableMap<String, String> {
     skipSpaces()
@@ -83,11 +124,15 @@ class Parser(buf: String) {
     while(look1() != ']') {
       val key = parseKey()
       skipSpaces()
+      expect("=")
       skipSpaces()
+      val value = parseValue()
+      skipSpaces()
+      map[key] = value
     }
     return map
   }
-  private fun parseEmbedding(): Block? {
+  private fun parseEmbedding(): Block {
     expect("[")
     skipSpaces()
     val word = lookUntil { ch -> !ch.isWhitespace() }
@@ -117,26 +162,27 @@ class Parser(buf: String) {
         val map = parseBracket()
         MarkdownBlock(map["url"])
       }
-      else -> null
+      else -> throw ParseError()
     }
   }
   private fun parseParagraph(): ParagraphBlock {
-    val buff = StringBuffer()
+    val buff = StringBuilder()
     do {
-      buff.append(consumeUntil{ch -> ch != '[' || ch == '\n'})
+      buff.append(consumeUntil { ch -> ch != '[' || ch == '\n' })
     } while(!eof() && look1() != '\n')
     return ParagraphBlock(buff.toString())
   }
-  fun parse() {
+  fun parse(): List<Block> {
     skipLines()
     val blocks = mutableListOf<Block>()
     while(!eof()) {
-      val link = parseEmbedding()
+      val link = tryParse(this::parseEmbedding)
       if(link != null) {
         continue
       }
       blocks.add(parseParagraph())
     }
+    return blocks
   }
 }
 
