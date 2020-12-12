@@ -168,6 +168,7 @@ class Parser(buf: String) {
   }
   private fun parseParagraph(): ParagraphBlock {
     val buff = StringBuilder()
+    skipSpaces()
     buff.append(consume1())
     do {
       buff.append(consumeUntil { ch -> ch != '[' || ch == '\n' })
