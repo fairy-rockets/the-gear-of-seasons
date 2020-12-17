@@ -19,9 +19,9 @@ internal class ParserTest {
       assertEquals(listOf(ImageBlock("test", null)), result)
     }
     run {
-      val p = Parser("[image entity=\"test\"")
+      val p = Parser("[image entity=\"test\" a")
       val result = p.parse()
-      assertEquals(listOf(ParagraphBlock("[image entity=\"test\"")), result)
+      assertEquals(listOf(ParagraphBlock("[image entity=\"test\" a")), result)
     }
   }
 }

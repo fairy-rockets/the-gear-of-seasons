@@ -3,6 +3,7 @@ package net.hexe.the_gear_of_seasons.shelf
 import io.vertx.core.Vertx
 import io.vertx.core.impl.logging.Logger
 import io.vertx.core.impl.logging.LoggerFactory
+import io.vertx.ext.web.FileUpload
 import io.vertx.kotlin.coroutines.await
 import org.yaml.snakeyaml.Yaml
 import java.io.ByteArrayInputStream
@@ -29,6 +30,10 @@ class Shelf(private val vertx: Vertx, private val path: String) {
         loadEntity(Path.of(ymlPath))
       }
     }
+  }
+  private suspend fun saveImage(file: FileUpload) {
+    file.uploadedFileName()
+    file.
   }
   private suspend fun saveEntity(entity: Entity) {
     val buff = ByteArrayOutputStream()

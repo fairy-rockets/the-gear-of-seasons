@@ -10,7 +10,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 class Cache(private val vertx: Vertx, private val path: String) {
-  val log: Logger = LoggerFactory.getLogger("Cache")
+  private val log: Logger = LoggerFactory.getLogger("Cache")
   enum class Type {
     Full,
     Medium,
