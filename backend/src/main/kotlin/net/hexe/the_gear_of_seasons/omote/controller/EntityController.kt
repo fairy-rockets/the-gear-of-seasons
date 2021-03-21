@@ -18,7 +18,7 @@ class EntityController {
       .body()
     if(entityFetchResp == null) {
       resp.statusCode = 404
-      resp.end("File not found")
+      resp.end("File not found").await()
       return
     }
     val entity = entityFetchResp.entity
