@@ -1,6 +1,5 @@
 package net.hexe.the_gear_of_seasons.fml
 
-import net.hexe.the_gear_of_seasons.shelf.*
 import java.lang.StringBuilder
 
 class Parser(buf: String) {
