@@ -4,7 +4,7 @@ import io.vertx.core.eventbus.Message
 import io.vertx.core.eventbus.MessageConsumer
 import io.vertx.kotlin.coroutines.CoroutineVerticle
 import io.vertx.kotlin.coroutines.await
-import net.hexe.the_gear_of_seasons.vertx.util.IdentityCodec
+import net.hexe.the_gear_of_seasons.vertx.IdentityCodec
 
 class ShelfVerticle : CoroutineVerticle() {
   data class FetchRequest(val id: String)

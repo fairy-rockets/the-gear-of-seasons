@@ -6,8 +6,8 @@ import io.vertx.kotlin.coroutines.await
 
 class IndexController {
   suspend fun index(ctx: RoutingContext) {
-    val templ = HandlebarsTemplateEngine.create(ctx.vertx())
+    val t = HandlebarsTemplateEngine.create(ctx.vertx())
     val resp = ctx.response()
-    resp.end(templ.render(mutableMapOf(), "omote/templates/index").await()).await()
+    resp.end(t.render(mutableMapOf(), "omote/templates/index").await()).await()
   }
 }

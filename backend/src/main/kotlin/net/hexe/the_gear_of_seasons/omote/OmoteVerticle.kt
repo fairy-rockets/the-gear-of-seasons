@@ -7,6 +7,7 @@ import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.handler.StaticHandler
 import io.vertx.kotlin.coroutines.CoroutineVerticle
+import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.launch
 import net.hexe.the_gear_of_seasons.omote.controller.EntityController
 import net.hexe.the_gear_of_seasons.omote.controller.IndexController
@@ -14,15 +15,16 @@ import net.hexe.the_gear_of_seasons.omote.controller.IndexController
 class OmoteVerticle : CoroutineVerticle() {
   private val log = LoggerFactory.getLogger("MainVerticle")
   private lateinit var http: HttpServer
+
   override suspend fun start() {
+    // Let's dance!
     http = vertx
       .createHttpServer()
       .requestHandler(createRouter())
-      http.listen(8888, "0.0.0.0")
-      .onSuccess {
-        log.info("Server started")
-      }
+      .listen(8888).await()
+    log.info("Server started")
   }
+
   override suspend fun stop() {
     http.close() { result ->
       if(result.succeeded()){
@@ -32,6 +34,7 @@ class OmoteVerticle : CoroutineVerticle() {
       }
     }
   }
+
   private fun createRouter() = Router.router(vertx).apply {
     run {
       val controller = IndexController()
@@ -47,20 +50,24 @@ class OmoteVerticle : CoroutineVerticle() {
       handle(get("/entity/:id/medium"), controller::serveMedium)
     }
   }
-  // Kotlin CoroutineからHandlerに変換する、ある意味核心部分。
+
+  // Handling routes
+  private fun runHandler(ctx: RoutingContext, fn: suspend (RoutingContext) -> Unit) {
+    launch {
+      try {
+        fn(ctx)
+        if(!ctx.response().ended()) {
+          ctx.end().await()
+        }
+      } catch (e: Throwable) {
+        log.error("Unknown error", e)
+        ctx.fail(e)
+      }
+    }
+  }
   private fun handle(route: Route, fn: suspend (RoutingContext) -> Unit) {
     route.handler { ctx ->
-      launch {
-        try {
-          fn(ctx)
-          if(!ctx.response().ended()) {
-            ctx.response().end()
-          }
-        } catch (e: Throwable) {
-          log.error("Unknown error", e)
-          ctx.fail(e)
-        }
-      }
+      runHandler(ctx, fn)
     }
   }
 }

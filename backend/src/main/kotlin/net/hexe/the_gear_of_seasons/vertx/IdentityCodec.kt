@@ -1,4 +1,4 @@
-package net.hexe.the_gear_of_seasons.vertx.util
+package net.hexe.the_gear_of_seasons.vertx
 
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.eventbus.MessageCodec

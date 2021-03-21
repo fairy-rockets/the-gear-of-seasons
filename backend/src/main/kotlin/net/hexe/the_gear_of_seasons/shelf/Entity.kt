@@ -13,7 +13,7 @@ import java.time.LocalDateTime
 import java.util.*
 
 
-sealed class Entity() {
+sealed class Entity {
   var dir: String = ""
   var id: String = ""
   var description: String = ""
@@ -28,7 +28,7 @@ sealed class Entity() {
   fun localTime(): LocalDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault())
 }
 
-class Image() : Entity() {
+class Image : Entity() {
   companion object {
     const val kYamlExtension = ".image.yml"
   }
@@ -47,7 +47,7 @@ class Image() : Entity() {
     }
 }
 
-class Video() : Entity() {
+class Video : Entity() {
   companion object {
     const val kYamlExtension = ".video.yml"
   }
@@ -66,7 +66,7 @@ class Video() : Entity() {
     }
 }
 
-class Audio() : Entity() {
+class Audio : Entity() {
   companion object {
     const val kYamlExtension = ".audio.yml"
   }

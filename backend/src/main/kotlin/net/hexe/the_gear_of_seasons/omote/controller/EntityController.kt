@@ -1,13 +1,12 @@
 package net.hexe.the_gear_of_seasons.omote.controller
 
-import io.vertx.core.Vertx
 import io.vertx.ext.web.RoutingContext
 import io.vertx.kotlin.coroutines.await
 import net.hexe.the_gear_of_seasons.shelf.Cache
 import net.hexe.the_gear_of_seasons.shelf.CacheVerticle
 import net.hexe.the_gear_of_seasons.shelf.ShelfVerticle
 
-class EntityController() {
+class EntityController {
   private suspend fun serve(ctx: RoutingContext, type: Cache.Type) {
     val vertx = ctx.vertx()
     val bus = vertx.eventBus()

@@ -5,7 +5,7 @@ import io.vertx.core.eventbus.MessageConsumer
 import io.vertx.core.impl.logging.Logger
 import io.vertx.core.impl.logging.LoggerFactory
 import io.vertx.kotlin.coroutines.CoroutineVerticle
-import net.hexe.the_gear_of_seasons.vertx.util.IdentityCodec
+import net.hexe.the_gear_of_seasons.vertx.IdentityCodec
 import java.nio.file.Path
 
 class CacheVerticle : CoroutineVerticle() {
