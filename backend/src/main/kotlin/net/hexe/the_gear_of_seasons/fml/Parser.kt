@@ -53,6 +53,15 @@ class Parser(buf: String) {
     }
     return result.toString()
   }
+  private fun skip(n: Int) {
+    if ((pos + n) > buff.length) {
+      throw ParseError()
+    }
+    pos += n
+  }
+  private fun skip1() {
+    skip(1)
+  }
   /* **************************************************************************
    * Asserting
    ************************************************************************* */
@@ -112,11 +121,11 @@ class Parser(buf: String) {
             'n' -> buff.append('\n')
             else -> buff.append(c2)
           }
-          consume(1)
+          skip1()
         }
         else -> buff.append(c1)
       }
-      consume(1)
+      skip1()
     }
     expect("\"")
     return buff.toString()
