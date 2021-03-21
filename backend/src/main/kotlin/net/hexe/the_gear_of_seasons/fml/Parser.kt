@@ -109,6 +109,8 @@ class Parser(buf: String) {
           val c2 = look1() ?: throw ParseError()
           when(c2) {
             '"' -> buff.append('"')
+            'r' -> buff.append('\r')
+            'n' -> buff.append('\n')
             else -> buff.append(c2)
           }
           consume(1)
@@ -120,7 +122,7 @@ class Parser(buf: String) {
     expect("\"")
     return buff.toString()
   }
-  private fun parseBracket(): MutableMap<String, String> {
+  private fun parseEmbeddingMap(): MutableMap<String, String> {
     skipSpaces()
     val map = mutableMapOf<String, String>()
     while(look1() != ']') {
@@ -139,57 +141,57 @@ class Parser(buf: String) {
     expect("[")
     skipSpaces()
     val word = lookUntil { ch -> !ch.isWhitespace() }
-    val block = when(word.first.toLowerCase()) {
+    return when (word.first.toLowerCase()) {
       "image" -> {
         consume(word.second)
-        val map = parseBracket()
+        val map = parseEmbeddingMap()
         ImageBlock(map["entity"], map["link"])
       }
       "video" -> {
         consume(word.second)
-        val map = parseBracket()
+        val map = parseEmbeddingMap()
         VideoBlock(map["entity"])
       }
       "audio" -> {
         consume(word.second)
-        val map = parseBracket()
+        val map = parseEmbeddingMap()
         AudioBlock(map["entity"])
       }
       "link" -> {
         consume(word.second)
-        val map = parseBracket()
+        val map = parseEmbeddingMap()
         LinkBlock(map["entity"], map["text"])
       }
       "markdown" -> {
         consume(word.second)
-        val map = parseBracket()
+        val map = parseEmbeddingMap()
         MarkdownBlock(map["url"])
       }
       else -> throw ParseError()
     }
-    expect("]")
-    return block
   }
   private fun parseParagraph(): ParagraphBlock {
     val buff = StringBuilder()
-    skipSpaces()
     buff.append(consume1())
     do {
       val str = consumeUntil{ch -> ch != '[' || ch == '\n'}
       buff.append(str)
-    } while(!eof() && look1() != '\n' && str.isNotEmpty())
+      val next = look1()
+    } while(!eof() && next != '\n' && next != '[' && str.isNotEmpty())
     return ParagraphBlock(buff.toString().trim())
   }
   fun parse(): Array<Block> {
     skipLines()
     val blocks = mutableListOf<Block>()
     while(!eof()) {
-      val embed = tryParse { parseEmbedding() }
-      if(embed != null) {
-        blocks.add(embed)
-      } else {
-        blocks.add(parseParagraph())
+      if(look1() == '[') {
+        val embed = tryParse { parseEmbedding() }
+        if (embed != null) {
+          blocks.add(embed)
+          continue
+        }
       }
+      blocks.add(parseParagraph())
     }
     return blocks.toTypedArray()
   }

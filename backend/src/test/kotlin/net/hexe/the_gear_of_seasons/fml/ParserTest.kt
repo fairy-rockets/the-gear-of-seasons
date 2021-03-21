@@ -24,4 +24,11 @@ class ParserTest {
       ParagraphBlock("aa"),
     ), p.parse())
   }
+  @Test
+  fun testInvalidBlock() {
+    val p = Parser("[image entity=\"test\"")
+    assertArrayEquals(arrayOf(
+      ParagraphBlock("[image entity=\"test\"")
+    ), p.parse())
+  }
 }

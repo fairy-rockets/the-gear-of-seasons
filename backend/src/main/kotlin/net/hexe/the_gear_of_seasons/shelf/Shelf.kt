@@ -33,7 +33,6 @@ class Shelf(private val vertx: Vertx, private val path: String) {
   }
   private suspend fun saveImage(file: FileUpload) {
     file.uploadedFileName()
-    file.
   }
   private suspend fun saveEntity(entity: Entity) {
     val buff = ByteArrayOutputStream()
