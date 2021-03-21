@@ -11,6 +11,7 @@ import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.launch
 import net.hexe.the_gear_of_seasons.omote.controller.EntityController
 import net.hexe.the_gear_of_seasons.omote.controller.IndexController
+import net.hexe.the_gear_of_seasons.omote.controller.MomentController
 
 class OmoteVerticle : CoroutineVerticle() {
   private val log = LoggerFactory.getLogger("MainVerticle")
@@ -40,14 +41,22 @@ class OmoteVerticle : CoroutineVerticle() {
       val controller = IndexController()
       handle(get("/"), controller::index)
     }
+
     run {
       route("/static/*").handler(StaticHandler.create("omote/static"))
     }
+
     run {
       val controller = EntityController()
       handle(get("/entity/:id"), controller::serveFull)
       handle(get("/entity/:id/icon"), controller::serveIcon)
       handle(get("/entity/:id/medium"), controller::serveMedium)
+    }
+
+    run {
+      val controller = MomentController()
+      handle(get("/moment/search"), controller::search)
+      handle(get("/moment/:date"), controller::serve)
     }
   }
 

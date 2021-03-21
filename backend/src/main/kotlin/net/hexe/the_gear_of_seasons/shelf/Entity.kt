@@ -4,13 +4,11 @@ import de.beosign.snakeyamlanno.property.YamlProperty
 import org.yaml.snakeyaml.constructor.Constructor
 import org.yaml.snakeyaml.introspector.Property
 import org.yaml.snakeyaml.introspector.PropertyUtils
-import java.time.Instant
-import kotlin.reflect.KClass
-import java.time.ZoneId
 import java.nio.file.Paths
-
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.*
+import kotlin.reflect.KClass
 
 
 sealed class Entity {

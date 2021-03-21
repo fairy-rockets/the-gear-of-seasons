@@ -1,7 +1,5 @@
 package net.hexe.the_gear_of_seasons.fml
 
-import java.lang.StringBuilder
-
 class Parser(buf: String) {
   private val buff: String = buf
   private var pos: Int = 0

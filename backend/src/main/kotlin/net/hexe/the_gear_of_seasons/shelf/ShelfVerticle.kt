@@ -34,11 +34,10 @@ class ShelfVerticle : CoroutineVerticle() {
   }
   private fun listRequest(msg: Message<ListRequest>) {
     val year = msg.body().year
-    val entities = mutableListOf<Entity>()
-    for(entity in shelf.entities.values) {
-      if(year == null || entity.localTime().year == year) {
-        entities.add(entity)
-      }
+    val entities = if(year!=null) {
+      shelf.entities.values.filter { it -> it.localTime().year == year }
+    } else {
+      shelf.entities.values.toList()
     }
     msg.reply(ListResponse(entities))
   }

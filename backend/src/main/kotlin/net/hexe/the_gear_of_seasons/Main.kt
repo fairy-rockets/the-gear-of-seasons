@@ -1,14 +1,14 @@
 package net.hexe.the_gear_of_seasons
 
+import io.vertx.config.ConfigRetriever
+import io.vertx.config.ConfigRetrieverOptions
+import io.vertx.config.ConfigStoreOptions
 import io.vertx.core.DeploymentOptions
 import io.vertx.core.Vertx
-import io.vertx.kotlin.coroutines.await
-import io.vertx.config.ConfigStoreOptions
-import io.vertx.config.ConfigRetrieverOptions
-import io.vertx.config.ConfigRetriever
 import io.vertx.core.impl.logging.LoggerFactory
 import io.vertx.core.json.JsonObject
-import kotlinx.coroutines.*
+import io.vertx.kotlin.coroutines.await
+import kotlinx.coroutines.runBlocking
 
 fun main(args: Array<String>) {
   val log = LoggerFactory.getLogger("main")

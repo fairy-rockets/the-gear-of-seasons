@@ -6,7 +6,6 @@ import io.vertx.core.Vertx
 import io.vertx.core.impl.logging.Logger
 import io.vertx.core.impl.logging.LoggerFactory
 import io.vertx.kotlin.coroutines.await
-import java.nio.file.Path
 import java.nio.file.Paths
 
 class Cache(private val vertx: Vertx, private val path: String) {

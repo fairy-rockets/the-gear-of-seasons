@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream
 import java.io.OutputStreamWriter
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
 
 class Shelf(private val vertx: Vertx, private val path: String) {
   private val log: Logger = LoggerFactory.getLogger("Shelf")
@@ -37,23 +36,19 @@ class Shelf(private val vertx: Vertx, private val path: String) {
   private suspend fun saveEntity(entity: Entity) {
     val buff = ByteArrayOutputStream()
     val fs = vertx.fileSystem()
-    var yamlExt: String
     OutputStreamWriter(buff).use { writer ->
       when (entity) {
         is Image -> {
           val image: Image = entity
           Yaml(constructorOf(Image::class)).dump(image, writer)
-          yamlExt = ".image.yml"
         }
         is Video -> {
           val video: Video = entity
           Yaml(constructorOf(Video::class)).dump(video, writer)
-          yamlExt = ".video.yml"
         }
         is Audio -> {
           val audio: Audio = entity
           Yaml(constructorOf(Image::class)).dump(audio, writer)
-          yamlExt = ".audio.yml"
         }
       }
     }
