@@ -92,9 +92,11 @@ class Cache(private val vertx: Vertx, private val path: String) {
     return tasks
   }
   private suspend fun prepareVideo(video: Video): MutableList<Future<Unit>> {
+    //TODO
     return mutableListOf()
   }
   private suspend fun prepareAudio(audio: Audio): MutableList<Future<Unit>> {
+    //TODO
     return mutableListOf()
   }
   private suspend fun prepare(entity: Entity): MutableList<Future<Unit>> =
@@ -108,7 +110,7 @@ class Cache(private val vertx: Vertx, private val path: String) {
     val tasks = mutableListOf<Future<Unit>>()
     val bus = vertx.eventBus()
     val entities =
-      bus.request<ShelfVerticle.ListResponse>("shelf.request.list", ShelfVerticle.ListRequest(null))
+      bus.request<ShelfVerticle.EntityListResponse>("shelf.entity.request.list", ShelfVerticle.EntityListRequest(null))
       .await().body().entities
     for(entity in entities) {
       tasks.addAll(prepare(entity))

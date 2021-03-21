@@ -23,7 +23,7 @@ sealed class Entity {
   abstract fun dataFilename(): String
   fun metaPath(): String = Paths.get(dir, metaFilename()).toAbsolutePath().toString()
   fun dataPath(): String = Paths.get(dir, dataFilename()).toAbsolutePath().toString()
-  fun localTime(): LocalDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault())
+  fun localTime(): LocalDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.of("Asia/Tokyo"))
 }
 
 class Image : Entity() {

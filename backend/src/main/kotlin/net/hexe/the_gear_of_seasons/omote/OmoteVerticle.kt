@@ -56,7 +56,7 @@ class OmoteVerticle : CoroutineVerticle() {
     run {
       val controller = MomentController()
       handle(get("/moment/search"), controller::search)
-      handle(get("/moment/:date"), controller::serve)
+      handle(get("/moment/:year/:month/:day/:time"), controller::serve)
     }
   }
 

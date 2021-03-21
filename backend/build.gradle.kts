@@ -44,7 +44,7 @@ dependencies {
   implementation("io.vertx:vertx-json-schema:$vertxVersion")
   implementation("io.vertx:vertx-lang-kotlin:$vertxVersion")
   implementation(kotlin("stdlib-jdk8"))
-  implementation("org.yaml:snakeyaml:1.26")
+  implementation("org.yaml:snakeyaml:1.28")
   implementation("com.github.beosign:snakeyaml-anno:1.1.1")
 
   testImplementation("io.vertx:vertx-junit5:$vertxVersion")

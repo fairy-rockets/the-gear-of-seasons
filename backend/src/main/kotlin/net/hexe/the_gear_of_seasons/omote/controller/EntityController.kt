@@ -13,7 +13,7 @@ class EntityController {
     val resp = ctx.response()
     val id = ctx.pathParam("id")
     val entityFetchResp = bus
-      .request<ShelfVerticle.FetchResponse>("shelf.request.fetch", ShelfVerticle.FetchRequest(id))
+      .request<ShelfVerticle.EntityFetchResponse>("shelf.entity.request.fetch", ShelfVerticle.EntityFetchRequest(id))
       .await()
       .body()
     if(entityFetchResp == null) {
