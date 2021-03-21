@@ -1,27 +1,27 @@
 package net.hexe.the_gear_of_seasons.fml
 
-import net.hexe.the_gear_of_seasons.shelf.ImageBlock
-import net.hexe.the_gear_of_seasons.shelf.ParagraphBlock
+import net.hexe.the_gear_of_seasons.shelf.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
-internal class ParserTest {
+class ParserTest {
   @Test
-  fun parseSuccess() {
-    run {
-      val p = Parser("test")
-      val result = p.parse()
-      assertEquals(listOf(ParagraphBlock("test")), result)
-    }
-    run {
-      val p = Parser("[image entity=\"test\"]")
-      val result = p.parse()
-      assertEquals(listOf(ImageBlock("test", null)), result)
-    }
-    run {
-      val p = Parser("[image entity=\"test\" a")
-      val result = p.parse()
-      assertEquals(listOf(ParagraphBlock("[image entity=\"test\" a")), result)
-    }
+  fun testBasic() {
+    val p = Parser("test")
+    assertArrayEquals(arrayOf(ParagraphBlock("test")), p.parse())
+  }
+  @Test
+  fun testImage() {
+    val p = Parser("[image entity=\"test\"]")
+    assertArrayEquals(arrayOf(ImageBlock("test", null)), p.parse())
+  }
+  @Test
+  fun testCombined() {
+    val p = Parser("aa [image entity=\"test\"] aa")
+    assertArrayEquals(arrayOf(
+      ParagraphBlock("aa"),
+      ImageBlock("test", null),
+      ParagraphBlock("aa"),
+    ), p.parse())
   }
 }

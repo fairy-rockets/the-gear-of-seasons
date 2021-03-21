@@ -4,8 +4,8 @@ import net.hexe.the_gear_of_seasons.shelf.*
 import java.lang.StringBuilder
 
 class Parser(buf: String) {
-  val buff: String = buf
-  var pos: Int = 0
+  private val buff: String = buf
+  private var pos: Int = 0
   /* **************************************************************************
    * Looking Ahead
    ************************************************************************* */
@@ -96,27 +96,29 @@ class Parser(buf: String) {
    * Items
    ************************************************************************* */
   private fun parseKey(): String {
-    return consumeUntil { p -> p.isLetterOrDigit() }
+    return consumeUntil { c -> c.isLetterOrDigit() }
   }
   private fun parseValue(): String {
     expect("\"")
-    val sb = StringBuilder()
-    while(look1() != '"') {
-      val ch = consume1()
-      if(ch == '\\') {
-        val next = consume1()
-        when(next) {
-          'n' -> sb.append('\n')
-          'r' -> sb.append('\r')
-          '\\' -> sb.append('\\')
-          else -> throw ParseError()
+    val buff = StringBuffer()
+    while(!eof()) {
+      val c1 = look1() ?: throw ParseError()
+      when(c1) {
+        '"' -> break
+        '\\' -> {
+          val c2 = look1() ?: throw ParseError()
+          when(c2) {
+            '"' -> buff.append('"')
+            else -> buff.append(c2)
+          }
+          consume(1)
         }
-      } else {
-        sb.append(ch)
+        else -> buff.append(c1)
       }
+      consume(1)
     }
     expect("\"")
-    return sb.toString()
+    return buff.toString()
   }
   private fun parseBracket(): MutableMap<String, String> {
     skipSpaces()
@@ -127,8 +129,8 @@ class Parser(buf: String) {
       expect("=")
       skipSpaces()
       val value = parseValue()
-      skipSpaces()
       map[key] = value
+      skipSpaces()
     }
     expect("]")
     return map
@@ -137,7 +139,7 @@ class Parser(buf: String) {
     expect("[")
     skipSpaces()
     val word = lookUntil { ch -> !ch.isWhitespace() }
-    return when(word.first.toLowerCase()) {
+    val block = when(word.first.toLowerCase()) {
       "image" -> {
         consume(word.second)
         val map = parseBracket()
@@ -165,28 +167,31 @@ class Parser(buf: String) {
       }
       else -> throw ParseError()
     }
+    expect("]")
+    return block
   }
   private fun parseParagraph(): ParagraphBlock {
     val buff = StringBuilder()
     skipSpaces()
     buff.append(consume1())
     do {
-      buff.append(consumeUntil { ch -> ch != '[' || ch == '\n' })
-    } while(!eof() && look1() != '\n')
-    return ParagraphBlock(buff.toString())
+      val str = consumeUntil{ch -> ch != '[' || ch == '\n'}
+      buff.append(str)
+    } while(!eof() && look1() != '\n' && str.isNotEmpty())
+    return ParagraphBlock(buff.toString().trim())
   }
-  fun parse(): List<Block> {
+  fun parse(): Array<Block> {
     skipLines()
     val blocks = mutableListOf<Block>()
     while(!eof()) {
-      val embed = tryParse(this::parseEmbedding)
+      val embed = tryParse { parseEmbedding() }
       if(embed != null) {
         blocks.add(embed)
-        continue
+      } else {
+        blocks.add(parseParagraph())
       }
-      blocks.add(parseParagraph())
     }
-    return blocks
+    return blocks.toTypedArray()
   }
 }
 
