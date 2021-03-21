@@ -52,6 +52,6 @@ suspend fun start(vertx: Vertx, args: Array<String>) {
   ).await()
   vertx.deployVerticle(
     net.hexe.the_gear_of_seasons.omote.OmoteVerticle::class.java,
-    DeploymentOptions().setInstances(3).setConfig(config)
+    DeploymentOptions().setInstances(3).setWorker(false).setConfig(config)
   ).await()
 }
