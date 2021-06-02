@@ -1,0 +1,21 @@
+{
+  "name": "server",
+  "version": "2.0.0",
+  "scripts": {
+    "start": "ts-node src/main.ts",
+    "watch": "ts-node-dev src/main.ts",
+    "build": "tsc",
+    "clean": "rm -Rf ./dist",
+    "up": "npm-check-updates -u && npm install && npm dedupe && npm audit fix"
+  },
+  "author": "Kaede Fujisaki",
+  "license": "AGPL-3.0-or-later",
+  "devDependencies": {
+    "npm-check-updates": "^11.6.0",
+    "ts-node-dev": "^1.1.6"
+  },
+  "dependencies": {
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.2"
+  }
+}
