@@ -1,0 +1,27 @@
+{
+  "name": "the-gear-of-seasons-client",
+  "version": "2.0.0",
+  "description": "the heart of hexe.net",
+  "scripts": {
+    "watch": "webpack --watch watch",
+    "build": "webpack",
+    "clean": "rm -Rf ./dist",
+    "up": "npm-check-updates -u && npm install && npm dedupe && npm audit fix"
+  },
+  "author": "Kaede Fujisaki",
+  "license": "AGPL-3.0-or-later",
+  "devDependencies": {
+    "@types/twemoji": "^12.1.1",
+    "@types/webpack": "^5.28.0",
+    "npm-check-updates": "^11.6.0",
+    "ts-loader": "^8.3.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.2",
+    "webpack": "^5.38.1",
+    "webpack-cli": "^4.7.0"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.3.0",
+    "twemoji": "^13.1.0"
+  }
+}

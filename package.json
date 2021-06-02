@@ -5,8 +5,16 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fairy-rockets/the-gear-of-seasons.git"
+  },
   "author": "Kaede Fujisaki",
   "license": "AGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/fairy-rockets/the-gear-of-seasons/issues"
+  },
+  "homepage": "https://github.com/fairy-rockets/the-gear-of-seasons#readme",
   "workspaces": [
     "bridge",
     "client",
