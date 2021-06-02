@@ -1,0 +1,15 @@
+{
+  "name": "the-gear-of-seasons",
+  "version": "2.0.0",
+  "description": "The heaet of hexe.net",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kaede Fujisaki",
+  "license": "AGPL-3.0-or-later",
+  "workspaces": [
+    "bridge",
+    "client",
+    "server"
+  ]
+}
