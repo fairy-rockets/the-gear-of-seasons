@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "description": "the heart of hexe.net",
   "scripts": {
-    "watch": "webpack --watch watch",
+    "watch": "webpack --watch",
     "build": "webpack",
     "clean": "rm -Rf ./dist",
     "up": "npm-check-updates -u && npm install && npm dedupe && npm audit fix"
