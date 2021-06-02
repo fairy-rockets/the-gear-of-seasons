@@ -4,16 +4,15 @@ function main() {
   const http = fastify({
     logger: true
   });
+  const log = http.log;
   http.get('/', async (request, reply) => {
     reply.type('application/json').code(200)
     return { hello: 'world' }
   });
-  http.listen(8888, (err, address) => {
+  http.listen(8888, '::', (err, address) => {
     if(err !== null) {
-      console.error(`Failed to start server @ ${address}`, err);
+      log.error(err)
       throw err;
-    } else {
-      console.log(`Server started @ ${address}`)
     }
   });
 }

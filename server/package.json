@@ -11,11 +11,13 @@
   "author": "Kaede Fujisaki",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
+    "@types/pino": "^6.3.8",
     "npm-check-updates": "^11.6.0",
     "ts-node-dev": "^1.1.6"
   },
   "dependencies": {
     "fastify": "^3.17.0",
+    "pino": "^6.11.3",
     "ts-node": "^10.0.0",
     "typescript": "^4.3.2"
   }
