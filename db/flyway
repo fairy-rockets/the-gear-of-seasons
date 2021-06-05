@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -eu
+set -o pipefail
+
+REPO_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && cd .. && pwd)"
+cd "${REPO_DIR}"
+
+env UID="$(id -u)" GID="$(id -g)" docker-compose --profile tool run \
+  --rm \
+  -e 'FLYWAY_CONFIG_FILES=/flyway/conf/flyway.conf' \
+  flyway "$@"

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -eu
+set -o pipefail
+
+REPO_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && cd .. && pwd)"
+cd "${REPO_DIR}"
+
+env UID="$(id -u)" GID="$(id -g)" docker-compose --profile tool run \
+  --rm \
+  --user "$(id -u)" \
+	--use-aliases \
+  -e 'PGPASSWORD=the-gear-of-seasons' \
+  db \
+  pg_dump  '--username=the-gear-of-seasons' \
+           '--host=db' \
+           '--exclude-table=flyway_*' \
+           "$@" \
+           'the-gear-of-seasons'

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+REPO_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && cd .. && pwd)"
+cd "${REPO_DIR}" || exit 1
+
+set -eu
+set -o pipefail
+
+env UID="$(id -u)" GID="$(id -g)" docker-compose --profile tool run \
+  --rm \
+  --user "$(id -u)" \
+	--use-aliases \
+  -e 'PGPASSWORD=the-gear-of-seasons' \
+  db \
+  psql  '--username=the-gear-of-seasons' \
+        '--host=db' \
+        "$@" \
+        niki
