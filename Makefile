@@ -33,7 +33,7 @@ migrate:
 
 .PHONY: clean
 clean:
-	rm -Rfv var
+	rm -Rfv var/*
 
 .PNONY: recreate
 recreate:
