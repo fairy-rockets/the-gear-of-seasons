@@ -5,13 +5,15 @@
     "watch": "tsc --watch",
     "build": "tsc",
     "clean": "rm -Rf ./dist",
-    "up": "npm-check-updates -u && npm install && npm dedupe && npm audit fix"
+    "up": "npm-check-updates -u && npm install && npm dedupe && npm audit fix",
+    "test": "jest"
   },
   "main": "dist/lib.js",
   "types": "dist/lib.d.ts",
   "author": "Kaede Fujisaki",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
+    "jest": "^27.0.4",
     "npm-check-updates": "^11.6.0"
   },
   "dependencies": {
