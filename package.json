@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "description": "The heaet of hexe.net",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "(cd bridge && npm run test)"
   },
   "repository": {
     "type": "git",
