@@ -13,12 +13,12 @@ describe("FML", () => {
     const p = new fml.Parser(buffer);
     expect(p.parse()).toEqual(new fml.Document([fml.makeText(`test`)]));
   });
-  it("Image test", () => {
+  it("Image block", () => {
     const buffer = new fml.Buffer(`[image entity="test_id"]`);
     const p = new fml.Parser(buffer);
     expect(p.parse()).toEqual(new fml.Document([fml.makeImage("test_id")]));
   });
-  it("Image mixed test", () => {
+  it("Image mixed", () => {
     const buffer = new fml.Buffer(`aa[image entity="test_id"] aa`);
     const p = new fml.Parser(buffer);
     expect(p.parse()).toEqual(new fml.Document([
@@ -27,11 +27,18 @@ describe("FML", () => {
       fml.makeText("aa"),
     ]));
   });
-  it("Broken brancket test", () => {
+  it("Broken brancket", () => {
     const buffer = new fml.Buffer(`aa[image entity="test`);
     const p = new fml.Parser(buffer);
     expect(p.parse()).toEqual(new fml.Document([
       fml.makeText(`aa[image entity="test`),
+    ]));
+  });
+  it("Brancket with new line", () => {
+    const buffer = new fml.Buffer(`[image\r\nentity="test_id"]`);
+    const p = new fml.Parser(buffer);
+    expect(p.parse()).toEqual(new fml.Document([
+      fml.makeImage("test_id"),
     ]));
   });
 });
