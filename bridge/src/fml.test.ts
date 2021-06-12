@@ -18,4 +18,13 @@ describe("FML", () => {
     const p = new fml.Parser(buffer);
     expect(p.parse()).toEqual(new fml.Document([fml.makeImage("test_id")]));
   });
+  it("Image mixed test", () => {
+    const buffer = new fml.Buffer(`aa[image entity="test_id"] aa`);
+    const p = new fml.Parser(buffer);
+    expect(p.parse()).toEqual(new fml.Document([
+      fml.makeText("aa"),
+      fml.makeImage("test_id"),
+      fml.makeText("aa"),
+    ]));
+  });
 });

@@ -95,6 +95,7 @@ export class Parser{
           }
           break;
         default:
+          this.buff.skipWhitespace();
           this.blocks.push(this.parseText());
           break;
       }
