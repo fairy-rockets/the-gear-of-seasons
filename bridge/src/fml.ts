@@ -73,6 +73,8 @@ function isNotWhitespace(ch: string): boolean {
 export class ParseError extends Error {
   constructor(msg: string) {
     super(msg);
+    // https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work
+    Object.setPrototypeOf(this, ParseError.prototype);
   }
 }
 
