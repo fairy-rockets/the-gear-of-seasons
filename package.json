@@ -3,7 +3,8 @@
   "version": "2.0.0",
   "description": "The heaet of hexe.net",
   "scripts": {
-    "test": "(cd bridge && npm run test)"
+    "test": "(cd bridge && npm run test)",
+    "up": "(cd bridge && npm run up) && (cd server && npm run up) && (cd client && npm run up)"
   },
   "repository": {
     "type": "git",
