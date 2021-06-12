@@ -60,11 +60,11 @@ function isNotWhitespace(ch: string): boolean {
     return this.pos < this.buff.length;
   }
   try<T>(fn: () => T): T {
-    const pos = this.pos;
+    const orig = this.pos;
     try {
       return fn();
     } catch (e) {
-      this.pos = pos;
+      this.pos = orig;
       throw e;
     }
   }
@@ -147,7 +147,6 @@ export class Parser{
     try {
       return this.buff.try(fn);
     } catch (e) {
-      return null;
       if (e instanceof ParseError) {
         return null;
       } else {
