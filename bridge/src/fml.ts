@@ -106,6 +106,7 @@ export class Parser{
         break;
       case '\n':
       case '\r':
+        this.buff.take1();
         commitText();
         break;
       default:

@@ -41,4 +41,14 @@ describe("FML", () => {
       fml.makeImage("test_id"),
     ]));
   });
+  it("Paragraphs", () => {
+    const buffer = new fml.Buffer(`\r\na\r\nb\nc\rd\r\n\r\n`);
+    const p = new fml.Parser(buffer);
+    expect(p.parse()).toEqual(new fml.Document([
+      fml.makeText("a"),
+      fml.makeText("b"),
+      fml.makeText("c"),
+      fml.makeText("d"),
+    ]));
+  });
 });
