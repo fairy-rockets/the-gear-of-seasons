@@ -4,13 +4,18 @@ import * as fml from './fml';
 
 describe("FML", () => {
   it("Parse empty", () => {
-    const buffer = new fml.Buffer("");
+    const buffer = new fml.Buffer(``);
     const p = new fml.Parser(buffer);
     expect(p.parse()).toEqual(new fml.Document([]));
   });
   it("Simple text", () => {
-    const buffer = new fml.Buffer("test");
+    const buffer = new fml.Buffer(`test`);
     const p = new fml.Parser(buffer);
-    expect(p.parse()).toEqual(new fml.Document([fml.text("test")]));
+    expect(p.parse()).toEqual(new fml.Document([fml.makeText(`test`)]));
+  });
+  it("Image test", () => {
+    const buffer = new fml.Buffer(`[image entity="test_id"]`);
+    const p = new fml.Parser(buffer);
+    expect(p.parse()).toEqual(new fml.Document([fml.makeImage("test_id")]));
   });
 });
