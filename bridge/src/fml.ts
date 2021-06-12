@@ -6,8 +6,8 @@ function isWhitespace(ch: string): boolean {
   switch(ch) {
     case ' ':
     case '　':
-    case '\n':
     case '\r':
+    case '\n':
       return true;
     default:
       return false;
@@ -86,28 +86,41 @@ export class Parser{
     this.blocks = [];
   }
   parse(): Document {
+    let texts: string[] = [];
+    const commitText = () => {
+      if(texts.length > 0) {
+        this.blocks.push(makeText(texts.join('')));
+        texts = [];
+      }
+    };
     while(this.buff.hasNext()) {
       switch(this.buff.look1()) {
-        case '[':
-          const block = this.try(() => this.parseBlock());
-          if (block !== null){
-            this.blocks.push(block);
-          } else {
-            this.blocks.push(this.parseText());
-          }
-          break;
-        default:
-          this.buff.skipWhitespace();
-          this.blocks.push(this.parseText());
-          break;
+      case '[':
+        const block = this.try(() => this.parseBlock());
+        if (block !== null){
+          commitText();
+          this.blocks.push(block);
+        } else {
+          texts.push(this.readText());
+        }
+        break;
+      case '\n':
+      case '\r':
+        commitText();
+        break;
+      default:
+        this.buff.skipWhitespace();
+        texts.push(this.readText());
+        break;
       }
     }
+    commitText();
     return new Document(this.blocks);
   }
-  private parseText(): Text {
+  private readText(): string {
     const first = this.buff.take1();
-    const left = this.buff.takeWhile((ch) => isNotWhitespace(ch) && ch !== '[');
-    return makeText(first + left);
+    const left = this.buff.takeWhile((ch) => !(ch === '\r' || ch === '\n' || ch === '['));
+    return first + left;
   }
   private parseBlock(): Image | Video | Audio | Link | Markdown {
     const [tag, map] = this.parseBrancket();
