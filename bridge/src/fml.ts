@@ -147,6 +147,7 @@ export class Parser{
     try {
       return this.buff.try(fn);
     } catch (e) {
+      return null;
       if (e instanceof ParseError) {
         return null;
       } else {

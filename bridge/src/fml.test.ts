@@ -27,4 +27,11 @@ describe("FML", () => {
       fml.makeText("aa"),
     ]));
   });
+  it("Broken brancket test", () => {
+    const buffer = new fml.Buffer(`aa[image entity="test`);
+    const p = new fml.Parser(buffer);
+    expect(p.parse()).toEqual(new fml.Document([
+      fml.makeText(`aa[image entity="test`),
+    ]));
+  });
 });
