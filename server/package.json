@@ -8,6 +8,8 @@
     "clean": "rm -Rf ./dist",
     "up": "npm-check-updates -u && npm install && npm dedupe && npm audit fix"
   },
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
   "author": "Kaede Fujisaki",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
