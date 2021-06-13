@@ -10,6 +10,19 @@
   },
   "main": "dist/lib.js",
   "types": "dist/lib.d.ts",
+  /**
+   * We need a workaround to sub-path exports in TS.
+   * https://github.com/teppeis/typescript-subpath-exports-workaround
+   */
+  "exports": {
+    ".": "./dist/lib.js",
+    "./fml": "./dist/fml.js"
+  },
+  "typesVersions": {
+    "*": {
+      "fml": ["dist/fml"]
+    }
+  },
   "author": "Kaede Fujisaki",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
