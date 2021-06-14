@@ -1,20 +1,14 @@
 import fastify from 'fastify'
+import Server from './Server';
 
-function main() {
-  const http = fastify({
-    logger: true
-  });
-  const log = http.log;
-  http.get('/', async (request, reply) => {
-    reply.type('application/json').code(200)
-    return { hello: 'world' }
-  });
-  http.listen(8888, '::', (err, address) => {
-    if(err !== null) {
-      log.error(err)
-      throw err;
-    }
-  });
+async function main() {
+  const server = new Server();
+  await server.start();
 }
 
-main();
+main()
+  .then(() => {})
+  .catch((err) => {
+    console.error(err);
+    throw err;
+  });
