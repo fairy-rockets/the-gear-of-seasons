@@ -13,6 +13,26 @@ class Server {
       });
     }
   };
+  private readonly each = {
+    get: <
+        OmoteInterface extends RouteGenericInterface = RouteGenericInterface,
+        UraInterface extends RouteGenericInterface = RouteGenericInterface,
+      >(path: string,
+        omoteHandler: (req: FastifyRequest<OmoteInterface>, reply: FastifyReply) => PromiseLike<void>,
+        uraHandler: (req: FastifyRequest<UraInterface>, reply: FastifyReply) => PromiseLike<void>,
+      ) => {
+      this.http.get(path, async (req, reply) => {
+        if (req.hostname === OMOTE_HOST) {
+          await omoteHandler(req as FastifyRequest<OmoteInterface>, reply);
+        } else if (req.hostname === URA_HOST) {
+          await uraHandler(req as FastifyRequest<UraInterface>, reply);
+        } else {
+          reply.type('text/plain').code(404);
+          reply.send('Page not found');
+        }
+      });
+    }
+  };
   private readonly omote = {
     get: <Interface extends RouteGenericInterface = RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
       this.http.get<Interface>(path, async (req, reply) => {
