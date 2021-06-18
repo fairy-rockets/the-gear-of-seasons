@@ -13,7 +13,7 @@ services:
       - 'the-gear-of-seasons-link'
     profiles: ['tool']
 
-  db:
+  postgres:
     image: 'postgres:alpine'
     container_name: 'the-gear-of-seasons_db'
     hostname: 'the-gear-of-seasons_db'
@@ -30,7 +30,7 @@ services:
     ports:
       - '127.0.0.1:5432:5432'
     volumes:
-      - './var/psql:/var/lib/postgresql/data:z'
+      - './var/postgres:/var/lib/postgresql/data:z'
       - './db/helpers:/helpers'
       - '/etc/passwd:/etc/passwd:ro'
     networks:
