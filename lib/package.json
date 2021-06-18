@@ -12,13 +12,13 @@
   "types": "dist/lib.d.ts",
   "exports": {
     ".": "./dist/lib.js",
-    "./fml": "./dist/fml.js"
+    "./fml": "./dist/fml.js",
+    "./media": "./dist/media.js"
   },
   "typesVersions": {
     "*": {
-      "fml": [
-        "dist/fml"
-      ]
+      "fml": [ "dist/fml" ],
+      "media": [ "dist/media" ]
     }
   },
   "author": "Kaede Fujisaki",
