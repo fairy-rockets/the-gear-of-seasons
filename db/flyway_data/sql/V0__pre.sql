@@ -19,8 +19,24 @@ CREATE TABLE "moments" (
   "updated" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TYPE ENTITY_TYPE AS ENUM ('image', 'video', 'audio');
+
+CREATE TABLE "entities" (
+  "id" varchar(20) NOT NULL PRIMARY KEY,
+  "type" ENTITY_TYPE NOT NULL,
+  "path" varchar(1024) NOT NULL,
+  "created" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updated" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TRIGGER moments_modify_updated
   BEFORE UPDATE
   ON "moments"
+  FOR EACH ROW
+EXECUTE PROCEDURE update_timestamp();
+
+CREATE TRIGGER entities_modify_updated
+  BEFORE UPDATE
+  ON "entities"
   FOR EACH ROW
 EXECUTE PROCEDURE update_timestamp();
