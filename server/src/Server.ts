@@ -1,4 +1,4 @@
-import fastify, { FastifyInstance, FastifyReply, FastifyRequest, RawReplyDefaultExpression, RawRequestDefaultExpression, RawServerBase, RouteHandlerMethod } from 'fastify'
+import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { RouteGenericInterface } from 'fastify/types/route';
 
 const OMOTE_HOST = process.env['OMOTE_HOST'] || 'hexe.net';
