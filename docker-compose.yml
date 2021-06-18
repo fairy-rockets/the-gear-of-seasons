@@ -39,5 +39,7 @@ services:
     stdin_open: true
 
 networks:
+  default:
+    driver: 'null'
   the-gear-of-seasons-link:
     external: false
