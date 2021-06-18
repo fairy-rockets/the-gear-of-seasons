@@ -36,7 +36,7 @@ class Server {
   private readonly omote = {
     get: <Interface extends RouteGenericInterface = RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
       this.http.get<Interface>(path, async (req, reply) => {
-        if(req.hostname === OMOTE_HOST) {
+        if (req.hostname === OMOTE_HOST) {
           await handler(req, reply);
         } else {
           reply.type('text/plain').code(404);
@@ -48,7 +48,7 @@ class Server {
   private readonly ura = {
     get: <Interface extends RouteGenericInterface = RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
       this.http.get<Interface>(path, async (req, reply) => {
-        if(req.hostname === URA_HOST) {
+        if (req.hostname === URA_HOST) {
           await handler(req, reply);
         } else {
           reply.type('text/plain').code(404);
