@@ -8,7 +8,7 @@ dev:
 
 .PHONY: test
 test:
-	cd bridge && npm run test
+	cd lib && npm run test
 
 ########################################################################################################################
 ## db
@@ -67,12 +67,12 @@ FORCE: ;
 
 .PHONY: build
 build:
-	$(MAKE) build-bridge
+	$(MAKE) build-lib
 	$(MAKE) -j2 build-client build-server
 
-.PHONY: build-bridge
-build-bridge: FORCE
-	cd bridge && npm run build
+.PHONY: build-lib
+build-lib: FORCE
+	cd lib && npm run build
 
 .PHONY: build-client
 build-client: FORCE
