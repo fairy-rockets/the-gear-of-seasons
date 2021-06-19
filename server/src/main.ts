@@ -1,7 +1,9 @@
+import Asset from 'lib/asset';
 import Server from './Server';
 
 async function main() {
-  const server = new Server();
+  const asset = new Asset();
+  const server = await Server.create(asset);
   await server.start();
 }
 

@@ -1,3 +1,6 @@
+.PHONY: all
+all: dev ;
+
 .PHONY: FORCE
 FORCE: ;
 

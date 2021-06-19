@@ -3,7 +3,7 @@ ROOT_DIR="$(cd "$(readlink -f "$(dirname "$0")")" && cd .. && pwd)"
 cd "${ROOT_DIR}" || exit 1
 
 export "OMOTE_HOST=hexe.net:8888"
-export "URA_HOST=hexe.ink:8888"
+export "URA_HOST=ura.hexe.net:8888"
 
 set -eu
 set -o pipefail

@@ -1,10 +1,13 @@
+import Asset from 'lib/asset';
 import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { RouteGenericInterface } from 'fastify/types/route';
+import IndexController from './controller/IndexController';
 
 const OMOTE_HOST = process.env['OMOTE_HOST'] || 'hexe.net';
 const URA_HOST = process.env['URA_HOST'] || 'ura.hexe.net';
 
 class Server {
+  private readonly asset: Asset;
   private readonly http: FastifyInstance;
   private readonly both = {
     get: <Interface extends RouteGenericInterface = RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
@@ -57,20 +60,34 @@ class Server {
       });
     }
   };
-  constructor() {
+  private constructor(asset: Asset) {
+    this.asset = asset;
     this.http = fastify({
       logger: true,
       bodyLimit: 256*1024*1024,
       maxParamLength: 1024*1024,
     });
-    this.setup();
   }
 
-  setup() {
-    this.both.get('/', async (req, reply) => {
-      reply.type('application/json').code(200);
-      reply.send({ hello: 'world' });
-    });
+  static async create(asset: Asset): Promise<Server> {
+    const server = new Server(asset);
+    await server.setup();
+    return server;
+  }
+
+  async setup() {
+    { // index
+      const index = await IndexController.create(this.asset);
+      this.each.get(
+        '/',
+        async(req, reply) => {
+          index.render(reply);
+        },
+        async (req, reply) => {
+          reply.type('application/json').code(200);
+          reply.send({ hello: 'world' });
+        });
+    }
   }
 
   async start() {
