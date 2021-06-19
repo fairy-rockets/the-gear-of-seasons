@@ -8,7 +8,7 @@ export default class IndexController {
     this.template = template;
   }
   static async create(asset: Asset): Promise<IndexController> {
-    const src = await asset.loadString('templates/index.hbs');
+    const src = await asset.loadString('templates/omote/index.hbs');
     const templ = Handlebars.compile(src);
     return new IndexController(templ);
   }
