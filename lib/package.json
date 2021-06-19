@@ -12,12 +12,16 @@
   "types": "dist/lib.d.ts",
   "exports": {
     ".": "./dist/lib.js",
+    "./asset": "./dist/asset.js",
     "./fml": "./dist/fml.js",
     "./media": "./dist/media.js",
     "./gear": "./dist/gear.js"
   },
   "typesVersions": {
     "*": {
+      "asset": [
+        "dist/asset"
+      ],
       "fml": [
         "dist/fml"
       ],
@@ -33,11 +37,11 @@
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "jest": "^27.0.4",
-    "npm-check-updates": "^11.6.0",
+    "npm-check-updates": "^11.7.1",
     "ts-jest": "^27.0.3"
   },
   "dependencies": {
     "@expo/spawn-async": "^1.5.0",
-    "typescript": "^4.3.2"
+    "typescript": "^4.3.4"
   }
 }
