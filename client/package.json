@@ -22,6 +22,6 @@
   "dependencies": {
     "gl-matrix": "^3.3.0",
     "twemoji": "^13.1.0",
-    "bridge": "file:../bridge"
+    "lib": "file:../lib"
   }
 }
