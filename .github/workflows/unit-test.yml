@@ -1,4 +1,4 @@
-name: 'UnitTest'
+name: 'Run all unit tests'
 
 on:
   push:
