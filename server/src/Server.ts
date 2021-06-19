@@ -1,7 +1,8 @@
 import Asset from 'lib/asset';
 import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { RouteGenericInterface } from 'fastify/types/route';
-import IndexController from './controller/IndexController';
+import OmoteIndexController from './controller/omote/IndexController';
+import UraIndexController from './controller/ura/IndexController';
 
 const OMOTE_HOST = process.env['OMOTE_HOST'] || 'hexe.net';
 const URA_HOST = process.env['URA_HOST'] || 'ura.hexe.net';
@@ -77,15 +78,15 @@ class Server {
 
   async setup() {
     { // index
-      const index = await IndexController.create(this.asset);
+      const omote = await OmoteIndexController.create(this.asset);
+      const ura = await UraIndexController.create(this.asset);
       this.each.get(
         '/',
-        async(req, reply) => {
-          index.render(reply);
+        async(_req, reply) => {
+          omote.render(reply);
         },
-        async (req, reply) => {
-          reply.type('application/json').code(200);
-          reply.send({ hello: 'world' });
+        async (_req, reply) => {
+          ura.render(reply);
         });
     }
   }
