@@ -13,7 +13,8 @@
   "exports": {
     ".": "./dist/lib.js",
     "./fml": "./dist/fml.js",
-    "./media": "./dist/media.js"
+    "./media": "./dist/media.js",
+    "./gear": "./dist/gear.js"
   },
   "typesVersions": {
     "*": {
@@ -22,6 +23,9 @@
       ],
       "media": [
         "dist/media"
+      ],
+      "gear": [
+        "dist/gear"
       ]
     }
   },
