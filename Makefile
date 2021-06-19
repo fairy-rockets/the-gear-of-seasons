@@ -104,4 +104,4 @@ build-server: FORCE
 
 # https://makefiletutorial.com/#automatic-variables
 ./var/postgres:
-  mkdir -p "$@"
+	mkdir -p "$@"
