@@ -1,5 +1,5 @@
 # the gear of seasons (季節の歯車)
-[![UnitTest](https://github.com/fairy-rockets/the-gear-of-seasons/actions/workflows/unit-test.yml/badge.svg)](https://github.com/fairy-rockets/the-gear-of-seasons/actions/workflows/unit-test.yml) [![Build all modules](https://github.com/fairy-rockets/the-gear-of-seasons/actions/workflows/build-all.yml/badge.svg)](https://github.com/fairy-rockets/the-gear-of-seasons/actions/workflows/build-all.yml)
+[![Build all modules](https://github.com/fairy-rockets/the-gear-of-seasons/actions/workflows/build-all.yml/badge.svg)](https://github.com/fairy-rockets/the-gear-of-seasons/actions/workflows/build-all.yml) [![Run all unit tests](https://github.com/fairy-rockets/the-gear-of-seasons/actions/workflows/unit-test.yml/badge.svg)](https://github.com/fairy-rockets/the-gear-of-seasons/actions/workflows/unit-test.yml)
 
 [Here is a running gear!](https://hexe.net/)
 
