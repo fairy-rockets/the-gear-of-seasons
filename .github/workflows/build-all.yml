@@ -34,5 +34,5 @@ jobs:
       - name: Prepare
         run: make prepare -j
 
-      - name: Run tests
+      - name: Build all modules
         run: make build -j
