@@ -8,3 +8,9 @@
  - node.js 14.0 or higher.
  - ffmpeg
 
+## How to build
+
+```bash
+make prepare
+make build
+```

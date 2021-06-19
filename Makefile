@@ -1,13 +1,16 @@
+.PHONY: FORCE
+FORCE: ;
+
 ########################################################################################################################
 ## dev
 ########################################################################################################################
 
 .PHONY: dev
-dev:
+dev: FORCE
 	bash _helpers/dev.sh
 
 .PHONY: test
-test:
+test: FORCE
 	cd lib && npm run test
 
 ########################################################################################################################
@@ -18,15 +21,15 @@ test:
 prepare: prepare-lib prepare-client prepare-server ;
 
 .PHONY: prepare-lib
-prepare-lib:
+prepare-lib: FORCE
 	cd lib && npm install
 
 .PHONY: prepare-server
-prepare-server:
+prepare-server: FORCE
 	cd server && npm install
 
 .PHONY: prepare-client
-prepare-client:
+prepare-client: FORCE
 	cd client && npm install
 
 ########################################################################################################################
@@ -39,11 +42,11 @@ up: ./var/postgres
 	$(MAKE) wait
 
 .PHONY: down
-down:
+down: FORCE
 	UID=$(shell id -u) GID=$(shell id -g) docker-compose down
 
 .PHONY: wait
-wait:
+wait: FORCE
 	@UID=$(shell id -u) GID=$(shell id -g) docker-compose run \
 		--rm \
 		--use-aliases \
@@ -51,38 +54,35 @@ wait:
 		bash /helpers/wait-boot.sh
 
 .PHONY: migrate
-migrate:
+migrate: FORCE
 	bash db/flyway migrate
 
 .PHONY: clean
-clean:
+clean: FORCE
 	rm -Rfv var/*
 
 .PNONY: recreate
-recreate:
+recreate: FORCE
 	$(MAKE) down
 	$(MAKE) clean
 	$(MAKE) up
 	$(MAKE) migrate
 
 .PHONY: restart
-restart:
+restart: FORCE
 	$(MAKE) down
 	$(MAKE) up
 
 .PHONY: cli
-cli:
+cli: FORCE
 	bash ./db/cli-dev
 
 ########################################################################################################################
 ## build
 ########################################################################################################################
 
-.PHONY: FORCE
-FORCE: ;
-
 .PHONY: build
-build:
+build: FORCE
 	$(MAKE) build-lib
 	$(MAKE) -j2 build-client build-server
 
