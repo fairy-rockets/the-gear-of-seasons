@@ -1,4 +1,3 @@
-import fastify from 'fastify'
 import Server from './Server';
 
 async function main() {
