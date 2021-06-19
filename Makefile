@@ -19,15 +19,15 @@ prepare: prepare-lib prepare-client prepare-server ;
 
 .PHONY: prepare-lib
 prepare-lib:
-	cd lib && npm ci
+	cd lib && npm install
 
 .PHONY: prepare-server
 prepare-server:
-	cd server && npm ci
+	cd server && npm install
 
 .PHONY: prepare-client
 prepare-client:
-	cd client && npm ci
+	cd client && npm install
 
 ########################################################################################################################
 ## db
