@@ -1,9 +1,13 @@
 import Handlebars from 'handlebars';
 import Asset from 'lib/asset';
 
+type CommonData = {
+
+};
+
 export default class UraTamplate<T = any> {
   private readonly hbs: typeof Handlebars;
-  private readonly templ: Handlebars.TemplateDelegate;
+  private readonly templ: Handlebars.TemplateDelegate<T>;
   private constructor(hbs: typeof Handlebars, templ: Handlebars.TemplateDelegate) {
     this.hbs = hbs;
     this.templ = templ;
@@ -12,11 +16,10 @@ export default class UraTamplate<T = any> {
     const hbs = Handlebars.create();
     hbs.registerPartial('content', hbs.compile(await asset.loadString(`templates/ura/${contentFilepath}`)));
     const src = await asset.loadString('templates/ura/_main.hbs');
-    const templ = hbs.compile(src);
+    const templ = hbs.compile<T>(src);
     return new UraTamplate<T>(hbs, templ);
   }
   render(data: T): string {
     return this.templ(data);
   }
-
 }
