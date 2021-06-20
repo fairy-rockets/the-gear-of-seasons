@@ -1,20 +1,18 @@
 import { FastifyReply } from 'fastify';
 import Handlebars from 'handlebars';
 import Asset from 'lib/asset';
+import UraTamplate from './UraTemplate';
 
 export default class IndexController {
-  readonly template: Handlebars.TemplateDelegate;
-  private constructor(template: Handlebars.TemplateDelegate) {
+  readonly template: UraTamplate;
+  private constructor(template: UraTamplate) {
     this.template = template;
   }
   static async create(asset: Asset): Promise<IndexController> {
-    const hbs = Handlebars.create();
-    hbs.registerPartial('content', hbs.compile(await asset.loadString('templates/ura/index.hbs')));
-    const src = await asset.loadString('templates/ura/_main.hbs');
-    const templ = hbs.compile(src);
+    const templ = await UraTamplate.create(asset, 'index.hbs');
     return new IndexController(templ);
   }
   render(reply: FastifyReply) {
-    reply.type('text/html').code(200).send(this.template({}));
+    reply.type('text/html').code(200).send(this.template.render({}));
   }
 }
