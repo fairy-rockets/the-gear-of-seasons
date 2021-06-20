@@ -1,11 +1,9 @@
 import Asset from 'lib/asset';
+import Config from './Config';
 import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { RouteGenericInterface } from 'fastify/types/route';
 import OmoteIndexController from './controller/omote/IndexController';
 import UraIndexController from './controller/ura/IndexController';
-
-const OMOTE_HOST = process.env['OMOTE_HOST'] || 'hexe.net';
-const URA_HOST = process.env['URA_HOST'] || 'ura.hexe.net';
 
 class Server {
   private readonly asset: Asset;
@@ -26,9 +24,9 @@ class Server {
         uraHandler: (req: FastifyRequest<UraInterface>, reply: FastifyReply) => PromiseLike<void>,
       ) => {
       this.http.get(path, async (req, reply) => {
-        if (req.hostname === OMOTE_HOST) {
+        if (req.hostname === Config.OmoteHost) {
           await omoteHandler(req as FastifyRequest<OmoteInterface>, reply);
-        } else if (req.hostname === URA_HOST) {
+        } else if (req.hostname === Config.UraHost) {
           await uraHandler(req as FastifyRequest<UraInterface>, reply);
         } else {
           reply.type('text/plain').code(404);
@@ -40,7 +38,7 @@ class Server {
   private readonly omote = {
     get: <Interface extends RouteGenericInterface = RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
       this.http.get<Interface>(path, async (req, reply) => {
-        if (req.hostname === OMOTE_HOST) {
+        if (req.hostname === Config.OmoteHost) {
           await handler(req, reply);
         } else {
           reply.type('text/plain').code(404);
@@ -52,7 +50,7 @@ class Server {
   private readonly ura = {
     get: <Interface extends RouteGenericInterface = RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
       this.http.get<Interface>(path, async (req, reply) => {
-        if (req.hostname === URA_HOST) {
+        if (req.hostname === Config.UraHost) {
           await handler(req, reply);
         } else {
           reply.type('text/plain').code(404);
