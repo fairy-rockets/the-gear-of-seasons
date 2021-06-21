@@ -2,10 +2,6 @@ import Handlebars from 'handlebars';
 import Asset from 'lib/asset';
 import Config from '../../Config';
 
-type CommonData = {
-
-};
-
 export default class UraTamplate<T = any> {
   private readonly hbs: typeof Handlebars;
   private readonly templ: Handlebars.TemplateDelegate<T>;
