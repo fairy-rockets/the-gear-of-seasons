@@ -8,5 +8,7 @@ class Shelf {
     this.path = path.join(__dirname, '..', '..', '..', '_shelf');
     this.repo = repo;
   }
-  
+
 }
+
+export default Shelf;
