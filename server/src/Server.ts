@@ -1,6 +1,8 @@
 import Asset from 'lib/asset';
 import Config from './Config';
-import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import fastifyStatic from 'fastify-static';
+import path from 'path';
 import { RouteGenericInterface } from 'fastify/types/route';
 import OmoteIndexController from './controller/omote/IndexController';
 import UraIndexController from './controller/ura/IndexController';
@@ -94,6 +96,21 @@ class Server {
         },
         ura: async (_req, reply) => {
           ura.render(reply);
+        }
+      });
+    }
+    { // static files
+      this.http.register(fastifyStatic, {
+        root: this.asset.pathOf('static'),
+      });  
+      this.each.get('/static/*', {
+        omote: async(req, reply) => {
+          const url = req.url;
+          reply.sendFile(path.join('omote', url.slice(8)));
+        },
+        ura: async (req, reply) => {
+          const url = req.url;
+          reply.sendFile(path.join('ura', url.slice(8)));
         }
       });
     }
