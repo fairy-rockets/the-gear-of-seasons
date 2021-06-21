@@ -88,16 +88,14 @@ class Server {
     { // index
       const omote = await OmoteIndexController.create(this.asset);
       const ura = await UraIndexController.create(this.asset);
-      this.each.get(
-        '/',
-        {
-          omote: async(_req, reply) => {
-            omote.render(reply);
-          },
-          ura: async (_req, reply) => {
-            ura.render(reply);
-          },
-        });
+      this.each.get('/', {
+        omote: async(_req, reply) => {
+          omote.render(reply);
+        },
+        ura: async (_req, reply) => {
+          ura.render(reply);
+        }
+      });
     }
   }
 
