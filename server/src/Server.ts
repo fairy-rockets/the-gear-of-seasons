@@ -5,11 +5,22 @@ import { RouteGenericInterface } from 'fastify/types/route';
 import OmoteIndexController from './controller/omote/IndexController';
 import UraIndexController from './controller/ura/IndexController';
 
+type Handler<Interface extends RouteGenericInterface> = 
+  (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>;
+
+type HandlerSet<
+  OmoteInterface extends RouteGenericInterface,
+  UraInterface extends RouteGenericInterface,
+> = {
+  omote?: Handler<OmoteInterface>,
+  ura?: Handler<UraInterface>,
+};
+
 class Server {
   private readonly asset: Asset;
   private readonly http: FastifyInstance;
   private readonly both = {
-    get: <Interface extends RouteGenericInterface = RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
+    get: <Interface extends RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
       this.http.get<Interface>(path, async (req, reply) => {
         await handler(req, reply);
       });
@@ -17,17 +28,16 @@ class Server {
   };
   private readonly each = {
     get: <
-        OmoteInterface extends RouteGenericInterface = RouteGenericInterface,
-        UraInterface extends RouteGenericInterface = RouteGenericInterface,
+        OmoteInterface extends RouteGenericInterface,
+        UraInterface extends RouteGenericInterface,
       >(path: string,
-        omoteHandler: (req: FastifyRequest<OmoteInterface>, reply: FastifyReply) => PromiseLike<void>,
-        uraHandler: (req: FastifyRequest<UraInterface>, reply: FastifyReply) => PromiseLike<void>,
+        handlerSet: HandlerSet<OmoteInterface, UraInterface>
       ) => {
       this.http.get(path, async (req, reply) => {
-        if (req.hostname === Config.OmoteHost) {
-          await omoteHandler(req as FastifyRequest<OmoteInterface>, reply);
-        } else if (req.hostname === Config.UraHost) {
-          await uraHandler(req as FastifyRequest<UraInterface>, reply);
+        if (req.hostname === Config.OmoteHost && handlerSet.omote !== undefined) {
+          await handlerSet.omote(req as FastifyRequest<OmoteInterface>, reply);
+        } else if (req.hostname === Config.UraHost && handlerSet.ura !== undefined) {
+          await handlerSet.ura(req as FastifyRequest<UraInterface>, reply);
         } else {
           reply.type('text/plain').code(404);
           reply.send('Page not found');
@@ -36,7 +46,7 @@ class Server {
     }
   };
   private readonly omote = {
-    get: <Interface extends RouteGenericInterface = RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
+    get: <Interface extends RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
       this.http.get<Interface>(path, async (req, reply) => {
         if (req.hostname === Config.OmoteHost) {
           await handler(req, reply);
@@ -48,7 +58,7 @@ class Server {
     }
   };
   private readonly ura = {
-    get: <Interface extends RouteGenericInterface = RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
+    get: <Interface extends RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
       this.http.get<Interface>(path, async (req, reply) => {
         if (req.hostname === Config.UraHost) {
           await handler(req, reply);
@@ -80,11 +90,13 @@ class Server {
       const ura = await UraIndexController.create(this.asset);
       this.each.get(
         '/',
-        async(_req, reply) => {
-          omote.render(reply);
-        },
-        async (_req, reply) => {
-          ura.render(reply);
+        {
+          omote: async(_req, reply) => {
+            omote.render(reply);
+          },
+          ura: async (_req, reply) => {
+            ura.render(reply);
+          },
         });
     }
   }
