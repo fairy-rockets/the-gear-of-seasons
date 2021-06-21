@@ -1,5 +1,6 @@
 import Handlebars from 'handlebars';
 import Asset from 'lib/asset';
+import Config from '../../Config';
 
 type CommonData = {
 
@@ -14,6 +15,7 @@ export default class UraTamplate<T = any> {
   }
   static async create<T>(asset: Asset, contentFilepath: string): Promise<UraTamplate<T>> {
     const hbs = Handlebars.create();
+    hbs.registerPartial('omote-url', hbs.compile(`//${Config.OmoteHost}/`));
     hbs.registerPartial('content', hbs.compile(await asset.loadString(`templates/ura/${contentFilepath}`)));
     const src = await asset.loadString('templates/ura/_main.hbs');
     const templ = hbs.compile<T>(src);
