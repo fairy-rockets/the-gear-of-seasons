@@ -9,11 +9,10 @@ export default class Asset {
     return path.join(__dirname, '..', '..', '_assets', ...paths);
   }
   async loadString(filepath: string): Promise<string> {
-    const result = await fs.readFile(
+    return await fs.readFile(
       this.pathOf(filepath),
       {
         encoding: 'utf-8'
       });
-    return result;
   }
 }
