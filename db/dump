@@ -11,9 +11,9 @@ env UID="$(id -u)" GID="$(id -g)" docker-compose --profile tool run \
   --user "$(id -u)" \
 	--use-aliases \
   -e 'PGPASSWORD=the-gear-of-seasons' \
-  db \
+  postgres \
   pg_dump  '--username=the-gear-of-seasons' \
-           '--host=db' \
+           '--host=postgres' \
            '--exclude-table=flyway_*' \
            "$@" \
            'the-gear-of-seasons'

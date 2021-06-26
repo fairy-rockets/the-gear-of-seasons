@@ -53,7 +53,7 @@ wait: FORCE
 	@UID=$(shell id -u) GID=$(shell id -g) docker-compose run \
 		--rm \
 		--use-aliases \
-		db \
+		postgres \
 		bash /helpers/wait-boot.sh
 
 .PHONY: migrate
