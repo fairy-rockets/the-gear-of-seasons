@@ -11,7 +11,7 @@ END;
 $$;
 
 CREATE TABLE "moments" (
-  "date" timestamp AT TIME ZONE 'JST' NOT NULL PRIMARY KEY,
+  "timestamp" timestamp NOT NULL PRIMARY KEY,
   "title" varchar(300) NOT NULL,
   "author" varchar(300) NOT NULL,
   "text" text NOT NULL,
@@ -23,8 +23,13 @@ CREATE TYPE ENTITY_TYPE AS ENUM ('image', 'video', 'audio');
 
 CREATE TABLE "entities" (
   "id" varchar(20) NOT NULL PRIMARY KEY,
+  "timestamp" timestamp NOT NULL,
   "type" ENTITY_TYPE NOT NULL,
   "path" varchar(1024) NOT NULL,
+  "mime_type" varchar(64) NOT NULL,
+  "width" integer,
+  "height" integer,
+  "duration" real,
   "created" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

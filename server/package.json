@@ -20,6 +20,7 @@
     "ts-node-dev": "^1.1.6"
   },
   "dependencies": {
+    "dayjs": "^1.10.5",
     "fastify": "^3.18.0",
     "fastify-static": "^4.2.2",
     "generic-pool": "^3.7.8",
