@@ -1,7 +1,6 @@
 import Pool from './Pool';
-import {Entity, ImageEntity} from '../shelf/Entity';
+import {Entity} from '../shelf/Entity';
 import dayjs from "dayjs";
-import {ResultIterator, Value} from "ts-postgres";
 
 export default class Repo {
   readonly pool: Pool;
