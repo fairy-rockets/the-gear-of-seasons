@@ -9,7 +9,7 @@ class Shelf {
     this.path = path.join(__dirname, '..', '..', '..', '_shelf');
     this.repo = repo;
   }
-  async find(id: string): Promise<Entity> {
+  async find(id: string): Promise<Entity | null> {
     return await this.repo.findEntity(id);
   }
 }
