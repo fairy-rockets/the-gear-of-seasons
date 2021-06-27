@@ -15,4 +15,4 @@ env UID="$(id -u)" GID="$(id -g)" docker-compose --profile tool run \
   psql  '--username=the-gear-of-seasons' \
         '--host=postgres' \
         "$@" \
-        niki
+        'the-gear-of-seasons'

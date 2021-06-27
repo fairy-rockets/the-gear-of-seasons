@@ -11,7 +11,7 @@ END;
 $$;
 
 CREATE TABLE "moments" (
-  "date" date NOT NULL PRIMARY KEY,
+  "date" timestamp AT TIME ZONE 'JST' NOT NULL PRIMARY KEY,
   "title" varchar(300) NOT NULL,
   "author" varchar(300) NOT NULL,
   "text" text NOT NULL,
