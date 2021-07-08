@@ -37,7 +37,7 @@
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "jest": "^27.0.6",
-    "npm-check-updates": "^11.8.1",
+    "npm-check-updates": "^11.8.2",
     "ts-jest": "^27.0.3"
   },
   "dependencies": {
