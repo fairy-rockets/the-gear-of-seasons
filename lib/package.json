@@ -15,7 +15,8 @@
     "./asset": "./dist/asset.js",
     "./fml": "./dist/fml.js",
     "./media": "./dist/media.js",
-    "./gear": "./dist/gear.js"
+    "./gear": "./dist/gear.js",
+    "./md5sum": "./dist/gear.js"
   },
   "typesVersions": {
     "*": {
@@ -30,6 +31,9 @@
       ],
       "gear": [
         "dist/gear"
+      ],
+      "md5sum": [
+        "dist/md5sum"
       ]
     }
   },
