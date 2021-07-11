@@ -11,6 +11,9 @@ export default class Repo {
     // language=PostgreSQL
     const q1 = `
 select
+  "id",
+  "medium_id",
+  "thumbnail_id"
   "path",
   "timestamp",
   "type",
@@ -30,29 +33,35 @@ from entities
     switch (type) {
       case 'image':
         return {
+          type: 'image',
           id: row.get('id') as string,
+          mediumID: row.get('medium_id') as string,
+          thumbnailID: row.get('thumbnail_id') as string,
           timestamp: dayjs(row.get('timestamp') as Date),
           mimeType: row.get('mime_type') as string,
-          type: 'image',
           width: row.get('width') as number,
           height: row.get('height') as number,
         };
       case 'video':
         return {
+          type: 'video',
           id: row.get('id') as string,
+          mediumID: row.get('medium_id') as string,
+          thumbnailID: row.get('thumbnail_id') as string,
           timestamp: dayjs(row.get('timestamp') as Date),
           mimeType: row.get('mime_type') as string,
-          type: 'video',
           width: row.get('width') as number,
           height: row.get('height') as number,
           duration: row.get('duration') as number,
         };
       case 'audio':
         return {
+          type: 'audio',
           id: row.get('id') as string,
+          mediumID: row.get('medium_id') as string,
+          thumbnailID: row.get('thumbnail_id') as string,
           timestamp: dayjs(row.get('timestamp') as Date),
           mimeType: row.get('mime_type') as string,
-          type: 'audio',
           duration: row.get('duration') as number,
         };
       default:

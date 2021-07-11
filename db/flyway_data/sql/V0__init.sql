@@ -22,7 +22,9 @@ CREATE TABLE "moments" (
 CREATE TYPE ENTITY_TYPE AS ENUM ('image', 'video', 'audio');
 
 CREATE TABLE "entities" (
-  "id" varchar(20) NOT NULL PRIMARY KEY,
+  "id" char(20) NOT NULL PRIMARY KEY,
+  "medium_id" char(20) NOT NULL UNIQUE,
+  "thumbnail_id" char(20) NOT NULL UNIQUE,
   "timestamp" timestamp NOT NULL,
   "type" ENTITY_TYPE NOT NULL,
   "path" varchar(1024) NOT NULL,

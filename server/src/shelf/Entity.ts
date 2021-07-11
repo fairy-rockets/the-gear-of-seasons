@@ -2,6 +2,8 @@ import dayjs from "dayjs";
 
 type EntityBase = {
   id: string;
+  mediumID: string,
+  thumbnailID: string,
   timestamp: dayjs.Dayjs,
   mimeType: string,
 };
