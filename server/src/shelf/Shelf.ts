@@ -1,8 +1,7 @@
 import Repo from '../repo/Repo';
 import path from 'path';
-import { Entity } from './Entity';
 import Storage from '../storage/Storage';
-import { BroadcastChannel } from 'worker_threads';
+import { Entity } from './Entity';
 
 class Shelf {
   private readonly path: string;
@@ -24,12 +23,18 @@ class Shelf {
   async find(id: string): Promise<Entity | null> {
     return await this.repo.findEntity(id);
   }
-  async fetch(entity: Entity, type: 'original' | 'medium' | 'thumbnail') {
+  async fetch(entity: Entity, type: 'original' | 'medium' | 'thumbnail'): Promise<string | null> {
     switch(type) {
       case 'original':
+        return this.storage.original.fetch(entity.id);
       case 'medium':
+        return this.storage.medium.fetch(entity.mediumID);
       case 'thumbnail':
+        return this.storage.thumbnail.fetch(entity.thumbnailID);
     }
+  }
+  async upload(filepath: string) {
+
   }
 }
 
