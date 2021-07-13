@@ -9,10 +9,14 @@ export type MimeType =
   'image/gif' |
   // audio
   'audio/mpeg' | // mp3
-  'audio/flac' |  // flac
+  'audio/flac' |
+  'audio/webm' |
+  'audio/mp4' |
+  'audio/x-matroska' |
   // video
   'video/mp4' |
-  'video/x-matroska';
+  'video/x-matroska' |
+  'video/webm' ;
 
 
 export type ProbeResult = {
@@ -36,6 +40,7 @@ export class FormatError extends Error {
 
 type RawProbeResult = {
   readonly streams: {
+    readonly codec_name: string,
     readonly codec_long_name: string,
     readonly codec_type: string,
     readonly width: number,
@@ -66,68 +71,116 @@ export async function probe(path: string): Promise<ProbeResult> {
 function analyzeRawResult(r: RawProbeResult): ProbeResult {
   let type: MediaType;
   let mimeType: MimeType;
+  let width: number | null;
+  let height: number | null;
+  let duration: number | null;
+
   if (r.streams.length === 0) {
     throw new FormatError('No streams in the file');
   }
-  const s = r.streams[0];
-  let width: number | null = s.width;
-  let height: number | null = s.height;
-  let duration: number | null = s.duration !== undefined ? s.duration : null;
 
-  if (r.streams.length === 1) {
-    switch (s.codec_type) {
-      case 'mjpeg':
-        if (s.duration === undefined || s.duration_ts === 1) {
-          type = 'image';
-          mimeType = 'image/jpeg';
-        } else {
-          throw new FormatError('Motion JPEG is not supported!');
+  const videoStream = r.streams.find((it) => it.codec_type == 'video');
+  const audioStream = r.streams.find((it) => it.codec_type == 'audio');
+
+  switch (r.format.format_long_name) {
+    case 'QuickTime / MOV':
+      if (videoStream !== undefined) {
+        type = 'video';
+        mimeType = 'video/mp4';
+      } else if (audioStream !== undefined) {
+        type = 'audio';
+        mimeType = 'audio/mp4';
+      } else {
+        throw new FormatError('No media in QuickTime file.');
+      }
+      break;
+    case 'Matroska / WebM':
+      if (videoStream !== undefined) {
+        switch (videoStream.codec_long_name) {
+          case 'On2 VP8':
+          case 'Google VP9':
+          case 'Alliance for Open Media AV1':
+            type = 'video';
+            mimeType = 'video/webm';
+            break;
+          default:
+            type = 'video';
+            mimeType = 'video/x-matroska';
+            break;
         }
-        break;
-      case 'png':
-        if (r.streams[0].duration === undefined || r.streams[0].duration_ts === 1) {
-          type = 'image';
-          mimeType = 'image/png';
-        } else {
-          throw new FormatError('APNG is not supported!');
+      } else if (audioStream !== undefined) {
+        switch (audioStream.codec_long_name) {
+          case 'Vorbis':
+          case 'Opus (Opus Interactive Audio Codec)':
+            type = 'audio';
+            mimeType = 'audio/webm';
+            break;
+          default:
+            type = 'audio';
+            mimeType = 'audio/x-matroska';
+            break;
         }
-        break;
-      case 'gif':
+      } else {
+        throw new FormatError('No media in mkv/webm file.');
+      }
+      break;
+    case 'image2 sequence': //JPEG?
+      if (videoStream !== undefined) {
+        switch (videoStream.codec_long_name) {
+          case 'Motion JPEG':
+            type = 'image';
+            mimeType = 'image/jpeg';
+            break;
+          default:
+            throw new FormatError('Unsupported format: '+videoStream.codec_long_name);
+        }
+      } else {
+        throw new FormatError('No images in jpeg file.')
+      }
+      break;
+    case 'piped png sequence': // PNG
+      if (videoStream !== undefined) {
+        type = 'image';
+        mimeType = 'image/png';
+      } else {
+        throw new FormatError('No images in png file.')
+      }
+      break;
+    case 'CompuServe Graphics Interchange Format (GIF)':
+      if (videoStream !== undefined) {
         type = 'image';
         mimeType = 'image/gif';
-        break;
-      case 'flag':
+      } else {
+        throw new FormatError('No images in gif file.')
+      }
+      break;
+    case 'FLAC (Free Lossless Audio Codec)':
+      if (audioStream !== undefined) {
         type = 'audio';
         mimeType = 'audio/flac';
-        break;
-      default:
-        throw new FormatError('Unsupported format');
-    }
-  } else {
-    switch (s.codec_type) {
-      case 'h264':
-        if (r.format.format_long_name === 'QuickTime / MOV') {
-          type = 'video';
-          mimeType = 'video/mp4';
-        } else {
-          throw new FormatError('Unsupported container for h264');
-        }
-        break;
-      default:
-        throw new FormatError('Unsupported format');
-    }
+      } else {
+        throw new FormatError('No audio in flac file.')
+      }
+      break;
+    default:
+      throw new FormatError('Unsupported format');
   }
-
 
   switch (type) {
     case 'image':
+      width = videoStream!!.width;
+      height = videoStream!!.height;
       duration = null;
       break;
     case 'video':
+      width = videoStream!!.width;
+      height = videoStream!!.height;
+      duration = videoStream!!.duration!!;
       break;
     case 'audio':
       width = null;
       height = null;
+      duration = audioStream!!.duration!!;
       break;
   }
 
