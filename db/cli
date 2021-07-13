@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 
-REPO_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && cd .. && pwd)"
+function readlink_f() {
+  python -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$1"
+}
+REPO_DIR="$(cd "$(dirname "$(readlink_f "$0")")" && cd .. && pwd)"
 cd "${REPO_DIR}" || exit 1
 
 set -eu
 set -o pipefail
 
-env UID="$(id -u)" GID="$(id -g)" docker-compose --profile tool run \
+env USER_ID="$(id -u)" GROUP_ID="$(id -g)" docker-compose --profile tool run \
   --rm \
   --user "$(id -u)" \
 	--use-aliases \

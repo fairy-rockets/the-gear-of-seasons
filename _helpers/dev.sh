@@ -1,5 +1,9 @@
 #!/bin/bash
-ROOT_DIR="$(cd "$(readlink -f "$(dirname "$0")")" && cd .. && pwd)"
+
+function readlink_f() {
+  python -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$1"
+}
+ROOT_DIR="$(cd "$(dirname "$(readlink_f "$0")")" && cd .. && pwd)"
 cd "${ROOT_DIR}" || exit 1
 
 export "OMOTE_HOST=hexe.net:8888"
