@@ -33,7 +33,7 @@ export default class Pool {
       }
     }, { testOnBorrow: true });
   }
-  async use<T>(fn: (cl: Client) => T | PromiseLike<T>): Promise<T> {
+  async use<T>(fn: (cl: Client) => T | Promise<T>): Promise<T> {
     return await this.pool.use(fn);
   }
   async query(query: string, args?: Value[]): Promise<ResultIterator> {
