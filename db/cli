@@ -12,7 +12,7 @@ set -o pipefail
 env USER_ID="$(id -u)" GROUP_ID="$(id -g)" docker-compose --profile tool run \
   --rm \
   --user "$(id -u)" \
-	--use-aliases \
+  --use-aliases \
   -e 'PGPASSWORD=the-gear-of-seasons' \
   postgres \
   psql  '--username=the-gear-of-seasons' \
