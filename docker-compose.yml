@@ -6,18 +6,19 @@ services:
     container_name: 'the-gear-of-seasons_flyway'
     hostname: 'the-gear-of-seasons_flyway'
     restart: 'no'
+    user: "${USER_ID}:${GROUP_ID}"
     volumes:
       - ./db/flyway_data/sql:/flyway/sql
       - ./db/flyway_data/conf:/flyway/conf
     networks:
-      - 'the-gear-of-seasons-link'
+      - 'default'
     profiles: ['tool']
 
   postgres:
     image: 'postgres:alpine'
     container_name: 'the-gear-of-seasons_postgres'
     hostname: 'the-gear-of-seasons_postgres'
-    user: "${UID}:${GID}"
+    user: "${USER_ID}:${GROUP_ID}"
     environment:
       POSTGRES_DB: 'the-gear-of-seasons'
       POSTGRES_USER: 'the-gear-of-seasons'
@@ -34,12 +35,10 @@ services:
       - './db/helpers:/helpers'
       - '/etc/passwd:/etc/passwd:ro'
     networks:
-      - 'the-gear-of-seasons-link'
+      - 'default'
     tty: true
     stdin_open: true
 
 networks:
   default:
-    driver: 'null'
-  the-gear-of-seasons-link:
     external: false

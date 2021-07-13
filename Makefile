@@ -51,16 +51,16 @@ deps:
 
 .PHONY: up
 up: ./var/postgres
-	UID=$(shell id -u) GID=$(shell id -g) docker-compose up -d
+	USER_ID=$(shell id -u) GROUP_ID=$(shell id -g) docker-compose up -d
 	$(MAKE) wait
 
 .PHONY: down
 down: FORCE
-	UID=$(shell id -u) GID=$(shell id -g) docker-compose down
+	USER_ID=$(shell id -u) GROUP_ID=$(shell id -g) docker-compose down
 
 .PHONY: wait
 wait: FORCE
-	@UID=$(shell id -u) GID=$(shell id -g) docker-compose run \
+	@USER_ID=$(shell id -u) GROUP_ID=$(shell id -g) docker-compose run \
 		--rm \
 		--use-aliases \
 		postgres \
