@@ -18,7 +18,6 @@ services:
     image: 'postgres:alpine'
     container_name: 'the-gear-of-seasons_postgres'
     hostname: 'the-gear-of-seasons_postgres'
-    user: "${USER_ID}:${GROUP_ID}"
     environment:
       POSTGRES_DB: 'the-gear-of-seasons'
       POSTGRES_USER: 'the-gear-of-seasons'
@@ -33,7 +32,6 @@ services:
     volumes:
       - './var/postgres:/var/lib/postgresql/data:z'
       - './db/helpers:/helpers'
-      - '/etc/passwd:/etc/passwd:ro'
     networks:
       - 'default'
     tty: true
