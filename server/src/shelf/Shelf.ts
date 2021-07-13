@@ -2,6 +2,7 @@ import Repo from '../repo/Repo';
 import path from 'path';
 import Storage from '../storage/Storage';
 import { Entity } from './Entity';
+import md5sum from 'lib/md5sum';
 
 class Shelf {
   private readonly path: string;
@@ -34,7 +35,8 @@ class Shelf {
     }
   }
   async upload(filepath: string) {
-
+    const hash = await md5sum(filepath);
+    
   }
 }
 
