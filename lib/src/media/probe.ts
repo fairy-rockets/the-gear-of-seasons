@@ -1,5 +1,5 @@
 import spawn from '@expo/spawn-async';
-import md5sum from './md5sum';
+import md5sum from '../md5sum';
 import exifr from 'exifr';
 import dayjs from 'dayjs';
 import FileType from 'file-type';

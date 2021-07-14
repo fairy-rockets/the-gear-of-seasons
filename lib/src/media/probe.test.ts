@@ -1,8 +1,8 @@
 // https://jestjs.io/docs/api
 import {describe, expect, it } from '@jest/globals';
-import * as media from './media';
+import * as media from './probe';
 import * as path from 'path';
-import Asset from './asset';
+import Asset from '../asset';
 
 describe("Media", () => {
   it("parse jpeg", async () => {

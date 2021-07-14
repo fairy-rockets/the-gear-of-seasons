@@ -14,7 +14,7 @@
     ".": "./dist/lib.js",
     "./asset": "./dist/asset.js",
     "./fml": "./dist/fml.js",
-    "./media": "./dist/media.js",
+    "./media/probe": "./dist/media/probe.js",
     "./gear": "./dist/gear.js",
     "./md5sum": "./dist/gear.js"
   },
@@ -26,8 +26,8 @@
       "fml": [
         "dist/fml"
       ],
-      "media": [
-        "dist/media"
+      "media/probe": [
+        "dist/media/probe"
       ],
       "gear": [
         "dist/gear"
