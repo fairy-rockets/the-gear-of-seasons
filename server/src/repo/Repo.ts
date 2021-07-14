@@ -13,11 +13,9 @@ export default class Repo {
 select
   "id",
   "medium_id",
-  "thumbnail_id"
-  "path",
+  "icon_id",
   "timestamp",
   "type",
-  "path",
   "mime_type",
   "width",
   "height",
@@ -36,7 +34,7 @@ from entities
           type: 'image',
           id: row.get('id') as string,
           mediumID: row.get('medium_id') as string,
-          thumbnailID: row.get('thumbnail_id') as string,
+          iconID: row.get('icon_id') as string,
           timestamp: dayjs(row.get('timestamp') as Date),
           mimeType: row.get('mime_type') as string,
           width: row.get('width') as number,
@@ -46,8 +44,7 @@ from entities
         return {
           type: 'video',
           id: row.get('id') as string,
-          mediumID: row.get('medium_id') as string,
-          thumbnailID: row.get('thumbnail_id') as string,
+          iconID: row.get('icon_id') as string,
           timestamp: dayjs(row.get('timestamp') as Date),
           mimeType: row.get('mime_type') as string,
           width: row.get('width') as number,
@@ -58,8 +55,7 @@ from entities
         return {
           type: 'audio',
           id: row.get('id') as string,
-          mediumID: row.get('medium_id') as string,
-          thumbnailID: row.get('thumbnail_id') as string,
+          iconID: row.get('icon_id') as string,
           timestamp: dayjs(row.get('timestamp') as Date),
           mimeType: row.get('mime_type') as string,
           duration: row.get('duration') as number,

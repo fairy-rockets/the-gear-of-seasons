@@ -23,11 +23,10 @@ CREATE TYPE ENTITY_TYPE AS ENUM ('image', 'video', 'audio');
 
 CREATE TABLE "entities" (
   "id" char(20) NOT NULL PRIMARY KEY,
-  "medium_id" char(20) NOT NULL UNIQUE,
-  "thumbnail_id" char(20) NOT NULL UNIQUE,
+  "medium_id" char(20),
+  "icon_id" char(20) NOT NULL,
   "timestamp" timestamp NOT NULL,
   "type" ENTITY_TYPE NOT NULL,
-  "path" varchar(1024) NOT NULL,
   "mime_type" varchar(64) NOT NULL,
   "width" integer,
   "height" integer,

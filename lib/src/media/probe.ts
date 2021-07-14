@@ -8,18 +8,11 @@ export type MediaType = 'image' | 'video' | 'audio';
 
 type RawProbeResult = {
   readonly streams: {
-    readonly codec_name: string;
-    readonly codec_long_name: string;
     readonly codec_type: string;
     readonly width: number;
     readonly height: number;
     readonly duration?: number;
-    readonly duration_ts?: number;
   }[];
-  readonly format: {
-    readonly format_name: string;
-    readonly format_long_name: string;
-  }
 };
 
 type AVProbeResult = {
@@ -42,8 +35,8 @@ async function avProbe(path: string, type: MediaType): Promise<AVProbeResult> {
   if (r.streams.length === 0) {
     throw new FormatError('No streams in the file');
   }
-  const videoStream = r.streams.find((it) => it.codec_type == 'video');
-  const audioStream = r.streams.find((it) => it.codec_type == 'audio');
+  const videoStream = r.streams.find((it) => it.codec_type === 'video');
+  const audioStream = r.streams.find((it) => it.codec_type === 'audio');
   switch (type) {
     case 'video':
       if (videoStream === undefined) {
@@ -73,7 +66,8 @@ async function avProbe(path: string, type: MediaType): Promise<AVProbeResult> {
 }
 
 // ------
-
+// exports
+// ------
 
 export type ProbeResult = {
   readonly type: MediaType;

@@ -2,6 +2,7 @@ import Asset from 'lib/asset';
 import Config from './Config';
 import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fastifyStatic from 'fastify-static';
+import fastifyMultipart from 'fastify-multipart';
 import path from 'path';
 import { RouteGenericInterface } from 'fastify/types/route';
 import OmoteIndexController from './controller/omote/IndexController';
@@ -41,8 +42,10 @@ class Server {
         } else if (req.hostname === Config.UraHost && handlerSet.ura !== undefined) {
           await handlerSet.ura(req as FastifyRequest<UraInterface>, reply);
         } else {
-          reply.type('text/plain').code(404);
-          reply.send('Page not found');
+          reply
+            .type('text/plain')
+            .code(404)
+            .send('Page not found');
         }
       });
     }
@@ -53,8 +56,10 @@ class Server {
         if (req.hostname === Config.OmoteHost) {
           await handler(req, reply);
         } else {
-          reply.type('text/plain').code(404);
-          reply.send('Page not found');
+          reply
+            .type('text/plain')
+            .code(404)
+            .send('Page not found');
         }
       });
     }
@@ -65,8 +70,22 @@ class Server {
         if (req.hostname === Config.UraHost) {
           await handler(req, reply);
         } else {
-          reply.type('text/plain').code(404);
-          reply.send('Page not found');
+          reply
+            .type('text/plain')
+            .code(404)
+            .send('Page not found');
+        }
+      });
+    },
+    post: <Interface extends RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
+      this.http.post<Interface>(path, async(req, reply) => {
+        if (req.hostname === Config.UraHost) {
+          await handler(req, reply);
+        } else {
+          reply
+            .type('text/plain')
+            .code(404)
+            .send('Page not found');
         }
       });
     }
@@ -78,6 +97,7 @@ class Server {
       bodyLimit: 256*1024*1024,
       maxParamLength: 1024*1024,
     });
+
   }
 
   static async create(asset: Asset): Promise<Server> {
@@ -99,10 +119,13 @@ class Server {
         }
       });
     }
+    { // file uploads
+      this.http.register(fastifyMultipart);
+    }
     { // static files
       this.http.register(fastifyStatic, {
         root: this.asset.pathOf('static'),
-      });  
+      });
       this.each.get('/static/*', {
         omote: async(req, reply) => {
           const url = req.url;

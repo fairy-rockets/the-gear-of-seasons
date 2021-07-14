@@ -15,7 +15,7 @@ class Storage {
   constructor(kind: string) {
     this.path = path.join(__dirname, '..', '..', '..', '_storage', kind);
   }
-  async upload(filepath: string) {
+  async upload(filepath: string): Promise<string> {
     const hash = await md5sum(filepath);
     const dest = path.join(this.path, storedPathOf(hash));
     const destDir = path.dirname(dest);
@@ -24,6 +24,7 @@ class Storage {
       recursive: true
     });
     await fs.copyFile(filepath, dest);
+    return hash;
   }
   async fetch(hash: string): Promise<string | null> {
     const src = path.join(this.path, storedPathOf(hash));
