@@ -6,13 +6,18 @@ function readlink_f() {
 ROOT_DIR="$(cd "$(dirname "$(readlink_f "$0")")" && cd .. && pwd)"
 cd "${ROOT_DIR}" || exit 1
 
-export "OMOTE_HOST=hexe.net:8888"
-export "URA_HOST=ura.hexe.net:8888"
+export "OMOTE_HOST=dev1.ledyba.org:8888"
+export   "URA_HOST=dev2.ledyba.org:8888"
 
 set -eu
 set -o pipefail
+
 (cd lib && npm run watch) &
 LIB="$!"
+# FIXME: serverの起動に失敗する
+if [[ $OSTYPE = darwin* ]]; then
+  sleep 1
+fi
 (cd client && npm run watch) &
 CLI="$!"
 (cd server && npm run watch) &
