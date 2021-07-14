@@ -3,6 +3,7 @@ import path from 'path';
 import Storage from '../storage/Storage';
 import { Entity } from './Entity';
 import md5sum from 'lib/md5sum';
+import {probe} from "lib/dist/media";
 
 class Shelf {
   private readonly path: string;
@@ -35,8 +36,9 @@ class Shelf {
     }
   }
   async upload(filepath: string) {
+    const meta = await probe(filepath);
     const hash = await md5sum(filepath);
-    
+
   }
 }
 

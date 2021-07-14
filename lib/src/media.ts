@@ -1,31 +1,88 @@
 import spawn from '@expo/spawn-async';
+import md5sum from './md5sum';
+import exifr from 'exifr';
+import dayjs from 'dayjs';
+import FileType from 'file-type';
 
 export type MediaType = 'image' | 'video' | 'audio';
 
-export type MimeType = 
-  // image
-  'image/jpeg' |
-  'image/png' |
-  'image/gif' |
-  // audio
-  'audio/mpeg' | // mp3
-  'audio/flac' |
-  'audio/webm' |
-  'audio/mp4' |
-  'audio/x-matroska' |
-  // video
-  'video/mp4' |
-  'video/x-matroska' |
-  'video/webm' ;
+type RawProbeResult = {
+  readonly streams: {
+    readonly codec_name: string;
+    readonly codec_long_name: string;
+    readonly codec_type: string;
+    readonly width: number;
+    readonly height: number;
+    readonly duration?: number;
+    readonly duration_ts?: number;
+  }[];
+  readonly format: {
+    readonly format_name: string;
+    readonly format_long_name: string;
+  }
+};
+
+type AVProbeResult = {
+  width?: number,
+  height?: number,
+  duration?: number,
+}
+
+async function avProbe(path: string, type: MediaType): Promise<AVProbeResult> {
+  const result = await spawn('ffprobe', [
+    '-i', path,
+    '-loglevel', 'quiet',
+    '-hide_banner',
+    '-print_format', 'json',
+    '-show_streams',
+    '-show_format',
+  ]);
+  const stdout = result.output[0];
+  const r = JSON.parse(stdout) as RawProbeResult;
+  if (r.streams.length === 0) {
+    throw new FormatError('No streams in the file');
+  }
+  const videoStream = r.streams.find((it) => it.codec_type == 'video');
+  const audioStream = r.streams.find((it) => it.codec_type == 'audio');
+  switch (type) {
+    case 'video':
+      if (videoStream === undefined) {
+        throw new FormatError('No video streams');
+      }
+      return {
+        width: videoStream.width,
+        height: videoStream.height,
+        duration: videoStream.duration,
+      }
+    case 'image':
+      if (videoStream === undefined) {
+        throw new FormatError('No images');
+      }
+      return {
+        width: videoStream.width,
+        height: videoStream.height,
+      }
+    case 'audio':
+      if (audioStream === undefined) {
+        throw new FormatError('No audio streams');
+      }
+      return {
+        duration: audioStream.duration,
+      }
+  }
+}
+
+// ------
 
 
 export type ProbeResult = {
   readonly type: MediaType;
-  readonly mimeType: MimeType,
-  readonly width: number | null,
-  readonly height: number | null,
-  readonly duration: number | null,  
-
+  readonly md5sum: string;
+  readonly timestamp: dayjs.Dayjs | undefined;
+  readonly mimeType: FileType.MimeType;
+  readonly width?: number;
+  readonly height?: number;
+  readonly duration?: number;
 };
 
 export class FormatError extends Error {
@@ -38,157 +95,60 @@ export class FormatError extends Error {
   }
 }
 
-type RawProbeResult = {
-  readonly streams: {
-    readonly codec_name: string,
-    readonly codec_long_name: string,
-    readonly codec_type: string,
-    readonly width: number,
-    readonly height: number,
-    readonly duration: number | undefined,
-    readonly duration_ts: number | undefined,
-  }[];
-  readonly format: {
-    readonly format_name: string,
-    readonly format_long_name: string,
-  }
-};
-
 export async function probe(path: string): Promise<ProbeResult> {
-  const result = await spawn('ffprobe', [
-    '-i', path,
-    '-loglevel', 'quiet',
-    '-hide_banner',
-    '-print_format', 'json',
-    '-show_streams',
-    '-show_format',
-  ]);
-  const stdout = result.output[0];
-  const json = JSON.parse(stdout);
-  return analyzeRawResult(json['streams'][0] as RawProbeResult);
-}
-
-function analyzeRawResult(r: RawProbeResult): ProbeResult {
-  let type: MediaType;
-  let mimeType: MimeType;
-  let width: number | null;
-  let height: number | null;
-  let duration: number | null;
-
-  if (r.streams.length === 0) {
-    throw new FormatError('No streams in the file');
+  const hash = await md5sum(path);
+  const fileType = await FileType.fromFile(path);
+  if (fileType === undefined) {
+    throw new FormatError('Failed to detect file type.')
   }
-
-  const videoStream = r.streams.find((it) => it.codec_type == 'video');
-  const audioStream = r.streams.find((it) => it.codec_type == 'audio');
-
-  switch (r.format.format_long_name) {
-    case 'QuickTime / MOV':
-      if (videoStream !== undefined) {
-        type = 'video';
-        mimeType = 'video/mp4';
-      } else if (audioStream !== undefined) {
-        type = 'audio';
-        mimeType = 'audio/mp4';
-      } else {
-        throw new FormatError('No media in QuickTime file.');
-      }
-      break;
-    case 'Matroska / WebM':
-      if (videoStream !== undefined) {
-        switch (videoStream.codec_long_name) {
-          case 'On2 VP8':
-          case 'Google VP9':
-          case 'Alliance for Open Media AV1':
-            type = 'video';
-            mimeType = 'video/webm';
-            break;
-          default:
-            type = 'video';
-            mimeType = 'video/x-matroska';
-            break;
-        }
-      } else if (audioStream !== undefined) {
-        switch (audioStream.codec_long_name) {
-          case 'Vorbis':
-          case 'Opus (Opus Interactive Audio Codec)':
-            type = 'audio';
-            mimeType = 'audio/webm';
-            break;
-          default:
-            type = 'audio';
-            mimeType = 'audio/x-matroska';
-            break;
-        }
-      } else {
-        throw new FormatError('No media in mkv/webm file.');
-      }
-      break;
-    case 'image2 sequence': //JPEG?
-      if (videoStream !== undefined) {
-        switch (videoStream.codec_long_name) {
-          case 'Motion JPEG':
-            type = 'image';
-            mimeType = 'image/jpeg';
-            break;
-          default:
-            throw new FormatError('Unsupported format: '+videoStream.codec_long_name);
-        }
-      } else {
-        throw new FormatError('No images in jpeg file.')
-      }
-      break;
-    case 'piped png sequence': // PNG
-      if (videoStream !== undefined) {
-        type = 'image';
-        mimeType = 'image/png';
-      } else {
-        throw new FormatError('No images in png file.')
-      }
-      break;
-    case 'CompuServe Graphics Interchange Format (GIF)':
-      if (videoStream !== undefined) {
-        type = 'image';
-        mimeType = 'image/gif';
-      } else {
-        throw new FormatError('No images in gif file.')
-      }
-      break;
-    case 'FLAC (Free Lossless Audio Codec)':
-      if (audioStream !== undefined) {
-        type = 'audio';
-        mimeType = 'audio/flac';
-      } else {
-        throw new FormatError('No audio in flac file.')
-      }
-      break;
-    default:
-      throw new FormatError('Unsupported format');
-  }
-
+  const timestamp = await (async () => {
+    const exif = await exifr.parse(path);
+    const timestamp: Date | undefined = exif['CreateDate'];
+    if (timestamp === undefined) {
+      return undefined;
+    } else {
+      return dayjs(timestamp);
+    }
+  })();
+  const type: MediaType = (() => {
+    if (fileType.mime.startsWith('video/')) {
+      return 'video';
+    } else if (fileType.mime.startsWith('image/')) {
+      return 'image';
+    } else if (fileType.mime.startsWith('audio/')) {
+      return 'audio';
+    } else {
+      throw new FormatError(`Unsupported mime: ${fileType.mime}`);
+    }
+  })();
+  const avResult = await avProbe(path, type);
   switch (type) {
     case 'image':
-      width = videoStream!!.width;
-      height = videoStream!!.height;
-      duration = null;
-      break;
+      return {
+        type: 'image',
+        md5sum: hash,
+        timestamp: timestamp,
+        mimeType: fileType.mime,
+        width: avResult.width,
+        height: avResult.height,
+      };
     case 'video':
-      width = videoStream!!.width;
-      height = videoStream!!.height;
-      duration = videoStream!!.duration!!;
-      break;
+      return {
+        type: 'video',
+        md5sum: hash,
+        timestamp: timestamp,
+        mimeType: fileType.mime,
+        width: avResult.width,
+        height: avResult.height,
+        duration: avResult.duration,
+      };
     case 'audio':
-      width = null;
-      height = null;
-      duration = audioStream!!.duration!!;
-      break;
+      return {
+        type: 'audio',
+        md5sum: hash,
+        timestamp: timestamp,
+        mimeType: fileType.mime,
+        duration: avResult.duration,
+      };
   }
-
-  return {
-    type: type,
-    mimeType: mimeType,
-    width: width,
-    height: height,
-    duration: duration
-  };
 }
