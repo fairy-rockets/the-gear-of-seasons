@@ -103,6 +103,9 @@ export async function probe(path: string): Promise<ProbeResult> {
   }
   const timestamp = await (async () => {
     const exif = await exifr.parse(path);
+    if (exif === undefined || exif === null) {
+      return undefined;
+    }
     const timestamp: Date | undefined = exif['CreateDate'];
     if (timestamp === undefined) {
       return undefined;
