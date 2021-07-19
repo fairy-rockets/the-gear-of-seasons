@@ -17,12 +17,9 @@ set -o pipefail
 (cd lib && npm run watch) &
 LIB="$!"
 # FIXME: serverの起動に失敗する
-if [[ $OSTYPE = darwin* ]]; then
-  sleep 1
-fi
 (cd client && npm run watch) &
 CLI="$!"
-(cd server && npm run watch) &
+(cd server && sleep 1 && npm run watch) &
 SRV="$!"
 
 trap kill_all EXIT
