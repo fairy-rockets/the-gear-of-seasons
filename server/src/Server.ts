@@ -90,6 +90,7 @@ class Server {
       });
     }
   };
+
   private constructor(asset: Asset) {
     this.asset = asset;
     this.http = fastify({
@@ -97,7 +98,6 @@ class Server {
       bodyLimit: 256*1024*1024,
       maxParamLength: 1024*1024,
     });
-
   }
 
   static async create(asset: Asset): Promise<Server> {
