@@ -17,22 +17,22 @@ test: FORCE
 	cd lib && npm run test
 
 ########################################################################################################################
-## prepare
+## install
 ########################################################################################################################
 
-.PHONY: prepare
-prepare: prepare-lib prepare-client prepare-server ;
+.PHONY: install
+install: install-lib install-client install-server ;
 
-.PHONY: prepare-lib
-prepare-lib: FORCE
+.PHONY: install-lib
+install-lib: FORCE
 	cd lib && npm install
 
-.PHONY: prepare-server
-prepare-server: FORCE
+.PHONY: install-server
+install-server: FORCE
 	cd server && npm install
 
-.PHONY: prepare-client
-prepare-client: FORCE
+.PHONY: install-client
+install-client: FORCE
 	cd client && npm install
 
 ########################################################################################################################
