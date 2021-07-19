@@ -1,8 +1,10 @@
 #!/bin/bash
 
 function readlink_f() {
-  python -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$1"
+  local src='import os,sys;print(os.path.realpath(sys.argv[1]))'
+  python3 -c "${src}" "$1" || python -c "${src}" "$1"
 }
+
 ROOT_DIR="$(cd "$(dirname "$(readlink_f "$0")")" && cd .. && pwd)"
 cd "${ROOT_DIR}" || exit 1
 
