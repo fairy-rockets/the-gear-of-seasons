@@ -16,9 +16,9 @@ set -o pipefail
 
 (cd lib && npm run watch) &
 LIB="$!"
-# FIXME: serverの起動に失敗する
 (cd client && npm run watch) &
 CLI="$!"
+# FIXME: serverの起動に失敗する
 (cd server && sleep 1 && npm run watch) &
 SRV="$!"
 
