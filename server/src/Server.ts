@@ -7,9 +7,9 @@ import path from 'path';
 import { RouteGenericInterface } from 'fastify/types/route';
 import OmoteIndexController from './controller/omote/IndexController';
 import UraIndexController from './controller/ura/IndexController';
-import NewController from "./controller/ura/NewController";
-import UploadController from "./controller/ura/UploadController";
-import Shelf from "./shelf/Shelf";
+import NewController from './controller/ura/NewController';
+import UploadController from './controller/ura/UploadController';
+import Shelf from './shelf/Shelf';
 
 type Handler<Interface extends RouteGenericInterface> = 
   (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>;

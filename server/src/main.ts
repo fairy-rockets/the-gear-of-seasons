@@ -1,7 +1,7 @@
 import Asset from 'lib/asset';
 import Server from './Server';
-import Shelf from "./shelf/Shelf";
-import Repo from "./repo/Repo";
+import Shelf from './shelf/Shelf';
+import Repo from './repo/Repo';
 
 async function main() {
   const asset = new Asset();

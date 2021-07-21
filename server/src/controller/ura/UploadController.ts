@@ -1,4 +1,4 @@
-import Shelf from "../../shelf/Shelf";
+import Shelf from '../../shelf/Shelf';
 
 export default class UploadController {
   private readonly shelf: Shelf;

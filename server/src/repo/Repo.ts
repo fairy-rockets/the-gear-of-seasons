@@ -1,6 +1,6 @@
 import Pool from './Pool';
 import {Entity} from '../shelf/Entity';
-import dayjs from "dayjs";
+import dayjs from 'dayjs';
 
 export default class Repo {
   readonly pool: Pool;

@@ -1,6 +1,6 @@
 import * as genericPool from 'generic-pool';
 import { Client, ResultIterator } from 'ts-postgres';
-import { Value } from "ts-postgres/src/types";
+import { Value } from 'ts-postgres/src/types';
 
 export default class Pool {
   private pool: genericPool.Pool<Client>
@@ -16,7 +16,7 @@ export default class Pool {
       create: async (): Promise<Client> => {
         const client = new Client(opt);
         try {
-          const timeout = new Promise((resolve, reject) => setTimeout(() => reject(new Error("Connection Timed out")), 500));
+          const timeout = new Promise((resolve, reject) => setTimeout(() => reject(new Error('Connection Timed out')), 500));
           await Promise.race([client.connect(), timeout]);
           client.on('error', console.error);
           return client;
