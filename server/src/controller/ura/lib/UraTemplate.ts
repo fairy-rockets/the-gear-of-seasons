@@ -26,6 +26,10 @@ export default class UraTemplate<T = any> {
     this.hbs.registerPartial(name, this.hbs.compile(content));
     return this;
   }
+  registerHelper(name: string, fn: Handlebars.HelperDelegate): UraTemplate<T> {
+    this.hbs.registerHelper(name, fn);
+    return this;
+  }
   render(data: T): string {
     return this.template(data);
   }
