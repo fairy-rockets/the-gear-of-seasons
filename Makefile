@@ -72,7 +72,7 @@ migrate: FORCE
 
 .PHONY: clean
 clean: FORCE
-	rm -Rfv var/*
+	rm -Rfv var/* lib/dist server/dist client/dist
 
 .PNONY: recreate
 recreate: FORCE

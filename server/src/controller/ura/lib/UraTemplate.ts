@@ -14,6 +14,9 @@ export default class UraTemplate<T = any> {
     hbs.registerPartial('omote-url', hbs.compile(`//${Config.OmoteHost}/`));
     hbs.registerPartial('ura-url', hbs.compile(`//${Config.UraHost}/`));
     hbs.registerPartial('content', hbs.compile(await asset.loadString(`templates/ura/${contentFilepath}`)));
+    hbs.registerHelper('eq', function (arg1: any, arg2: any):boolean {
+      return arg1 === arg2;
+    })
     const src = await asset.loadString('templates/ura/_main.hbs');
     const template = hbs.compile<T>(src);
     return new UraTemplate<T>(hbs, template);

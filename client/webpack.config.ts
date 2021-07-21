@@ -5,8 +5,8 @@ import path from 'path'
 const config: webpack.Configuration = {
   context: __dirname,
   entry: {
-    'main': path.join(__dirname, '/src/omote/main.ts'),
-    'admin-editor': path.join(__dirname, '/src/ura/admin-editor.ts'),
+    'omote/main': path.join(__dirname, '/src/omote/main.ts'),
+    'ura/editor': path.join(__dirname, '/src/ura/editor.ts'),
   },
   mode: 'development',
   output: {

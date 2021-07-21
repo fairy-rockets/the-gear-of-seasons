@@ -1,14 +1,14 @@
 <div class="editor-container">
   <div class="editor-wrapper">
-    <input class="editor-title" type="text" name="title" id="title" placeholder="タイトル" {{if .}}value="{{html .Title}}"{{end}}/>
+    <input class="editor-title" type="text" name="title" id="title" placeholder="タイトル" {{#if title}}value="{{title}}"{{/if}} />
     <div class="editor-bar">
-      <input class="editor-date" type="datetime" name="date" id="date" placeholder="2112/09/03 15:33:44" {{if .}}value="{{html .Date}}"{{end}} />
+      <input class="editor-date" type="datetime-local" name="date" id="date" placeholder="2112/09/03 15:33:44" {{#if date}}value="{{date}}"{{/if}} />
       <select name="author" id="author">
-        <option value="藤咲かえで" {{#eq author "藤咲かえで"}}selected{{/eq}}>藤咲かえで</option>
-        <option value="甚三紅もみじ" {{#eq author "甚三紅もみじ"}}selected{{/eq}}>甚三紅もみじ</option>
+        <option value="藤咲かえで" {{#if (eq author "藤咲かえで")}}selected{{/if}}>藤咲かえで</option>
+        <option value="甚三紅もみじ" {{#if (eq author "甚三紅もみじ")}}selected{{/if}}>甚三紅もみじ</option>
       </select>
       <div class="space"></div>
-      <button id="upload_button">⬆</button>
+      <button id="upload_button">&nbsp;⬆&nbsp;</button>
       <div class="space"></div>
       <button id="submit">SAVE</button>
     </div>
@@ -16,4 +16,4 @@
   </div>
   <div id="preview"></div>
 </div>
-<script src="/static/editor.js"></script>
+<script src="/js/editor.js"></script>
