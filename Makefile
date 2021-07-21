@@ -118,3 +118,13 @@ build-server: FORCE
 # https://makefiletutorial.com/#automatic-variables
 ./var/postgres:
 	mkdir -p "$@"
+
+########################################################################################################################
+## fun
+########################################################################################################################
+
+.PHONY: cl
+cl:
+	@bash _helpers/cl.sh lib/src
+	@bash _helpers/cl.sh client/src
+	@bash _helpers/cl.sh server/src
