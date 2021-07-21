@@ -1,5 +1,4 @@
 import dayjs from 'dayjs';
-import {ProbeResult} from 'lib/dist/media';
 
 type EntityBase = {
   readonly id: string;
