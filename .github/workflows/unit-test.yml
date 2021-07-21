@@ -32,7 +32,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Prepare
-        run: make prepare -j
+        run: make install -j
 
       - name: Run tests
         run: make test
