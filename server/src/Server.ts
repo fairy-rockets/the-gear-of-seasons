@@ -137,6 +137,11 @@ class Server {
         }
       });
     }
+    { // ura pages
+      this.ura.get('/new', async (req, reply) => {
+
+      });
+    }
   }
 
   async start() {

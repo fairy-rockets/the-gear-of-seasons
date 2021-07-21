@@ -4,10 +4,10 @@ import Config from '../../Config';
 
 export default class UraTamplate<T = any> {
   private readonly hbs: typeof Handlebars;
-  private readonly templ: Handlebars.TemplateDelegate<T>;
+  private readonly template: Handlebars.TemplateDelegate<T>;
   private constructor(hbs: typeof Handlebars, templ: Handlebars.TemplateDelegate) {
     this.hbs = hbs;
-    this.templ = templ;
+    this.template = templ;
   }
   static async create<T>(asset: Asset, contentFilepath: string): Promise<UraTamplate<T>> {
     const hbs = Handlebars.create();
@@ -19,6 +19,6 @@ export default class UraTamplate<T = any> {
     return new UraTamplate<T>(hbs, templ);
   }
   render(data: T): string {
-    return this.templ(data);
+    return this.template(data);
   }
 }

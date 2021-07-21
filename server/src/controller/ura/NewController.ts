@@ -1,18 +1,18 @@
 import { FastifyReply } from 'fastify';
 import Handlebars from 'handlebars';
 import Asset from 'lib/asset';
+import UraTamplate from './UraTemplate';
 
 export default class IndexController {
-  readonly template: Handlebars.TemplateDelegate;
-  private constructor(template: Handlebars.TemplateDelegate) {
+  readonly template: UraTamplate;
+  private constructor(template: UraTamplate) {
     this.template = template;
   }
   static async create(asset: Asset): Promise<IndexController> {
-    const src = await asset.loadString('templates/omote/index.hbs');
-    const template = Handlebars.compile(src);
+    const template = await UraTamplate.create(asset, 'edit.hbs');
     return new IndexController(template);
   }
   render(reply: FastifyReply) {
-    reply.type('text/html').code(200).send(this.template({}));
+    reply.type('text/html').code(200).send(this.template.render({}));
   }
 }

@@ -9,8 +9,8 @@ export default class IndexController {
     this.template = template;
   }
   static async create(asset: Asset): Promise<IndexController> {
-    const templ = await UraTamplate.create(asset, 'index.hbs');
-    return new IndexController(templ);
+    const template = await UraTamplate.create(asset, 'index.hbs');
+    return new IndexController(template);
   }
   render(reply: FastifyReply) {
     reply.type('text/html').code(200).send(this.template.render({}));
