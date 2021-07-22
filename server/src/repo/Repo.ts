@@ -14,7 +14,7 @@ export default class Repo {
     this.pool = new Pool(Config.dbHostname);
     this.cache = {
       entity: new NodeCache({
-        maxKeys: 128,
+        maxKeys: 8192,
       }),
     };
   }
