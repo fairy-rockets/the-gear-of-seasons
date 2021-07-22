@@ -96,15 +96,19 @@ export async function probe(path: string): Promise<ProbeResult> {
     throw new FormatError('Failed to detect file type.')
   }
   const timestamp = await (async () => {
-    const exif = await exifr.parse(path);
-    if (exif === undefined || exif === null) {
+    try {
+      const exif = await exifr.parse(path);
+      if (exif === undefined || exif === null) {
+        return undefined;
+      }
+      const timestamp: Date | undefined = exif['CreateDate'];
+      if (timestamp === undefined) {
+        return undefined;
+      } else {
+        return dayjs(timestamp);
+      }
+    } catch (e) {
       return undefined;
-    }
-    const timestamp: Date | undefined = exif['CreateDate'];
-    if (timestamp === undefined) {
-      return undefined;
-    } else {
-      return dayjs(timestamp);
     }
   })();
   const type: MediaType = (() => {

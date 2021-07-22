@@ -90,7 +90,9 @@ export default class Uploader {
         fr.onerror = ev => reject(fr.error);
         fr.onabort = ev => reject(fr.error);
         fr.readAsDataURL(file);
-      } else if(file.type.startsWith('video/')) {
+      } else if (file.type.startsWith('video/')) {
+        execUpload();
+      } else if (file.type.startsWith('audio/')) {
         execUpload();
       }
     });
