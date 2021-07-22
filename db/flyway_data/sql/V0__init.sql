@@ -13,7 +13,7 @@ END;
 $$;
 
 CREATE TABLE "moments" (
-  "timestamp" timestamp NOT NULL PRIMARY KEY,
+  "timestamp" timestamp with time zone NOT NULL PRIMARY KEY,
   "title" varchar(300) NOT NULL,
   "author" varchar(300) NOT NULL,
   "text" text NOT NULL,
