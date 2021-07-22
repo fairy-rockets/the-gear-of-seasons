@@ -1,5 +1,8 @@
+import dayjs from 'dayjs';
 import { FastifyReply, FastifyRequest } from 'fastify';
+
 import * as protocol from 'lib/protocol';
+
 import Shelf from '../../shelf/Shelf';
 import {formatMomentPath, formatMomentTime} from '../../shelf/Moment';
 import MomentRenderer from '../../renderer/MomentRenderer';
@@ -15,6 +18,7 @@ export default class SaveController {
     return new SaveController(shelf);
   }
   async handle(req: FastifyRequest, reply: FastifyReply) {
+    const now = dayjs();
     const moment = await this.shelf.saveMoment(req.body as protocol.Moment.Save.Request);
     if (moment.timestamp === undefined) {
       reply
@@ -26,7 +30,7 @@ export default class SaveController {
     const resp: protocol.Moment.Save.Response = {
       path: formatMomentPath(moment.timestamp),
       date: formatMomentTime(moment.timestamp),
-      body: await this.renderer.render(moment),
+      body: await this.renderer.render(now, moment),
     };
     reply
       .type('application/json')

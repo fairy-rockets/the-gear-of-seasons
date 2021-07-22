@@ -1,5 +1,8 @@
+import dayjs from 'dayjs';
 import { FastifyReply, FastifyRequest } from 'fastify';
+
 import * as protocol from 'lib/protocol';
+
 import Shelf from '../../shelf/Shelf';
 import { Moment, parseMomentTime } from '../../shelf/Moment';
 import MomentRenderer from '../../renderer/MomentRenderer';
@@ -16,6 +19,7 @@ export default class PreviewController {
   }
   async handle(req: FastifyRequest, reply: FastifyReply) {
     const raw = req.body as protocol.Moment.Save.Request;
+    const now = dayjs();
     const moment: Moment = {
       timestamp: (raw.date !== null && raw.date.length > 0) ? parseMomentTime(raw.date) : undefined,
       title: raw.title,
@@ -26,6 +30,6 @@ export default class PreviewController {
     reply
       .type('text/html')
       .code(200)
-      .send(await this.renderer.render(moment));
+      .send(await this.renderer.render(now, moment));
   }
 }

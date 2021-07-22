@@ -1,9 +1,11 @@
 import {escapeAttribute, escapeHTML} from "@wordpress/escape-html";
 import fetch from 'node-fetch';
 import marked from 'marked';
+import dayjs from 'dayjs';
+
+import * as fml from 'lib/fml';
 
 import Shelf from '../shelf/Shelf';
-import * as fml from 'lib/fml';
 import { Moment } from '../shelf/Moment';
 
 class MomentRenderer {
@@ -11,13 +13,13 @@ class MomentRenderer {
   constructor(shelf: Shelf) {
     this.shelf = shelf;
   }
-  async render(moment: Moment): Promise<string> {
+  async render(now: dayjs.Dayjs, moment: Moment): Promise<string> {
     const buff: string[] = [];
     const doc = fml.parse(moment.text);
     buff.push(`
 <div class="moment-info">
   <h1 class="moment-title title">${escapeHTML(moment.title)}</h1>
-  <span class="moment-date"></span>
+  <span class="moment-date">${escapeHTML(renderTime(moment.timestamp, now))}</span>
   <span class="moment-author">${escapeHTML(moment.author)}</span>
 </div>
 `.trim());
@@ -124,6 +126,20 @@ class MomentRenderer {
       return `<p>!!Failed to fetch markdown: ${escapeHTML(e.toString())}!!</p>`
     }
     return marked(text);
+  }
+}
+
+function renderTime(time: dayjs.Dayjs | undefined, now: dayjs.Dayjs): string {
+  if (time === undefined || time.isAfter(now)) {
+    return 'わかんない！';
+  }
+  const diff = time.diff(now, 'year', true);
+  const a = Math.trunc(diff);
+  const b = Math.trunc((diff-a)*4);
+  if (b === 0) {
+    return `季節の歯車を${-a}回巻き戻したころ`;
+  } else {
+    return `季節の歯車を${-a}回巻き戻して、さらに季節を${-b}回遡ったころ`;
   }
 }
 
