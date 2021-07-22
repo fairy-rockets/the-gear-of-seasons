@@ -1,11 +1,15 @@
 import path from 'path';
 import * as os from 'os';
 import * as fs from 'fs/promises';
+import * as protocol from 'lib/protocol';
+import * as fml from 'lib/fml';
 import { probe } from 'lib/media/probe';
 import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from 'lib/media/convert';
 import Repo from '../repo/Repo';
 import Storage from '../storage/Storage';
 import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity';
+import Moment, {kMomentTimeFormat} from './Moment';
+import dayjs from "dayjs";
 
 class Shelf {
   readonly storagePath: string;
@@ -108,6 +112,47 @@ class Shelf {
         force: true,
       });
     }
+  }
+
+  async saveMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
+    const m = await this.makeMoment(req);
+    if (req.originalDate === null) {
+      // new
+      await this.repo.registerMoment(m);
+    } else {
+      // replace
+      const oldTimestamp = dayjs(req.originalDate, kMomentTimeFormat);
+      await this.repo.replaceMoment(oldTimestamp, m);
+    }
+    return m;
+  }
+  private async makeMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
+    let date = req.date;
+    if (date === null || date.length === 0) {
+      const doc = (() => {
+        const buff = new fml.Buffer(req.text)
+        const parser = new fml.Parser(buff);
+        return parser.parse();
+      })();
+      for (const block of doc.blocks) {
+        if (block.type === 'image' && block.entity !== undefined) {
+          const e = await this.findEntity(block.entity);
+          if (e === null || e.timestamp === undefined) {
+            continue;
+          }
+          date = e.timestamp.format(kMomentTimeFormat);
+        }
+      }
+      if (date === null || date.length === 0) {
+        date = dayjs().format(kMomentTimeFormat);
+      }
+    }
+    return {
+      timestamp: dayjs(date, kMomentTimeFormat),
+      title: req.title,
+      author: req.author,
+      text: req.text,
+    };
   }
 }
 

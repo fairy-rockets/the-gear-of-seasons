@@ -124,7 +124,7 @@ export class Parser{
     return first + left;
   }
   private parseBlock(): Image | Video | Audio | Link | Markdown {
-    const [tag, map] = this.parseBrancket();
+    const [tag, map] = this.parseBracket();
     switch(tag) {
       case 'image':
         return makeImage(map.get('entity'), map.get('link'));
@@ -140,7 +140,7 @@ export class Parser{
         throw new ParseError(`Unknown block type: ${tag}`);
     }
   }
-  private parseBrancket(): [string, Map<string, string>] {
+  private parseBracket(): [string, Map<string, string>] {
     const map = new Map<string, string>();
     this.buff.expect('[');
     const tag = this.buff.takeWhile(isNotWhitespace);

@@ -2,7 +2,7 @@ import Pool from './Pool';
 import {Entity} from '../shelf/Entity';
 import dayjs from 'dayjs';
 import Config from '../Config';
-import {Result, ResultRow, Value} from "ts-postgres";
+import Moment from '../shelf/Moment';
 
 export default class Repo {
   readonly pool: Pool;
@@ -85,14 +85,13 @@ from entities
   }
 
   async registerEntity(entity: Entity) {
-    // language=PostgreSQL
-
     let timestamp: Date | null;
     if (entity.timestamp !== undefined) {
       timestamp = entity.timestamp.toDate();
     } else {
       timestamp = null;
     }
+    // language=PostgreSQL
     const q = `
 insert into entities
 (
@@ -146,5 +145,38 @@ ON CONFLICT DO NOTHING;
       default:
         throw new Error('[FIXME] Unreachable code!')
     }
+  }
+  async registerMoment(moment: Moment) {
+    // language=PostgreSQL
+    const q = `
+insert into moments
+("timestamp", "title", "author", "text")
+values
+($1, $2, $3, $4);
+`;
+    await this.pool.query(q, [
+      moment.timestamp.toDate(),
+      moment.title,
+      moment.author,
+      moment.text,
+    ]);
+  }
+  async replaceMoment(oldTimestamp: dayjs.Dayjs, moment: Moment) {
+    // language=PostgreSQL
+    const q = `
+update moments set
+  "timestamp" = $1,
+  "title" = $2,
+  "author" = $3,
+  "text" = $4
+where "timestamp" = $5;
+`;
+    await this.pool.query(q, [
+      moment.timestamp.toDate(),
+      moment.title,
+      moment.author,
+      moment.text,
+      oldTimestamp.toDate(),
+    ]);
   }
 }

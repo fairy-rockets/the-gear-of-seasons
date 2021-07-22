@@ -57,6 +57,9 @@ class Server {
    * **************************************************************************/
 
   async setup() {
+    /* **********
+     * Plugins
+     * **********/
     const jsRoot = path.join(__dirname, '..', '..', 'client', 'dist');
     const staticRoot = this.asset.pathOf('static');
     this.http.register(fastifyStatic, {
@@ -70,6 +73,9 @@ class Server {
     this.http.addContentTypeParser<Buffer>(/^(image|video|audio)\/.*$/, {
       parseAs: 'buffer',
     },async (_req: any, body: Buffer) => body);
+    /* **********
+     * Routing
+     * **********/
     { // (omote,ura)/
       const omote = await OmoteIndexController.create(this.asset);
       const ura = await UraIndexController.create(this.asset);
@@ -80,6 +86,10 @@ class Server {
         ura: async (req, reply) => {
           await ura.handle(req, reply);
         }
+      });
+      // (omote)/about-us/
+      this.omote.get('/about-us/', async(req, reply) => {
+        await omote.handle(req, reply);
       });
     }
     { // (ura)/entity
