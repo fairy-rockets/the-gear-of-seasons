@@ -84,7 +84,7 @@ class MomentRenderer {
       return `<p>!!id=${escapeHTML(block.entity)} is not a video!!</p>`
     }
     return `
-<video preload="metadata" controls="controls" width="${entity.width}" height="${entity.height}">
+<video class="embed" preload="metadata" controls="controls" width="${entity.width}" height="${entity.height}">
   <source type="${escapeAttribute(entity.mimeType)}" src="/entity/${escapeAttribute(entity.id)}">
   <a href="/entity/${escapeAttribute(entity.id)}>Click to play.</a>
 </video>
@@ -102,7 +102,7 @@ class MomentRenderer {
       return `<p>!!id=${escapeHTML(block.entity)} is not an audio!!</p>`
     }
     return `
-<audio src="/entity/${escapeAttribute(entity.id)}" title="" controls="controls"></audio>
+<audio class="embed" class="" src="/entity/${escapeAttribute(entity.id)}" title="" controls="controls"></audio>
 `.trim();
   }
   private static renderLink(block: fml.Link): string {
