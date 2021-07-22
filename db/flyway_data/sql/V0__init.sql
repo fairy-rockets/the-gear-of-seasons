@@ -25,7 +25,7 @@ CREATE TABLE "entities" (
   "id" char(20) NOT NULL PRIMARY KEY,
   "medium_id" char(20),
   "icon_id" char(20) NOT NULL,
-  "timestamp" timestamp NOT NULL,
+  "timestamp" timestamp with time zone,
   "type" ENTITY_TYPE NOT NULL,
   "mime_type" varchar(64) NOT NULL,
   "width" integer,

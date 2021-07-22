@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
 function readlink_f() {
-  python -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$1"
+  local src='import os,sys;print(os.path.realpath(sys.argv[1]))'
+  python3 -c "${src}" "$1" || python -c "${src}" "$1"
 }
+
 REPO_DIR="$(cd "$(dirname "$(readlink_f "$0")")" && cd .. && pwd)"
 cd "${REPO_DIR}" || exit 1
 
 set -eu
 set -o pipefail
 
-env UID="$(id -u)" GID="$(id -g)" docker-compose --profile tool run \
+env USER_ID="$(id -u)" GROUP_ID="$(id -g)" docker-compose --profile tool run \
   --rm \
   -e 'FLYWAY_CONFIG_FILES=/flyway/conf/flyway.conf' \
   flyway "$@"

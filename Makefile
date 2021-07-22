@@ -54,6 +54,10 @@ up: ./var/postgres
 	USER_ID=$(shell id -u) GROUP_ID=$(shell id -g) docker-compose up -d
 	$(MAKE) wait
 
+.PHONY: pull
+pull: FORCE
+	USER_ID=$(shell id -u) GROUP_ID=$(shell id -g) docker-compose pull
+
 .PHONY: down
 down: FORCE
 	USER_ID=$(shell id -u) GROUP_ID=$(shell id -g) docker-compose down

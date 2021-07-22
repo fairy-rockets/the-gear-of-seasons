@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 type EntityBase = {
   readonly id: string;
   readonly iconID: string,
-  readonly timestamp: dayjs.Dayjs,
+  readonly timestamp: dayjs.Dayjs | undefined,
   readonly mimeType: string,
 };
 

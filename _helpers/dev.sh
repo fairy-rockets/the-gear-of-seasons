@@ -8,8 +8,9 @@ function readlink_f() {
 ROOT_DIR="$(cd "$(dirname "$(readlink_f "$0")")" && cd .. && pwd)"
 cd "${ROOT_DIR}" || exit 1
 
-export "OMOTE_HOST=dev1.ledyba.org:8888"
-export   "URA_HOST=dev2.ledyba.org:8888"
+export 'OMOTE_HOST=dev1.ledyba.org:8888'
+export   'URA_HOST=dev2.ledyba.org:8888'
+export    'DB_HOST=127.0.0.1'
 
 set -eu
 set -o pipefail

@@ -1,12 +1,11 @@
 import path from 'path';
-import * as fs from 'fs/promises';
 import * as os from 'os';
-
+import * as fs from 'fs/promises';
+import { probe } from 'lib/media/probe';
+import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from 'lib/media/convert';
 import Repo from '../repo/Repo';
 import Storage from '../storage/Storage';
 import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity';
-import { probe } from 'lib/media/probe';
-import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from 'lib/media/convert';
 
 class Shelf {
   private readonly path: string;
@@ -98,7 +97,10 @@ class Shelf {
           } as AudioEntity;
           break;
         }
+        default:
+          throw new Error('[FIXME] Unreachable code!');
       }
+      await this.repo.registerEntity(entity);
     } finally {
       await fs.rm(tempDir, {
         recursive: true,
