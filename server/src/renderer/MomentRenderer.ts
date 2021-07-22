@@ -1,6 +1,9 @@
+import {escapeAttribute, escapeHTML} from "@wordpress/escape-html";
+import fetch from 'node-fetch';
+import marked from 'marked';
+
 import Shelf from '../shelf/Shelf';
 import * as fml from 'lib/fml';
-import {escapeAttribute, escapeHTML} from "@wordpress/escape-html";
 import Moment from '../shelf/Moment';
 
 class MomentRenderer {
@@ -21,26 +24,38 @@ class MomentRenderer {
     buff.push('<hr>')
     for (const block of doc.blocks) {
       switch (block.type) {
+        case 'text':
+          buff.push(`<p>${escapeHTML(block.text)}</p>`);
+          break;
         case 'image':
           buff.push(await this.renderImage(block));
           break;
-        case 'text':
-          buff.push(`<p>${escapeHTML(block.text)}</p>`);
+        case 'video':
+          buff.push(await this.renderVideo(block));
+          break;
+        case 'audio':
+          buff.push(await this.renderAudio(block));
+          break;
+        case 'link':
+          buff.push(MomentRenderer.renderLink(block));
+          break;
+        case 'markdown':
+          buff.push(await MomentRenderer.renderMarkdown(block));
           break;
       }
     }
     return buff.join('');
   }
-  private async renderImage(image: fml.Image): Promise<string> {
-    if (image.entity === undefined) {
+  private async renderImage(block: fml.Image): Promise<string> {
+    if (block.entity === undefined) {
       return `<p>!!Image not set!!</p>`
     }
-    const entity = await this.shelf.findEntity(image.entity);
+    const entity = await this.shelf.findEntity(block.entity);
     if (entity === null) {
-      return `<p>!!Image id =${escapeHTML(image.entity)} not found!!</p>`
+      return `<p>!!Image id=${escapeHTML(block.entity)} not found!!</p>`
     }
     if (entity.type !== 'image') {
-      return `<p>!!id =${escapeHTML(image.entity)} is not an image!!</p>`
+      return `<p>!!id=${escapeHTML(block.entity)} is not an image!!</p>`
     }
     let width: number;
     let height: number;
@@ -52,10 +67,63 @@ class MomentRenderer {
       width = entity.width * height / entity.height;
     }
     return `
-<a href="/entity/${escapeAttribute(image.entity)}" target="_blank" rel="noopener noreferrer">
-  <img class="embed" src="/entity/${escapeAttribute(image.entity)}/medium" width="${width}" height="${height}" alt="No alt">
+<a href="/entity/${escapeAttribute(block.entity)}" target="_blank" rel="noopener noreferrer">
+  <img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="No alt">
 </a>
+`.trim();
+  }
+  private async renderVideo(block: fml.Video) {
+    if (block.entity === undefined) {
+      return `<p>!!Video not set!!</p>`
+    }
+    const entity = await this.shelf.findEntity(block.entity);
+    if (entity === null) {
+      return `<p>!!Video id=${escapeHTML(block.entity)} not found!!</p>`
+    }
+    if (entity.type !== 'video') {
+      return `<p>!!id=${escapeHTML(block.entity)} is not a video!!</p>`
+    }
+    return `
+<video preload="metadata" controls="controls" width="${entity.width}" height="${entity.height}">
+  <source type="${escapeAttribute(entity.mimeType)}" src="/entity/${escapeAttribute(entity.id)}">
+  <a href="/entity/${escapeAttribute(entity.id)}>Click to play.</a>
+</video>
+`.trim();
+  }
+  private async renderAudio(block: fml.Audio) {
+    if (block.entity === undefined) {
+      return `<p>!!Audio not set!!</p>`
+    }
+    const entity = await this.shelf.findEntity(block.entity);
+    if (entity === null) {
+      return `<p>!!Audio id=${escapeHTML(block.entity)} not found!!</p>`
+    }
+    if (entity.type !== 'audio') {
+      return `<p>!!id=${escapeHTML(block.entity)} is not an audio!!</p>`
+    }
+    return `
+<audio src="/entity/${escapeAttribute(entity.id)}" title="" controls="controls"></audio>
+`.trim();
+  }
+  private static renderLink(block: fml.Link): string {
+    if (block.entity === undefined) {
+      return `<p>!!Link not set!!</p>`
+    }
+    return `
+<a href="/entity/${escapeAttribute(block.entity)}" target="_blank" rel="noopener noreferrer">${escapeHTML(block.text || block.entity)}</a>
 `;
+  }
+  private static async renderMarkdown(block: fml.Markdown): Promise<string> {
+    if (block.url === undefined) {
+      return `<p>!!Markdown not set!!</p>`
+    }
+    let text: string;
+    try {
+      text = await fetch(block.url).then((res:any) => res.text());
+    } catch (e) {
+      return `<p>!!Failed to fetch markdown: ${escapeHTML(e.toString())}!!</p>`
+    }
+    return marked(text);
   }
 }
 
