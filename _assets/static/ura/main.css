@@ -41,6 +41,12 @@ body {
   margin: 0.5em 1em;
 }
 
+.sidebar-submenu {
+  font-size: 100%;
+  margin: 0.5em 1em;
+  list-style-type: none;
+}
+
 .content {
   flex: 1 1 0;
 }
