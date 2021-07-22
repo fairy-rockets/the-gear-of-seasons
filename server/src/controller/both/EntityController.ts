@@ -17,7 +17,7 @@ export default class EntityController {
   }
   async handle(type: 'original' | 'medium' | 'icon', req: FastifyRequest<EntityControllerInterface>, reply: FastifyReply) {
     const id = req.params.id;
-    const entity = await this.shelf.find(id);
+    const entity = await this.shelf.findEntity(id);
     if (entity === null) {
       reply
         .code(404)
@@ -25,7 +25,7 @@ export default class EntityController {
         .send('Entity not found.');
       return;
     }
-    const filepath = await this.shelf.fetch(entity, type);
+    const filepath = await this.shelf.resolveEntityPath(entity, type);
     if (filepath === null) {
       reply
         .code(404)

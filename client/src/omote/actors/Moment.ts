@@ -74,7 +74,6 @@ export default class Moment {
     const b = -c;
     moments.sort((a,b) => a.radius_ - b.radius_);
 
-    /** @type {number[][]} */
     const range: number[][] = []
     for(let m of moments) {
       const crossRadius = m.x_ * c + m.y_ * s;

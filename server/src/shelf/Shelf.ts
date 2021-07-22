@@ -24,10 +24,10 @@ class Shelf {
       icon: new Storage(this.storagePath, 'icon'),
     };
   }
-  async find(id: string): Promise<Entity | null> {
+  async findEntity(id: string): Promise<Entity | null> {
     return await this.repo.findEntity(id);
   }
-  async fetch(entity: Entity, type: 'original' | 'medium' | 'icon'): Promise<[string, string] | null> {
+  async resolveEntityPath(entity: Entity, type: 'original' | 'medium' | 'icon'): Promise<[string, string] | null> {
     switch(type) {
       case 'original':
         return this.storage.original.fetch(entity.id);
@@ -41,7 +41,7 @@ class Shelf {
         return this.storage.icon.fetch(entity.iconID);
     }
   }
-  async upload(data: Buffer): Promise<Entity> {
+  async saveEntity(data: Buffer): Promise<Entity> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
     try {
       const originalPath = path.join(tempDir, 'original');

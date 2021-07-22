@@ -107,7 +107,7 @@ export default class World {
   destroy() {
     while(this.layers_.length > 0) {
       const layer: Layer = this.layers_.pop()!;
-      layer.onDtached();
+      layer.onDetached();
       layer.destroy();
     }
     
@@ -148,12 +148,12 @@ export default class World {
   }
 
   private createLayer_(path: string): Layer {
-    if(path === '/') {
+    if (path === '/') {
       return new Index(this);
-    }else if(path.startsWith('/about-us/')){
+    } else if (path.startsWith('/about-us/')) {
       const content = fetch('/static/about-us.html').then(resp => resp.text());
       return new Page(this, '/about-us/', content);
-    }else{
+    } else {
       const content = fetch(`/moment${path}`).then(resp => resp.text());
       return new Page(this, path, content);
     }
@@ -164,18 +164,18 @@ export default class World {
     const layers = this.layers_;
     const state = history.state;
     const emptyState = state === null || state === undefined;
-    if(emptyState) {
+    if (emptyState) {
       history.replaceState(1, '', next.path);
-    } else if(layers.length !== 1) {
+    } else if (layers.length !== 1) {
       history.pushState(state+1, '', next.path);
     }
   }
 
   pushLayer_(next: Layer) {
     const layers = this.layers_;
-    if(layers.length > 0) {
+    if (layers.length > 0) {
       const current = layers[layers.length-1];
-      current.onDtached();
+      current.onDetached();
       document.body.removeChild(current.element);
     }
     layers.push(next);
@@ -194,11 +194,11 @@ export default class World {
 
   private popLayer_() {
     const layers = this.layers_;
-    if(layers.length < 2) {
+    if (layers.length < 2) {
       throw new Error(`You can't pop layer stack of length=${layers.length}.`);
     }
     const current = layers.pop()!;
-    current.onDtached();
+    current.onDetached();
     document.body.removeChild(current.element);
     current.destroy();
 
@@ -209,11 +209,11 @@ export default class World {
 
   private replaceLayer_(next: Layer) {
     const layers = this.layers_;
-    if(layers.length <= 1) {
+    if (layers.length <= 1) {
       throw new Error(`You can't replace layer stack of length=${layers.length}.`);
     }
     const current = layers.pop()!;
-    current.onDtached();
+    current.onDetached();
     document.body.removeChild(current.element);
     current.destroy();
 
@@ -224,24 +224,24 @@ export default class World {
 
   onPopState_(ev: PopStateEvent) {
     const layers = this.layers_;
-    if(ev.state === null || ev.state === undefined) {
+    if (ev.state === null || ev.state === undefined) {
       return;
     }
     ev.preventDefault();
     const cnt = ev.state;
     const path = location.pathname;
     const current = this.layers_[this.layers_.length-1];
-    if(current.path === path) {
+    if (current.path === path) {
       return;
     }
     let idx = layers.length-1;
-    for(; idx >= 0; --idx) {
+    for (; idx >= 0; --idx) {
       const layer = layers[idx];
       if(layer.path === path) {
         break;
       }
     }
-    if(idx >= 0) {
+    if (idx >= 0) {
       while(idx < layers.length) {
         this.popLayer_();
       }
@@ -268,15 +268,15 @@ export default class World {
     const shader = gl.createShader(type)!;
     gl.shaderSource(shader, src);
     gl.compileShader(shader);
-    if(gl.getShaderParameter(shader, gl.COMPILE_STATUS)){
+    if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         return shader;
-    }else{
+    } else {
       const err = gl.getShaderInfoLog(shader);
-      if(type === gl.VERTEX_SHADER) {
+      if (type === gl.VERTEX_SHADER) {
         console.error('Error while compiling vertex shader:', src, err);
-      }else if(type === gl.FRAGMENT_SHADER){
+      } else if (type === gl.FRAGMENT_SHADER) {
         console.error('Error while compiling fragment shader:', src, err);
-      }else{
+      } else {
         console.error(`Error while compiling unknown shader type(${type}):`, src, err);
       }
       throw new Error(err ? err : undefined);
@@ -291,9 +291,9 @@ export default class World {
     gl.linkProgram(program);
     gl.deleteShader(vs);
     gl.deleteShader(fs);
-  if(gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
       return new Program(gl, program);
-    }else{
+    } else {
       const err = gl.getProgramInfoLog(program);
       console.error('Error while linking shaders:', err);
       throw new Error(err ? err : undefined);
@@ -303,7 +303,7 @@ export default class World {
   createIndexBuffer(mode: number, data: Uint16Array|number[]): IndexBuffer {
     const gl = this.gl_;
     const buff = gl.createBuffer()!;
-    if(data instanceof Array) {
+    if (data instanceof Array) {
       data = new Uint16Array(data);
     }
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buff);
@@ -315,7 +315,7 @@ export default class World {
   createArrayBuffer(data: Float32Array|number[], elemSize: number): ArrayBuffer {
     const gl = this.gl_;
     const buff = gl.createBuffer()!;
-    if(data instanceof Array) {
+    if (data instanceof Array) {
       data = new Float32Array(data);
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, buff);

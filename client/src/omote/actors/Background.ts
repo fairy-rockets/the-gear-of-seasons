@@ -12,7 +12,7 @@ export default class Background {
   private readonly program_: Program;
   private vertexes_: ArrayBuffer;
   private norms_: ArrayBuffer;
-  private indecies_: IndexBuffer;
+  private indices_: IndexBuffer;
   private readonly matModel_: mat4;
   private readonly matLoc_: mat4;
   private readonly matLocModelTmp_: mat4;
@@ -39,7 +39,7 @@ export default class Background {
       0,0,1,
       0,0,1,
     ],3);
-    this.indecies_ = world.createIndexBuffer(gl.TRIANGLES, [
+    this.indices_ = world.createIndexBuffer(gl.TRIANGLES, [
       2, 1, 0,
       1, 2, 3
     ]);
@@ -65,7 +65,7 @@ export default class Background {
       this.vertexes_.bindShader(this.program_, 'position');
       //this.norms_.bindShader(this.program_, 'norm'); //TODO: unused
 
-      this.indecies_.bind();
+      this.indices_.bind();
       mat4.identity(matLocModel);
       mat4.mul(matLocModel, this.matLoc_, matLocModel);
       mat4.mul(matLocModel, this.matModel_, matLocModel);
@@ -87,18 +87,18 @@ export default class Background {
       gl.uniform4fv(this.program_.uniformLoc('summerPosition'), world.gear.summerLightPos);
       gl.uniform4fv(this.program_.uniformLoc('autumnPosition'), world.gear.autumnLightPos);
 
-      this.indecies_.render();
+      this.indices_.render();
     } finally {
       this.norms_.unbind();
       this.vertexes_.unbind();
-      this.indecies_.unbind();
+      this.indices_.unbind();
       this.program_.unbind();
     }
   }
   destroy() {
     this.norms_.destroy();
     this.vertexes_.destroy();
-    this.indecies_.destroy();
+    this.indices_.destroy();
     this.program_.destoy();
   }
 }

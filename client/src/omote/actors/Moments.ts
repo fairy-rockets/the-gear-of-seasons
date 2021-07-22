@@ -13,7 +13,7 @@ export default class Moments {
   private readonly program_: Program;
   private readonly vertexes_: ArrayBuffer;
   private readonly texCoords_: ArrayBuffer;
-  private readonly indecies_: IndexBuffer;
+  private readonly indices_: IndexBuffer;
   private readonly matModel_: mat4;
   private readonly mat_: mat4;
   private readonly mouseTmpMat_: mat4;
@@ -42,7 +42,7 @@ export default class Moments {
       0.0, 1.0,
       1.0, 1.0
     ],2);
-    this.indecies_ = world.createIndexBuffer(gl.TRIANGLES, [
+    this.indices_ = world.createIndexBuffer(gl.TRIANGLES, [
       2, 1, 0,
       1, 2, 3
     ]);
@@ -91,7 +91,7 @@ export default class Moments {
       this.program_.bind();
       this.vertexes_.bindShader(this.program_, 'position');
       this.texCoords_.bindShader(this.program_, 'textureCoord');
-      this.indecies_.bind();
+      this.indices_.bind();
       let hit = false;
       for(let m of this.models_) {
         const tex = m.tex;
@@ -128,14 +128,14 @@ export default class Moments {
         // Lets render!
         gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
         gl.uniform1i(this.program_.uniformLoc('hovered'), hovered ? 1 : 0);
-        this.indecies_.render();
+        this.indices_.render();
       }
       world.cursor = hit;
     } finally {
       gl.disable(gl.BLEND);
       this.vertexes_.unbind();
       this.texCoords_.unbind();
-      this.indecies_.unbind();
+      this.indices_.unbind();
       this.program_.unbind();
     }
     return selected;
@@ -163,7 +163,7 @@ export default class Moments {
     }
     this.vertexes_.destroy();
     this.texCoords_.destroy();
-    this.indecies_.destroy();
+    this.indices_.destroy();
     this.program_.destoy();
   }
 }

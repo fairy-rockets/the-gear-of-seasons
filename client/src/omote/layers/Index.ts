@@ -115,7 +115,7 @@ export default class Index extends Layer {
     this.mouseY_ = NaN;
   }
   /** @override */
-  onDtached() {
+  onDetached() {
     this.mouseX_ = NaN;
     this.mouseY_ = NaN;
     this.world.cursor = false;

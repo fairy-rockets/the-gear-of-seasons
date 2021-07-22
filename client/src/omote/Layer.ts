@@ -6,7 +6,7 @@ export default abstract class Layer {
   protected readonly world_: World;
   private readonly path_: string;
   protected readonly element_: HTMLDivElement;
-  constructor(world: World, path: string) {
+  protected constructor(world: World, path: string) {
     this.world_ = world;
     this.path_ = path;
     this.element_ = document.createElement('div');
@@ -34,6 +34,6 @@ export default abstract class Layer {
   }
   abstract render(time: number, matWorld: mat4): void;
   abstract onAttached(): void;
-  abstract onDtached(): void;
+  abstract onDetached(): void;
   abstract destroy(): void;
 }

@@ -6,7 +6,7 @@ import { mat4, vec4, ReadonlyMat4 } from "gl-matrix";
 
 import { Winter, Spring, Summer, Autumn } from './Seasons';
 
-function calcTodaysAngle(): number {
+function calcTodayAngle(): number {
   const now = new Date();
   const beg = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
   const end = new Date(now.getFullYear(), 11, 31, 12, 59, 59, 999);
@@ -21,7 +21,7 @@ export default class Gear {
   private readonly matLoc_: mat4;
   private readonly matLocModel_: mat4;
   private readonly matTmp_: mat4;
-  private readonly todaysAngle_: number;
+  private readonly todayAngle_: number;
   private angle_: number;
 
   private readonly winterLightPos_: vec4;
@@ -31,7 +31,7 @@ export default class Gear {
 
   private vertexes_: ArrayBuffer | null = null;
   private norms_: ArrayBuffer | null = null;
-  private indecies_: IndexBuffer | null = null;
+  private indices_: IndexBuffer | null = null;
   constructor(world: World) {
     this.world_ = world;
     this.gl_ = world.gl;
@@ -45,8 +45,8 @@ export default class Gear {
     this.matLocModel_ = mat4.identity(mat4.create());
     this.matTmp_ = mat4.identity(mat4.create());
 
-    this.todaysAngle_ = calcTodaysAngle();
-    this.angle_ = this.todaysAngle_ - Math.PI/6;
+    this.todayAngle_ = calcTodayAngle();
+    this.angle_ = this.todayAngle_ - Math.PI/6;
 
     this.winterLightPos_ = vec4.create();
     this.springLightPos_ = vec4.create();
@@ -143,14 +143,14 @@ export default class Gear {
       gl.uniform4fv(this.program_.uniformLoc('summerPosition'), this.summerLightPos_);
       gl.uniform4fv(this.program_.uniformLoc('autumnPosition'), this.autumnLightPos_);
 
-      this.indecies_!.bind();
-      this.indecies_!.render();
+      this.indices_!.bind();
+      this.indices_!.render();
     } finally {
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
       this.vertexes_!.unbind();
       this.norms_!.unbind();
-      this.indecies_!.unbind();
+      this.indices_!.unbind();
       this.program_.unbind();
     }
   }
@@ -274,12 +274,12 @@ export default class Gear {
 
     this.vertexes_ = world.createArrayBuffer(vertexes, 3)!;
     this.norms_ = world.createArrayBuffer(norms, 3)!;
-    this.indecies_ = world.createIndexBuffer(gl.TRIANGLES, indecies)!;
+    this.indices_ = world.createIndexBuffer(gl.TRIANGLES, indecies)!;
   }
   destroy() {
     this.vertexes_?.destroy();
     this.norms_?.destroy();
-    this.indecies_?.destroy();
+    this.indices_?.destroy();
     this.program_.destoy();
   }
 }

@@ -4,12 +4,17 @@ import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import fastifyStatic from 'fastify-static';
 import path from 'path';
 import { RouteGenericInterface } from 'fastify/types/route';
-import OmoteIndexController from './controller/omote/IndexController';
-import UraIndexController from './controller/ura/IndexController';
-import NewController from './controller/ura/NewController';
-import UploadController from './controller/ura/UploadController';
 import Shelf from './shelf/Shelf';
-import EntityController, {EntityControllerInterface} from "./controller/both/EntityController";
+
+// Omote Controllers
+import OmoteIndexController from './controller/omote/IndexController';
+// Ura Controllers
+import UraIndexController from './controller/ura/IndexController';
+import UploadController from './controller/ura/UploadController';
+import NewController from './controller/ura/NewController';
+import SaveController from './controller/ura/SaveController';
+// Both Controllers
+import EntityController, {EntityControllerInterface} from './controller/both/EntityController';
 
 type Handler<Interface extends RouteGenericInterface> = 
   (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>;
@@ -52,7 +57,6 @@ class Server {
    * **************************************************************************/
 
   async setup() {
-    const log = this.http.log;
     const jsRoot = path.join(__dirname, '..', '..', 'client', 'dist');
     const staticRoot = this.asset.pathOf('static');
     this.http.register(fastifyStatic, {
@@ -93,6 +97,12 @@ class Server {
     { // (ura)/new
       const ura = await NewController.create(this.asset);
       this.ura.get('/new', async (req, reply) => {
+        await ura.handle(req, reply);
+      });
+    }
+    { // (ura)/new
+      const ura = await SaveController.create(this.shelf);
+      this.ura.post('/save', async (req, reply) => {
         await ura.handle(req, reply);
       });
     }

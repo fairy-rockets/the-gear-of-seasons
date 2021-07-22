@@ -1,9 +1,6 @@
 import World from '../World'
 import Layer from '../Layer';
-import Moments from '../actors/Moments';
-import Moment from '../actors/Moment';
-import { mat4, vec4 } from 'gl-matrix';
-import * as debug from '../gl/debug';
+import { mat4 } from 'gl-matrix';
 import twemoji from 'twemoji';
 
 export default class Page extends Layer {
@@ -52,7 +49,7 @@ export default class Page extends Layer {
       const dst = document.createElement('script');
       dst.textContent = src.textContent;
       dst.src = src.src;
-      dst.async = dst.async;
+      dst.async = src.async;
       const p = src.parentNode!;
       p.insertBefore(dst, src);
       p.removeChild(src);
@@ -83,7 +80,7 @@ export default class Page extends Layer {
     this.world.canvas.addEventListener('mouseup', this.closeListener_, false);
   }
 
-  onDtached() {
+  onDetached() {
     this.world.canvas.removeEventListener('mouseup', this.closeListener_, false);
   }
 

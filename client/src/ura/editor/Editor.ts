@@ -14,6 +14,7 @@ interface MomentSaveResult {
   date: string;
   body: string;
 }
+
 export default class Editor {
   private readonly title_: HTMLInputElement;
   private readonly date_: HTMLInputElement;
