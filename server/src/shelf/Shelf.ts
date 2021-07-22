@@ -155,11 +155,15 @@ class Shelf {
       let found = false;
       switch (block.type) {
         case 'image':
+          if (block.entity !== undefined) {
+            iconID = block.entity;
+            found = true;
+          }
+          break;
         case 'video':
         case 'audio':
           if (block.entity !== undefined) {
             iconID = block.entity;
-            found = true;
           }
           break;
       }
