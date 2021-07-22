@@ -162,7 +162,7 @@ class Shelf {
           break;
         case 'video':
         case 'audio':
-          if (block.entity !== undefined) {
+          if (block.entity !== undefined && iconID === undefined) {
             iconID = block.entity;
           }
           break;
