@@ -1,19 +1,5 @@
 import Preview from "./Preview";
-import { throws } from "assert";
-
-interface MomentSave {
-  title: string;
-  original_date: string | null;
-  date: string | null;
-  author: string;
-  text: string;
-}
-
-interface MomentSaveResult {
-  path: string;
-  date: string;
-  body: string;
-}
+import * as protocol from 'lib/protocol';
 
 export default class Editor {
   private readonly title_: HTMLInputElement;
@@ -21,7 +7,7 @@ export default class Editor {
   private readonly author_: HTMLSelectElement;
   private readonly text_: HTMLTextAreaElement;
   private readonly submit_: HTMLButtonElement;
-  private original_date_: string;
+  private originalDate_: string;
   private readonly onChangeEventListener_: () => void;
   private preview_: Preview | null;
   private changeId_: NodeJS.Timeout | null;
@@ -33,7 +19,7 @@ export default class Editor {
     this.author_ = author;
     this.text_ = text;
     this.submit_ = submit;
-    this.original_date_ = date.value;
+    this.originalDate_ = date.value;
     this.onChangeEventListener_ = this.onChange_.bind(this);
     this.preview_ = null;
     this.changeId_ = null;
@@ -70,10 +56,10 @@ export default class Editor {
     }
     this.changeId_ = setTimeout(this.executePreviewUpdater_, 500);
   }
-  makeMoment_(): MomentSave {
+  makeMoment_(): protocol.Moment.Save.Request {
     return {
       title: this.title_.value,
-      original_date: this.original_date_.length > 0 ? this.original_date_ : null,
+      originalDate: this.originalDate_.length > 0 ? this.originalDate_ : null,
       date: this.date_.value.length > 0 ? this.date_.value : null,
       author: this.author_.value,
       text: this.text_.value
@@ -92,11 +78,11 @@ export default class Editor {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       }}).then(result => result.json())
-      .then((result: MomentSaveResult) => {
+      .then((result: protocol.Moment.Save.Response) => {
         this.submit_.disabled = true;
         this.preview_!.onChange(result.body);
         this.date_.value = result.date;
-        this.original_date_ = result.date;
+        this.originalDate_ = result.date;
         history.replaceState(null, moment.title, result.path);
       });
   }

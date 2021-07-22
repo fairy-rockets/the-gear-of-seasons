@@ -2,19 +2,10 @@ import World from '../World'
 import Layer from '../Layer';
 import Moments from '../actors/Moments';
 import Moment from '../actors/Moment';
-import { mat4, vec4 } from 'gl-matrix';
-import * as debug from '../gl/debug';
+import { mat4 } from 'gl-matrix';
 import Page from './Page';
 import twemoji from 'twemoji';
-
-interface MomentSummary{
-  angle: number;
-  date: string;
-  title: string;
-  path: string;
-  imageURL: string;
-  bodyURL: string;
-}
+import * as protocol from 'lib/protocol';
 
 export default class Index extends Layer {
   private readonly wheelEventListener_: (ev: WheelEvent) => void;
@@ -175,7 +166,7 @@ export default class Index extends Layer {
     }
   }
 
-  onLoadMoments_(moments: MomentSummary[]) {
+  onLoadMoments_(moments: protocol.Moment.Search.Response[]) {
     const world = this.world;
     const models: Moment[] = [];
     for(let m of moments) {
