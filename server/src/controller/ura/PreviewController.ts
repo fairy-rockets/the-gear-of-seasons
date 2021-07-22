@@ -22,6 +22,7 @@ export default class PreviewController {
       title: raw.title,
       author: raw.author,
       text: raw.text,
+      iconID: undefined,
     };
     reply
       .type('text/html')

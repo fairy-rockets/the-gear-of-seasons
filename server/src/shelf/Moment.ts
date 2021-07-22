@@ -7,6 +7,7 @@ type Moment = {
   title: string;
   author: string;
   text: string;
+  iconID: string | undefined;
 };
 
 const kMomentTimeFormat = 'YYYY/MM/DD HH:mm:ss';

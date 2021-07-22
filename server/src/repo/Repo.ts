@@ -176,15 +176,16 @@ ON CONFLICT DO NOTHING;
     // language=PostgreSQL
     const q = `
 insert into moments
-("timestamp", "title", "author", "text")
+("timestamp", "title", "author", "text", "icon_id")
 values
-($1, $2, $3, $4);
+($1, $2, $3, $4, $5);
 `;
     await this.pool.query(q, [
       moment.timestamp.toDate(),
       moment.title,
       moment.author,
       moment.text,
+      moment.iconID === undefined ? null : moment.iconID,
     ]);
   }
   async replaceMoment(oldTimestamp: dayjs.Dayjs, moment: Moment) {
@@ -197,14 +198,16 @@ update moments set
   "timestamp" = $1,
   "title" = $2,
   "author" = $3,
-  "text" = $4
-where "timestamp" = $5;
+  "text" = $4,
+  "icon_id" = $5
+where "timestamp" = $6;
 `;
     await this.pool.query(q, [
       moment.timestamp.toDate(),
       moment.title,
       moment.author,
       moment.text,
+      moment.iconID === undefined ? null : moment.iconID,
       oldTimestamp.toDate(),
     ]);
   }
@@ -212,7 +215,7 @@ where "timestamp" = $5;
   async findMomentsInYear(year: number): Promise<Moment[]> {
     // language=PostgreSQL
     const q=`
-select timestamp, title, author, text from moments
+select timestamp, title, author, text, icon_id from moments
 where
 '${year}-01-01' <= timestamp and timestamp < '${year+1}-01-01';
 `;
@@ -227,7 +230,7 @@ where
   async findMoment(timestamp: dayjs.Dayjs): Promise<Moment | null> {
     // language=PostgreSQL
     const q=`
-select timestamp, title, author, text from moments
+select timestamp, title, author, text, icon_id from moments
 where
 timestamp=$1;
 `;
@@ -245,5 +248,6 @@ function decodeMoment(row: ResultRow): Moment {
     title: row.get('title') as string,
     author: row.get('author') as string,
     text: row.get('text') as string,
+    iconID: row.get('icon_id') as (string | undefined),
   };
 }

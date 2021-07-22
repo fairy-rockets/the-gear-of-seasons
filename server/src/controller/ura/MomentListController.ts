@@ -26,7 +26,7 @@ export default class MomentListController {
     const year = parseInt(req.params.year, 10) || dayjs().year();
     const moments = (await this.shelf.findMomentsInYear(year)).map((it) => {
       return {
-        iconID: '',
+        iconID: it.iconID || '',
         path: formatMomentPath(it.timestamp!!),
         title: it.title,
       };

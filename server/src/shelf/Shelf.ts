@@ -134,8 +134,9 @@ class Shelf {
   }
   private async makeMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
     let date = req.date;
+    let iconID: string | undefined = undefined;
+    const doc = fml.parse(req.text);
     if (date === null || date.length === 0) {
-      const doc = fml.parse(req.text);
       for (const block of doc.blocks) {
         if (block.type === 'image' && block.entity !== undefined) {
           const e = await this.findEntity(block.entity);
@@ -143,10 +144,27 @@ class Shelf {
             continue;
           }
           date = formatMomentTime(e.timestamp);
+          break;
         }
       }
       if (date === null || date.length === 0) {
         date = formatMomentTime(dayjs());
+      }
+    }
+    for (const block of doc.blocks) {
+      let found = false;
+      switch (block.type) {
+        case 'image':
+        case 'video':
+        case 'audio':
+          if (block.entity !== undefined) {
+            iconID = block.entity;
+            found = true;
+          }
+          break;
+      }
+      if (found) {
+        break;
       }
     }
     return {
@@ -154,6 +172,7 @@ class Shelf {
       title: req.title,
       author: req.author,
       text: req.text,
+      iconID: iconID,
     };
   }
 }
