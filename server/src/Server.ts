@@ -9,6 +9,7 @@ import UraIndexController from './controller/ura/IndexController';
 import NewController from './controller/ura/NewController';
 import UploadController from './controller/ura/UploadController';
 import Shelf from './shelf/Shelf';
+import EntityController, {EntityControllerInterface} from "./controller/both/EntityController";
 
 type Handler<Interface extends RouteGenericInterface> = 
   (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>;
@@ -58,13 +59,13 @@ class Server {
       root: [
         staticRoot,
         jsRoot,
+        this.shelf.storagePath,
       ],
+      serve: false,
     });
     this.http.addContentTypeParser<Buffer>(/^(image|video|audio)\/.*$/, {
       parseAs: 'buffer',
-    },async (_req: any, body: Buffer) => {
-      return body;
-    });
+    },async (_req: any, body: Buffer) => body);
     { // (omote,ura)/
       const omote = await OmoteIndexController.create(this.asset);
       const ura = await UraIndexController.create(this.asset);
@@ -75,6 +76,18 @@ class Server {
         ura: async (req, reply) => {
           await ura.handle(req, reply);
         }
+      });
+    }
+    { // (ura)/entity
+      const c = await EntityController.create(this.shelf);
+      this.both.get<EntityControllerInterface>('/entity/:id', async (req, reply) => {
+        await c.handle('original', req, reply);
+      });
+      this.both.get<EntityControllerInterface>('/entity/:id/medium', async (req, reply) => {
+        await c.handle('medium', req, reply);
+      });
+      this.both.get<EntityControllerInterface>('/entity/:id/icon', async (req, reply) => {
+        await c.handle('icon', req, reply);
       });
     }
     { // (ura)/new
@@ -89,15 +102,20 @@ class Server {
         await ura.handle(req, reply);
       });
     }
+
     { // (omote/ura)/static/*
       this.each.get('/static/*', {
         omote: async(req, reply) => {
           const url = req.url;
-          reply.sendFile(path.join('omote', url.slice(8)), staticRoot);
+          reply
+            .code(200)
+            .sendFile(path.join('omote', url.slice(8)), staticRoot);
         },
         ura: async (req, reply) => {
           const url = req.url;
-          reply.sendFile(path.join('ura', url.slice(8)), staticRoot);
+          reply
+            .code(200)
+            .sendFile(path.join('ura', url.slice(8)), staticRoot);
         }
       });
     }
@@ -105,11 +123,15 @@ class Server {
       this.each.get('/js/*', {
         omote: async(req, reply) => {
           const url = req.url;
-          reply.sendFile(path.join('omote', url.slice(4)), jsRoot);
+          reply
+            .code(200)
+            .sendFile(path.join('omote', url.slice(4)), jsRoot);
         },
         ura: async (req, reply) => {
           const url = req.url;
-          reply.sendFile(path.join('ura', url.slice(4)), jsRoot);
+          reply
+            .code(200)
+            .sendFile(path.join('ura', url.slice(4)), jsRoot);
         }
       });
     }
@@ -120,6 +142,7 @@ class Server {
    * **************************************************************************/
 
   async start() {
+    await this.http.ready();
     await this.http.listen(8888, '::', 512);
   }
 
@@ -130,6 +153,7 @@ class Server {
     get: <Interface extends RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
       this.http.get<Interface>(path, async (req, reply) => {
         await handler(req, reply);
+        return reply;
       });
     }
   };
@@ -143,8 +167,10 @@ class Server {
       this.http.get(path, async (req, reply) => {
         if (req.hostname === Config.OmoteHost && handlerSet.omote !== undefined) {
           await handlerSet.omote(req as FastifyRequest<OmoteInterface>, reply);
+          return reply;
         } else if (req.hostname === Config.UraHost && handlerSet.ura !== undefined) {
           await handlerSet.ura(req as FastifyRequest<UraInterface>, reply);
+          return reply;
         } else {
           reply
             .type('text/plain')
@@ -159,6 +185,7 @@ class Server {
       this.http.get<Interface>(path, async (req, reply) => {
         if (req.hostname === Config.OmoteHost) {
           await handler(req, reply);
+          return reply;
         } else {
           reply
             .type('text/plain')
@@ -173,6 +200,7 @@ class Server {
       this.http.get<Interface>(path, async (req, reply) => {
         if (req.hostname === Config.UraHost) {
           await handler(req, reply);
+          return reply;
         } else {
           reply
             .type('text/plain')
@@ -185,6 +213,7 @@ class Server {
       this.http.post<Interface>(path, async(req, reply) => {
         if (req.hostname === Config.UraHost) {
           await handler(req, reply);
+          return reply;
         } else {
           reply
             .type('text/plain')

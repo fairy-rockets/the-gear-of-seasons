@@ -2,6 +2,7 @@ import Pool from './Pool';
 import {Entity} from '../shelf/Entity';
 import dayjs from 'dayjs';
 import Config from '../Config';
+import {Result, ResultRow, Value} from "ts-postgres";
 
 export default class Repo {
   readonly pool: Pool;
@@ -24,8 +25,17 @@ select
 from entities
   where id = $1
 `;
-    const row = await this.pool.query(q1, [id]).then((it) => it.first());
-    if (row === undefined) {
+    const rows = await this.pool.query(q1, [id]);
+    if (rows === undefined) {
+      return null;
+    }
+    const row = await (async()=>{
+      for await (const r of rows) {
+        return r;
+      }
+      return null;
+    })();
+    if (row === null) {
       return null;
     }
     const type = row.get('type');

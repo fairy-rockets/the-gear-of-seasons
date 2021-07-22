@@ -11,13 +11,15 @@ function storedPathOf(hash: string): string {
 }
 
 class Storage {
-  private readonly path: string;
-  constructor(kind: string) {
-    this.path = path.join(__dirname, '..', '..', '..', '_storage', kind);
+  private readonly base: string;
+  private readonly kind: string;
+  constructor(base: string, kind: string) {
+    this.base = base;
+    this.kind = kind;
   }
   async upload(filepath: string): Promise<string> {
     const hash = await md5sum(filepath);
-    const dest = path.join(this.path, storedPathOf(hash));
+    const dest = path.join(this.base, this.kind, storedPathOf(hash));
     const destDir = path.dirname(dest);
     await fs.mkdir(destDir, {
       mode: 0o755,
@@ -26,11 +28,12 @@ class Storage {
     await fs.copyFile(filepath, dest);
     return hash;
   }
-  async fetch(hash: string): Promise<string | null> {
-    const src = path.join(this.path, storedPathOf(hash));
+  async fetch(hash: string): Promise<[string, string] | null> {
+    const relativePath = path.join(this.kind, storedPathOf(hash));
+    const src = path.join(this.base, relativePath);
     try {
       const st = await fs.lstat(src);
-      return st.isFile() ? src : null;
+      return st.isFile() ? [this.base, relativePath] : null;
     } catch(_err) {
       return null;
     }

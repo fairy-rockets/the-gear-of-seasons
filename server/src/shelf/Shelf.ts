@@ -8,7 +8,7 @@ import Storage from '../storage/Storage';
 import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity';
 
 class Shelf {
-  private readonly path: string;
+  readonly storagePath: string;
   private readonly repo: Repo;
   private readonly storage: {
     original: Storage,
@@ -16,18 +16,18 @@ class Shelf {
     icon: Storage,
   };
   constructor(repo: Repo) {
-    this.path = path.join(__dirname, '..', '..', '..', '_shelf');
+    this.storagePath = path.join(__dirname, '..', '..', '..', '_storage');
     this.repo = repo;
     this.storage = {
-      original: new Storage('original'),
-      medium: new Storage('medium'),
-      icon: new Storage('icon'),
+      original: new Storage(this.storagePath, 'original'),
+      medium: new Storage(this.storagePath, 'medium'),
+      icon: new Storage(this.storagePath, 'icon'),
     };
   }
   async find(id: string): Promise<Entity | null> {
     return await this.repo.findEntity(id);
   }
-  async fetch(entity: Entity, type: 'original' | 'medium' | 'icon'): Promise<string | null> {
+  async fetch(entity: Entity, type: 'original' | 'medium' | 'icon'): Promise<[string, string] | null> {
     switch(type) {
       case 'original':
         return this.storage.original.fetch(entity.id);

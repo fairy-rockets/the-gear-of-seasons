@@ -15,8 +15,8 @@ export    'DB_HOST=127.0.0.1'
 set -eu
 set -o pipefail
 
-(cd lib && npm run watch) &
-LIB="$!"
+(cd lib && npm run build)
+
 (cd client && npm run watch) &
 CLI="$!"
 # FIXME: serverの起動に失敗する
@@ -30,6 +30,5 @@ function kill_all() {
   echo killing...
   kill 0 > /dev/null 2>&1
 }
-wait "${LIB}"
 wait "${CLI}"
 wait "${SRV}"
