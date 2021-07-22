@@ -57,4 +57,9 @@ describe("FML", () => {
       fml.makeText("cd"),
     ]));
   });
+  it("Handle last", () => {
+    const buffer = new fml.Buffer(`[image entity="test_id"]\n　`);
+    const p = new fml.Parser(buffer);
+    expect(p.parse()).toEqual(new fml.Document([fml.makeImage("test_id")]));
+  });
 });

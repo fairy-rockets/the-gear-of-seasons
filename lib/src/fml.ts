@@ -26,6 +26,9 @@ export class Buffer {
     this.buff = buff.replaceAll(kRemoveChars, '');
     this.pos = 0;
   }
+  available(): boolean {
+    return this.pos < this.buff.length;
+  }
   look1(): string {
     return this.buff[this.pos];
   }
@@ -79,7 +82,7 @@ export class ParseError extends Error {
   }
 }
 
-export class Parser{
+export class Parser {
   private readonly buff: Buffer;
   private readonly blocks: Block[];
   constructor(buff: Buffer) {
@@ -114,17 +117,23 @@ export class Parser{
         break;
       default:
         this.buff.skipWhitespace();
-        texts.push(this.readText());
+        if (this.buff.available()) {
+          texts.push(this.readText());
+        }
         break;
       }
     }
+    this.buff.skipWhitespace();
     commitText();
     return new Document(this.blocks);
   }
   private readText(): string {
-    const first = this.buff.take1();
-    const left = this.buff.takeWhile((ch) => !(ch === '\n' || ch === '['));
-    return first + left;
+    if (this.buff.available()) {
+      const first = this.buff.take1();
+      const left = this.buff.takeWhile((ch) => !(ch === '\n' || ch === '['));
+      return first + left;
+    }
+    return '';
   }
   private parseBlock(): Image | Video | Audio | Link | Markdown {
     const [tag, map] = this.parseBracket();
