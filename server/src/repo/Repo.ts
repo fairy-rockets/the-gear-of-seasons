@@ -76,30 +76,23 @@ from entities
 
   async registerEntity(entity: Entity) {
     // language=PostgreSQL
-    const q = `
-insert into entities
-(
-  "id",
-  "medium_id",
-  "icon_id",
-  "timestamp",
-  "type",
-  "mime_type",
-  "width",
-  "height",
-  "duration"
-)
-values
-($1, $2, $3, $4, $5, $6, $7, $8, $9);
-`;
+
     let timestamp: Date | null;
     if (entity.timestamp !== undefined) {
       timestamp = entity.timestamp.toDate();
     } else {
       timestamp = null;
     }
+    const q = `
+insert into entities
+(
+"id", "medium_id", "icon_id", "timestamp", "type", "mime_type", "width", "height", "duration"
+)
+values
+($1, $2, $3, $4, $5, $6, $7, $8, $9);
+`;
     switch (entity.type) {
-      case 'image':
+      case 'image': {
         await this.pool.query(q, [
           entity.id,
           entity.mediumID,
@@ -112,6 +105,7 @@ values
           null,
         ]);
         break;
+      }
       case 'video':
         await this.pool.query(q, [
           entity.id,

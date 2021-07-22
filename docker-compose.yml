@@ -6,7 +6,7 @@ services:
     container_name: 'the-gear-of-seasons_flyway'
     hostname: 'the-gear-of-seasons_flyway'
     restart: 'no'
-    user: "${USER_ID}:${GROUP_ID}"
+    #user: "${USER_ID}:${GROUP_ID}"
     volumes:
       - ./db/flyway_data/sql:/flyway/sql
       - ./db/flyway_data/conf:/flyway/conf
