@@ -25,7 +25,7 @@ class MomentRenderer {
           buff.push(await this.renderImage(block));
           break;
         case 'text':
-          buff.push(await MomentRenderer.renderText(block));
+          buff.push(`<p>${escapeHTML(block.text)}</p>`);
           break;
       }
     }
@@ -56,9 +56,6 @@ class MomentRenderer {
   <img class="embed" src="/entity/${escapeAttribute(image.entity)}/medium" width="${width}" height="${height}" alt="No alt">
 </a>
 `;
-  }
-  private static async renderText(text: fml.Text): Promise<string> {
-    return `<p>${escapeHTML(text.text)}</p>`
   }
 }
 
