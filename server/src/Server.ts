@@ -95,7 +95,7 @@ class Server {
         await omote.handle(req, reply);
       });
     }
-    { // fallback: (ura)/year/month/day/HH:mm:ss/
+    { // (ura/omote)/year/month/day/HH:mm:ss/
       const ura = await EditController.create(this.asset, this.shelf);
       this.http.route({
         method: 'GET',
