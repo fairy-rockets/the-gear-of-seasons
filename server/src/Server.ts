@@ -2,7 +2,6 @@ import Asset from 'lib/asset';
 import Config from './Config';
 import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fastifyStatic from 'fastify-static';
-import fastifyMultipart from 'fastify-multipart';
 import path from 'path';
 import { RouteGenericInterface } from 'fastify/types/route';
 import OmoteIndexController from './controller/omote/IndexController';
@@ -39,6 +38,11 @@ class Server {
       bodyLimit: 256*1024*1024,
       maxParamLength: 1024*1024,
     });
+    this.http.addContentTypeParser<Buffer>(/^(image|video|audio)\/.*$/, {
+      parseAs: 'buffer',
+    },async (_req: any, body: Buffer) => {
+      return body;
+    });
   }
 
   static async create(asset: Asset, shelf: Shelf): Promise<Server> {
@@ -52,9 +56,9 @@ class Server {
    * **************************************************************************/
 
   async setup() {
+    const log = this.http.log;
     const jsRoot = path.join(__dirname, '..', '..', 'client', 'dist');
     const staticRoot = this.asset.pathOf('static');
-    this.http.register(fastifyMultipart);
     this.http.register(fastifyStatic, {
       root: [
         staticRoot,
@@ -82,7 +86,9 @@ class Server {
     { // file uploads
       const ura = await UploadController.create(this.shelf);
       this.ura.post('/upload', async(req, reply) => {
-
+        const body = req.body as Buffer;
+        log.info(body.byteLength);
+        log.info(req.headers["content-type"]);
       });
     }
     { // (omote/ura)/static/*

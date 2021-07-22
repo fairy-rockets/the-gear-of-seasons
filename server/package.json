@@ -13,7 +13,6 @@
   "author": "Kaede Fujisaki",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
-    "@types/busboy": "^0.2.4",
     "@types/generic-pool": "^3.1.10",
     "@types/node": "^16.4.0",
     "@types/pino": "^6.3.9",
@@ -23,7 +22,6 @@
   "dependencies": {
     "dayjs": "^1.10.6",
     "fastify": "^3.19.1",
-    "fastify-multipart": "^4.0.7",
     "fastify-static": "^4.2.2",
     "generic-pool": "^3.8.2",
     "handlebars": "^4.7.7",
