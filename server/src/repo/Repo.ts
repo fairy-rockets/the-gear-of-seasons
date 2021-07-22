@@ -89,7 +89,8 @@ insert into entities
 "id", "medium_id", "icon_id", "timestamp", "type", "mime_type", "width", "height", "duration"
 )
 values
-($1, $2, $3, $4, $5, $6, $7, $8, $9);
+($1, $2, $3, $4, $5, $6, $7, $8, $9)
+ON CONFLICT DO NOTHING;
 `;
     switch (entity.type) {
       case 'image': {

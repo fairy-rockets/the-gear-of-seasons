@@ -41,7 +41,7 @@ class Shelf {
         return this.storage.icon.fetch(entity.iconID);
     }
   }
-  async upload(data: Buffer) {
+  async upload(data: Buffer): Promise<Entity> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
     try {
       const originalPath = path.join(tempDir, 'original');
@@ -101,6 +101,7 @@ class Shelf {
           throw new Error('[FIXME] Unreachable code!');
       }
       await this.repo.registerEntity(entity);
+      return entity;
     } finally {
       await fs.rm(tempDir, {
         recursive: true,

@@ -10,8 +10,10 @@ export default class UploadController {
     return new UploadController(shelf);
   }
   async handle(req: FastifyRequest, reply: FastifyReply) {
-    const body = req.body as Buffer;
-    const mimeType = req.headers['content-type'];
-    await this.shelf.upload(body);
+    const entity = await this.shelf.upload(req.body as Buffer);
+    reply
+      .type('text/plain')
+      .code(200)
+      .send(`[${entity.type} entity="${entity.id}"]`);
   }
 }
