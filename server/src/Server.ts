@@ -98,11 +98,32 @@ class Server {
     { // fallback: (ura)/year/month/day/HH:mm:ss/
       const p = `/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/*`;
       const ura = await EditController.create(this.asset, this.shelf);
-      this.each.get(p, {
-        omote: async (req, reply) => {
+      this.http.route({
+        method: 'GET',
+        url: '*',
+        schema: {
+          params: {
+            '*': {
+              type: 'string',
+              pattern: '/[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{2}:[0-9]{2}:[0-9]{2}/'
+            }
+          }
         },
-        ura: async (req, reply) => {
-          await ura.handle(req, reply);
+        handler: async (req, reply) => {
+          if (req.hostname === Config.UraHost) {
+            await ura.handle(req, reply);
+          } else if (req.hostname === Config.OmoteHost) {
+            reply
+              .code(404)
+              .type('text/plain')
+              .send('Not found');
+          } else {
+            reply
+              .code(404)
+              .type('text/plain')
+              .send('Not found');
+          }
+          return reply;
         },
       });
     }
