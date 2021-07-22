@@ -96,7 +96,6 @@ class Server {
       });
     }
     { // fallback: (ura)/year/month/day/HH:mm:ss/
-      const p = `/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/*`;
       const ura = await EditController.create(this.asset, this.shelf);
       this.http.route({
         method: 'GET',
