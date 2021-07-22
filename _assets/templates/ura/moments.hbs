@@ -1,0 +1,23 @@
+<div id="moments-container">
+<div id="moments">
+  <h2>{{year}}年のモーメント&nbsp;({{numMoments}})</h2>
+  <a href="/moments/{{lastYear}}">前年</a>
+  <a href="/moments/{{nextYear}}">翌年</a>
+  <hr>
+<div class="moment-list">
+
+{{#each moments}}
+<a href="{{path}}" class="moment">
+  <div class="moment-date">{{date}}</div>
+{{#if id}}
+  <div class="moment-image"><img src="/entity/{{iconID}}/icon" alt="icon"></div>
+{{else}}
+  <div class="moment-image"><img src="" alt="icon"></div>
+{{/if}}
+  <div class="moment-title">{{title}}</div>
+</a>
+{{/each}}
+
+</div>
+</div>
+</div>

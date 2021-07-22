@@ -1,6 +1,7 @@
 import Handlebars, {Template} from 'handlebars';
 import Asset from 'lib/asset';
 import Config from '../../../Config';
+import dayjs from "dayjs";
 
 export default class UraTemplate<T = any> {
   private readonly hbs: typeof Handlebars;
@@ -14,6 +15,7 @@ export default class UraTemplate<T = any> {
     hbs.registerPartial('omote-url', hbs.compile(`//${Config.OmoteHost}/`));
     hbs.registerPartial('ura-url', hbs.compile(`//${Config.UraHost}/`));
     hbs.registerPartial('content', hbs.compile(await asset.loadString(`templates/ura/${contentFilepath}`)));
+    hbs.registerPartial('currentYear', hbs.compile(`${dayjs().year()}`));
     hbs.registerHelper('eq', function (arg1: any, arg2: any):boolean {
       return arg1 === arg2;
     })

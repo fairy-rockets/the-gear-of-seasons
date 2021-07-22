@@ -10,6 +10,7 @@ import Shelf from './shelf/Shelf';
 import OmoteIndexController from './controller/omote/IndexController';
 // Ura Controllers
 import UraIndexController from './controller/ura/IndexController';
+import MomentListController, {MomentListControllerInterface} from './controller/ura/MomentListController';
 import UploadController from './controller/ura/UploadController';
 import NewController from './controller/ura/NewController';
 import SaveController from './controller/ura/SaveController';
@@ -58,9 +59,9 @@ class Server {
    * **************************************************************************/
 
   async setup() {
-    /* **********
-     * Plugins
-     * **********/
+    // -----------
+    // Plugins
+    // -----------
     const jsRoot = path.join(__dirname, '..', '..', 'client', 'dist');
     const staticRoot = this.asset.pathOf('static');
     this.http.register(fastifyStatic, {
@@ -74,9 +75,9 @@ class Server {
     this.http.addContentTypeParser<Buffer>(/^(image|video|audio)\/.*$/, {
       parseAs: 'buffer',
     },async (_req: any, body: Buffer) => body);
-    /* **********
-     * Routing
-     * **********/
+    // -----------
+    // Routing
+    // -----------
     { // (omote,ura)/
       const omote = await OmoteIndexController.create(this.asset);
       const ura = await UraIndexController.create(this.asset);
@@ -103,6 +104,12 @@ class Server {
       });
       this.both.get<EntityControllerInterface>('/entity/:id/icon', async (req, reply) => {
         await c.handle('icon', req, reply);
+      });
+    }
+    { // (ura)/moments
+      const ura = await MomentListController.create(this.asset, this.shelf);
+      this.ura.get<MomentListControllerInterface>('/moments/:year', async (req, reply) => {
+        await ura.handle(req, reply);
       });
     }
     { // (ura)/new

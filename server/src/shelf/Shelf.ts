@@ -126,6 +126,9 @@ class Shelf {
     }
     return m;
   }
+  async findMomentsInYear(year: number): Promise<Moment[]> {
+    return await this.repo.findMomentsInYear(year);
+  }
   private async makeMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
     let date = req.date;
     if (date === null || date.length === 0) {

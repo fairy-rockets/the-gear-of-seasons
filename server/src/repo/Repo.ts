@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import Config from '../Config';
 import Moment from '../shelf/Moment';
 import NodeCache from 'node-cache';
+import {ResultRow} from "ts-postgres";
 
 export default class Repo {
   private readonly pool: Pool;
@@ -207,4 +208,28 @@ where "timestamp" = $5;
       oldTimestamp.toDate(),
     ]);
   }
+
+  async findMomentsInYear(year: number): Promise<Moment[]> {
+    // language=PostgreSQL
+    const q=`
+select timestamp, title, author, text from moments
+where
+'${year}-01-01' <= timestamp and timestamp < '${year+1}-01-01';
+`;
+    const moments: Moment[] = [];
+    const rows = await this.pool.query(q, []);
+    for await (const row of rows) {
+      moments.push(decodeMoment(row));
+    }
+    return moments;
+  }
+}
+
+function decodeMoment(row: ResultRow): Moment {
+  return {
+    timestamp: dayjs(row.get('timestamp') as Date),
+    title: row.get('title') as string,
+    author: row.get('author') as string,
+    text: row.get('text') as string,
+  };
 }
