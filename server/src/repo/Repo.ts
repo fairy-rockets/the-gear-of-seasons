@@ -3,13 +3,26 @@ import {Entity} from '../shelf/Entity';
 import dayjs from 'dayjs';
 import Config from '../Config';
 import Moment from '../shelf/Moment';
+import NodeCache from 'node-cache';
 
 export default class Repo {
-  readonly pool: Pool;
+  private readonly pool: Pool;
+  private readonly cache: {
+    entity: NodeCache,
+  };
   constructor() {
     this.pool = new Pool(Config.dbHostname);
+    this.cache = {
+      entity: new NodeCache({
+        maxKeys: 128,
+      }),
+    };
   }
   async findEntity(id: string): Promise<Entity | null> {
+    const entry = this.cache.entity.get<Entity>(id);
+    if (entry !== undefined) {
+      return entry;
+    }
     // language=PostgreSQL
     const q1 = `
 select
@@ -47,9 +60,10 @@ from entities
         return dayjs(d as Date);
       }
     })();
+    let entity: Entity;
     switch (type) {
       case 'image':
-        return {
+        entity = {
           type: 'image',
           id: row.get('id') as string,
           mediumID: row.get('medium_id') as string,
@@ -59,8 +73,9 @@ from entities
           width: row.get('width') as number,
           height: row.get('height') as number,
         };
+        break;
       case 'video':
-        return {
+        entity = {
           type: 'video',
           id: row.get('id') as string,
           iconID: row.get('icon_id') as string,
@@ -70,8 +85,9 @@ from entities
           height: row.get('height') as number,
           duration: row.get('duration') as number,
         };
+        break;
       case 'audio':
-        return {
+        entity = {
           type: 'audio',
           id: row.get('id') as string,
           iconID: row.get('icon_id') as string,
@@ -79,9 +95,12 @@ from entities
           mimeType: row.get('mime_type') as string,
           duration: row.get('duration') as number,
         };
+        break;
       default:
         throw new Error(`Unknown type: ${type}`)
     }
+    this.cache.entity.set(id, entity);
+    return entity;
   }
 
   async registerEntity(entity: Entity) {
@@ -145,6 +164,7 @@ ON CONFLICT DO NOTHING;
       default:
         throw new Error('[FIXME] Unreachable code!')
     }
+    this.cache.entity.set(entity.id, entity);
   }
   async registerMoment(moment: Moment) {
     if (moment.timestamp === undefined) {
