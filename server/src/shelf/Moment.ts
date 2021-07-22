@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 
 type Moment = {
-  timestamp: dayjs.Dayjs;
+  timestamp: dayjs.Dayjs | undefined;
   title: string;
   author: string;
   text: string;

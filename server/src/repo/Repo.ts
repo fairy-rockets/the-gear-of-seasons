@@ -147,6 +147,9 @@ ON CONFLICT DO NOTHING;
     }
   }
   async registerMoment(moment: Moment) {
+    if (moment.timestamp === undefined) {
+      throw new Error('[FIXME] No timestamp!')
+    }
     // language=PostgreSQL
     const q = `
 insert into moments
@@ -162,6 +165,9 @@ values
     ]);
   }
   async replaceMoment(oldTimestamp: dayjs.Dayjs, moment: Moment) {
+    if (moment.timestamp === undefined) {
+      throw new Error('[FIXME] No timestamp!')
+    }
     // language=PostgreSQL
     const q = `
 update moments set

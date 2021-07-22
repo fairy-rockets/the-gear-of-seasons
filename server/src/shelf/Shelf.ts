@@ -129,11 +129,7 @@ class Shelf {
   private async makeMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
     let date = req.date;
     if (date === null || date.length === 0) {
-      const doc = (() => {
-        const buff = new fml.Buffer(req.text)
-        const parser = new fml.Parser(buff);
-        return parser.parse();
-      })();
+      const doc = fml.parse(req.text);
       for (const block of doc.blocks) {
         if (block.type === 'image' && block.entity !== undefined) {
           const e = await this.findEntity(block.entity);

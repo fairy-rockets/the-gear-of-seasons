@@ -13,6 +13,7 @@ import UraIndexController from './controller/ura/IndexController';
 import UploadController from './controller/ura/UploadController';
 import NewController from './controller/ura/NewController';
 import SaveController from './controller/ura/SaveController';
+import PreviewController from './controller/ura/PreviewController';
 // Both Controllers
 import EntityController, {EntityControllerInterface} from './controller/both/EntityController';
 
@@ -110,9 +111,15 @@ class Server {
         await ura.handle(req, reply);
       });
     }
-    { // (ura)/new
+    { // (ura)/save
       const ura = await SaveController.create(this.shelf);
       this.ura.post('/save', async (req, reply) => {
+        await ura.handle(req, reply);
+      });
+    }
+    { // (ura)/preview
+      const ura = await PreviewController.create(this.shelf);
+      this.ura.post('/preview', async (req, reply) => {
         await ura.handle(req, reply);
       });
     }

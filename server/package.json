@@ -20,6 +20,7 @@
     "ts-node-dev": "^1.1.8"
   },
   "dependencies": {
+    "@wordpress/escape-html": "^2.2.0",
     "dayjs": "^1.10.6",
     "fastify": "^3.19.1",
     "fastify-static": "^4.2.2",

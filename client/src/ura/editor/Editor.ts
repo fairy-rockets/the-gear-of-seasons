@@ -93,7 +93,7 @@ export default class Editor {
       method: 'POST',
       body: JSON.stringify(moment),
       headers: {
-        'Accept': 'application/json',
+        'Accept': 'text/html',
         'Content-Type': 'application/json'
       }}).then(result => result.text())
       .then(body => this.preview_!.onChange(body));

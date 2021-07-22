@@ -18,11 +18,12 @@ function isNotWhitespace(ch: string): boolean {
   return !isWhitespace(ch);
 }
 
- export class Buffer {
+const kRemoveChars=/\r/g;
+export class Buffer {
   private readonly buff: string;
   private pos: number;
   constructor(buff: string) {
-    this.buff = buff;
+    this.buff = buff.replaceAll(kRemoveChars, '');
     this.pos = 0;
   }
   look1(): string {
@@ -80,7 +81,7 @@ export class ParseError extends Error {
 
 export class Parser{
   private readonly buff: Buffer;
-  private blocks: Block[];
+  private readonly blocks: Block[];
   constructor(buff: Buffer) {
     this.buff = buff;
     this.blocks = [];
@@ -105,9 +106,11 @@ export class Parser{
         }
         break;
       case '\n':
-      case '\r':
-        this.buff.takeWhile((ch) => ch == '\r' || ch == '\n');
-        commitText();
+        this.buff.take1();
+        if (this.buff.look1() === '\n') {
+          this.buff.takeWhile((ch) => ch == '\n');
+          commitText();
+        }
         break;
       default:
         this.buff.skipWhitespace();
@@ -120,7 +123,7 @@ export class Parser{
   }
   private readText(): string {
     const first = this.buff.take1();
-    const left = this.buff.takeWhile((ch) => !(ch === '\r' || ch === '\n' || ch === '['));
+    const left = this.buff.takeWhile((ch) => !(ch === '\n' || ch === '['));
     return first + left;
   }
   private parseBlock(): Image | Video | Audio | Link | Markdown {
@@ -258,4 +261,10 @@ export function makeMarkdown(url: string | undefined): Markdown {
     type: 'markdown',
     url: url,
   }
+}
+
+export function parse(text: string): Document {
+  const buff = new Buffer(text)
+  const parser = new Parser(buff);
+  return parser.parse();
 }
