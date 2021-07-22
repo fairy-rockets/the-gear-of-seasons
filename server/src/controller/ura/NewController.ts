@@ -1,4 +1,4 @@
-import { FastifyReply } from 'fastify';
+import {FastifyReply, FastifyRequest} from 'fastify';
 import Asset from 'lib/asset';
 import EditorTemplate from './lib/EditorTemplate';
 
@@ -11,7 +11,7 @@ export default class NewController {
     const template = await EditorTemplate.create(asset);
     return new NewController(template);
   }
-  render(reply: FastifyReply) {
+  async handle(req: FastifyRequest, reply: FastifyReply) {
     reply
       .type('text/html')
       .code(200)

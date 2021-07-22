@@ -1,4 +1,4 @@
-import { FastifyReply } from 'fastify';
+import {FastifyReply, FastifyRequest} from 'fastify';
 import Handlebars from 'handlebars';
 import Asset from 'lib/asset';
 
@@ -12,7 +12,7 @@ export default class IndexController {
     const template = Handlebars.compile(src);
     return new IndexController(template);
   }
-  render(reply: FastifyReply) {
+  async handle(req: FastifyRequest, reply: FastifyReply) {
     reply.type('text/html').code(200).send(this.template({}));
   }
 }

@@ -1,4 +1,4 @@
-import { FastifyReply } from 'fastify';
+import {FastifyReply, FastifyRequest} from 'fastify';
 import Handlebars from 'handlebars';
 import Asset from 'lib/asset';
 import UraTemplate from './lib/UraTemplate';
@@ -12,7 +12,9 @@ export default class IndexController {
     const template = await UraTemplate.create(asset, 'index.hbs');
     return new IndexController(template);
   }
-  render(reply: FastifyReply) {
-    reply.type('text/html').code(200).send(this.template.render({}));
+  async handle(req: FastifyRequest, reply: FastifyReply) {
+    reply.type('text/html')
+      .code(200)
+      .send(this.template.render({}));
   }
 }

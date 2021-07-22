@@ -38,11 +38,6 @@ class Server {
       bodyLimit: 256*1024*1024,
       maxParamLength: 1024*1024,
     });
-    this.http.addContentTypeParser<Buffer>(/^(image|video|audio)\/.*$/, {
-      parseAs: 'buffer',
-    },async (_req: any, body: Buffer) => {
-      return body;
-    });
   }
 
   static async create(asset: Asset, shelf: Shelf): Promise<Server> {
@@ -65,30 +60,33 @@ class Server {
         jsRoot,
       ],
     });
+    this.http.addContentTypeParser<Buffer>(/^(image|video|audio)\/.*$/, {
+      parseAs: 'buffer',
+    },async (_req: any, body: Buffer) => {
+      return body;
+    });
     { // (omote,ura)/
       const omote = await OmoteIndexController.create(this.asset);
       const ura = await UraIndexController.create(this.asset);
       this.each.get('/', {
-        omote: async(_req, reply) => {
-          omote.render(reply);
+        omote: async(req, reply) => {
+          await omote.handle(req, reply);
         },
-        ura: async (_req, reply) => {
-          ura.render(reply);
+        ura: async (req, reply) => {
+          await ura.handle(req, reply);
         }
       });
     }
     { // (ura)/new
       const ura = await NewController.create(this.asset);
       this.ura.get('/new', async (req, reply) => {
-        ura.render(reply);
+        await ura.handle(req, reply);
       });
     }
     { // file uploads
       const ura = await UploadController.create(this.shelf);
       this.ura.post('/upload', async(req, reply) => {
-        const body = req.body as Buffer;
-        log.info(body.byteLength);
-        log.info(req.headers["content-type"]);
+        await ura.handle(req, reply);
       });
     }
     { // (omote/ura)/static/*

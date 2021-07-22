@@ -17,7 +17,7 @@
     "./media/probe": "./dist/media/probe.js",
     "./media/convert": "./dist/media/convert.js",
     "./gear": "./dist/gear.js",
-    "./md5sum": "./dist/gear.js"
+    "./md5sum": "./dist/md5sum.js"
   },
   "typesVersions": {
     "*": {

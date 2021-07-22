@@ -42,15 +42,15 @@ class Shelf {
         return this.storage.icon.fetch(entity.iconID);
     }
   }
-  async upload(filepath: string) {
+  async upload(data: Buffer) {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
     try {
       const originalPath = path.join(tempDir, 'original');
+      await fs.writeFile(originalPath, data);
       const mediumPath = path.join(tempDir, 'medium.jpg');
       const iconPath = path.join(tempDir, 'icon.jpg');
-      await fs.copyFile(filepath, originalPath);
-      const meta = await probe(filepath);
-      const originalID = await this.storage.original.upload(filepath);
+      const meta = await probe(originalPath);
+      const originalID = await this.storage.original.upload(originalPath);
       let entity: Entity;
       switch (meta.type) {
         case 'image': {
