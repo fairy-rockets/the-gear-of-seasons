@@ -54,54 +54,7 @@ from entities
     if (row === null) {
       return null;
     }
-    const type = row.get('type');
-    const timestamp = (() => {
-      const d = row.get('timestamp');
-      if (d === undefined) {
-        return undefined;
-      } else {
-        return dayjs(d as Date);
-      }
-    })();
-    let entity: Entity;
-    switch (type) {
-      case 'image':
-        entity = {
-          type: 'image',
-          id: row.get('id') as string,
-          mediumID: row.get('medium_id') as string,
-          iconID: row.get('icon_id') as string,
-          timestamp: timestamp,
-          mimeType: row.get('mime_type') as string,
-          width: row.get('width') as number,
-          height: row.get('height') as number,
-        };
-        break;
-      case 'video':
-        entity = {
-          type: 'video',
-          id: row.get('id') as string,
-          iconID: row.get('icon_id') as string,
-          timestamp: timestamp,
-          mimeType: row.get('mime_type') as string,
-          width: row.get('width') as number,
-          height: row.get('height') as number,
-          duration: row.get('duration') as number,
-        };
-        break;
-      case 'audio':
-        entity = {
-          type: 'audio',
-          id: row.get('id') as string,
-          iconID: row.get('icon_id') as string,
-          timestamp: timestamp,
-          mimeType: row.get('mime_type') as string,
-          duration: row.get('duration') as number,
-        };
-        break;
-      default:
-        throw new Error(`Unknown type: ${type}`)
-    }
+    const entity = decodeEntity(row);
     this.cache.entity.set(id, entity);
     return entity;
   }
@@ -250,4 +203,51 @@ function decodeMoment(row: ResultRow): Moment {
     text: row.get('text') as string,
     iconID: row.get('icon_id') as (string | undefined),
   };
+}
+
+function decodeEntity(row: ResultRow): Entity {
+  const type = row.get('type');
+  const timestamp = (() => {
+    const d = row.get('timestamp');
+    if (d === undefined) {
+      return undefined;
+    } else {
+      return dayjs(d as Date);
+    }
+  })();
+  switch (type) {
+    case 'image':
+      return {
+        type: 'image',
+        id: row.get('id') as string,
+        mediumID: row.get('medium_id') as string,
+        iconID: row.get('icon_id') as string,
+        timestamp: timestamp,
+        mimeType: row.get('mime_type') as string,
+        width: row.get('width') as number,
+        height: row.get('height') as number,
+      };
+    case 'video':
+      return {
+        type: 'video',
+        id: row.get('id') as string,
+        iconID: row.get('icon_id') as string,
+        timestamp: timestamp,
+        mimeType: row.get('mime_type') as string,
+        width: row.get('width') as number,
+        height: row.get('height') as number,
+        duration: row.get('duration') as number,
+      };
+    case 'audio':
+      return {
+        type: 'audio',
+        id: row.get('id') as string,
+        iconID: row.get('icon_id') as string,
+        timestamp: timestamp,
+        mimeType: row.get('mime_type') as string,
+        duration: row.get('duration') as number,
+      };
+    default:
+      throw new Error(`Unknown type: ${type}`)
+  }
 }

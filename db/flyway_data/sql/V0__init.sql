@@ -1,5 +1,7 @@
 ALTER DATABASE "the-gear-of-seasons" SET timezone TO 'Asia/Tokyo';
 
+CREATE EXTENSION tsm_system_rows;
+
 CREATE FUNCTION update_timestamp() RETURNS TRIGGER
   LANGUAGE plpgsql
 AS
