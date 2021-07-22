@@ -1,7 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import * as protocol from 'lib/protocol';
 import Shelf from '../../shelf/Shelf';
-import Moment, {parseMomentTime} from '../../shelf/Moment';
+import { Moment, parseMomentTime } from '../../shelf/Moment';
 import MomentRenderer from '../../renderer/MomentRenderer';
 import dayjs from 'dayjs';
 

@@ -8,7 +8,7 @@ import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from 'lib/me
 import Repo from '../repo/Repo';
 import Storage from '../storage/Storage';
 import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity';
-import Moment, {formatMomentTime, parseMomentTime} from './Moment';
+import {Moment, MomentSummary, formatMomentTime, parseMomentTime} from './Moment';
 import dayjs from "dayjs";
 
 class Shelf {
@@ -126,7 +126,7 @@ class Shelf {
     }
     return m;
   }
-  async findMomentsInYear(year: number): Promise<Moment[]> {
+  async findMomentsInYear(year: number): Promise<MomentSummary[]> {
     return await this.repo.findMomentsInYear(year);
   }
   async findMoment(timestamp: dayjs.Dayjs): Promise<Moment | null> {

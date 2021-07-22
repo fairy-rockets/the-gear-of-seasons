@@ -4,7 +4,7 @@ import marked from 'marked';
 
 import Shelf from '../shelf/Shelf';
 import * as fml from 'lib/fml';
-import Moment from '../shelf/Moment';
+import { Moment } from '../shelf/Moment';
 
 class MomentRenderer {
   private readonly shelf: Shelf;

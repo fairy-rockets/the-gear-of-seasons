@@ -1,6 +1,5 @@
 import UraTemplate from './UraTemplate';
 import Asset from 'lib/asset';
-import Moment from '../../../shelf/Moment';
 
 type EditorData = {
   title: string;

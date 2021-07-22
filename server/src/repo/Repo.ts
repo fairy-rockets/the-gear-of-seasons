@@ -2,7 +2,7 @@ import Pool from './Pool';
 import {Entity} from '../shelf/Entity';
 import dayjs from 'dayjs';
 import Config from '../Config';
-import Moment from '../shelf/Moment';
+import { Moment, MomentSummary } from '../shelf/Moment';
 import NodeCache from 'node-cache';
 import {ResultRow} from "ts-postgres";
 
@@ -165,17 +165,17 @@ where "timestamp" = $6;
     ]);
   }
 
-  async findMomentsInYear(year: number): Promise<Moment[]> {
+  async findMomentsInYear(year: number): Promise<MomentSummary[]> {
     // language=PostgreSQL
     const q=`
-select timestamp, title, author, text, icon_id from moments
+select timestamp, title, icon_id from moments
 where
 '${year}-01-01' <= timestamp and timestamp < '${year+1}-01-01';
 `;
-    const moments: Moment[] = [];
+    const moments: MomentSummary[] = [];
     const rows = await this.pool.query(q, []);
     for await (const row of rows) {
-      moments.push(decodeMoment(row));
+      moments.push(decodeMomentSummary(row));
     }
     return moments;
   }
@@ -201,6 +201,14 @@ function decodeMoment(row: ResultRow): Moment {
     title: row.get('title') as string,
     author: row.get('author') as string,
     text: row.get('text') as string,
+    iconID: row.get('icon_id') as (string | undefined),
+  };
+}
+
+function decodeMomentSummary(row: ResultRow): MomentSummary {
+  return {
+    timestamp: dayjs(row.get('timestamp') as Date),
+    title: row.get('title') as string,
     iconID: row.get('icon_id') as (string | undefined),
   };
 }

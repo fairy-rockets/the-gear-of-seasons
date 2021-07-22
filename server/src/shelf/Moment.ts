@@ -10,6 +10,12 @@ type Moment = {
   iconID: string | undefined;
 };
 
+type MomentSummary = {
+  timestamp: dayjs.Dayjs | undefined;
+  title: string;
+  iconID: string | undefined;
+};
+
 const kMomentTimeFormat = 'YYYY/MM/DD HH:mm:ss';
 const kMomentPathFormat = '/YYYY/MM/DD/HH:mm:ss/';
 
@@ -29,4 +35,7 @@ export function formatMomentTime(time: dayjs.Dayjs): string {
   return time.format(kMomentTimeFormat);
 }
 
-export default Moment;
+export {
+  Moment,
+  MomentSummary,
+};
