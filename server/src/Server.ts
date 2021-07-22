@@ -97,32 +97,15 @@ class Server {
     }
     { // (ura/omote)/year/month/day/HH:mm:ss/
       const ura = await EditController.create(this.asset, this.shelf);
-      this.http.route({
-        method: 'GET',
-        url: '*',
-        schema: {
-          params: {
-            '*': {
-              type: 'string',
-              pattern: '/[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{2}:[0-9]{2}:[0-9]{2}/'
-            }
-          }
+      this.each.get('/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/:time(^[0-9]{2}:[0-9]{2}:[0-9]{2}$)/', {
+        omote: async (req, reply) => {
+          reply
+            .code(404)
+            .type('text/plain')
+            .send('Not found');
         },
-        handler: async (req, reply) => {
-          if (req.hostname === Config.UraHost) {
-            await ura.handle(req, reply);
-          } else if (req.hostname === Config.OmoteHost) {
-            reply
-              .code(404)
-              .type('text/plain')
-              .send('Not found');
-          } else {
-            reply
-              .code(404)
-              .type('text/plain')
-              .send('Not found');
-          }
-          return reply;
+        ura: async (req, reply) => {
+          await ura.handle(req, reply);
         },
       });
     }
