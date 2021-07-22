@@ -19,9 +19,11 @@ export default class Repo {
     };
   }
   async findEntity(id: string): Promise<Entity | null> {
-    const entry = this.cache.entity.get<Entity>(id);
-    if (entry !== undefined) {
-      return entry;
+    {
+      const entry = this.cache.entity.get<Entity>(id);
+      if (entry !== undefined) {
+        return entry;
+      }
     }
     // language=PostgreSQL
     const q1 = `
