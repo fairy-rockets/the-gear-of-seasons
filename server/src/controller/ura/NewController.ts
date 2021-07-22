@@ -3,7 +3,7 @@ import Asset from 'lib/asset';
 import EditorTemplate from './lib/EditorTemplate';
 
 export default class NewController {
-  readonly template: EditorTemplate;
+  private readonly template: EditorTemplate;
   private constructor(template: EditorTemplate) {
     this.template = template;
   }

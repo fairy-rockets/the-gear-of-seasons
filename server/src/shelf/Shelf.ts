@@ -8,7 +8,7 @@ import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from 'lib/me
 import Repo from '../repo/Repo';
 import Storage from '../storage/Storage';
 import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity';
-import Moment, {kMomentTimeFormat} from './Moment';
+import Moment, {formatMomentTime, parseMomentTime} from './Moment';
 import dayjs from "dayjs";
 
 class Shelf {
@@ -121,13 +121,16 @@ class Shelf {
       await this.repo.registerMoment(m);
     } else {
       // replace
-      const oldTimestamp = dayjs(req.originalDate, kMomentTimeFormat);
+      const oldTimestamp = parseMomentTime(req.originalDate);
       await this.repo.replaceMoment(oldTimestamp, m);
     }
     return m;
   }
   async findMomentsInYear(year: number): Promise<Moment[]> {
     return await this.repo.findMomentsInYear(year);
+  }
+  async findMoment(timestamp: dayjs.Dayjs): Promise<Moment | null> {
+    return await this.repo.findMoment(timestamp);
   }
   private async makeMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
     let date = req.date;
@@ -139,15 +142,15 @@ class Shelf {
           if (e === null || e.timestamp === undefined) {
             continue;
           }
-          date = e.timestamp.format(kMomentTimeFormat);
+          date = formatMomentTime(e.timestamp);
         }
       }
       if (date === null || date.length === 0) {
-        date = dayjs().format(kMomentTimeFormat);
+        date = formatMomentTime(dayjs());
       }
     }
     return {
-      timestamp: dayjs(date, kMomentTimeFormat),
+      timestamp: parseMomentTime(date),
       title: req.title,
       author: req.author,
       text: req.text,

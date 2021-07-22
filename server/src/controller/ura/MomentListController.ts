@@ -3,7 +3,7 @@ import Asset from 'lib/asset';
 import UraTemplate from './lib/UraTemplate';
 import Shelf from '../../shelf/Shelf';
 import dayjs from "dayjs";
-import {kMomentPathFormat} from '../../shelf/Moment';
+import {formatMomentPath} from '../../shelf/Moment';
 
 export interface MomentListControllerInterface extends RequestGenericInterface {
   Params: {
@@ -27,7 +27,7 @@ export default class MomentListController {
     const moments = (await this.shelf.findMomentsInYear(year)).map((it) => {
       return {
         iconID: '',
-        path: it.timestamp!!.format(kMomentPathFormat),
+        path: formatMomentPath(it.timestamp!!),
         title: it.title,
       };
     });

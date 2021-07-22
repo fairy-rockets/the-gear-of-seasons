@@ -1,7 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import * as protocol from 'lib/protocol';
 import Shelf from '../../shelf/Shelf';
-import {kMomentPathFormat, kMomentTimeFormat} from '../../shelf/Moment';
+import {formatMomentPath, formatMomentTime} from '../../shelf/Moment';
 import MomentRenderer from '../../renderer/MomentRenderer';
 
 export default class SaveController {
@@ -24,8 +24,8 @@ export default class SaveController {
       return;
     }
     const resp: protocol.Moment.Save.Response = {
-      path: moment.timestamp.format(kMomentPathFormat),
-      date: moment.timestamp.format(kMomentTimeFormat),
+      path: formatMomentPath(moment.timestamp),
+      date: formatMomentTime(moment.timestamp),
       body: await this.renderer.render(moment),
     };
     reply

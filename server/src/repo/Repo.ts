@@ -223,6 +223,20 @@ where
     }
     return moments;
   }
+
+  async findMoment(timestamp: dayjs.Dayjs): Promise<Moment | null> {
+    // language=PostgreSQL
+    const q=`
+select timestamp, title, author, text from moments
+where
+timestamp=$1;
+`;
+    const rows = await this.pool.query(q, [timestamp.toDate()]);
+    for await (const row of rows) {
+      return decodeMoment(row);
+    }
+    return null;
+  }
 }
 
 function decodeMoment(row: ResultRow): Moment {

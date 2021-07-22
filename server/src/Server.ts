@@ -13,6 +13,7 @@ import UraIndexController from './controller/ura/IndexController';
 import MomentListController, {MomentListControllerInterface} from './controller/ura/MomentListController';
 import UploadController from './controller/ura/UploadController';
 import NewController from './controller/ura/NewController';
+import EditController from './controller/ura/EditController';
 import SaveController from './controller/ura/SaveController';
 import PreviewController from './controller/ura/PreviewController';
 // Both Controllers
@@ -94,6 +95,17 @@ class Server {
         await omote.handle(req, reply);
       });
     }
+    { // fallback: (ura)/year/month/day/HH:mm:ss/
+      const p = `/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/*`;
+      const ura = await EditController.create(this.asset, this.shelf);
+      this.each.get(p, {
+        omote: async (req, reply) => {
+        },
+        ura: async (req, reply) => {
+          await ura.handle(req, reply);
+        },
+      });
+    }
     { // (ura)/entity
       const c = await EntityController.create(this.shelf);
       this.both.get<EntityControllerInterface>('/entity/:id', async (req, reply) => {
@@ -169,6 +181,7 @@ class Server {
         }
       });
     }
+
   }
 
   /* **************************************************************************
@@ -177,6 +190,7 @@ class Server {
 
   async start() {
     await this.http.ready();
+    console.log(this.http.printRoutes());
     await this.http.listen(8888, '::', 512);
   }
 
