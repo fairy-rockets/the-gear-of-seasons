@@ -1,8 +1,13 @@
+import * as fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
+
 import spawn from '@expo/spawn-async';
-import md5sum from '../md5sum';
 import exifr from 'exifr';
 import dayjs from 'dayjs';
 import FileType from 'file-type';
+
+import md5sum from '../md5sum';
 
 export type MediaType = 'image' | 'video' | 'audio';
 
@@ -30,8 +35,7 @@ async function avProbe(path: string, type: MediaType): Promise<AVProbeResult> {
     '-show_streams',
     '-show_format',
   ]);
-  const stdout = result.output[0];
-  const r = JSON.parse(stdout) as RawProbeResult;
+  const r = JSON.parse(result.stdout) as RawProbeResult;
   if (r.streams.length === 0) {
     throw new FormatError('No streams in the file');
   }
@@ -40,7 +44,7 @@ async function avProbe(path: string, type: MediaType): Promise<AVProbeResult> {
   switch (type) {
     case 'video':
       if (videoStream === undefined) {
-        throw new FormatError('No video streams');
+        throw new FormatError('Video stream not found');
       }
       return {
         width: videoStream.width,
@@ -49,7 +53,7 @@ async function avProbe(path: string, type: MediaType): Promise<AVProbeResult> {
       }
     case 'image':
       if (videoStream === undefined) {
-        throw new FormatError('No images');
+        throw new FormatError('Image stream not found');
       }
       return {
         width: videoStream.width,
@@ -57,7 +61,7 @@ async function avProbe(path: string, type: MediaType): Promise<AVProbeResult> {
       }
     case 'audio':
       if (audioStream === undefined) {
-        throw new FormatError('No audio streams');
+        throw new FormatError('Audio stream not found');
       }
       return {
         duration: audioStream.duration,
@@ -71,6 +75,7 @@ async function avProbe(path: string, type: MediaType): Promise<AVProbeResult> {
 
 export type ProbeResult = {
   readonly type: MediaType;
+  readonly ext: string;
   readonly md5sum: string;
   readonly timestamp: dayjs.Dayjs | undefined;
   readonly mimeType: FileType.MimeType;
@@ -89,67 +94,83 @@ export class FormatError extends Error {
   }
 }
 
-export async function probe(path: string): Promise<ProbeResult> {
-  const hash = await md5sum(path);
-  const fileType = await FileType.fromFile(path);
+export async function probe(srcFilePath: string): Promise<ProbeResult> {
+  const hash = await md5sum(srcFilePath);
+  const fileType = await FileType.fromFile(srcFilePath);
   if (fileType === undefined) {
     throw new FormatError('Failed to detect file type.')
   }
-  const timestamp = await (async () => {
-    try {
-      const exif = await exifr.parse(path);
-      if (exif === undefined || exif === null) {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-probe-'));
+  try {
+    const filePath = path.join(tempDir, `probe.${fileType.ext}`);
+    await fs.copyFile(srcFilePath, filePath);
+    const timestamp = await (async () => {
+      try {
+        const exif = await exifr.parse(filePath);
+        if (exif === undefined || exif === null) {
+          return undefined;
+        }
+        const timestamp: Date | undefined = exif['CreateDate'];
+        if (timestamp === undefined) {
+          return undefined;
+        } else {
+          return dayjs(timestamp);
+        }
+      } catch (e) {
         return undefined;
       }
-      const timestamp: Date | undefined = exif['CreateDate'];
-      if (timestamp === undefined) {
-        return undefined;
+    })();
+    const type: MediaType = (() => {
+      if (fileType.mime.startsWith('video/')) {
+        return 'video';
+      } else if (fileType.mime.startsWith('image/')) {
+        return 'image';
+      } else if (fileType.mime.startsWith('audio/')) {
+        return 'audio';
       } else {
-        return dayjs(timestamp);
+        throw new FormatError(`Unsupported mime: ${fileType.mime}`);
       }
-    } catch (e) {
-      return undefined;
+    })();
+    const avResult = await avProbe(filePath, type);
+    switch (type) {
+      case 'image':
+        return {
+          type: 'image',
+          ext: fileType.ext,
+          md5sum: hash,
+          timestamp: timestamp,
+          mimeType: fileType.mime,
+          width: avResult.width,
+          height: avResult.height,
+        };
+      case 'video':
+        return {
+          type: 'video',
+          ext: fileType.ext,
+          md5sum: hash,
+          timestamp: timestamp,
+          mimeType: fileType.mime,
+          width: avResult.width,
+          height: avResult.height,
+          duration: avResult.duration,
+        };
+      case 'audio':
+        return {
+          type: 'audio',
+          ext: fileType.ext,
+          md5sum: hash,
+          timestamp: timestamp,
+          mimeType: fileType.mime,
+          duration: avResult.duration,
+        };
+      default:
+        throw new Error('[FIXME] Unreachable code!');
     }
-  })();
-  const type: MediaType = (() => {
-    if (fileType.mime.startsWith('video/')) {
-      return 'video';
-    } else if (fileType.mime.startsWith('image/')) {
-      return 'image';
-    } else if (fileType.mime.startsWith('audio/')) {
-      return 'audio';
-    } else {
-      throw new FormatError(`Unsupported mime: ${fileType.mime}`);
-    }
-  })();
-  const avResult = await avProbe(path, type);
-  switch (type) {
-    case 'image':
-      return {
-        type: 'image',
-        md5sum: hash,
-        timestamp: timestamp,
-        mimeType: fileType.mime,
-        width: avResult.width,
-        height: avResult.height,
-      };
-    case 'video':
-      return {
-        type: 'video',
-        md5sum: hash,
-        timestamp: timestamp,
-        mimeType: fileType.mime,
-        width: avResult.width,
-        height: avResult.height,
-        duration: avResult.duration,
-      };
-    case 'audio':
-      return {
-        type: 'audio',
-        md5sum: hash,
-        timestamp: timestamp,
-        mimeType: fileType.mime,
-        duration: avResult.duration,
-      };
+  } finally {
+    await fs.rm(tempDir, {
+      recursive: true,
+      force: true,
+    });
   }
+  
 }

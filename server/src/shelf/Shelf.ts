@@ -48,11 +48,13 @@ class Shelf {
   async saveEntity(data: Buffer): Promise<Entity> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
     try {
-      const originalPath = path.join(tempDir, 'original');
-      await fs.writeFile(originalPath, data);
+      const tempPath = path.join(tempDir, 'temp');
+      await fs.writeFile(tempPath, data);
+      const meta = await probe(tempPath);
+      const originalPath = path.join(tempDir, `original.${meta.ext}`);
+      await fs.rename(tempPath, originalPath);
       const mediumPath = path.join(tempDir, 'medium.jpg');
       const iconPath = path.join(tempDir, 'icon.jpg');
-      const meta = await probe(originalPath);
       const originalID = await this.storage.original.upload(originalPath);
       let entity: Entity;
       switch (meta.type) {

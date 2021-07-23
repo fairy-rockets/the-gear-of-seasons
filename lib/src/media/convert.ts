@@ -5,7 +5,7 @@ export async function resizeImage(src: string, dst: string, maxSize: number) {
   await spawn('ffmpeg', [
     '-hide_banner',
     '-i', src,
-    '-vf', `scale='if(gt(a,${maxSize}/${maxSize}),${maxSize},-1)':'if(gt(a,${maxSize}/${maxSize}),-1,${maxSize})'`,
+    '-vf', `scale='if(gt(a,1),${maxSize},-1)':'if(gt(a,1),-1,${maxSize})'`,
     '-f', 'image2',
     '-vframes', '1',
     dst

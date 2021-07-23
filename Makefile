@@ -2,7 +2,7 @@
 all: ps ;
 
 .PHONY: up
-up:
+up: var/ _storage/
 	docker-compose up -d
 
 .PHONY: down
@@ -15,7 +15,7 @@ reload:
 	$(MAKE) up
 
 .PHONY: restart
-restart:
+restart: var/ _storage/
 	docker-compose restart
 
 .PHONY: build
@@ -45,6 +45,9 @@ chown:
 .PHONY: backup
 backup:
 	sudo bash _helpers/backup.sh $(shell id -g) $(shell id -u) var _storage
+
+var/ _storage/:
+	mkdir -p "$@"
 
 # -----------------------------------------------------------------------------
 

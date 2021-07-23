@@ -55,7 +55,7 @@ export default class Uploader {
     this.hoverDialog_.addEventListener('dragend', this.dragEndListener_, false);
   }
 
-  upload_(files_: FileList) {
+  private upload_(files_: FileList) {
     this.target_.appendChild(this.progressDialog_);
 
     const files: File[] = Array.from(files_);
@@ -107,7 +107,7 @@ export default class Uploader {
   }
 
 
-  onDrop_(e: DragEvent) {
+  private onDrop_(e: DragEvent) {
     e.stopPropagation();
     e.preventDefault();
     if(!!this.hoverDialog_.parentNode) {
@@ -116,7 +116,7 @@ export default class Uploader {
     this.upload_(e.dataTransfer!.files);
   }
 
-  onDragStart_(e: DragEvent) {
+  private onDragStart_(e: DragEvent) {
     e.stopPropagation();
     e.preventDefault();
     if(!this.hoverDialog_.parentNode) {
@@ -124,7 +124,7 @@ export default class Uploader {
     }
   }
 
-  onDragEnd_(e: DragEvent) {
+  private onDragEnd_(e: DragEvent) {
     e.stopPropagation();
     e.preventDefault();
     if(!!this.hoverDialog_.parentNode) {
@@ -132,7 +132,7 @@ export default class Uploader {
     }
   }
 
-  onButtonChange_(e: Event) {
+  private onButtonChange_(e: Event) {
     e.preventDefault();
     if(this.fileButton_.files == null || this.fileButton_.files.length <= 0) {
       return;
