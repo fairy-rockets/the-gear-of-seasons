@@ -33,10 +33,10 @@ export default class RandomSelectionController {
       const start = m.timestamp.startOf('year');
       const end = m.timestamp.endOf('year');
       const angle = (m.timestamp.diff(start) / end.diff(start)) * Math.PI * 2;
-      const p = formatMomentPath(m.timestamp!!);
+      const p = formatMomentPath(m.timestamp);
       results.push({
         angle: angle,
-        date: formatMomentTime(m.timestamp!!),
+        date: formatMomentTime(m.timestamp),
         title: m.title,
         path: p,
         imageURL: `/entity/${m.iconID}/icon`,
