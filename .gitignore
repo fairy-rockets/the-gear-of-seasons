@@ -1,6 +1,7 @@
 /_storage/
 /dev-var/
 /var/
+/backup-*.tar
 
 # Created by https://www.toptal.com/developers/gitignore/api/node,visualstudiocode,webstorm,intellij
 # Edit at https://www.toptal.com/developers/gitignore?templates=node,visualstudiocode,webstorm,intellij
