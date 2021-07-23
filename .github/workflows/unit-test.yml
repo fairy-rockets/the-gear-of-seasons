@@ -35,4 +35,4 @@ jobs:
         run: dev/install
 
       - name: Run tests
-        run: (cd lib && npm run test)
+        run: dev/test
