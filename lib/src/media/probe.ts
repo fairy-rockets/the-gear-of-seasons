@@ -110,7 +110,7 @@ export async function probe(srcFilePath: string): Promise<ProbeResult> {
         if (exif === undefined || exif === null) {
           return undefined;
         }
-        const timestamp: Date | undefined = exif['CreateDate'];
+        const timestamp: Date | undefined = exif['CreateDate'] || exif['DateTimeOriginal'];
         if (timestamp === undefined) {
           return undefined;
         } else {

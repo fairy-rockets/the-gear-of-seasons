@@ -124,6 +124,9 @@ class Shelf {
     } else {
       // replace
       const oldTimestamp = parseMomentTime(req.originalDate);
+      if (!oldTimestamp.isValid()) {
+        throw new Error(`Invalid old date: ${req.originalDate}`);
+      }
       await this.repo.replaceMoment(oldTimestamp, m);
     }
     return m;
@@ -179,8 +182,12 @@ class Shelf {
         break;
       }
     }
+    const timestamp = parseMomentTime(date);
+    if (!timestamp.isValid()) {
+      throw new Error(`Invalid timestamp: ${date}`);
+    }
     return {
-      timestamp: parseMomentTime(date),
+      timestamp: timestamp,
       title: req.title,
       author: req.author,
       text: req.text,

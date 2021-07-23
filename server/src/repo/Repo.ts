@@ -241,7 +241,7 @@ function decodeEntity(row: ResultRow): Entity {
   const type = row.get('type');
   const timestamp = (() => {
     const d = row.get('timestamp');
-    if (d === undefined) {
+    if (d === undefined || d === null) {
       return undefined;
     } else {
       return dayjs(d as Date);
