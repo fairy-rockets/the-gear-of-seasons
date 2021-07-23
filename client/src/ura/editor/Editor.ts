@@ -39,11 +39,15 @@ export default class Editor {
     this.author_.addEventListener('change', this.onChangeEventListener_);
     this.save_.addEventListener('click', this.onSaveEventListener_);
     this.delete_.addEventListener('click', this.onDeleteEventListener_);
-    window.addEventListener('keypress', (event) => {
-      if (!(event.which === 115 && event.ctrlKey) && !(event.which === 19)) return true;
-      window.setTimeout(this.onSaveEventListener_, 0);
-      event.preventDefault();
-      return false;
+    window.addEventListener('keydown', (event: KeyboardEvent) => {
+      const macMeta = (event.metaKey && !event.ctrlKey);
+      const winMeta = (!event.metaKey && event.ctrlKey);
+      if (event.key === 's' && (macMeta || winMeta)) { // Ctrl + S / Cmd + S
+        window.setTimeout(this.onSaveEventListener_, 0);
+        event.preventDefault();
+        return false;
+      }
+      return true;
     });
     // reload対策
     if(this.text_.value.length > 0 || this.title_.value.length > 0) {
