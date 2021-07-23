@@ -1,5 +1,9 @@
+.git
 .github
 .vscode
+.idea
+.gitignore
+.dockerignore
 _helpers
 _storage
 db
@@ -12,3 +16,9 @@ server/dist
 var
 dev-var
 backup-*
+README.md
+LICENSE
+Makefile
+docker-compose.yml
+docker-compose.dev.yml
+Dockerfile
