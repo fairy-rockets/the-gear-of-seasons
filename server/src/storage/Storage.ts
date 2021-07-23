@@ -1,6 +1,7 @@
 import path from 'path';
-import md5sum from 'lib/md5sum';
 import * as fs from 'fs/promises';
+
+import md5sum from 'lib/md5sum';
 
 function storedPathOf(hash: string): string {
   const dir01 = hash.slice(0,2);

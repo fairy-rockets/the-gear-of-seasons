@@ -1,6 +1,6 @@
 import * as genericPool from 'generic-pool';
-import {Client, Result, ResultIterator} from 'ts-postgres';
-import {Value} from 'ts-postgres/src/types';
+import { Client, ResultIterator } from 'ts-postgres';
+import { Value } from 'ts-postgres/src/types';
 
 export default class Pool {
   private pool: genericPool.Pool<Client>

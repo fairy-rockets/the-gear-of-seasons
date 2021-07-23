@@ -1,5 +1,6 @@
-import UraTemplate from './UraTemplate';
 import Asset from 'lib/asset';
+
+import UraTemplate from './UraTemplate';
 
 type EditorData = {
   title: string;

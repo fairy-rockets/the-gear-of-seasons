@@ -1,5 +1,7 @@
 import {FastifyReply, FastifyRequest} from 'fastify';
+
 import Asset from 'lib/asset';
+
 import EditorTemplate from './lib/EditorTemplate';
 
 export default class NewController {

@@ -2,7 +2,7 @@ import {FastifyReply, FastifyRequest} from 'fastify';
 import MomentRenderer from '../../renderer/MomentRenderer';
 import Shelf from '../../shelf/Shelf';
 import {parseMomentPath} from '../../shelf/Moment';
-import dayjs from "dayjs";
+import dayjs from 'dayjs';
 
 export default class MomentBodyController {
   private readonly shelf: Shelf;

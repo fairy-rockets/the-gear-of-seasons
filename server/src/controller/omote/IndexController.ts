@@ -1,5 +1,6 @@
 import {FastifyReply, FastifyRequest} from 'fastify';
 import Handlebars from 'handlebars';
+
 import Asset from 'lib/asset';
 
 export default class IndexController {

@@ -1,7 +1,9 @@
 import Handlebars, {Template} from 'handlebars';
+import dayjs from 'dayjs';
+
 import Asset from 'lib/asset';
+
 import Config from '../../../Config';
-import dayjs from "dayjs";
 
 const kCompileOption: CompileOptions = {
   preventIndent: true,

@@ -1,5 +1,6 @@
-import Shelf from '../../shelf/Shelf';
 import {FastifyReply, FastifyRequest, RequestGenericInterface} from 'fastify';
+
+import Shelf from '../../shelf/Shelf';
 
 export interface EntityControllerInterface extends RequestGenericInterface {
   Params: {

@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 import * as protocol from 'lib/protocol';

@@ -1,8 +1,10 @@
 import {FastifyReply, FastifyRequest, RequestGenericInterface} from 'fastify';
+import dayjs from 'dayjs';
+
 import Asset from 'lib/asset';
+
 import UraTemplate from './lib/UraTemplate';
 import Shelf from '../../shelf/Shelf';
-import dayjs from "dayjs";
 import {formatMomentPath} from '../../shelf/Moment';
 
 export interface MomentListControllerInterface extends RequestGenericInterface {

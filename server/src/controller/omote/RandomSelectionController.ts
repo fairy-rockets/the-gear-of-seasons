@@ -1,10 +1,10 @@
 import {FastifyReply, FastifyRequest, RequestGenericInterface} from 'fastify';
+import dayjs from 'dayjs';
 
 import * as protocol from 'lib/protocol';
 
 import Shelf from '../../shelf/Shelf';
 import {formatMomentPath, formatMomentTime, MomentSummary} from '../../shelf/Moment';
-import dayjs from "dayjs";
 
 export interface RandomSelectionControllerInterface extends RequestGenericInterface {
   Querystring: {
