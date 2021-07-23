@@ -32,7 +32,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Prepare
-        run: make install -j
+        run: dev/install
 
       - name: Build all modules
-        run: make build -j
+        run: dev/build
