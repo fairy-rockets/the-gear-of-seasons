@@ -1,0 +1,21 @@
+#! /bin/bash
+
+function readlink_f() {
+  local src='import os,sys;print(os.path.realpath(sys.argv[1]))'
+  python3 -c "${src}" "$1" || python -c "${src}" "$1"
+}
+
+ROOT_DIR="$(cd "$(dirname "$(readlink_f "$0")")" && cd .. && pwd)"
+cd "${ROOT_DIR}" || exit 1
+
+function count() {
+  echo -n "$1: "
+  shift
+  ( find "$@" -type f -print0 | xargs -0 cat ) | wc -l | sed -e 's/[ \t]//g'
+}
+
+count "lib" "lib/src"
+count "srv" "server/src"
+count "cli" "client/src"
+echo "---"
+count "total" "lib/src" "server/src" "client/src"

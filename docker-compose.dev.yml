@@ -1,0 +1,42 @@
+---
+version: '3.9'
+services:
+  flyway:
+    image: 'flyway/flyway:7.3.1'
+    container_name: 'the-gear-of-seasons_flyway'
+    hostname: 'the-gear-of-seasons_flyway'
+    restart: 'no'
+    #user: "${USER_ID}:${GROUP_ID}"
+    volumes:
+      - ./db/flyway_data/sql:/flyway/sql
+      - ./db/flyway_data/conf:/flyway/conf
+    networks:
+      - 'dev-link'
+    profiles: ['tool']
+
+  postgres-dev:
+    image: 'postgres:alpine'
+    container_name: 'the-gear-of-seasons_postgres-dev'
+    hostname: 'the-gear-of-seasons_postgres-dev'
+    environment:
+      POSTGRES_DB: 'the-gear-of-seasons'
+      POSTGRES_USER: 'the-gear-of-seasons'
+      POSTGRES_PASSWORD: 'the-gear-of-seasons'
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8'
+      TZ: 'Asia/Tokyo'
+      PGTZ: 'Asia/Tokyo'
+    expose:
+      - '5432'
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - './dev-var/postgres:/var/lib/postgresql/data:z'
+      - './db/helpers:/helpers'
+    networks:
+      - 'dev-link'
+    tty: true
+    stdin_open: true
+
+networks:
+  dev-link:
+    external: false

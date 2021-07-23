@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 function readlink_f() {
   local src='import os,sys;print(os.path.realpath(sys.argv[1]))'
