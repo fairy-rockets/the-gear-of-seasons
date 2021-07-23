@@ -4,7 +4,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import * as protocol from 'lib/protocol';
 
 import Shelf from '../../shelf/Shelf';
-import {formatMomentPath, formatMomentTime, parseMomentTime} from '../../shelf/Moment';
+import { parseMomentTime } from '../../shelf/Moment';
 import MomentRenderer from '../../renderer/MomentRenderer';
 
 export default class DeleteController {
