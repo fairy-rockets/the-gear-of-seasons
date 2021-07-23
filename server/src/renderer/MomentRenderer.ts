@@ -136,10 +136,12 @@ function renderTime(time: dayjs.Dayjs | undefined, now: dayjs.Dayjs): string {
   const diff = time.diff(now, 'year', true);
   const a = Math.trunc(diff);
   const b = Math.trunc((diff-a)*4);
-  if (b === 0) {
+  if (a === 0 && b === 0) {
+    return `さいきん！`;
+  } else if (b === 0) {
     return `季節の歯車を${-a}回巻き戻したころ`;
   } else {
-    return `季節の歯車を${-a}回巻き戻して、さらに季節を${-b}回遡ったころ`;
+    return `季節の歯車を${-a}回巻き戻して、さらに季節を${-b}つ遡ったころ`;
   }
 }
 
