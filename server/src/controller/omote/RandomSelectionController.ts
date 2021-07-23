@@ -4,6 +4,7 @@ import * as protocol from 'lib/protocol';
 
 import Shelf from '../../shelf/Shelf';
 import {formatMomentPath, formatMomentTime, MomentSummary} from '../../shelf/Moment';
+import dayjs from "dayjs";
 
 export interface RandomSelectionControllerInterface extends RequestGenericInterface {
   Querystring: {
@@ -23,6 +24,8 @@ export default class RandomSelectionController {
     const size = parseInt(req.query.size, 10);
     const moments: MomentSummary[] = await this.shelf.findMomentSummariesByRandom(size);
     const results: protocol.Moment.Search.Response[] = [];
+    const yearStarts: { [n: number]: dayjs.Dayjs } = {};
+    const yearLengths: { [n: number]: number } = {};
     for (const m of moments) {
       if(m.iconID === undefined) {
         continue;
@@ -30,9 +33,19 @@ export default class RandomSelectionController {
       if(m.timestamp === undefined) {
         continue;
       }
-      const start = m.timestamp.startOf('year');
-      const end = m.timestamp.endOf('year');
-      const angle = (m.timestamp.diff(start) / end.diff(start)) * Math.PI * 2;
+      const year = m.timestamp.year();
+      let start = yearStarts[year];
+      if (start === undefined) {
+        start = m.timestamp.startOf('year');
+        yearStarts[year] = start;
+      }
+      let yearLength = yearLengths[year];
+      if (yearLength === undefined) {
+        const end = m.timestamp.endOf('year');
+        yearLength = end.diff(start);
+        yearLengths[year] = yearLength;
+      }
+      const angle = (m.timestamp.diff(start) / yearLength) * Math.PI * 2;
       const p = formatMomentPath(m.timestamp);
       results.push({
         angle: angle,
