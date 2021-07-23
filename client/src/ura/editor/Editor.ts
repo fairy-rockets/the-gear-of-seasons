@@ -145,6 +145,7 @@ export default class Editor {
     } else {
       this.text_.value += '\n' + embedsString;
     }
+    this.save_.disabled = false;
     this.executePreviewUpdate_();
   }
 }
