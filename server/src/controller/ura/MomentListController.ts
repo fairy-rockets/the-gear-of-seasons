@@ -24,7 +24,7 @@ export default class MomentListController {
   }
   async handle(req: FastifyRequest<MomentListControllerInterface>, reply: FastifyReply) {
     const year = parseInt(req.params.year, 10) || dayjs().year();
-    const moments = (await this.shelf.findMomentsInYear(year)).map((it) => {
+    const moments = (await this.shelf.findMomentSummariesInYear(year)).map((it) => {
       return {
         iconID: it.iconID || '',
         path: formatMomentPath(it.timestamp!!),

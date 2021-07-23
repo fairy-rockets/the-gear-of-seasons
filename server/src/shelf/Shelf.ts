@@ -126,11 +126,14 @@ class Shelf {
     }
     return m;
   }
-  async findMomentsInYear(year: number): Promise<MomentSummary[]> {
-    return await this.repo.findMomentsInYear(year);
+  async findMomentSummariesInYear(year: number): Promise<MomentSummary[]> {
+    return await this.repo.findMomentSummariesInYear(year);
   }
   async findMoment(timestamp: dayjs.Dayjs): Promise<Moment | null> {
     return await this.repo.findMoment(timestamp);
+  }
+  async findMomentSummariesByRandom(size: number): Promise<MomentSummary[]> {
+    return await this.repo.findMomentSummariesByRandom(size);
   }
   async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {
     return await this.repo.deleteMoment(timestamp);

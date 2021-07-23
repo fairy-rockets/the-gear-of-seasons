@@ -13,6 +13,7 @@ import Shelf from './shelf/Shelf';
 // Omote Controllers
 import OmoteIndexController from './controller/omote/IndexController';
 import MomentController from './controller/omote/MomentController';
+import RandomSelectionController, {RandomSelectionControllerInterface} from './controller/omote/RandomSelectionController';
 // Ura Controllers
 import UraIndexController from './controller/ura/IndexController';
 import MomentListController, {MomentListControllerInterface} from './controller/ura/MomentListController';
@@ -114,6 +115,12 @@ class Server {
         },
       });
     }
+    { // (omote)/moments/random
+      const omote = await RandomSelectionController.create(this.shelf);
+      this.omote.get<RandomSelectionControllerInterface>('/moments/random', async (req, reply) => {
+        await omote.handle(req, reply);
+      });
+    }
     { // (both)/moment/year/month/day/HH:mm:ss/
       const c = await MomentBodyController.create(this.shelf);
       this.both.get('/moment/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/:time(^[0-9]{2}:[0-9]{2}:[0-9]{2}$)/', async (req, reply) => {
@@ -165,7 +172,7 @@ class Server {
         await ura.handle(req, reply);
       });
     }
-    { // file uploads
+    { // (ura)/upload
       const ura = await UploadController.create(this.shelf);
       this.ura.post('/upload', async(req, reply) => {
         await ura.handle(req, reply);

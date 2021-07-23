@@ -165,7 +165,7 @@ where "timestamp" = $6;
     ]);
   }
 
-  async findMomentsInYear(year: number): Promise<MomentSummary[]> {
+  async findMomentSummariesInYear(year: number): Promise<MomentSummary[]> {
     // language=PostgreSQL
     const q=`
 select timestamp, title, icon_id from moments
@@ -174,6 +174,21 @@ where
 `;
     const moments: MomentSummary[] = [];
     const rows = await this.pool.query(q, []);
+    for await (const row of rows) {
+      moments.push(decodeMomentSummary(row));
+    }
+    return moments;
+  }
+
+  async findMomentSummariesByRandom(size: number): Promise<MomentSummary[]> {
+    // https://stackoverflow.com/a/41337788
+    // language=PostgreSQL
+    const q=`
+select timestamp, title, icon_id from moments
+TABLESAMPLE SYSTEM_ROWS($1);
+`;
+    const moments: MomentSummary[] = [];
+    const rows = await this.pool.query(q, [size]);
     for await (const row of rows) {
       moments.push(decodeMomentSummary(row));
     }
@@ -209,15 +224,15 @@ function decodeMoment(row: ResultRow): Moment {
     title: row.get('title') as string || '',
     author: row.get('author') as string || '',
     text: row.get('text') as string || '',
-    iconID: row.get('icon_id') as (string | undefined),
+    iconID: row.get('icon_id') as (string | null) || undefined,
   };
 }
 
 function decodeMomentSummary(row: ResultRow): MomentSummary {
   return {
     timestamp: dayjs(row.get('timestamp') as Date),
-    title: row.get('title') as string,
-    iconID: row.get('icon_id') as (string | undefined),
+    title: row.get('title') as string || '',
+    iconID: row.get('icon_id') as (string | null) || undefined,
   };
 }
 

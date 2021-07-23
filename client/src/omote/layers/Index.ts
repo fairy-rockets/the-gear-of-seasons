@@ -75,10 +75,8 @@ export default class Index extends Layer {
       this.fixTooltipPosition_();
     }
   }
-  /**
-   * @private
-   */
-  fixTooltipPosition_() {
+
+  private fixTooltipPosition_() {
     const tooltip = this.tooltip_;
     const m = this.selected_;
     if(m == null) {
@@ -93,8 +91,7 @@ export default class Index extends Layer {
     }
   }
 
-  /** @override */
-  onAttached() {
+  override onAttached() {
     this.world.cursor = false;
     this.world.canvas.addEventListener('wheel', this.wheelEventListener_, false);
     this.world.canvas.addEventListener('mousemove', this.mouseMoveListener_, false);
@@ -105,8 +102,8 @@ export default class Index extends Layer {
     this.mouseX_ = NaN;
     this.mouseY_ = NaN;
   }
-  /** @override */
-  onDetached() {
+
+  override onDetached() {
     this.mouseX_ = NaN;
     this.mouseY_ = NaN;
     this.world.cursor = false;
@@ -115,7 +112,7 @@ export default class Index extends Layer {
     this.world.canvas.removeEventListener('mouseup', this.mouseUpListener_, false);
   }
 
-  onMouseMove_(ev: MouseEvent) {
+  private onMouseMove_(ev: MouseEvent) {
     ev.preventDefault();
     const canvas = this.world.canvas;
     const hw = canvas.width/2;
@@ -125,7 +122,7 @@ export default class Index extends Layer {
     this.mouseY_ = -(ev.clientY - hh) / hh;
   }
 
-  onMouseUp_(ev: MouseEvent) {
+  private onMouseUp_(ev: MouseEvent) {
     ev.preventDefault();
     const m = this.selected_;
     if(!m) {
@@ -135,11 +132,7 @@ export default class Index extends Layer {
     this.world.pushLayer(new Page(this.world, m.path, content));
   }
 
-  /**
-   * 
-   * @param {WheelEvent} event 
-   */
-  onWheelEvent_(event: WheelEvent) {
+  private onWheelEvent_(event: WheelEvent) {
     event.preventDefault();
     const world = this.world;
     let dx = event.deltaX;
@@ -166,7 +159,7 @@ export default class Index extends Layer {
     }
   }
 
-  onLoadMoments_(moments: protocol.Moment.Search.Response[]) {
+  private onLoadMoments_(moments: protocol.Moment.Search.Response[]) {
     const world = this.world;
     const models: Moment[] = [];
     for(let m of moments) {
@@ -179,7 +172,7 @@ export default class Index extends Layer {
   }
 
   fetch(size: number) {
-    fetch(`/moment/search?size=${size}`)
+    fetch(`/moments/random?size=${size}`)
       .then(resp => resp.json())
       .then(this.onLoadMoments_.bind(this));
   }
