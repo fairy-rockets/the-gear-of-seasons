@@ -27,8 +27,6 @@ services:
       PGTZ: 'Asia/Tokyo'
     expose:
       - '5432'
-    ports:
-      - '127.0.0.1:5432:5432'
     volumes:
       - './var/postgres:/var/lib/postgresql/data:z'
       - './db/helpers:/helpers'
