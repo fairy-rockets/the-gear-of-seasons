@@ -1,13 +1,18 @@
-import Asset from 'lib/asset';
-import Config from './Config';
-import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import fastifyStatic from 'fastify-static';
 import path from 'path';
+
+import dayjs from 'dayjs';
+import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { RouteGenericInterface } from 'fastify/types/route';
+import fastifyStatic from 'fastify-static';
+
+import Asset from 'lib/asset';
+
+import Config from './Config';
 import Shelf from './shelf/Shelf';
 
 // Omote Controllers
 import OmoteIndexController from './controller/omote/IndexController';
+import MomentController from './controller/omote/MomentController';
 // Ura Controllers
 import UraIndexController from './controller/ura/IndexController';
 import MomentListController, {MomentListControllerInterface} from './controller/ura/MomentListController';
@@ -19,7 +24,7 @@ import DeleteController from './controller/ura/DeleteController';
 import PreviewController from './controller/ura/PreviewController';
 // Both Controllers
 import EntityController, {EntityControllerInterface} from './controller/both/EntityController';
-import dayjs from "dayjs";
+import MomentBodyController from './controller/both/MomentBodyController';
 
 type Handler<Interface extends RouteGenericInterface> = 
   (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>;
@@ -98,17 +103,21 @@ class Server {
       });
     }
     { // (ura/omote)/year/month/day/HH:mm:ss/
+      const omote = await MomentController.create(this.asset, this.shelf);
       const ura = await EditController.create(this.asset, this.shelf);
       this.each.get('/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/:time(^[0-9]{2}:[0-9]{2}:[0-9]{2}$)/', {
         omote: async (req, reply) => {
-          reply
-            .code(404)
-            .type('text/plain')
-            .send('Not found');
+          await omote.handle(req, reply);
         },
         ura: async (req, reply) => {
           await ura.handle(req, reply);
         },
+      });
+    }
+    { // (both)/moment/year/month/day/HH:mm:ss/
+      const c = await MomentBodyController.create(this.shelf);
+      this.both.get('/moment/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/:time(^[0-9]{2}:[0-9]{2}:[0-9]{2}$)/', async (req, reply) => {
+        await c.handle(req, reply);
       });
     }
     { // (ura)/entity

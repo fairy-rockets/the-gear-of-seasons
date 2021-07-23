@@ -206,9 +206,9 @@ delete from moments where timestamp=$1;
 function decodeMoment(row: ResultRow): Moment {
   return {
     timestamp: dayjs(row.get('timestamp') as Date),
-    title: row.get('title') as string,
-    author: row.get('author') as string,
-    text: row.get('text') as string,
+    title: row.get('title') as string || '',
+    author: row.get('author') as string || '',
+    text: row.get('text') as string || '',
     iconID: row.get('icon_id') as (string | undefined),
   };
 }
