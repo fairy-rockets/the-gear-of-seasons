@@ -10,7 +10,7 @@
 
 ## How to build
 
-```bash
-make prepare
-make build
+```sh
+dev/install
+dev/build
 ```
