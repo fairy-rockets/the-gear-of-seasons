@@ -140,8 +140,10 @@ function renderTime(time: dayjs.Dayjs | undefined, now: dayjs.Dayjs): string {
     return `さいきん！`;
   } else if (b === 0) {
     return `季節の歯車を${-a}回巻き戻したころ`;
+  } else if (a === 0) {
+    return `季節が${-b}つ巡るまえ`;
   } else {
-    return `季節の歯車を${-a}回巻き戻して、さらに季節を${-b}つ遡ったころ`;
+    return `季節の歯車を${-a}回巻き戻して、さらに季節が${-b}つ巡るまえ`;
   }
 }
 
