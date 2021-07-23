@@ -27,7 +27,7 @@ class MomentRenderer {
     for (const block of doc.blocks) {
       switch (block.type) {
         case 'text':
-          buff.push(`<p>${escapeHTML(block.text)}</p>`);
+          buff.push(`<p>${block.text}</p>`);
           break;
         case 'image':
           buff.push(await this.renderImage(block));
