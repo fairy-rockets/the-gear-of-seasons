@@ -44,30 +44,22 @@ chown:
 
 .PHONY: backup
 backup:
-	sudo bash _helpers/backup.sh $(shell id -g) $(shell id -u) var conf
+	sudo bash _helpers/backup.sh $(shell id -g) $(shell id -u) var _storage
 
 # -----------------------------------------------------------------------------
 
 .PHONY: db-cli
 db-cli:
-	docker-compose run \
-  		--rm \
-  		--user "$(shell id -u)" \
-		--use-aliases \
-		  -e 'PGPASSWORD=synapse' \
-		  postgres \
-			  psql  '--username=synapse' \
-        			'--host=postgres' \
-        			synapse
+	bash db/cli
 
-.PHONY: generate-config
-generate-config:
-	docker-compose run --rm synapse generate
+.PHONY: cli
+cli:
+	docker-compose exec "the-gear-of-seasons" bash
 
-.PHONY: register
-register:
-	docker-compose exec synapse \
-	  register_new_matrix_user \
-			-c /config/homeserver.yaml \
-			http://localhost:8008
+.PHONY: migrate
+migrate:
+	bash db/flyway migrate
 
+.PHONY: dump
+dump:
+	bash db/dump

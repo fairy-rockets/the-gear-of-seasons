@@ -6,7 +6,6 @@ services:
     container_name: 'the-gear-of-seasons_flyway'
     hostname: 'the-gear-of-seasons_flyway'
     restart: 'no'
-    #user: "${USER_ID}:${GROUP_ID}"
     volumes:
       - ./db/flyway_data/sql:/flyway/sql
       - ./db/flyway_data/conf:/flyway/conf
@@ -18,6 +17,7 @@ services:
     image: 'postgres:alpine'
     container_name: 'the-gear-of-seasons_postgres'
     hostname: 'the-gear-of-seasons_postgres'
+    restart: 'always'
     environment:
       POSTGRES_DB: 'the-gear-of-seasons'
       POSTGRES_USER: 'the-gear-of-seasons'
@@ -27,8 +27,6 @@ services:
       PGTZ: 'Asia/Tokyo'
     expose:
       - '5432'
-    ports:
-      - '127.0.0.1:5432:5432'
     volumes:
       - './var/postgres:/var/lib/postgresql/data:z'
       - './db/helpers:/helpers'
@@ -38,28 +36,29 @@ services:
     stdin_open: true
 
   the-gear-of-seasons:
-    image: 'postgres:alpine'
-    container_name: 'the-gear-of-seasons_postgres'
-    hostname: 'the-gear-of-seasons_postgres'
+    image: 'the-gear-of-seasons'
+    build:
+      context: '.'
+    container_name: 'the-gear-of-seasons_the-gear-of-seasons'
+    hostname: 'the-gear-of-seasons_the-gear-of-seasons'
+    restart: 'always'
     environment:
-      POSTGRES_DB: 'the-gear-of-seasons'
-      POSTGRES_USER: 'the-gear-of-seasons'
-      POSTGRES_PASSWORD: 'the-gear-of-seasons'
-      POSTGRES_INITDB_ARGS: '--encoding=UTF8'
+      OMOTE_HOST: 'hexe.net'
+      URA_HOST: 'ura.hexe.net'
+      DB_HOST: 'postgres'
       TZ: 'Asia/Tokyo'
-      PGTZ: 'Asia/Tokyo'
     expose:
-      - '5432'
+      - '8888'
     ports:
-      - '127.0.0.1:5432:5432'
+      - '127.0.0.1:8888:8888'
     volumes:
-      - './var/postgres:/var/lib/postgresql/data:z'
-      - './db/helpers:/helpers'
+      - './_storage:/app/_storage'
     networks:
       - 'default'
-    tty: true
-    stdin_open: true
+      - 'planet-link'
 
 networks:
   default:
     external: false
+  planet-link:
+    external: true

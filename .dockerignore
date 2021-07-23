@@ -1,0 +1,11 @@
+.github
+.vscode
+_helpers
+_storage
+db
+lib/node_modules
+lib/dist
+client/node_modules
+client/dist
+server/node_modules
+server/dist
