@@ -3,6 +3,10 @@ import Asset from 'lib/asset';
 import Config from '../../../Config';
 import dayjs from "dayjs";
 
+const kCompileOption: CompileOptions = {
+  preventIndent: true,
+};
+
 export default class UraTemplate<T = any> {
   private readonly hbs: typeof Handlebars;
   private readonly template: Handlebars.TemplateDelegate<T>;
@@ -12,15 +16,15 @@ export default class UraTemplate<T = any> {
   }
   static async create<T>(asset: Asset, contentFilepath: string): Promise<UraTemplate<T>> {
     const hbs = Handlebars.create();
-    hbs.registerPartial('omote-url', hbs.compile(`//${Config.OmoteHost}/`));
-    hbs.registerPartial('ura-url', hbs.compile(`//${Config.UraHost}/`));
-    hbs.registerPartial('content', hbs.compile(await asset.loadString(`templates/ura/${contentFilepath}`)));
-    hbs.registerPartial('currentYear', hbs.compile(`${dayjs().year()}`));
+    hbs.registerPartial('omote-url', hbs.compile(`//${Config.OmoteHost}/`, kCompileOption));
+    hbs.registerPartial('ura-url', hbs.compile(`//${Config.UraHost}/`, kCompileOption));
+    hbs.registerPartial('content', hbs.compile(await asset.loadString(`templates/ura/${contentFilepath}`), kCompileOption));
+    hbs.registerPartial('currentYear', hbs.compile(`${dayjs().year()}`, kCompileOption));
     hbs.registerHelper('eq', function (arg1: any, arg2: any):boolean {
       return arg1 === arg2;
     })
     const src = await asset.loadString('templates/ura/_main.hbs');
-    const template = hbs.compile<T>(src);
+    const template = hbs.compile<T>(src, kCompileOption);
     return new UraTemplate<T>(hbs, template);
   }
   registerPartial(name: string, fn: Template): UraTemplate<T> {
@@ -28,7 +32,7 @@ export default class UraTemplate<T = any> {
     return this;
   }
   registerString(name: string, content: string): UraTemplate<T> {
-    this.hbs.registerPartial(name, this.hbs.compile(content));
+    this.hbs.registerPartial(name, this.hbs.compile(content, kCompileOption));
     return this;
   }
   registerHelper(name: string, fn: Handlebars.HelperDelegate): UraTemplate<T> {

@@ -11,4 +11,4 @@ server/node_modules
 server/dist
 var
 dev-var
-_shelf
+backup-*
