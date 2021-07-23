@@ -7,8 +7,9 @@ function newEditor(): Editor {
   const date = document.getElementById('date') as HTMLInputElement;
   const author = document.getElementById('author') as HTMLSelectElement;
   const text = document.getElementById('text') as HTMLTextAreaElement;
-  const submit = document.getElementById('submit') as HTMLButtonElement;
-  return new Editor(title, date, author, text, submit);
+  const save = document.getElementById('save') as HTMLButtonElement;
+  const del = document.getElementById('delete') as HTMLButtonElement;
+  return new Editor(title, date, author, text, save, del);
 }
 
 function newPreview(): Preview {
@@ -16,7 +17,7 @@ function newPreview(): Preview {
 }
 
 function newUploader(): Uploader {
-  return new Uploader(document.body, document.getElementById('upload_button') as HTMLInputElement);
+  return new Uploader(document.body, document.getElementById('upload') as HTMLInputElement);
 }
 
 let editor: Editor | null = null;

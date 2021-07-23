@@ -193,6 +193,14 @@ timestamp=$1;
     }
     return null;
   }
+  async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {
+    // language=PostgreSQL
+    const q=`
+delete from moments where timestamp=$1;
+`;
+    const r = await this.pool.query(q, [timestamp.toDate()]);
+    return r.status?.trim() === 'DELETE 1';
+  }
 }
 
 function decodeMoment(row: ResultRow): Moment {

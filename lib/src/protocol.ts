@@ -24,4 +24,12 @@ export namespace Moment {
       bodyURL: string;
     };
   }
+  export namespace Delete {
+    export type Request = {
+      date: string;
+    };
+    export type Response = {
+      year: string;
+    };
+  }
 }

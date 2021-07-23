@@ -132,6 +132,9 @@ class Shelf {
   async findMoment(timestamp: dayjs.Dayjs): Promise<Moment | null> {
     return await this.repo.findMoment(timestamp);
   }
+  async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {
+    return await this.repo.deleteMoment(timestamp);
+  }
   private async makeMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
     let date = req.date;
     let iconID: string | undefined = undefined;
@@ -179,6 +182,7 @@ class Shelf {
       iconID: iconID,
     };
   }
+
 }
 
 export default Shelf;

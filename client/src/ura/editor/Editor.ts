@@ -6,25 +6,29 @@ export default class Editor {
   private readonly date_: HTMLInputElement;
   private readonly author_: HTMLSelectElement;
   private readonly text_: HTMLTextAreaElement;
-  private readonly submit_: HTMLButtonElement;
+  private readonly save_: HTMLButtonElement;
+  private readonly delete_: HTMLButtonElement;
   private originalDate_: string;
   private readonly onChangeEventListener_: () => void;
   private preview_: Preview | null;
-  private changeId_: NodeJS.Timeout | null;
+  private changeId_: number | null;
   executePreviewUpdater_: () => void;
   onSaveEventListener_: () => void;
-  constructor(title: HTMLInputElement, date: HTMLInputElement, author: HTMLSelectElement, text: HTMLTextAreaElement, submit: HTMLButtonElement) {
+  onDeleteEventListener_: () => void;
+  constructor(title: HTMLInputElement, date: HTMLInputElement, author: HTMLSelectElement, text: HTMLTextAreaElement, save: HTMLButtonElement, del: HTMLButtonElement) {
     this.title_ = title;
     this.date_ = date;
     this.author_ = author;
     this.text_ = text;
-    this.submit_ = submit;
+    this.save_ = save;
+    this.delete_ = del;
     this.originalDate_ = date.value;
     this.onChangeEventListener_ = this.onChange_.bind(this);
     this.preview_ = null;
     this.changeId_ = null;
     this.executePreviewUpdater_ = this.executePreviewUpdate_.bind(this);
     this.onSaveEventListener_ = this.onSave_.bind(this);
+    this.onDeleteEventListener_ = this.onDelete_.bind(this);
   }
 
   init(preview: Preview) {
@@ -33,7 +37,8 @@ export default class Editor {
     this.title_.addEventListener('input', this.onChangeEventListener_);
     this.date_.addEventListener('input', this.onChangeEventListener_);
     this.author_.addEventListener('change', this.onChangeEventListener_);
-    this.submit_.addEventListener('click', this.onSaveEventListener_);
+    this.save_.addEventListener('click', this.onSaveEventListener_);
+    this.delete_.addEventListener('click', this.onDeleteEventListener_);
     window.addEventListener('keypress', (event) => {
       if (!(event.which === 115 && event.ctrlKey) && !(event.which === 19)) return true;
       window.setTimeout(this.onSaveEventListener_, 0);
@@ -44,19 +49,19 @@ export default class Editor {
     if(this.text_.value.length > 0 || this.title_.value.length > 0) {
       this.onChange_();
     }
-    this.submit_.disabled = true;
+    this.delete_.disabled = location.pathname === '/new';
+    this.save_.disabled = true;
   }
-  /**
-   * @private
-   */
-  onChange_() {
-    this.submit_.disabled = false;
+
+  private onChange_() {
+    this.save_.disabled = false;
     if(!!this.changeId_) {
       return;
     }
-    this.changeId_ = setTimeout(this.executePreviewUpdater_, 500);
+    this.changeId_ = window.setTimeout(this.executePreviewUpdater_, 500);
   }
-  makeMoment_(): protocol.Moment.Save.Request {
+
+  private makeMoment_(): protocol.Moment.Save.Request {
     return {
       title: this.title_.value,
       originalDate: this.originalDate_.length > 0 ? this.originalDate_ : null,
@@ -65,10 +70,8 @@ export default class Editor {
       text: this.text_.value
     };
   }
-  /**
-   * @private
-   */
-  onSave_() {
+
+  private onSave_() {
     this.changeId_ = null;
     const moment = this.makeMoment_();
     fetch('/save', {
@@ -79,14 +82,45 @@ export default class Editor {
         'Content-Type': 'application/json'
       }}).then(result => result.json())
       .then((result: protocol.Moment.Save.Response) => {
-        this.submit_.disabled = true;
+        this.save_.disabled = true;
+        this.delete_.disabled = false;
         this.preview_!.onChange(result.body);
         this.date_.value = result.date;
         this.originalDate_ = result.date;
         history.replaceState(null, moment.title, result.path);
       });
   }
-  executePreviewUpdate_() {
+
+  private onDelete_() {
+    if (this.date_.value.length === 0) {
+      return;
+    }
+    if (!confirm('本当に削除する？')) {
+      return;
+    }
+    const req: protocol.Moment.Delete.Request = {
+      date: this.date_.value,
+    };
+    fetch('/delete', {
+      method: 'POST',
+      body: JSON.stringify(req),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }})
+      .then(async(r) => {
+        if (r.ok) {
+          return await r.json() as protocol.Moment.Delete.Response;
+        } else {
+          throw new Error(await r.text());
+        }
+      })
+      .then((reply: protocol.Moment.Delete.Response) => {
+        window.location.href = `/moments/${reply.year}`;
+      });
+  }
+
+  private executePreviewUpdate_() {
     this.changeId_ = null;
     const moment = this.makeMoment_();
     fetch('/preview', {

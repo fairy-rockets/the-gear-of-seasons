@@ -15,9 +15,11 @@ import UploadController from './controller/ura/UploadController';
 import NewController from './controller/ura/NewController';
 import EditController from './controller/ura/EditController';
 import SaveController from './controller/ura/SaveController';
+import DeleteController from './controller/ura/DeleteController';
 import PreviewController from './controller/ura/PreviewController';
 // Both Controllers
 import EntityController, {EntityControllerInterface} from './controller/both/EntityController';
+import dayjs from "dayjs";
 
 type Handler<Interface extends RouteGenericInterface> = 
   (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>;
@@ -123,6 +125,9 @@ class Server {
     }
     { // (ura)/moments
       const ura = await MomentListController.create(this.asset, this.shelf);
+      this.ura.get<MomentListControllerInterface>('/moments/', async (req, reply) => {
+        reply.redirect(303, `/moments/${dayjs().year()}`);
+      });
       this.ura.get<MomentListControllerInterface>('/moments/:year', async (req, reply) => {
         await ura.handle(req, reply);
       });
@@ -136,6 +141,12 @@ class Server {
     { // (ura)/save
       const ura = await SaveController.create(this.shelf);
       this.ura.post('/save', async (req, reply) => {
+        await ura.handle(req, reply);
+      });
+    }
+    { // (ura)/delete
+      const ura = await DeleteController.create(this.shelf);
+      this.ura.post('/delete', async (req, reply) => {
         await ura.handle(req, reply);
       });
     }
