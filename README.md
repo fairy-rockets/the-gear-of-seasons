@@ -5,7 +5,7 @@
 
 ## Pre-requirements
 
- - node.js 14.0 or higher.
+ - node.js 16.0 or higher.
  - ffmpeg
 
 ## How to build

@@ -37,6 +37,29 @@ services:
     tty: true
     stdin_open: true
 
+  the-gear-of-seasons:
+    image: 'postgres:alpine'
+    container_name: 'the-gear-of-seasons_postgres'
+    hostname: 'the-gear-of-seasons_postgres'
+    environment:
+      POSTGRES_DB: 'the-gear-of-seasons'
+      POSTGRES_USER: 'the-gear-of-seasons'
+      POSTGRES_PASSWORD: 'the-gear-of-seasons'
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8'
+      TZ: 'Asia/Tokyo'
+      PGTZ: 'Asia/Tokyo'
+    expose:
+      - '5432'
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - './var/postgres:/var/lib/postgresql/data:z'
+      - './db/helpers:/helpers'
+    networks:
+      - 'default'
+    tty: true
+    stdin_open: true
+
 networks:
   default:
     external: false
