@@ -27,9 +27,15 @@ export default class RandomSelectionController {
       if(m.iconID === undefined) {
         continue;
       }
+      if(m.timestamp === undefined) {
+        continue;
+      }
+      const start = m.timestamp.startOf('year');
+      const end = m.timestamp.endOf('year');
+      const angle = (m.timestamp.diff(start) / end.diff(start)) * Math.PI * 2;
       const p = formatMomentPath(m.timestamp!!);
       results.push({
-        angle: 0.0,
+        angle: angle,
         date: formatMomentTime(m.timestamp!!),
         title: m.title,
         path: p,
