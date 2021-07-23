@@ -170,7 +170,8 @@ where "timestamp" = $6;
     const q=`
 select timestamp, title, icon_id from moments
 where
-'${year}-01-01' <= timestamp and timestamp < '${year+1}-01-01';
+'${year}-01-01' <= timestamp and timestamp < '${year+1}-01-01'
+order by timestamp desc;
 `;
     const moments: MomentSummary[] = [];
     const rows = await this.pool.query(q, []);
