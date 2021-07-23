@@ -78,7 +78,6 @@ h1 {
 
   max-width: 30vw;
   max-height: 30vh;
-
 }
 
 .title {
@@ -185,18 +184,13 @@ h1 {
   overflow-x: hidden;
 }
 
-.content-wrapper .content img.embed {
-  width: auto;
-  height: auto;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 100%;
-  max-height: 100%;
+.content-wrapper .content .embed:not(:last-child),
+.content-wrapper .content a:not(:last-child) > .embed {
+  margin-bottom: 0.5em;
 }
 
-.content-wrapper .content video.embed {
-  width: 100%;
+.content-wrapper .content .embed {
+  width: auto;
   height: auto;
   display: block;
   margin-left: auto;
@@ -207,29 +201,14 @@ h1 {
 
 .content-wrapper .content audio.embed {
   width: 100%;
-  height: auto;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 100%;
-  max-height: 100%;
 }
+
 
 img.emoji {
   height: 1em;
   width: 1em;
   margin: 0 .05em 0 .1em;
   vertical-align: -0.1em;
-}
-
-.content-wrapper .content video {
-  width: auto;
-  height: auto;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 100%;
-  max-height: 100%;
 }
 
 .back-button {

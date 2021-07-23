@@ -121,7 +121,6 @@ img.emoji {
   vertical-align: center;
 }
 
-
 .editor-container .editor-wrapper input:disabled,
 .editor-container .editor-wrapper .editor-bar option:disabled,
 .editor-container .editor-wrapper .editor-bar select:disabled,
@@ -208,7 +207,12 @@ div.uploader-progress > progress {
   overflow-x: hidden;
 }
 
-#preview img {
+#preview .embed:not(:last-child),
+#preview a:not(:last-child) > .embed {
+  margin-bottom: 0.5em;
+}
+
+#preview .embed {
   width: auto;
   height: auto;
   display: block;
@@ -217,25 +221,8 @@ div.uploader-progress > progress {
   max-width: 100%;
   max-height: 100%;
 }
-
-#preview video {
+#preview audio.embed {
   width: 100%;
-  height: auto;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 100%;
-  max-height: 100%;
-}
-
-#preview audio {
-  width: 100%;
-  height: auto;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 100%;
-  max-height: 100%;
 }
 
 #preview .moment-info::after {

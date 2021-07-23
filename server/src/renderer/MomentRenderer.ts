@@ -70,7 +70,7 @@ class MomentRenderer {
     }
     return `
 <a href="/entity/${escapeAttribute(block.entity)}" target="_blank" rel="noopener noreferrer">
-  <img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="No alt">
+  <img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="an image.">
 </a>
 `.trim();
   }
