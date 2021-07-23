@@ -1,79 +1,73 @@
-########################################################################################################################
-## build
-########################################################################################################################
-
-.PHONY: dev
-dev:
-	bash _helpers/dev.sh
-
-########################################################################################################################
-## build
-########################################################################################################################
-
-.PHONY: FORCE
-FORCE: ;
-
-.PHONY: build
-build:
-	$(MAKE) build-bridge
-	$(MAKE) -j2 build-client build-server
-
-.PHONY: build-bridge
-build-bridge: FORCE
-	cd bridge && npm run build
-
-.PHONY: build-client
-build-client: FORCE
-	cd client && npm run build
-
-.PHONY: build-server
-build-server: FORCE
-	cd server && npm run build
-
-########################################################################################################################
-## DB
-########################################################################################################################
+.PHONY: all
+all: ps ;
 
 .PHONY: up
-up: var/psql
-	UID=$(shell id -u) GID=$(shell id -g) docker-compose -f docker-compose.dev.yml up -d
-	$(MAKE) wait
-
-.PHONY: wait
-wait:
-	@UID=$(shell id -u) GID=$(shell id -g) docker-compose -f docker-compose.dev.yml run \
-		--rm \
-		--use-aliases \
-		db \
-		bash /helpers/wait-boot.sh
-
-.PHONY: migrate
-migrate:
-	bash db/flyway-dev migrate
+up:
+	docker-compose up -d
 
 .PHONY: down
 down:
-	UID=$(shell id -u) GID=$(shell id -g) docker-compose -f docker-compose.dev.yml down
+	docker-compose down
 
-.PHONY: clean
-clean:
-	rm -Rfv var
-
-.PNONY: reload
+.PHONY: reload
 reload:
 	$(MAKE) down
 	$(MAKE) up
 
-.PNONY: recreate
-recreate:
-	$(MAKE) down
-	$(MAKE) clean
-	$(MAKE) up
-	$(MAKE) migrate
+.PHONY: restart
+restart:
+	docker-compose restart
 
-.PHONY: cli
-cli:
-	bash ./db/cli-dev
+.PHONY: build
+build:
+	docker-compose build
 
-var/psql:
-	mkdir -p "$@"
+.PHONY: pull
+pull:
+	docker-compose pull
+
+.PHONY: log
+log:
+	docker-compose logs -f --tail 0
+
+.PHONY: ps
+ps:
+	docker-compose ps
+
+.PHONY: top
+top:
+	docker-compose top
+
+.PHONY: chown
+chown:
+	sudo chown "$(shell id -g):$(shell id -u)" * -Rf
+
+.PHONY: backup
+backup:
+	sudo bash _helpers/backup.sh $(shell id -g) $(shell id -u) var conf
+
+# -----------------------------------------------------------------------------
+
+.PHONY: db-cli
+db-cli:
+	docker-compose run \
+  		--rm \
+  		--user "$(shell id -u)" \
+		--use-aliases \
+		  -e 'PGPASSWORD=synapse' \
+		  postgres \
+			  psql  '--username=synapse' \
+        			'--host=postgres' \
+        			synapse
+
+.PHONY: generate-config
+generate-config:
+	docker-compose run --rm synapse generate
+
+.PHONY: register
+register:
+	docker-compose exec synapse \
+	  register_new_matrix_user \
+			-c /config/homeserver.yaml \
+			http://localhost:8008
+
