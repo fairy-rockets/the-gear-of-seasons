@@ -11,7 +11,7 @@ import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from 'lib/me
 import Repo from '../repo/Repo';
 import Storage from '../storage/Storage';
 import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity';
-import {Moment, MomentSummary, formatMomentTime, parseMomentTime} from './Moment';
+import { Moment, MomentSummary, formatMomentTime, parseMomentTime } from './Moment';
 
 class Shelf {
   readonly storagePath: string;
