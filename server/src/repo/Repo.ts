@@ -46,7 +46,7 @@ from entities
     if (rows === undefined) {
       return null;
     }
-    const row = await (async()=>{
+    const row = await (async () => {
       for await (const r of rows) {
         return r;
       }
@@ -69,13 +69,11 @@ from entities
     }
     // language=PostgreSQL
     const q = `
-insert into entities
-(
-"id", "medium_id", "icon_id", "timestamp", "type", "mime_type", "width", "height", "duration"
-)
-values
-($1, $2, $3, $4, $5, $6, $7, $8, $9)
-ON CONFLICT DO NOTHING;
+insert into entities (
+  "id", "medium_id", "icon_id", "timestamp", "type", "mime_type", "width", "height", "duration"
+) values (
+  $1, $2, $3, $4, $5, $6, $7, $8, $9
+) ON CONFLICT DO NOTHING;
 `;
     switch (entity.type) {
       case 'image': {
@@ -119,7 +117,7 @@ ON CONFLICT DO NOTHING;
         ]);
         break;
       default:
-        throw new Error('[FIXME] Unreachable code!')
+        throw new Error('[FIXME] Unreachable code!');
     }
     this.cache.entity.set(entity.id, entity);
   }
@@ -129,11 +127,11 @@ ON CONFLICT DO NOTHING;
     }
     // language=PostgreSQL
     const q = `
-insert into moments
-("timestamp", "title", "author", "text", "icon_id")
-values
-($1, $2, $3, $4, $5);
-`;
+insert into moments(
+  "timestamp", "title", "author", "text", "icon_id"
+) values (
+  $1, $2, $3, $4, $5
+);`;
     await this.pool.query(q, [
       moment.timestamp.toDate(),
       moment.title,
@@ -169,9 +167,11 @@ where "timestamp" = $6;
   async findMomentSummariesInYear(year: number): Promise<MomentSummary[]> {
     // language=PostgreSQL
     const q=`
-select timestamp, title, icon_id from moments
-where
-'${year}-01-01' <= timestamp and timestamp < '${year+1}-01-01'
+select
+  "timestamp", "title", "icon_id"
+from moments
+  where
+    '${year}-01-01' <= "timestamp" and "timestamp" < '${year+1}-01-01'
 order by timestamp desc;
 `;
     const moments: MomentSummary[] = [];
@@ -186,8 +186,10 @@ order by timestamp desc;
     // https://stackoverflow.com/a/41337788
     // language=PostgreSQL
     const q=`
-select timestamp, title, icon_id from moments
-TABLESAMPLE SYSTEM_ROWS($1);
+select
+  "timestamp", "title", "icon_id"
+from moments
+  TABLESAMPLE SYSTEM_ROWS($1);
 `;
     const moments: MomentSummary[] = [];
     const rows = await this.pool.query(q, [size]);
@@ -200,9 +202,11 @@ TABLESAMPLE SYSTEM_ROWS($1);
   async findMoment(timestamp: dayjs.Dayjs): Promise<Moment | null> {
     // language=PostgreSQL
     const q=`
-select timestamp, title, author, text, icon_id from moments
-where
-timestamp=$1;
+select
+  "timestamp", "title", "author", "text", "icon_id"
+from moments
+  where
+    "timestamp" = $1;
 `;
     const rows = await this.pool.query(q, [timestamp.toDate()]);
     for await (const row of rows) {
@@ -210,10 +214,11 @@ timestamp=$1;
     }
     return null;
   }
+
   async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {
     // language=PostgreSQL
     const q=`
-delete from moments where timestamp=$1;
+delete from moments where "timestamp" = $1;
 `;
     const r = await this.pool.query(q, [timestamp.toDate()]);
     return r.status?.trim() === 'DELETE 1';
@@ -281,6 +286,6 @@ function decodeEntity(row: ResultRow): Entity {
         duration: row.get('duration') as number,
       };
     default:
-      throw new Error(`Unknown type: ${type}`)
+      throw new Error(`[FIXME] Unreachable code! (Unknown entity type: ${type})`);
   }
 }
