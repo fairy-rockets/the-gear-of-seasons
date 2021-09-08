@@ -123,7 +123,8 @@ class MomentRenderer {
     try {
       text = await fetch(block.url).then((res:any) => res.text());
     } catch (e) {
-      return `<p>!!Failed to fetch markdown: ${escapeHTML(e.toString())}!!</p>`
+      const err = e as Error;
+      return `<p>!!Failed to fetch markdown: ${escapeHTML(err.toString())}!!</p>`
     }
     return marked(text);
   }
