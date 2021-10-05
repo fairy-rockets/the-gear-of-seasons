@@ -24,7 +24,7 @@
     "@wordpress/escape-html": "^2.2.1",
     "dayjs": "^1.10.6",
     "fastify": "^3.21.0",
-    "fastify-static": "^4.2.3",
+    "fastify-static": "^4.2.4",
     "generic-pool": "^3.8.2",
     "handlebars": "^4.7.7",
     "lib": "file:../lib",
