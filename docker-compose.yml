@@ -14,7 +14,7 @@ services:
     profiles: ['tool']
 
   postgres:
-    image: 'postgres:alpine'
+    image: 'postgres:13-alpine'
     container_name: 'the-gear-of-seasons_postgres'
     hostname: 'the-gear-of-seasons_postgres'
     restart: 'always'

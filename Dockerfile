@@ -1,4 +1,4 @@
-FROM node:current-alpine
+FROM node:16-alpine
 
 VOLUME /app/storage
 WORKDIR /app
