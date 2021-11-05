@@ -1,5 +1,5 @@
 import {escapeAttribute, escapeHTML} from "@wordpress/escape-html";
-import fetch from 'node-fetch';
+import axios, { ResponseType } from 'axios';
 import marked from 'marked';
 import dayjs from 'dayjs';
 
@@ -121,7 +121,11 @@ class MomentRenderer {
     }
     let text: string;
     try {
-      text = await fetch(block.url).then((res:any) => res.text());
+      text =
+        await axios.get<string>(block.url, {
+          responseType: <ResponseType> 'text',
+        })
+        .then((r) => r.data);
     } catch (e) {
       const err = e as Error;
       return `<p>!!Failed to fetch markdown: ${escapeHTML(err.toString())}!!</p>`

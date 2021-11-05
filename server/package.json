@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@wordpress/escape-html": "^2.2.1",
+    "axios": "^0.24.0",
     "dayjs": "^1.10.6",
     "fastify": "^3.21.0",
     "fastify-static": "^4.2.3",
@@ -31,7 +32,6 @@
     "lib": "file:../lib",
     "marked": "^3.0.2",
     "node-cache": "^5.1.2",
-    "node-fetch": "^2",
     "pino": "^6.13.2",
     "ts-node": "^10.2.1",
     "ts-postgres": "^1.1.3",
