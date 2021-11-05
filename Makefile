@@ -67,3 +67,11 @@ migrate:
 .PHONY: dump
 dump:
 	bash db/dump
+
+# -----------------------------------------------------------------------------
+
+.PHONY: upgrade
+upgrade:
+	cd lib    && npm run up
+	cd client && npm run up
+	cd server && npm run up
