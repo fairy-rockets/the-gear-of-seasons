@@ -5,9 +5,9 @@ import os from 'os';
 import spawn from '@expo/spawn-async';
 import exifr from 'exifr';
 import dayjs from 'dayjs';
-import FileType from 'file-type';
+import {fileTypeFromFile, MimeType} from 'file-type';
 
-import md5sum from '../md5sum';
+import md5sum from '../md5sum.js';
 
 export type MediaType = 'image' | 'video' | 'audio';
 
@@ -78,7 +78,7 @@ export type ProbeResult = {
   readonly ext: string;
   readonly md5sum: string;
   readonly timestamp: dayjs.Dayjs | undefined;
-  readonly mimeType: FileType.MimeType;
+  readonly mimeType: MimeType;
   readonly width?: number;
   readonly height?: number;
   readonly duration?: number;
@@ -96,7 +96,7 @@ export class FormatError extends Error {
 
 export async function probe(srcFilePath: string): Promise<ProbeResult> {
   const hash = await md5sum(srcFilePath);
-  const fileType = await FileType.fromFile(srcFilePath);
+  const fileType = await fileTypeFromFile(srcFilePath);
   if (fileType === undefined) {
     throw new FormatError('Failed to detect file type.')
   }

@@ -1,6 +1,6 @@
 // https://jestjs.io/docs/api
 import {describe, expect, it } from '@jest/globals';
-import * as fml from './fml';
+import * as fml from './fml.js';
 
 describe("FML", () => {
   it("Parse empty", () => {

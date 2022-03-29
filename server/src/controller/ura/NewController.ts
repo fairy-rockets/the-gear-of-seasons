@@ -2,7 +2,7 @@ import {FastifyReply, FastifyRequest} from 'fastify';
 
 import Asset from 'lib/asset';
 
-import EditorTemplate from './lib/EditorTemplate';
+import EditorTemplate from './lib/EditorTemplate.js';
 
 export default class NewController {
   private readonly template: EditorTemplate;

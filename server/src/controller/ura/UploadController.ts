@@ -1,6 +1,6 @@
 import {FastifyReply, FastifyRequest} from 'fastify';
 
-import Shelf from '../../shelf/Shelf';
+import Shelf from '../../shelf/Shelf.js';
 
 export default class UploadController {
   private readonly shelf: Shelf;

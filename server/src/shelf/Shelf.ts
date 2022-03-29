@@ -1,4 +1,5 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 import * as os from 'os';
 import * as fs from 'fs/promises';
 import dayjs from 'dayjs';
@@ -8,10 +9,12 @@ import * as fml from 'lib/fml';
 import { probe } from 'lib/media/probe';
 import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from 'lib/media/convert';
 
-import Repo from '../repo/Repo';
-import Storage from '../storage/Storage';
-import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity';
-import { Moment, MomentSummary, formatMomentTime, parseMomentTime } from './Moment';
+import Repo from '../repo/Repo.js';
+import Storage from '../storage/Storage.js';
+import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity.js';
+import { Moment, MomentSummary, formatMomentTime, parseMomentTime } from './Moment.js';
+
+const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 class Shelf {
   readonly storagePath: string;
@@ -22,7 +25,7 @@ class Shelf {
     icon: Storage,
   };
   constructor(repo: Repo) {
-    this.storagePath = path.join(__dirname, '..', '..', '..', '_storage');
+    this.storagePath = path.join(dirname, '..', '..', '..', '_storage');
     this.repo = repo;
     this.storage = {
       original: new Storage(this.storagePath, 'original'),

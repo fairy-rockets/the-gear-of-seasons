@@ -3,8 +3,8 @@ import dayjs from 'dayjs';
 
 import * as protocol from 'lib/protocol';
 
-import Shelf from '../../shelf/Shelf';
-import {formatMomentPath, formatMomentTime, MomentSummary} from '../../shelf/Moment';
+import Shelf from '../../shelf/Shelf.js';
+import {formatMomentPath, formatMomentTime, MomentSummary} from '../../shelf/Moment.js';
 
 export interface RandomSelectionControllerInterface extends RequestGenericInterface {
   Querystring: {

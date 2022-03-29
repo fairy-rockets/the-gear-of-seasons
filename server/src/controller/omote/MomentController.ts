@@ -3,8 +3,8 @@ import {FastifyReply, FastifyRequest} from 'fastify';
 
 import Asset from 'lib/asset';
 
-import Shelf from '../../shelf/Shelf';
-import { parseMomentPath } from '../../shelf/Moment';
+import Shelf from '../../shelf/Shelf.js';
+import { parseMomentPath } from '../../shelf/Moment.js';
 
 export default class MomentController {
   private readonly shelf: Shelf;

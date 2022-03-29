@@ -2,9 +2,9 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 
 import * as protocol from 'lib/protocol';
 
-import Shelf from '../../shelf/Shelf';
-import { parseMomentTime } from '../../shelf/Moment';
-import MomentRenderer from '../../renderer/MomentRenderer';
+import Shelf from '../../shelf/Shelf.js';
+import { parseMomentTime } from '../../shelf/Moment.js';
+import MomentRenderer from '../../renderer/MomentRenderer.js';
 
 export default class DeleteController {
   private readonly shelf: Shelf;

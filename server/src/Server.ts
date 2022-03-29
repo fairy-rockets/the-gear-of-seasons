@@ -1,4 +1,5 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import dayjs from 'dayjs';
 import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -7,25 +8,25 @@ import fastifyStatic from 'fastify-static';
 
 import Asset from 'lib/asset';
 
-import Config from './Config';
-import Shelf from './shelf/Shelf';
+import Config from './Config.js';
+import Shelf from './shelf/Shelf.js';
 
 // Omote Controllers
-import OmoteIndexController from './controller/omote/IndexController';
-import MomentController from './controller/omote/MomentController';
-import RandomSelectionController, {RandomSelectionControllerInterface} from './controller/omote/RandomSelectionController';
+import OmoteIndexController from './controller/omote/IndexController.js';
+import MomentController from './controller/omote/MomentController.js';
+import RandomSelectionController, {RandomSelectionControllerInterface} from './controller/omote/RandomSelectionController.js';
 // Ura Controllers
-import UraIndexController from './controller/ura/IndexController';
-import MomentListController, {MomentListControllerInterface} from './controller/ura/MomentListController';
-import UploadController from './controller/ura/UploadController';
-import NewController from './controller/ura/NewController';
-import EditController from './controller/ura/EditController';
-import SaveController from './controller/ura/SaveController';
-import DeleteController from './controller/ura/DeleteController';
-import PreviewController from './controller/ura/PreviewController';
+import UraIndexController from './controller/ura/IndexController.js';
+import MomentListController, {MomentListControllerInterface} from './controller/ura/MomentListController.js';
+import UploadController from './controller/ura/UploadController.js';
+import NewController from './controller/ura/NewController.js';
+import EditController from './controller/ura/EditController.js';
+import SaveController from './controller/ura/SaveController.js';
+import DeleteController from './controller/ura/DeleteController.js';
+import PreviewController from './controller/ura/PreviewController.js';
 // Both Controllers
-import EntityController, {EntityControllerInterface} from './controller/both/EntityController';
-import MomentBodyController from './controller/both/MomentBodyController';
+import EntityController, {EntityControllerInterface} from './controller/both/EntityController.js';
+import MomentBodyController from './controller/both/MomentBodyController.js';
 
 type Handler<Interface extends RouteGenericInterface> = 
   (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>;
@@ -37,6 +38,8 @@ type HandlerSet<
   omote?: Handler<OmoteInterface>,
   ura?: Handler<UraInterface>,
 };
+
+const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 class Server {
   private readonly asset: Asset;
@@ -71,7 +74,7 @@ class Server {
     // -----------
     // Plugins
     // -----------
-    const jsRoot = path.join(__dirname, '..', '..', 'client', 'dist');
+    const jsRoot = path.join(dirname, '..', '..', 'client', 'dist');
     const staticRoot = this.asset.pathOf('static');
     this.http.register(fastifyStatic, {
       root: [

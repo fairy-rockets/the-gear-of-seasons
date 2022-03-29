@@ -3,9 +3,9 @@ import dayjs from 'dayjs';
 
 import Asset from 'lib/asset';
 
-import UraTemplate from './lib/UraTemplate';
-import Shelf from '../../shelf/Shelf';
-import {formatMomentPath} from '../../shelf/Moment';
+import UraTemplate from './lib/UraTemplate.js';
+import Shelf from '../../shelf/Shelf.js';
+import {formatMomentPath} from '../../shelf/Moment.js';
 
 export interface MomentListControllerInterface extends RequestGenericInterface {
   Params: {

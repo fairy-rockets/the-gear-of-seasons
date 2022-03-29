@@ -3,9 +3,9 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 
 import * as protocol from 'lib/protocol';
 
-import Shelf from '../../shelf/Shelf';
-import { Moment, parseMomentTime } from '../../shelf/Moment';
-import MomentRenderer from '../../renderer/MomentRenderer';
+import Shelf from '../../shelf/Shelf.js';
+import { Moment, parseMomentTime } from '../../shelf/Moment.js';
+import MomentRenderer from '../../renderer/MomentRenderer.js';
 
 export default class PreviewController {
   private readonly shelf: Shelf;

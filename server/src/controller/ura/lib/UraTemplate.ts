@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 
 import Asset from 'lib/asset';
 
-import Config from '../../../Config';
+import Config from '../../../Config.js';
 
 const kCompileOption: CompileOptions = {
   preventIndent: true,

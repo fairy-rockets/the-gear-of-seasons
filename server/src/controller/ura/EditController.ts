@@ -2,9 +2,9 @@ import {FastifyReply, FastifyRequest} from 'fastify';
 
 import Asset from 'lib/asset';
 
-import EditorTemplate from './lib/EditorTemplate';
-import Shelf from '../../shelf/Shelf';
-import {parseMomentPath, formatMomentTime} from '../../shelf/Moment';
+import EditorTemplate from './lib/EditorTemplate.js';
+import Shelf from '../../shelf/Shelf.js';
+import {parseMomentPath, formatMomentTime} from '../../shelf/Moment.js';
 
 export default class EditController {
   private readonly shelf: Shelf;

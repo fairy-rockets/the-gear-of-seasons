@@ -1,12 +1,12 @@
-import {escapeAttribute, escapeHTML} from "@wordpress/escape-html";
+import {escapeAttribute, escapeHTML} from '@wordpress/escape-html';
 import axios, { ResponseType } from 'axios';
-import marked from 'marked';
+import {marked} from 'marked';
 import dayjs from 'dayjs';
 
 import * as fml from 'lib/fml';
 
-import Shelf from '../shelf/Shelf';
-import { Moment } from '../shelf/Moment';
+import Shelf from '../shelf/Shelf.js';
+import { Moment } from '../shelf/Moment.js';
 
 class MomentRenderer {
   private readonly shelf: Shelf;

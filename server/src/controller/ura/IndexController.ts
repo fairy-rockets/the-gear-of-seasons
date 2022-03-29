@@ -2,7 +2,7 @@ import {FastifyReply, FastifyRequest} from 'fastify';
 
 import Asset from 'lib/asset';
 
-import UraTemplate from './lib/UraTemplate';
+import UraTemplate from './lib/UraTemplate.js';
 
 export default class IndexController {
   readonly template: UraTemplate;

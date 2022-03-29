@@ -1,7 +1,7 @@
 // https://jestjs.io/docs/api
 import {describe, expect, it } from '@jest/globals';
 import * as path from 'path';
-import md5sum from './md5sum';
+import md5sum from './md5sum.js';
 
 describe("MD5SUM", () => {
   it("test empty", async () => {
