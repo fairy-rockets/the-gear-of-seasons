@@ -11,14 +11,36 @@
   },
   "main": "dist/lib.js",
   "types": "dist/lib.d.ts",
+  // https://www.typescriptlang.org/docs/handbook/esm-node.html
   "exports": {
-    ".": "./dist/lib.js",
-    "./asset": "./dist/asset.js",
-    "./fml": "./dist/fml.js",
-    "./media/probe": "./dist/media/probe.js",
-    "./media/convert": "./dist/media/convert.js",
-    "./protocol": "./dist/protocol.js",
-    "./md5sum": "./dist/md5sum.js"
+    ".": {
+      "types": "./dist/lib.d.ts",
+      "imports": "./dist/lib.js"
+    },
+    "./asset": {
+      "types": "./dist/asset.d.ts",
+      "import": "./dist/asset.js"
+    },
+    "./fml": {
+      "types": "./dist/fml.d.ts",
+      "import": "./dist/fml.js"
+    },
+    "./media/probe": {
+      "type": "./dist/media/probe.d.ts",
+      "import": "./dist/media/probe.js"
+    },
+    "./media/convert": {
+      "types": "./dist/media/convert.d.ts",
+      "import": "./dist/media/convert.js"
+    },
+    "./protocol": {
+      "types": "./dist/protocol.d.ts",
+      "import": "./dist/protocol.js"
+    },
+    "./md5sum": {
+      "types": "./dist/md5sum.d.ts",
+      "import": "./dist/md5sum.js"
+    }
   },
   "typesVersions": {
     "*": {
