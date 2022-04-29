@@ -5,7 +5,7 @@ import Moment from '../actors/Moment';
 import { mat4 } from 'gl-matrix';
 import Page from './Page';
 import twemoji from 'twemoji';
-import * as protocol from 'lib/protocol';
+import * as protocol from '../../protocol';
 
 export default class Index extends Layer {
   private readonly wheelEventListener_: (ev: WheelEvent) => void;

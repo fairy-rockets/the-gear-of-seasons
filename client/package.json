@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "gl-matrix": "^3.4.3",
-    "lib": "file:../lib",
     "twemoji": "^14.0.2"
   }
 }

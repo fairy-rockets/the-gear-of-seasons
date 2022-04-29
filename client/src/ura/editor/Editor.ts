@@ -1,5 +1,5 @@
 import Preview from './Preview';
-import * as protocol from 'lib/protocol';
+import * as protocol from '../../protocol';
 
 export default class Editor {
   private readonly title_: HTMLInputElement;
