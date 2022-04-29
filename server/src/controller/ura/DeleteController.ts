@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 
-import * as protocol from 'lib/protocol';
+import * as protocol from '../../lib/protocol.js'
 
 import Shelf from '../../shelf/Shelf.js';
 import { parseMomentTime } from '../../shelf/Moment.js';

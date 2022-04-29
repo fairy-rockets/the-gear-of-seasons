@@ -1,8 +1,7 @@
 import Handlebars, {Template} from 'handlebars';
 import dayjs from 'dayjs';
 
-import Asset from 'lib/asset';
-
+import Asset from '../../../lib/Asset.js';
 import Config from '../../../Config.js';
 
 const kCompileOption: CompileOptions = {

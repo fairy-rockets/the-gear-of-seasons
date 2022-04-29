@@ -3,7 +3,7 @@ import axios, { ResponseType } from 'axios';
 import {marked} from 'marked';
 import dayjs from 'dayjs';
 
-import * as fml from 'lib/fml';
+import * as fml from '../lib/fml.js';
 
 import Shelf from '../shelf/Shelf.js';
 import { Moment } from '../shelf/Moment.js';

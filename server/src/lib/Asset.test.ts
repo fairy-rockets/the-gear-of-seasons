@@ -1,7 +1,7 @@
 // https://jestjs.io/docs/api
 import {describe, expect, it } from '@jest/globals';
 import fs from 'fs/promises';
-import Asset from './asset.js';
+import Asset from './Asset.js';
 
 describe("Asset", () => {
   it("Asset dir exists", async () => {

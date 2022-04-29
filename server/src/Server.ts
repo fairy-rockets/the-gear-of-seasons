@@ -6,7 +6,7 @@ import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { RouteGenericInterface } from 'fastify/types/route';
 import fastifyStatic from 'fastify-static';
 
-import Asset from 'lib/asset';
+import Asset from './lib/Asset.js';
 
 import Config from './Config.js';
 import Shelf from './shelf/Shelf.js';

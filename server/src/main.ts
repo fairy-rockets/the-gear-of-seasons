@@ -1,4 +1,4 @@
-import Asset from 'lib/asset';
+import Asset from './lib/Asset.js';
 
 import Server from './Server.js';
 import Shelf from './shelf/Shelf.js';

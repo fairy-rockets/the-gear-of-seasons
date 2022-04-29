@@ -1,7 +1,7 @@
 import {FastifyReply, FastifyRequest, RequestGenericInterface} from 'fastify';
 import dayjs from 'dayjs';
 
-import Asset from 'lib/asset';
+import Asset from '../../lib/Asset.js';
 
 import UraTemplate from './lib/UraTemplate.js';
 import Shelf from '../../shelf/Shelf.js';

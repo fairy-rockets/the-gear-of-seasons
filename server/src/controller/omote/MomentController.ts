@@ -1,7 +1,7 @@
 import Handlebars from 'handlebars';
 import {FastifyReply, FastifyRequest} from 'fastify';
 
-import Asset from 'lib/asset';
+import Asset from '../../lib/Asset.js';
 
 import Shelf from '../../shelf/Shelf.js';
 import { parseMomentPath } from '../../shelf/Moment.js';

@@ -1,6 +1,6 @@
 import {FastifyReply, FastifyRequest} from 'fastify';
 
-import Asset from 'lib/asset';
+import Asset from '../../lib/Asset.js';
 
 import EditorTemplate from './lib/EditorTemplate.js';
 import Shelf from '../../shelf/Shelf.js';

@@ -1,7 +1,7 @@
 import {FastifyReply, FastifyRequest} from 'fastify';
 import Handlebars from 'handlebars';
 
-import Asset from 'lib/asset';
+import Asset from '../../lib/Asset.js';
 
 export default class IndexController {
   readonly template: Handlebars.TemplateDelegate;

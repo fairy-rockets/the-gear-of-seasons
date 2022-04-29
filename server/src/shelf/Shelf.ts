@@ -4,10 +4,10 @@ import * as os from 'os';
 import * as fs from 'fs/promises';
 import dayjs from 'dayjs';
 
-import * as protocol from 'lib/protocol';
-import * as fml from 'lib/fml';
-import { probe } from 'lib/media/probe';
-import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from 'lib/media/convert';
+import * as protocol from '../lib/protocol.js';
+import * as fml from '../lib/fml.js';
+import { probe } from '../lib/media/Probe.js';
+import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from '../lib/media/convert';
 
 import Repo from '../repo/Repo.js';
 import Storage from '../storage/Storage.js';

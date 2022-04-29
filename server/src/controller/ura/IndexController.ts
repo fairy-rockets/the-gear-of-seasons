@@ -1,6 +1,6 @@
 import {FastifyReply, FastifyRequest} from 'fastify';
 
-import Asset from 'lib/asset';
+import Asset from '../../lib/Asset.js';
 
 import UraTemplate from './lib/UraTemplate.js';
 
