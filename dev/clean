@@ -13,4 +13,4 @@ set -o pipefail
 
 dev/down
 
-rm -Rfv dev-var lib/dist server/dist client/dist
+rm -Rfv dev-var server/dist client/dist

@@ -11,7 +11,6 @@ cd "${ROOT_DIR}" || exit 1
 set -eu
 set -o pipefail
 
-(cd lib && npm ci)
 (cd server && npm ci) &
 (cd client && npm ci) &
 wait

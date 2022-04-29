@@ -14,7 +14,6 @@ function count() {
   ( find "$@" -type f -print0 | xargs -0 cat ) | wc -l | sed -e 's/[ \t]//g'
 }
 
-count "lib" "lib/src"
 count "srv" "server/src"
 count "cli" "client/src"
 echo "---"

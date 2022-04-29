@@ -9,7 +9,6 @@ RUN  apk add --no-cache bash ffmpeg imagemagick tzdata \
   && apk del --purge tzdata
 
 RUN npm install -g npm@latest \
- && (cd lib && npm ci && npm run build) \
  && (cd client && npm ci && npm run build) \
  && (cd server && npm ci && npm run build)
 
