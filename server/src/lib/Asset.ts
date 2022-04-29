@@ -9,7 +9,7 @@ export default class Asset {
   }
   pathOf(filepath: string): string {
     const paths = filepath.split('/');
-    return path.join(dirname, '..', '..', '_assets', ...paths);
+    return path.join(dirname, '..', '..', '..', '_assets', ...paths);
   }
   async loadString(filepath: string): Promise<string> {
     return await fs.readFile(

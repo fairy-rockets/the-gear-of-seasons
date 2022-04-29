@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import * as protocol from '../lib/protocol.js';
 import * as fml from '../lib/fml.js';
 import { probe } from '../lib/media/Probe.js';
-import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from '../lib/media/convert';
+import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from '../lib/media/convert.js';
 
 import Repo from '../repo/Repo.js';
 import Storage from '../storage/Storage.js';
