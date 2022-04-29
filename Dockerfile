@@ -1,10 +1,10 @@
-FROM node:16-alpine
+FROM node:18-alpine
 
 VOLUME /app/storage
 WORKDIR /app
 COPY . .
 
-RUN  apk add --no-cache bash ffmpeg tzdata \
+RUN  apk add --no-cache bash ffmpeg imagemagick tzdata \
   && cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime \
   && apk del --purge tzdata
 
