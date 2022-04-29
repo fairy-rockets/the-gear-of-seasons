@@ -11,4 +11,4 @@ cd "${ROOT_DIR}" || exit 1
 set -eu
 set -o pipefail
 
-(cd lib && npm run test)
+(cd server && npm run test)
