@@ -1,14 +1,14 @@
-import {mat4, vec3, vec4} from 'gl-matrix';
-import IndexBuffer from "./gl/IndexBuffer";
-import ArrayBuffer from "./gl/ArrayBuffer";
-import Program from "./gl/Program";
+import {mat4} from 'gl-matrix';
+import IndexBuffer from './gl/IndexBuffer';
+import ArrayBuffer from './gl/ArrayBuffer';
+import Program from './gl/Program';
 
-import Gear from "./actors/Gear";
+import Gear from './actors/Gear';
 import Background from './actors/Background';
 
-import Layer from "./Layer";
-import Index from "./layers/Index";
-import Page from "./layers/Page";
+import Layer from './Layer';
+import Index from './layers/Index';
+import Page from './layers/Page';
 
 export default class World {
   private readonly canvas_ : HTMLCanvasElement;

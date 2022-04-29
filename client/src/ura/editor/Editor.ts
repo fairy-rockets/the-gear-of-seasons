@@ -1,4 +1,4 @@
-import Preview from "./Preview";
+import Preview from './Preview';
 import * as protocol from 'lib/protocol';
 
 export default class Editor {

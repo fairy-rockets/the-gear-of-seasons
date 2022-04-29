@@ -1,9 +1,8 @@
-import World from "../World";
-import Moment from "./Moment"
-import Program from "../gl/Program";
-import ArrayBuffer from "../gl/ArrayBuffer";
-import IndexBuffer from "../gl/IndexBuffer";
-import { mat4, vec4, ReadonlyMat4 } from "gl-matrix";
+import World from '../World';
+import Program from '../gl/Program';
+import ArrayBuffer from '../gl/ArrayBuffer';
+import IndexBuffer from '../gl/IndexBuffer';
+import { mat4, vec4, ReadonlyMat4 } from 'gl-matrix';
 import { Winter, Spring, Summer, Autumn } from './Seasons';
 
 export default class Background {

@@ -1,4 +1,4 @@
-import { ReadonlyMat4, ReadonlyVec4 } from "gl-matrix";
+import { ReadonlyMat4, ReadonlyVec4 } from 'gl-matrix';
 
 export function printMatrix(name: string, mat: ReadonlyMat4) {
   console.log(`mat4(${name})= [

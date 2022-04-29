@@ -1,6 +1,5 @@
-import World from "../World";
-import { vec2 } from "gl-matrix";
-import Texture from "../gl/Texture";
+import World from '../World';
+import Texture from '../gl/Texture';
 
 export default class Moment {
   static get DiscRadius(): number {

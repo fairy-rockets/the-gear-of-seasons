@@ -1,4 +1,4 @@
-import { vec4 } from "gl-matrix";
+import { vec4 } from 'gl-matrix';
 
 function rgb(r: number,g: number,b: number): [number, number, number, number] {
   r /= 255.0;

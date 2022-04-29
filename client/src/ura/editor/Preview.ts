@@ -1,4 +1,4 @@
-import Editor from "./Editor";
+import Editor from './Editor';
 
 export default class Preview {
   private readonly container_: HTMLDivElement;

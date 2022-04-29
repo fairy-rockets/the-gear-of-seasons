@@ -1,4 +1,4 @@
-import Program from "./Program";
+import Program from './Program';
 
 export default class ArrayBuffer{
   private readonly gl_: WebGLRenderingContext;

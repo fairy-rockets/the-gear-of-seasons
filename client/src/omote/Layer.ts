@@ -1,6 +1,6 @@
-import World from "./World";
-import { mat4 } from "gl-matrix";
-import Gear from "./actors/Gear";
+import World from './World';
+import { mat4 } from 'gl-matrix';
+import Gear from './actors/Gear';
 
 export default abstract class Layer {
   protected readonly world_: World;

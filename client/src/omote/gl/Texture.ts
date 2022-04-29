@@ -1,5 +1,5 @@
-import World from "../World";
-import Program from "./Program";
+import World from '../World';
+import Program from './Program';
 
 export default class Texture {
   private readonly world_: World;
