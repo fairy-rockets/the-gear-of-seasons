@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import dayjs from 'dayjs';
 import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { RouteGenericInterface } from 'fastify/types/route';
-import fastifyStatic from 'fastify-static';
+import fastifyStatic from '@fastify/static';
 
 import Asset from './lib/Asset.js';
 
