@@ -17,4 +17,4 @@ function count() {
 count "srv" "server/src"
 count "cli" "client/src"
 echo "---"
-count "total" "lib/src" "server/src" "client/src"
+count "total" "server/src" "client/src"
