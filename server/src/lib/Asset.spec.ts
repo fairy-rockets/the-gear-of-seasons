@@ -1,12 +1,12 @@
-// https://jestjs.io/docs/api
-import {describe, expect, it } from '@jest/globals';
-import fs from 'fs/promises';
+import { describe, it } from 'mocha';
+import assert from 'assert';
+import fs from 'node:fs/promises';
 import Asset from './Asset.js';
 
 describe("Asset", () => {
   it("Asset dir exists", async () => {
     const asset = new Asset();
     const stat = await fs.stat(asset.pathOf(''));
-    expect(stat).not.toBeNull;
+    assert.notEqual(stat, null);
   });
 });
