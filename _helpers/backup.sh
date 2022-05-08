@@ -10,7 +10,5 @@ shift
 USR_UID="$1"
 shift
 
-docker-compose down
 tar -cvf "${BACKUP_FILENAME}" "$@"
 chown "${USR_GID}:${USR_UID}" "${BACKUP_FILENAME}"
-docker-compose up -d
