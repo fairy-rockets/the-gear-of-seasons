@@ -53,23 +53,37 @@ var/ _storage/:
 	mkdir -p "$@"
 
 # -----------------------------------------------------------------------------
+# DB
+# -----------------------------------------------------------------------------
 
 .PHONY: db-cli
 db-cli:
 	bash db/cli
 
-.PHONY: cli
-cli:
-	docker-compose exec "the-gear-of-seasons" bash
-
 .PHONY: migrate
-migrate:
+db-migrate:
 	bash db/flyway migrate
 
 .PHONY: dump
-dump:
+db-dump:
 	bash db/dump
 
+.PHONY: gear-cli
+gear-cli:
+	docker-compose exec 'the-gear-of-seasons' bash
+
+# -----------------------------------------------------------------------------
+# batch
+# -----------------------------------------------------------------------------
+
+.PHONY: gear-cli
+gear-gc:
+	docker-compose run --rm \
+		'the-gear-of-seasons' \
+		node 'server/dist/cmd/gc.js'
+
+# -----------------------------------------------------------------------------
+# npm
 # -----------------------------------------------------------------------------
 
 .PHONY: upgrade

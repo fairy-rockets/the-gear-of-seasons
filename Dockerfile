@@ -15,4 +15,4 @@ RUN npm install -g npm@latest \
 EXPOSE 8888
 
 ENTRYPOINT [ "node" ]
-CMD [ "server/dist/main.js" ]
+CMD [ "server/dist/cmd/main.js" ]
