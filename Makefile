@@ -74,6 +74,5 @@ dump:
 
 .PHONY: upgrade
 upgrade:
-	cd lib    && npm run up
 	cd client && npm run up
 	cd server && npm run up
