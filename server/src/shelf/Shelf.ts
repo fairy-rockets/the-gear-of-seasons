@@ -33,6 +33,9 @@ class Shelf {
       icon: new Storage(this.storagePath, 'icon'),
     };
   }
+  async* enumAllMoments(): AsyncGenerator<Moment {
+    return this.repo.enumAllMoments();
+  }
   async findEntity(id: string): Promise<Entity | null> {
     return await this.repo.findEntity(id);
   }

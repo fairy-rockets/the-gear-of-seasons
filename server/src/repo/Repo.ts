@@ -216,7 +216,7 @@ from moments
     return null;
   }
 
-  async* findAllMoment(): AsyncGenerator<Moment> {
+  async* enumAllMoments(): AsyncGenerator<Moment> {
     // language=PostgreSQL
     const q=`
 select
