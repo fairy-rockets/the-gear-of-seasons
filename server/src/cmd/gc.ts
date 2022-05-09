@@ -1,14 +1,15 @@
 import Repo from '../repo/Repo.js';
 import Shelf from '../shelf/Shelf.js';
 import * as fml from '../lib/fml.js';
+import { Entity } from '../shelf/Entity.js'
 
 async function main() {
   console.log('** GC **');
   const repo = new Repo();
   const shelf = new Shelf(repo);
   const usedEntiry = new Set<string>();
+  const entities = new Map<string, Entity>();
   let numMoments = 0;
-  let numEntities = 0;
   try {
     for await (let m of shelf.enumurateAllMoments()) {
       numMoments++;
@@ -41,9 +42,9 @@ async function main() {
       }
     }
     for await (let e of shelf.enumurateAllEntries()) {
-      numEntities++;
+      entities.set(e.id, e);
     }
-    console.log(`Found ${numMoments} moments, ${numEntities} entities, ${usedEntiry.size} entities used.`);
+    console.log(`Found ${numMoments} moments, ${entities.size} entities, ${usedEntiry.size} entities used.`);
   } finally {
     await repo.close();
   }
