@@ -8,8 +8,12 @@ async function main() {
   const asset = new Asset();
   const repo = new Repo();
   const shelf = new Shelf(repo);
-  const server = await Server.create(asset, shelf);
-  await server.start();
+  try {
+    const server = await Server.create(asset, shelf);
+    await server.start();
+  } finally {
+    await repo.close();
+  }
 }
 
 main()

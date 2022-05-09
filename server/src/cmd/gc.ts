@@ -7,36 +7,40 @@ async function main() {
   const repo = new Repo();
   const shelf = new Shelf(repo);
   const usedEntiry = new Set<string>();
-  for await (let m of shelf.enumAllMoments()) {
-    for (let block of fml.parse(m.text).blocks) {
-      switch (block.type) {
-        case "image": {
-          if (block.entity != undefined) {
-            usedEntiry.add(block.entity);
+  try {
+    for await (let m of shelf.enumAllMoments()) {
+      for (let block of fml.parse(m.text).blocks) {
+        switch (block.type) {
+          case "image": {
+            if (block.entity != undefined) {
+              usedEntiry.add(block.entity);
+            }
+            break;
           }
-          break;
-        }
-        case "video": {
-          if (block.entity != undefined) {
-            usedEntiry.add(block.entity);
+          case "video": {
+            if (block.entity != undefined) {
+              usedEntiry.add(block.entity);
+            }
+            break;
           }
-          break;
-        }
-        case "audio": {
-          if (block.entity != undefined) {
-            usedEntiry.add(block.entity);
+          case "audio": {
+            if (block.entity != undefined) {
+              usedEntiry.add(block.entity);
+            }
+            break;
           }
-          break;
+          case "text":
+          case "link":
+          case "markdown":
+          default:
+            break;
         }
-        case "text":
-        case "link":
-        case "markdown":
-        default:
-          break;
       }
     }
+    console.log(`Found ${usedEntiry.size} used entities.`);
+  } finally {
+    await repo.close();
   }
-  console.log(`Found ${usedEntiry.size} used entities.`);
 }
 
 main()

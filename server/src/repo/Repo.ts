@@ -20,6 +20,12 @@ export default class Repo {
       }),
     };
   }
+
+
+  async close(): Promise<void> {
+    await this.pool.close();
+  }
+
   async findEntity(id: string): Promise<Entity | null> {
     {
       const entry = this.cache.entity.get<Entity>(id);
