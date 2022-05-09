@@ -8,7 +8,7 @@ async function main() {
   const shelf = new Shelf(repo);
   const usedEntiry = new Set<string>();
   let numMoments = 0;
-  let numEntries = 0;
+  let numEntities = 0;
   try {
     for await (let m of shelf.enumurateAllMoments()) {
       numMoments++;
@@ -40,10 +40,10 @@ async function main() {
         }
       }
       for await (let e of shelf.enumurateAllEntries()) {
-        numEntries++;
+        numEntities++;
       }
     }
-    console.log(`Found ${numMoments} moments, ${numEntries} entries, ${usedEntiry.size} entities used.`);
+    console.log(`Found ${numMoments} moments, ${numEntities} entities, ${usedEntiry.size} entities used.`);
   } finally {
     await repo.close();
   }
