@@ -8,8 +8,9 @@ async function main() {
   const shelf = new Shelf(repo);
   const usedEntiry = new Set<string>();
   let numMoments = 0;
+  let numEntries = 0;
   try {
-    for await (let m of shelf.enumAllMoments()) {
+    for await (let m of shelf.enumurateAllMoments()) {
       numMoments++;
       for (let block of fml.parse(m.text).blocks) {
         switch (block.type) {
@@ -38,8 +39,11 @@ async function main() {
             break;
         }
       }
+      for await (let e of shelf.enumurateAllEntries()) {
+        numEntries++;
+      }
     }
-    console.log(`Found ${numMoments} moments, ${usedEntiry.size} entities used.`);
+    console.log(`Found ${numMoments} moments, ${numEntries} entries, ${usedEntiry.size} entities used.`);
   } finally {
     await repo.close();
   }

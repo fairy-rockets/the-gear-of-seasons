@@ -26,6 +26,27 @@ export default class Repo {
     await this.pool.close();
   }
 
+ async* enumurateAllEntries(): AsyncGenerator<Entity> {
+       // language=PostgreSQL
+    const q1 = `
+select
+  "id",
+  "medium_id",
+  "icon_id",
+  "timestamp",
+  "type",
+  "mime_type",
+  "width",
+  "height",
+  "duration"
+from entities
+`;
+    const rows = await this.pool.query(q1, []);
+    for await (const row of rows) {
+      yield decodeEntity(row);
+    }
+ }
+
   async findEntity(id: string): Promise<Entity | null> {
     {
       const entry = this.cache.entity.get<Entity>(id);
@@ -222,7 +243,7 @@ from moments
     return null;
   }
 
-  async* enumAllMoments(): AsyncGenerator<Moment> {
+  async* enumurateAllMoments(): AsyncGenerator<Moment> {
     // language=PostgreSQL
     const q=`
 select

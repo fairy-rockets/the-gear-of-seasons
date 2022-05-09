@@ -34,6 +34,9 @@ class Shelf {
     };
   }
 
+  enumurateAllEntries(): AsyncGenerator<Entity> {
+    return this.repo.enumurateAllEntries();
+  }
   async findEntity(id: string): Promise<Entity | null> {
     return await this.repo.findEntity(id);
   }
@@ -137,8 +140,8 @@ class Shelf {
     }
     return m;
   }
-  enumAllMoments(): AsyncGenerator<Moment> {
-    return this.repo.enumAllMoments();
+  enumurateAllMoments(): AsyncGenerator<Moment> {
+    return this.repo.enumurateAllMoments();
   }
   async findMomentSummariesInYear(year: number): Promise<MomentSummary[]> {
     return await this.repo.findMomentSummariesInYear(year);
