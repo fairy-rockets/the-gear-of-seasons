@@ -9,7 +9,7 @@ async function main() {
   const usedEntiry = new Set<string>();
   let numMoments = 0;
   try {
-    for await (let m of repo.enumAllMoments()) {
+    for await (let m of shelf.enumAllMoments()) {
       numMoments++;
       for (let block of fml.parse(m.text).blocks) {
         switch (block.type) {
