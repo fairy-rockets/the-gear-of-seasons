@@ -7,8 +7,10 @@ async function main() {
   const repo = new Repo();
   const shelf = new Shelf(repo);
   const usedEntiry = new Set<string>();
+  let numMoments = 0;
   try {
-    for await (let m of shelf.enumAllMoments()) {
+    for await (let m of repo.enumAllMoments()) {
+      numMoments++;
       for (let block of fml.parse(m.text).blocks) {
         switch (block.type) {
           case "image": {
@@ -37,7 +39,7 @@ async function main() {
         }
       }
     }
-    console.log(`Found ${usedEntiry.size} used entities.`);
+    console.log(`Found ${numMoments} moments, ${usedEntiry.size} entities used.`);
   } finally {
     await repo.close();
   }
