@@ -33,9 +33,7 @@ class Shelf {
       icon: new Storage(this.storagePath, 'icon'),
     };
   }
-  enumAllMoments(): AsyncGenerator<Moment> {
-    return this.repo.enumAllMoments();
-  }
+
   async findEntity(id: string): Promise<Entity | null> {
     return await this.repo.findEntity(id);
   }
@@ -138,6 +136,9 @@ class Shelf {
       await this.repo.replaceMoment(oldTimestamp, m);
     }
     return m;
+  }
+  enumAllMoments(): AsyncGenerator<Moment> {
+    return this.repo.enumAllMoments();
   }
   async findMomentSummariesInYear(year: number): Promise<MomentSummary[]> {
     return await this.repo.findMomentSummariesInYear(year);
