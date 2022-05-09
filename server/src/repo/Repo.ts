@@ -87,7 +87,7 @@ from entities
     return entity;
   }
 
-  async registerEntity(entity: Entity) {
+  async insertEntity(entity: Entity) {
     let timestamp: Date | null;
     if (entity.timestamp !== undefined) {
       timestamp = entity.timestamp.toDate();
@@ -148,7 +148,8 @@ insert into entities (
     }
     this.cache.entity.set(entity.id, entity);
   }
-  async registerMoment(moment: Moment) {
+
+  async insertMoment(moment: Moment) {
     if (moment.timestamp === undefined) {
       throw new Error('[FIXME] No timestamp!')
     }
@@ -168,7 +169,7 @@ insert into moments(
     ]);
   }
 
-  async replaceMoment(oldTimestamp: dayjs.Dayjs, moment: Moment) {
+  async updateMoment(oldTimestamp: dayjs.Dayjs, moment: Moment) {
     if (moment.timestamp === undefined) {
       throw new Error('[FIXME] No timestamp!')
     }

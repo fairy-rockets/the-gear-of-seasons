@@ -18,6 +18,7 @@ class Storage {
     this.base = base;
     this.kind = kind;
   }
+
   async upload(filepath: string): Promise<string> {
     const hash = await md5sum(filepath);
     const dest = path.join(this.base, this.kind, storedPathOf(hash));
@@ -29,6 +30,7 @@ class Storage {
     await fs.copyFile(filepath, dest);
     return hash;
   }
+
   async fetch(hash: string): Promise<[string, string] | null> {
     const relativePath = path.join(this.kind, storedPathOf(hash));
     const src = path.join(this.base, relativePath);
@@ -37,6 +39,27 @@ class Storage {
       return st.isFile() ? [this.base, relativePath] : null;
     } catch(_err) {
       return null;
+    }
+  }
+
+  async remove(hash: string): Promise<boolean> {
+    const relativePath = path.join(this.kind, storedPathOf(hash));
+    const src = path.join(this.base, relativePath);
+    try {
+      const st = await fs.lstat(src);
+      if(st.isFile()) {
+        console.log(`Removing: ${src}`);
+        fs.rm(src);
+      }
+      let d = path.dirname(src);
+      while((await fs.readdir(d)).length === 0) {
+        console.log(`Removing Dir: ${d}`);
+        fs.rmdir(d);
+        d = path.dirname(d);
+      }
+      return true;
+    } catch(_err) {
+      return false;
     }
   }
 }

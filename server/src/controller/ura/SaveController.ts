@@ -19,7 +19,7 @@ export default class SaveController {
   }
   async handle(req: FastifyRequest, reply: FastifyReply) {
     const now = dayjs();
-    const moment = await this.shelf.saveMoment(req.body as protocol.Moment.Save.Request);
+    const moment = await this.shelf.updateMoment(req.body as protocol.Moment.Save.Request);
     if (moment.timestamp === undefined) {
       reply
         .type('plain/text')

@@ -11,7 +11,7 @@ export default class UploadController {
     return new UploadController(shelf);
   }
   async handle(req: FastifyRequest, reply: FastifyReply) {
-    const entity = await this.shelf.saveEntity(req.body as Buffer);
+    const entity = await this.shelf.insertEntity(req.body as Buffer);
     reply
       .type('text/plain')
       .code(200)

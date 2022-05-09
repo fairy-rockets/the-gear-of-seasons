@@ -54,7 +54,8 @@ class Shelf {
         return this.storage.icon.fetch(entity.iconID);
     }
   }
-  async saveEntity(data: Buffer): Promise<Entity> {
+
+  async insertEntity(data: Buffer): Promise<Entity> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
     try {
       const tempPath = path.join(tempDir, 'temp');
@@ -115,7 +116,7 @@ class Shelf {
         default:
           throw new Error('[FIXME] Unreachable code!');
       }
-      await this.repo.registerEntity(entity);
+      await this.repo.insertEntity(entity);
       return entity;
     } finally {
       await fs.rm(tempDir, {
@@ -125,18 +126,18 @@ class Shelf {
     }
   }
 
-  async saveMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
+  async updateMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
     const m = await this.makeMoment(req);
     if (req.originalDate === null) {
       // new
-      await this.repo.registerMoment(m);
+      await this.repo.insertMoment(m);
     } else {
       // replace
       const oldTimestamp = parseMomentTime(req.originalDate);
       if (!oldTimestamp.isValid()) {
         throw new Error(`Invalid old date: ${req.originalDate}`);
       }
-      await this.repo.replaceMoment(oldTimestamp, m);
+      await this.repo.updateMoment(oldTimestamp, m);
     }
     return m;
   }
