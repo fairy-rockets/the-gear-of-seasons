@@ -39,9 +39,9 @@ async function main() {
             break;
         }
       }
-      for await (let e of shelf.enumurateAllEntries()) {
-        numEntities++;
-      }
+    }
+    for await (let e of shelf.enumurateAllEntries()) {
+      numEntities++;
     }
     console.log(`Found ${numMoments} moments, ${numEntities} entities, ${usedEntiry.size} entities used.`);
   } finally {
