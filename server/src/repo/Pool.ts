@@ -37,7 +37,7 @@ export default class Pool {
     return await this.pool.use(fn);
   }
   async query(query: string, args?: Value[]): Promise<ResultIterator> {
-    return await this.pool.use(async (cl) => {
+    return await this.use(async (cl) => {
       return cl.query(query, args);
     });
   }
