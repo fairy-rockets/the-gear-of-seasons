@@ -140,6 +140,7 @@ insert into moments(
       moment.iconID === undefined ? null : moment.iconID,
     ]);
   }
+
   async replaceMoment(oldTimestamp: dayjs.Dayjs, moment: Moment) {
     if (moment.timestamp === undefined) {
       throw new Error('[FIXME] No timestamp!')
@@ -213,6 +214,19 @@ from moments
       return decodeMoment(row);
     }
     return null;
+  }
+
+  async* findAllMoment(): AsyncGenerator<Moment> {
+    // language=PostgreSQL
+    const q=`
+select
+  "timestamp", "title", "author", "text", "icon_id"
+from moments
+`;
+    const rows = await this.pool.query(q, []);
+    for await (const row of rows) {
+      yield decodeMoment(row);
+    }
   }
 
   async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {

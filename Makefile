@@ -80,7 +80,7 @@ gear-cli:
 gear-gc:
 	docker-compose run --rm \
 		'the-gear-of-seasons' \
-		node 'server/dist/cmd/gc.js'
+		'/app/server/dist/cmd/gc.js'
 
 # -----------------------------------------------------------------------------
 # npm
