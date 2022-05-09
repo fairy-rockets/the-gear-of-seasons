@@ -127,12 +127,12 @@ class Shelf {
   }
 
   async updateMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
-    const m = await this.makeMoment(req);
+    const m = await this.makeMomentFromRequest(req);
     if (req.originalDate === null) {
       // new
       await this.repo.insertMoment(m);
     } else {
-      // replace
+      // update
       const oldTimestamp = parseMomentTime(req.originalDate);
       if (!oldTimestamp.isValid()) {
         throw new Error(`Invalid old date: ${req.originalDate}`);
@@ -156,7 +156,7 @@ class Shelf {
   async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {
     return await this.repo.deleteMoment(timestamp);
   }
-  private async makeMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
+  private async makeMomentFromRequest(req: protocol.Moment.Save.Request): Promise<Moment> {
     let date = req.date;
     let iconID: string | undefined = undefined;
     const doc = fml.parse(req.text);
