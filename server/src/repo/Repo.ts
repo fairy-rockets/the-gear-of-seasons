@@ -164,11 +164,10 @@ delete from entities where "id" = $1;
 update entities set
   "medium_id" = $2,
   "icon_id" = $3,
-  "type" = $4,
-  "mime_type" = $5,
-  "width" = $6,
-  "height" = $7,
-  "duration" = $8
+  "mime_type" = $4,
+  "width" = $5,
+  "height" = $6,
+  "duration" = $7
 where
   "id" = $1
 `;
@@ -179,7 +178,6 @@ where
           entity.id,
           entity.mediumID,
           entity.iconID,
-          'image',
           entity.mimeType,
           entity.width,
           entity.height,
@@ -192,7 +190,6 @@ where
           entity.id,
           null,
           entity.iconID,
-          'video',
           entity.mimeType,
           entity.width,
           entity.height,
@@ -204,7 +201,6 @@ where
           entity.id,
           null,
           entity.iconID,
-          'audio',
           entity.mimeType,
           null,
           null,
