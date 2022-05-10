@@ -19,7 +19,7 @@ async function main() {
       await shelf.regenerateEntityCache(entity);
       ++processed;
       const end = performance.now();
-      console.log(`${(beg-end).toPrecision(2)}ms elapsed.`);
+      console.log(`Done: ${(beg-end).toPrecision(2)}ms elapsed.`);
     }
   } finally {
     await repo.close();
