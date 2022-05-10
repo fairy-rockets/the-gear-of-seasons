@@ -4,27 +4,26 @@ import path from 'node:path';
 export async function resizeImage(src: string, dst: string, maxSize: number) {
   // https://legacy.imagemagick.org/Usage/resize/
   // https://blog.utgw.net/entry/2019/11/09/191158
-  let r;
-  switch(path.extname(src).toLocaleLowerCase()) {
-    case '.gif':
-      r = await spawn('magick', [
-        'convert',
-        src,
-        '-coalesce',
-        '-layers', 'optimize',
-        '-resize', `${maxSize}x${maxSize}`,
-        dst
-      ]);
-      break;
-    default:
-      r = await spawn('magick', [
-        'convert',
-        src,
-        '-resize', `${maxSize}x${maxSize}`,
-        dst
-      ]);
-      break;  
-  }
+  const r = await (async()=>{
+    switch(path.extname(src).toLocaleLowerCase()) {
+      case '.gif':
+        return await spawn('magick', [
+          'convert',
+          src,
+          '-coalesce',
+          '-layers', 'optimize',
+          '-resize', `${maxSize}x${maxSize}`,
+          dst
+        ]);
+      default:
+        return await spawn('magick', [
+          'convert',
+          src,
+          '-resize', `${maxSize}x${maxSize}`,
+          dst
+        ]);
+    }
+  })();
   if(r.status !== 0) {
     throw new Error(`Failed to convert: ${r.stderr}`);
   }
