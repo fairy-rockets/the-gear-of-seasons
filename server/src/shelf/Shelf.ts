@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import * as protocol from '../lib/protocol.js';
 import * as fml from '../lib/fml.js';
 import { probe } from '../lib/media/Probe.js';
-import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from '../lib/media/convert.js';
+import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from '../lib/media/Convert.js';
 
 import Repo from '../repo/Repo.js';
 import Storage from '../storage/Storage.js';
@@ -151,6 +151,7 @@ class Shelf {
       const mediumPath = path.join(tempDir, 'medium.jpg');
       const iconPath = path.join(tempDir, 'icon.jpg');
       const originalPath = path.join(...((await this.storage.original.fetch(entity.id))!!));
+      const probeResult = await probe(originalPath);
       let newEntity: Entity;
       switch (entity.type) {
         case 'image': {
@@ -167,8 +168,8 @@ class Shelf {
             iconID: iconID,
             mimeType: entity.mimeType,
             timestamp: entity.timestamp,
-            width: entity.width,
-            height: entity.height,
+            width: probeResult.width!!,
+            height: probeResult.height!!,
           } as ImageEntity;
           break;
         }
@@ -181,9 +182,9 @@ class Shelf {
             iconID: iconID,
             mimeType: entity.mimeType,
             timestamp: entity.timestamp,
-            width: entity.width,
-            height: entity.height,
-            duration: entity.duration,
+            width: probeResult.width,
+            height: probeResult.height,
+            duration: probeResult.duration,
           } as VideoEntity;
           break;
         }
@@ -196,7 +197,7 @@ class Shelf {
             iconID: iconID,
             mimeType: entity.mimeType,
             timestamp: entity.timestamp,
-            duration: entity.duration,
+            duration: probeResult.duration,
           } as AudioEntity;
           break;
         }
