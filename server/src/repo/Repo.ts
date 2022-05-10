@@ -162,14 +162,14 @@ delete from entities where "id" = $1;
     // language=PostgreSQL
     const q = `
 update entities set
-  "medium_id" = $2
-  "icon_id" = $3
-  "timestamp" = $4
-  "type" = $5
-  "mime_type" = $6
-  "width" = %7
-  "height" = %5
-  "duration" = %6
+  "medium_id" = $2,
+  "icon_id" = $3,
+  "timestamp" = $4,
+  "type" = $5,
+  "mime_type" = $6,
+  "width" = $7,
+  "height" = $8,
+  "duration" = $9
 where
   "id" = $1
 `;
@@ -222,7 +222,6 @@ where
       default:
         throw new Error('[FIXME] Unreachable code!');
     }
-    console.log(r.status);
     this.cache.entity.set(entity.id, entity);
   }
 

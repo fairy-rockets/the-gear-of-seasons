@@ -12,8 +12,10 @@ async function main() {
     for await (const e of shelf.enumurateAllEntries()) {
       entities.set(e.id, e);
     }
+    let cnt = 0;
     for (const [id, entity] of entities) {
-      console.log(`Regenerating: ${id}`);
+      ++cnt;
+      console.log(`Regenerating (type=${entity.type}, ${cnt}/${entities.size}): ${id}`);
       await shelf.regenerateEntityCache(entity);
     }
   } finally {

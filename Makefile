@@ -82,6 +82,12 @@ gear-gc:
 		'the-gear-of-seasons' \
 		'/app/server/dist/cmd/gc.js'
 
+.PHONY: gear-cli
+gear-regenerate:
+	docker-compose run --rm \
+		'the-gear-of-seasons' \
+		'/app/server/dist/cmd/regenerate-cache.js'
+
 # -----------------------------------------------------------------------------
 # npm
 # -----------------------------------------------------------------------------

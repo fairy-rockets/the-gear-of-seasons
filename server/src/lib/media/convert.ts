@@ -15,7 +15,7 @@ export async function makeImageIcon(src: string, dst: string, size: number) {
   await spawn('magick', [
     'convert',
     src,
-    '-resize', `${size}x${size}`,
+    '-resize', `${size}x${size}^`,
     '-gravity', 'center',
     '-extent', `${size}x${size}`,
     dst
