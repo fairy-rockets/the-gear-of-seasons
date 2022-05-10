@@ -2,17 +2,21 @@ import spawn from '@expo/spawn-async';
 
 export async function resizeImage(src: string, dst: string, maxSize: number) {
   // https://legacy.imagemagick.org/Usage/resize/
-  await spawn('magick', [
+  const r = await spawn('magick', [
     'convert',
     src,
+    '-coalesce',
     '-resize', `${maxSize}x${maxSize}`,
     dst
   ]);
+  if(r.status !== 0) {
+    throw new Error(`Failed to convert: ${r.stderr}`);
+  }
 }
 
 export async function makeImageIcon(src: string, dst: string, size: number) {
   // https://legacy.imagemagick.org/Usage/resize/
-  await spawn('magick', [
+  const r = await spawn('magick', [
     'convert',
     src,
     '-resize', `${size}x${size}^`,
@@ -20,10 +24,13 @@ export async function makeImageIcon(src: string, dst: string, size: number) {
     '-extent', `${size}x${size}`,
     dst
   ]);
+  if(r.status !== 0) {
+    throw new Error(`Failed to convert: ${r.stderr}`);
+  }
 }
 
 export async function makeVideoIcon(src: string, dst: string, at: number, size: number) {
-  await spawn('ffmpeg', [
+  const r = await spawn('ffmpeg', [
     '-hide_banner',
     '-i', src,
     '-ss', at.toFixed(2),
@@ -32,10 +39,13 @@ export async function makeVideoIcon(src: string, dst: string, at: number, size: 
     '-vframes', '1',
     dst
   ]);
+  if(r.status !== 0) {
+    throw new Error(`Failed to convert: ${r.stderr}`);
+  }
 }
 
 export async function makeAudioIcon(src: string, dst: string, at: number, size: number) {
-  await spawn('ffmpeg', [
+  const r = await spawn('ffmpeg', [
     '-hide_banner',
     '-i', src,
     '-ss', at.toFixed(2),
@@ -46,4 +56,7 @@ export async function makeAudioIcon(src: string, dst: string, at: number, size: 
     '-vframes', '1',
     dst
   ]);
+  if(r.status !== 0) {
+    throw new Error(`Failed to convert: ${r.stderr}`);
+  }
 }

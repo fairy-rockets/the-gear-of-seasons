@@ -25,6 +25,9 @@ export default async function avProbe(path: string): Promise<AVProbeResult> {
     '-show_streams',
     '-show_format',
   ]);
+  if (result.status !== 0) {
+    throw new Error(`Failed to probe: ${result.stderr}`);
+  }
   const r = JSON.parse(result.stdout) as RawProbeResult;
   if (r.streams.length === 0) {
     throw new FormatError('No streams in the file');

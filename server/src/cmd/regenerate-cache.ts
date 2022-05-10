@@ -3,19 +3,20 @@ import Shelf from '../shelf/Shelf.js';
 import { Entity } from '../shelf/Entity.js'
 
 async function main() {
-  console.log('** GC **');
+  console.log('** Regenerating entity cache **');
   const repo = new Repo();
   const shelf = new Shelf(repo);
-  const entities = new Map<string, Entity>();
+  const entities: Entity[] = []; 
+
   try {
     for await (const e of shelf.enumurateAllEntries()) {
-      entities.set(e.id, e);
+      entities.push(e);
     }
-    let cnt = 0;
-    for (const [id, entity] of entities) {
-      ++cnt;
-      console.log(`Regenerating (type=${entity.type}, ${cnt}/${entities.size}): ${id}`);
+    let processed = 0;
+    for (const entity of entities) {
       await shelf.regenerateEntityCache(entity);
+      ++processed;
+      console.log(`Done: (type=${entity.type}, ${processed}/${entities.length}): ${entity.id}`);
     }
   } finally {
     await repo.close();

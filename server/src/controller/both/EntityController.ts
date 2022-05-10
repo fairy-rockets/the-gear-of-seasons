@@ -1,4 +1,7 @@
+import path from 'path';
+
 import {FastifyReply, FastifyRequest, RequestGenericInterface} from 'fastify';
+import { fileTypeFromFile } from 'file-type';
 
 import Shelf from '../../shelf/Shelf.js';
 
@@ -42,12 +45,21 @@ export default class EntityController {
           .type(entity.mimeType)
           .sendFile(relativePath, basePath);
         break;
-      case 'medium':
+      case 'medium': {
+        const meta = await fileTypeFromFile(path.join(relativePath, basePath));
+        if(meta === undefined || meta.mime === undefined) {
+          reply
+          .code(500)
+          .type('text/plain')
+          .send('Failed to probe entity.');
+          break;
+        }
         reply
           .code(200)
-          .type('image/jpeg')
+          .type(meta.mime)
           .sendFile(relativePath, basePath);
         break;
+      }
       case 'icon':
         reply
           .code(200)
