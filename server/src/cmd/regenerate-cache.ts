@@ -14,7 +14,7 @@ async function main() {
     }
     let processed = 0;
     for (const entity of entities) {
-      console.log(`Processing: (type=${entity.type}, ${processed+1}/${entities.length}): ${entity.id}`);
+      console.log(`Processing[${entity.mimeType} ${processed+1}/${entities.length})]: ${entity.id}`);
       await shelf.regenerateEntityCache(entity);
       ++processed;
     }
