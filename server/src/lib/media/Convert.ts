@@ -1,4 +1,5 @@
 import spawn from '@expo/spawn-async';
+import * as fs from 'node:fs/promises';
 import path from 'node:path';
 
 export async function resizeImage(src: string, dst: string, maxSize: number) {
@@ -27,6 +28,10 @@ export async function resizeImage(src: string, dst: string, maxSize: number) {
   if(r.status !== 0) {
     throw new Error(`Failed to convert: ${r.stderr}`);
   }
+  const stat = await fs.lstat(dst);
+  if(!stat.isFile()) {
+    throw new Error(`File not generated: ${src} -> ${dst}`);
+  }
 }
 
 export async function makeImageIcon(src: string, dst: string, size: number) {
@@ -43,6 +48,10 @@ export async function makeImageIcon(src: string, dst: string, size: number) {
   if(r.status !== 0) {
     throw new Error(`Failed to convert: ${r.stderr}`);
   }
+  const stat = await fs.lstat(dst);
+  if(!stat.isFile()) {
+    throw new Error(`File not generated: ${src} -> ${dst}`);
+  }
 }
 
 export async function makeVideoIcon(src: string, dst: string, at: number, size: number) {
@@ -57,6 +66,10 @@ export async function makeVideoIcon(src: string, dst: string, at: number, size: 
   ]);
   if(r.status !== 0) {
     throw new Error(`Failed to convert: ${r.stderr}`);
+  }
+  const stat = await fs.lstat(dst);
+  if(!stat.isFile()) {
+    throw new Error(`File not generated: ${src} -> ${dst}`);
   }
 }
 
@@ -74,5 +87,9 @@ export async function makeAudioIcon(src: string, dst: string, at: number, size: 
   ]);
   if(r.status !== 0) {
     throw new Error(`Failed to convert: ${r.stderr}`);
+  }
+  const stat = await fs.lstat(dst);
+  if(!stat.isFile()) {
+    throw new Error(`File not generated: ${src} -> ${dst}`);
   }
 }
