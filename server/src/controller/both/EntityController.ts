@@ -46,7 +46,7 @@ export default class EntityController {
           .sendFile(relativePath, basePath);
         break;
       case 'medium': {
-        const meta = await fileTypeFromFile(path.join(relativePath, basePath));
+        const meta = await fileTypeFromFile(path.join(basePath, relativePath));
         if(meta === undefined || meta.mime === undefined) {
           reply
           .code(500)
