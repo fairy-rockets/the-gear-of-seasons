@@ -45,6 +45,7 @@ class Server {
   private readonly asset: Asset;
   private readonly shelf: Shelf;
   private readonly http: FastifyInstance;
+  private readonly onClose: Promise<void>;
 
   /* **************************************************************************
    * constructors
@@ -57,6 +58,11 @@ class Server {
       logger: true,
       bodyLimit: 256*1024*1024,
       maxParamLength: 1024*1024,
+    });
+    this.onClose = new Promise<void>((resolve, reject) => {
+      this.http.addHook('onClose', async(_instance) => {
+        resolve();
+      });
     });
   }
 
@@ -221,10 +227,15 @@ class Server {
    * start/exit
    * **************************************************************************/
 
-  async start() {
+  async listen() {
+
     await this.http.ready();
     console.log(this.http.printRoutes());
     await this.http.listen(8888, '::', 512);
+    await this.onClose;
+  }
+  async exit() {
+    await this.http.close();
   }
 
   /* **************************************************************************

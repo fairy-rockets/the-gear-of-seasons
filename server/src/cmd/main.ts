@@ -10,8 +10,18 @@ async function main() {
   const shelf = new Shelf(repo);
   try {
     const server = await Server.create(asset, shelf);
-    await server.start();
+    process.on('exit', () => {
+      server.exit()
+        .then(() => {
+          console.log('Server exited.');
+        })
+        .catch((err) => {
+          console.log(`Failed to exit server: ${err}`);
+        });
+    });
+    await server.listen();
   } finally {
+    console.log('Closing repo...');
     await repo.close();
   }
 }
@@ -19,6 +29,5 @@ async function main() {
 main()
   .then(() => {})
   .catch((err) => {
-    console.error(err);
     throw err;
   });
