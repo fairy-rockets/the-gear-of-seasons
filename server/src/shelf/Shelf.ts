@@ -144,8 +144,73 @@ class Shelf {
         await this.repo.deleteEntity(e);
         break;
     }
-
   }
+  async regenerateEntityCache(entity: Entity) {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
+    try {
+      const mediumPath = path.join(tempDir, 'medium.jpg');
+      const iconPath = path.join(tempDir, 'icon.jpg');
+      const originalPath = path.join(...((await this.storage.original.fetch(entity.id))!!));
+      let newEntity: Entity;
+      switch (entity.type) {
+        case 'image': {
+          await resizeImage(originalPath, mediumPath, 2048);
+          const mediumID = await this.storage.medium.upload(mediumPath);
+          await makeImageIcon(originalPath, iconPath, 256);
+          const iconID = await this.storage.icon.upload(iconPath);
+          newEntity = {
+            type: 'image',
+            id: entity.id,
+            mediumID: mediumID,
+            iconID: iconID,
+            mimeType: entity.mimeType,
+            timestamp: entity.timestamp,
+            width: entity.width,
+            height: entity.height,
+          } as ImageEntity;
+          break;
+        }
+        case 'video': {
+          await makeVideoIcon(originalPath, iconPath, entity.duration!! / 2.0, 256);
+          const iconID = await this.storage.icon.upload(iconPath);
+          newEntity = {
+            type: 'video',
+            id: entity.id,
+            iconID: iconID,
+            mimeType: entity.mimeType,
+            timestamp: entity.timestamp,
+            width: entity.width,
+            height: entity.height,
+            duration: entity.duration,
+          } as VideoEntity;
+          break;
+        }
+        case 'audio': {
+          await makeAudioIcon(originalPath, iconPath, entity.duration!! * 3.0 / 4.0, 256);
+          const iconID = await this.storage.icon.upload(iconPath);
+          newEntity = {
+            type: 'audio',
+            id: entity.id,
+            iconID: iconID,
+            mimeType: entity.mimeType,
+            timestamp: entity.timestamp,
+            duration: entity.duration,
+          } as AudioEntity;
+          break;
+        }
+        default:
+          throw new Error('[FIXME] Unreachable code!');
+      }
+      await this.repo.updateEntity(newEntity);
+      return entity;
+    } finally {
+      await fs.rm(tempDir, {
+        recursive: true,
+        force: true,
+      });
+    }
+  }
+
 
   async updateMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
     const m = await this.makeMomentFromRequest(req);

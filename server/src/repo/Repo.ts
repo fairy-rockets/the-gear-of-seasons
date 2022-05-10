@@ -158,6 +158,73 @@ delete from entities where "id" = $1;
     ]);
     this.cache.entity.del(entity.id);
   }
+  async updateEntity(entity: Entity) {
+    // language=PostgreSQL
+    const q = `
+update entities set
+  "medium_id" = $2
+  "icon_id" = $3
+  "timestamp" = $4
+  "type" = $5
+  "mime_type" = $6
+  "width" = %7
+  "height" = %5
+  "duration" = %6
+where
+  "id" = $1
+`;
+    const timestamp =
+      entity.timestamp != undefined ?
+        entity.timestamp.toDate() :
+        null;
+    let r;
+    switch (entity.type) {
+      case 'image': {
+        r = await this.pool.query(q, [
+          entity.id,
+          entity.mediumID,
+          entity.iconID,
+          timestamp,
+          'image',
+          entity.mimeType,
+          entity.width,
+          entity.height,
+          null,
+        ]);
+        break;
+      }
+      case 'video':
+        r = await this.pool.query(q, [
+          entity.id,
+          null,
+          entity.iconID,
+          timestamp,
+          'video',
+          entity.mimeType,
+          entity.width,
+          entity.height,
+          entity.duration,
+        ]);
+        break;
+      case 'audio':
+        r = await this.pool.query(q, [
+          entity.id,
+          null,
+          entity.iconID,
+          timestamp,
+          'audio',
+          entity.mimeType,
+          null,
+          null,
+          entity.duration,
+        ]);
+        break;
+      default:
+        throw new Error('[FIXME] Unreachable code!');
+    }
+    console.log(r.status);
+    this.cache.entity.set(entity.id, entity);
+  }
 
   async insertMoment(moment: Moment) {
     if (moment.timestamp === undefined) {

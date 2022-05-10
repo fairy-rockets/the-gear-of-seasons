@@ -1,25 +1,23 @@
 import spawn from '@expo/spawn-async';
 
 export async function resizeImage(src: string, dst: string, maxSize: number) {
-  // https://www.bogotobogo.com/FFMpeg/ffmpeg_image_scaling_jpeg.php
-  await spawn('ffmpeg', [
-    '-hide_banner',
-    '-i', src,
-    '-vf', `scale='if(gt(a,1),${maxSize},-1)':'if(gt(a,1),-1,${maxSize})'`,
-    '-f', 'image2',
-    '-vframes', '1',
+  // https://legacy.imagemagick.org/Usage/resize/
+  await spawn('magick', [
+    'convert',
+    src,
+    '-resize', `${maxSize}x${maxSize}`,
     dst
   ]);
 }
 
 export async function makeImageIcon(src: string, dst: string, size: number) {
-  // https://stackoverflow.com/a/63856839
-  await spawn('ffmpeg', [
-    '-hide_banner',
-    '-i', src,
-    '-vf', `crop=w='min(iw\\,ih)':h='min(iw\\,ih)',scale=${size}:${size},setsar=1`,
-    '-f', 'image2',
-    '-vframes', '1',
+  // https://legacy.imagemagick.org/Usage/resize/
+  await spawn('magick', [
+    'convert',
+    src,
+    '-resize', `${size}x${size}`,
+    '-gravity', 'center',
+    '-extent', `${size}x${size}`,
     dst
   ]);
 }
