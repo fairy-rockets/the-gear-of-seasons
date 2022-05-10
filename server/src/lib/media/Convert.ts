@@ -1,14 +1,30 @@
 import spawn from '@expo/spawn-async';
+import path from 'node:path';
 
 export async function resizeImage(src: string, dst: string, maxSize: number) {
   // https://legacy.imagemagick.org/Usage/resize/
-  const r = await spawn('magick', [
-    'convert',
-    src,
-    '-coalesce',
-    '-resize', `${maxSize}x${maxSize}`,
-    dst
-  ]);
+  // https://blog.utgw.net/entry/2019/11/09/191158
+  let r;
+  switch(path.extname(src).toLocaleLowerCase()) {
+    case '.gif':
+      r = await spawn('magick', [
+        'convert',
+        src,
+        '-coalesce',
+        '-layers', 'optimize',
+        '-resize', `${maxSize}x${maxSize}`,
+        dst
+      ]);
+      break;
+    default:
+      r = await spawn('magick', [
+        'convert',
+        `${src}[0]`,
+        '-resize', `${maxSize}x${maxSize}`,
+        dst
+      ]);
+      break;  
+  }
   if(r.status !== 0) {
     throw new Error(`Failed to convert: ${r.stderr}`);
   }
@@ -18,7 +34,7 @@ export async function makeImageIcon(src: string, dst: string, size: number) {
   // https://legacy.imagemagick.org/Usage/resize/
   const r = await spawn('magick', [
     'convert',
-    src,
+    `${src}[0]`,
     '-coalesce',
     '-resize', `${size}x${size}^`,
     '-gravity', 'center',
