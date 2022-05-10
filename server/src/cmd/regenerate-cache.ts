@@ -3,6 +3,7 @@ import Shelf from '../shelf/Shelf.js';
 import { Entity } from '../shelf/Entity.js'
 
 async function main() {
+  const started = performance.now();
   console.log('** Regenerating entity cache **');
   const repo = new Repo();
   const shelf = new Shelf(repo);
@@ -19,7 +20,7 @@ async function main() {
       await shelf.regenerateEntityCache(entity);
       ++processed;
       const end = performance.now();
-      console.log(` -> Done: ${((end-beg)/1000).toPrecision(2)}sec elapsed.`);
+      console.log(` -> Done in ${((end-beg)/1000).toPrecision(2)}sec (total: ${((end-start)/1000).toPrecision(2)}sec)`);
     }
   } finally {
     await repo.close();
