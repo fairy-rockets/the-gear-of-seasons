@@ -33,6 +33,7 @@ jobs:
 
       - name: Setup ImageMagick
         run: |
+          # You need brew (mac OS or Linux)
           brew install imagemagick
 
       - name: Prepare
