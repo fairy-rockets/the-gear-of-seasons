@@ -1,6 +1,5 @@
 import Repo from '../repo/Repo.js';
 import Shelf from '../shelf/Shelf.js';
-import * as fml from '../lib/fml.js';
 import { Entity } from '../shelf/Entity.js'
 
 async function main() {
