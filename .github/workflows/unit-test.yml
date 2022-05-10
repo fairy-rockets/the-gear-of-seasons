@@ -31,6 +31,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      - name: Setup ImageMagick
+        run: |
+          brew install imagemagick
+
       - name: Prepare
         run: dev/install
 
