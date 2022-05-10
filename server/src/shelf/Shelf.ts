@@ -165,10 +165,10 @@ class Shelf {
       let newEntity: Entity;
       switch (entity.type) {
         case 'image': {
-          const mediumID = await this.storage.medium.upload(mediumPath);
           await resizeImage(originalPath, mediumPath, 2048);
-          const iconID = await this.storage.icon.upload(iconPath);
+          const mediumID = await this.storage.medium.upload(mediumPath);
           await makeImageIcon(originalPath, iconPath, 256);
+          const iconID = await this.storage.icon.upload(iconPath);
           newEntity = {
             type: 'image',
             id: entity.id,
