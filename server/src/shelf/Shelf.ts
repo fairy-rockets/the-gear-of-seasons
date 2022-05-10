@@ -148,12 +148,9 @@ class Shelf {
   async regenerateEntityCache(entity: Entity) {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
     try {
-      const mediumPath = (() => {
-        if(entity.mimeType === 'image/gif') {
-          return path.join(tempDir, 'medium.gif');
-        }
-        return path.join(tempDir, 'medium.jpg');
-      })();
+      const mediumPath =
+        entity.mimeType === 'image/gif' ? path.join(tempDir, 'medium.gif') :
+                                          path.join(tempDir, 'medium.jpg');
       const iconPath = path.join(tempDir, 'icon.jpg');
       const [originalPath, probeResult] = await (async () => {
         const [base, filename] = (await this.storage.original.fetch(entity.id))!!;
