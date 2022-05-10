@@ -154,9 +154,11 @@ class Shelf {
       let newEntity: Entity;
       switch (entity.type) {
         case 'image': {
-          await resizeImage(originalPath, mediumPath, 2048);
+          await Promise.all([
+            resizeImage(originalPath, mediumPath, 2048),
+            makeImageIcon(originalPath, iconPath, 256),
+          ]);
           const mediumID = await this.storage.medium.upload(mediumPath);
-          await makeImageIcon(originalPath, iconPath, 256);
           const iconID = await this.storage.icon.upload(iconPath);
           newEntity = {
             type: 'image',
