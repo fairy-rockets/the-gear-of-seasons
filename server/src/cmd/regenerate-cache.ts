@@ -14,9 +14,9 @@ async function main() {
     }
     let processed = 0;
     for (const entity of entities) {
+      console.log(`Processing: (type=${entity.type}, ${processed+1}/${entities.length}): ${entity.id}`);
       await shelf.regenerateEntityCache(entity);
       ++processed;
-      console.log(`Done: (type=${entity.type}, ${processed}/${entities.length}): ${entity.id}`);
     }
   } finally {
     await repo.close();

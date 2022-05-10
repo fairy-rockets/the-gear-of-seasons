@@ -155,8 +155,13 @@ class Shelf {
         return path.join(tempDir, 'medium.jpg');
       })();
       const iconPath = path.join(tempDir, 'icon.jpg');
-      const originalPath = path.join(...((await this.storage.original.fetch(entity.id))!!));
-      const probeResult = await probe(originalPath);
+      const [originalPath, probeResult] = await (async () => {
+        const [base, filename] = (await this.storage.original.fetch(entity.id))!!;
+        const probeResult = await probe(path.join(base, filename));
+        const originalPath = path.join(tempDir, `original.${probeResult.ext}`);
+        await fs.copyFile(path.join(base, filename), originalPath);
+        return [originalPath, probeResult];
+      })();
       let newEntity: Entity;
       switch (entity.type) {
         case 'image': {
