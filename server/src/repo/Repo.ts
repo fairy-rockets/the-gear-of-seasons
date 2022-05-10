@@ -164,19 +164,14 @@ delete from entities where "id" = $1;
 update entities set
   "medium_id" = $2,
   "icon_id" = $3,
-  "timestamp" = $4,
-  "type" = $5,
-  "mime_type" = $6,
-  "width" = $7,
-  "height" = $8,
-  "duration" = $9
+  "type" = $4,
+  "mime_type" = $5,
+  "width" = $6,
+  "height" = $7,
+  "duration" = $8
 where
   "id" = $1
 `;
-    const timestamp =
-      entity.timestamp != undefined ?
-        entity.timestamp.toDate() :
-        null;
     let r;
     switch (entity.type) {
       case 'image': {
@@ -184,7 +179,6 @@ where
           entity.id,
           entity.mediumID,
           entity.iconID,
-          timestamp,
           'image',
           entity.mimeType,
           entity.width,
@@ -198,7 +192,6 @@ where
           entity.id,
           null,
           entity.iconID,
-          timestamp,
           'video',
           entity.mimeType,
           entity.width,
@@ -211,7 +204,6 @@ where
           entity.id,
           null,
           entity.iconID,
-          timestamp,
           'audio',
           entity.mimeType,
           null,
