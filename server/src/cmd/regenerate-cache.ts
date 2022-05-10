@@ -14,12 +14,12 @@ async function main() {
     }
     let processed = 0;
     for (const entity of entities) {
-      console.log(`[${entity.mimeType}]: ${entity.id} (${processed+1}/${entities.length})`);
+      console.log(`[${entity.mimeType}] ${entity.id} (${processed+1}/${entities.length})`);
       const beg = performance.now();
       await shelf.regenerateEntityCache(entity);
       ++processed;
       const end = performance.now();
-      console.log(`Done: ${((end-beg)/1000).toPrecision(2)}sec elapsed.`);
+      console.log(` -> Done: ${((end-beg)/1000).toPrecision(2)}sec elapsed.`);
     }
   } finally {
     await repo.close();
