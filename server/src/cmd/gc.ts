@@ -7,29 +7,29 @@ async function main() {
   console.log('** GC **');
   const repo = new Repo();
   const shelf = new Shelf(repo);
-  const usedEntiry = new Set<string>();
+  const usedEntities = new Set<string>();
   const entities = new Map<string, Entity>();
   let numMoments = 0;
   try {
-    for await (let m of shelf.enumurateAllMoments()) {
+    for await (const m of shelf.enumurateAllMoments()) {
       numMoments++;
       for (let block of fml.parse(m.text).blocks) {
         switch (block.type) {
           case "image": {
             if (block.entity != undefined) {
-              usedEntiry.add(block.entity);
+              usedEntities.add(block.entity);
             }
             break;
           }
           case "video": {
             if (block.entity != undefined) {
-              usedEntiry.add(block.entity);
+              usedEntities.add(block.entity);
             }
             break;
           }
           case "audio": {
             if (block.entity != undefined) {
-              usedEntiry.add(block.entity);
+              usedEntities.add(block.entity);
             }
             break;
           }
@@ -41,10 +41,18 @@ async function main() {
         }
       }
     }
-    for await (let e of shelf.enumurateAllEntries()) {
+    for await (const e of shelf.enumurateAllEntries()) {
       entities.set(e.id, e);
     }
-    console.log(`Found ${numMoments} moments, ${entities.size} entities, ${usedEntiry.size} entities used.`);
+    console.log(`Found ${numMoments} moments, ${entities.size} entities, ${usedEntities.size} entities used.`);
+    for (const id of usedEntities) {
+      entities.delete(id);
+    }
+    for (const id of entities.keys()) {
+      console.log(`Unused: ${id}`);
+      const e = entities.get(id)!!;
+      await shelf.deleteEntity(e);
+    }
   } finally {
     await repo.close();
   }

@@ -125,6 +125,27 @@ class Shelf {
       });
     }
   }
+  async deleteEntity(e: Entity) {
+    switch(e.type) {
+      case 'image':
+        await this.storage.original.remove(e.id);
+        await this.storage.medium.remove(e.mediumID);
+        await this.storage.icon.remove(e.iconID);
+        await this.repo.deleteEntity(e);
+        break;
+      case 'audio':
+        await this.storage.original.remove(e.id);
+        await this.storage.icon.remove(e.iconID);
+        await this.repo.deleteEntity(e);
+        break;
+      case 'video':
+        await this.storage.original.remove(e.id);
+        await this.storage.icon.remove(e.iconID);
+        await this.repo.deleteEntity(e);
+        break;
+    }
+
+  }
 
   async updateMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
     const m = await this.makeMomentFromRequest(req);

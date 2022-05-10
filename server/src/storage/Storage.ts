@@ -49,12 +49,12 @@ class Storage {
       const st = await fs.lstat(src);
       if(st.isFile()) {
         console.log(`Removing: ${src}`);
-        fs.rm(src);
+        await fs.rm(src);
       }
       let d = path.dirname(src);
       while((await fs.readdir(d)).length === 0) {
         console.log(`Removing Dir: ${d}`);
-        fs.rmdir(d);
+        await fs.rmdir(d);
         d = path.dirname(d);
       }
       return true;

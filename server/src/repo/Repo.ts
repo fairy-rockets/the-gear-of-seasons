@@ -3,7 +3,7 @@ import NodeCache from 'node-cache';
 import { ResultRow } from 'ts-postgres';
 
 import Pool from './Pool.js';
-import { Entity } from '../shelf/Entity.js';
+import { Entity, ImageEntity } from '../shelf/Entity.js';
 import Config from '../Config.js';
 import { Moment, MomentSummary } from '../shelf/Moment.js';
 
@@ -147,6 +147,16 @@ insert into entities (
         throw new Error('[FIXME] Unreachable code!');
     }
     this.cache.entity.set(entity.id, entity);
+  }
+  async deleteEntity(entity: Entity) {
+    // language=PostgreSQL
+    const q = `
+delete from entities where "id" = $1;
+`;
+    await this.pool.query(q, [
+      entity.id,
+    ]);
+    this.cache.entity.del(entity.id);
   }
 
   async insertMoment(moment: Moment) {
