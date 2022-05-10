@@ -19,7 +19,7 @@ export async function resizeImage(src: string, dst: string, maxSize: number) {
     default:
       r = await spawn('magick', [
         'convert',
-        `${src}[0]`,
+        src,
         '-resize', `${maxSize}x${maxSize}`,
         dst
       ]);
