@@ -16,3 +16,4 @@ EXPOSE 8888
 
 ENTRYPOINT [ "node" ]
 CMD [ "server/dist/cmd/main.js" ]
+
