@@ -2,7 +2,7 @@
 all: ps ;
 
 .PHONY: up
-up: var/ _storage/
+up: var/ _storage/ _share
 	docker-compose up -d
 
 .PHONY: down
@@ -49,7 +49,7 @@ backup:
 	sudo bash _helpers/backup.sh $(shell id -g) $(shell id -u) var _storage
 	$(MAKE) up
 
-var/ _storage/:
+var/ _storage/ _share:
 	mkdir -p "$@"
 
 # -----------------------------------------------------------------------------
@@ -87,6 +87,10 @@ gear-regenerate:
 	docker-compose run --rm \
 		'the-gear-of-seasons' \
 		'/app/server/dist/cmd/regenerate-cache.js'
+
+.PHONY: gear-heapdump
+gear-heapdump:
+	docker-compose kill -s SIGUSR1 'the-gear-of-seasons'
 
 # -----------------------------------------------------------------------------
 # npm
