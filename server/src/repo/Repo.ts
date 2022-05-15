@@ -149,6 +149,7 @@ insert into entities (
     this.cache.entity.set(entity.id, entity);
   }
   async deleteEntity(entity: Entity) {
+    this.cache.entity.del(entity.id);
     // language=PostgreSQL
     const q = `
 delete from entities where "id" = $1;
@@ -159,6 +160,7 @@ delete from entities where "id" = $1;
     this.cache.entity.del(entity.id);
   }
   async updateEntity(entity: Entity) {
+    this.cache.entity.del(entity.id);
     // language=PostgreSQL
     const q = `
 update entities set
