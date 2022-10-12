@@ -1,7 +1,7 @@
 import path from 'path';
 
 import {FastifyReply, FastifyRequest, RequestGenericInterface} from 'fastify';
-import { fileTypeFromFile } from 'file-type';
+import {fileTypeFromFile} from 'file-type';
 
 import Shelf from '../../shelf/Shelf.js';
 
@@ -19,53 +19,53 @@ export default class EntityController {
   static async create(shelf: Shelf): Promise<EntityController> {
     return new EntityController(shelf);
   }
-  async handle(type: 'original' | 'medium' | 'icon', req: FastifyRequest<EntityControllerInterface>, reply: FastifyReply) {
+  async handle(type: 'original' | 'medium' | 'icon', _req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    const req = _req as FastifyRequest<EntityControllerInterface>;
     const id = req.params.id;
     const entity = await this.shelf.findEntity(id);
     if (entity === null) {
-      reply
+      return reply
         .code(404)
-        .type('text/plain')
+        .type('text/plain;charset=UTF-8')
         .send('Entity not found.');
-      return;
     }
     const filepath = await this.shelf.resolveEntityPath(entity, type);
     if (filepath === null) {
-      reply
+      return reply
         .code(404)
         .type('text/plain')
         .send('Entity file has been lost.');
-      return;
     }
     const [basePath, relativePath] = filepath;
     switch (type) {
       case 'original':
-        reply
+        return reply
           .code(200)
           .type(entity.mimeType)
           .sendFile(relativePath, basePath);
-        break;
       case 'medium': {
         const meta = await fileTypeFromFile(path.join(basePath, relativePath));
         if(meta === undefined || meta.mime === undefined) {
-          reply
+          return reply
           .code(500)
-          .type('text/plain')
+          .type('text/plain;charset=UTF-8')
           .send('Failed to probe entity.');
-          break;
         }
-        reply
+        return reply
           .code(200)
           .type(meta.mime)
           .sendFile(relativePath, basePath);
-        break;
       }
       case 'icon':
-        reply
+        return reply
           .code(200)
           .type('image/jpeg')
           .sendFile(relativePath, basePath);
-        break;
+      default:
+        return reply
+          .code(500)
+          .type('text/plain;charset=UTF-8')
+          .send('Unknown entity type.');
     }
   }
 }

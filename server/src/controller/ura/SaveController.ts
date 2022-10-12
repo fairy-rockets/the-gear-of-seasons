@@ -17,23 +17,22 @@ export default class SaveController {
   static async create(shelf: Shelf): Promise<SaveController> {
     return new SaveController(shelf);
   }
-  async handle(req: FastifyRequest, reply: FastifyReply) {
+  async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const now = dayjs();
     const moment = await this.shelf.updateMoment(req.body as protocol.Moment.Save.Request);
     if (moment.timestamp === undefined) {
-      reply
-        .type('plain/text')
+      return reply
+        .type('plain/text;charset=UTF-8')
         .code(500)
         .send('No timestamp!');
-      return;
     }
     const resp: protocol.Moment.Save.Response = {
       path: formatMomentPath(moment.timestamp),
       date: formatMomentTime(moment.timestamp),
       body: await this.renderer.render(now, moment),
     };
-    reply
-      .type('application/json')
+    return reply
+      .type('application/json;charset=UTF-8')
       .code(200)
       .send(resp);
   }

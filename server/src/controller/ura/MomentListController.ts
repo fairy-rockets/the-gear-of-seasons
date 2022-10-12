@@ -24,7 +24,8 @@ export default class MomentListController {
     const template = await UraTemplate.create(asset, 'moments.hbs');
     return new MomentListController(shelf, template);
   }
-  async handle(req: FastifyRequest<MomentListControllerInterface>, reply: FastifyReply) {
+  async handle(_req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    const req = _req as FastifyRequest<MomentListControllerInterface>;
     const year = parseInt(req.params.year, 10) || dayjs().year();
     const moments = (await this.shelf.findMomentSummariesInYear(year)).map((it) => {
       return {
@@ -33,7 +34,8 @@ export default class MomentListController {
         title: it.title,
       };
     });
-    reply.type('text/html')
+    return reply
+      .type('text/html;charset=UTF-8')
       .code(200)
       .send(this.template.render({
         year: year,

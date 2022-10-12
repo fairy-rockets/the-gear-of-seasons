@@ -2,8 +2,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import dayjs from 'dayjs';
-import fastify, { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { RouteGenericInterface } from 'fastify/types/route';
+import fastify, { FastifyBaseLogger,
+  FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
+  FastifySchema,
+  FastifyTypeProviderDefault,
+  RawServerDefault
+} from 'fastify';
+import {RouteGenericInterface} from 'fastify/types/route';
 import fastifyStatic from '@fastify/static';
 
 import Asset from './lib/Asset.js';
@@ -14,7 +21,9 @@ import Shelf from './shelf/Shelf.js';
 // Omote Controllers
 import OmoteIndexController from './controller/omote/IndexController.js';
 import MomentController from './controller/omote/MomentController.js';
-import RandomSelectionController, {RandomSelectionControllerInterface} from './controller/omote/RandomSelectionController.js';
+import RandomSelectionController, {
+  RandomSelectionControllerInterface
+} from './controller/omote/RandomSelectionController.js';
 // Ura Controllers
 import UraIndexController from './controller/ura/IndexController.js';
 import MomentListController, {MomentListControllerInterface} from './controller/ura/MomentListController.js';
@@ -28,18 +37,16 @@ import PreviewController from './controller/ura/PreviewController.js';
 import EntityController, {EntityControllerInterface} from './controller/both/EntityController.js';
 import MomentBodyController from './controller/both/MomentBodyController.js';
 
-type Handler<Interface extends RouteGenericInterface> = 
-  (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>;
+type Handler =
+  (req: FastifyRequest, reply: FastifyReply) => PromiseLike<FastifyReply>;
 
-type HandlerSet<
-  OmoteInterface extends RouteGenericInterface,
-  UraInterface extends RouteGenericInterface,
-> = {
-  omote?: Handler<OmoteInterface>,
-  ura?: Handler<UraInterface>,
+type HandlerSet = {
+  omote?: Handler,
+  ura?: Handler,
 };
 
-const dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 class Server {
   private readonly asset: Asset;
@@ -56,11 +63,11 @@ class Server {
     this.shelf = shelf;
     this.http = fastify({
       logger: true,
-      bodyLimit: 256*1024*1024,
-      maxParamLength: 1024*1024,
+      bodyLimit: 256 * 1024 * 1024,
+      maxParamLength: 1024 * 1024,
     });
     this.onClose = new Promise<void>((resolve, reject) => {
-      this.http.addHook('onClose', async(_instance) => {
+      this.http.addHook('onClose', async (_instance) => {
         resolve();
       });
     });
@@ -92,7 +99,7 @@ class Server {
     });
     this.http.addContentTypeParser<Buffer>(/^(image|video|audio)\/.*$/, {
       parseAs: 'buffer',
-    },async (_req: any, body: Buffer) => body);
+    }, async (_req: any, body: Buffer) => body);
     // -----------
     // Routing
     // -----------
@@ -100,105 +107,73 @@ class Server {
       const omote = await OmoteIndexController.create(this.asset);
       const ura = await UraIndexController.create(this.asset);
       this.each.get('/', {
-        omote: async(req, reply) => {
-          await omote.handle(req, reply);
-        },
-        ura: async (req, reply) => {
-          await ura.handle(req, reply);
-        }
+        omote: omote.handle.bind(omote),
+        ura: ura.handle.bind(ura),
       });
       // (omote)/about-us/
-      this.omote.get('/about-us/', async(req, reply) => {
-        await omote.handle(req, reply);
-      });
+      this.omote.get('/about-us/', omote.handle.bind(omote));
     }
     { // (ura/omote)/year/month/day/HH:mm:ss/
       const omote = await MomentController.create(this.asset, this.shelf);
       const ura = await EditController.create(this.asset, this.shelf);
       this.each.get('/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/:time(^[0-9]{2}:[0-9]{2}:[0-9]{2}$)/', {
-        omote: async (req, reply) => {
-          await omote.handle(req, reply);
-        },
-        ura: async (req, reply) => {
-          await ura.handle(req, reply);
-        },
+        omote: omote.handle.bind(omote),
+        ura: ura.handle.bind(ura),
       });
     }
     { // (omote)/moments/random
       const omote = await RandomSelectionController.create(this.shelf);
-      this.omote.get<RandomSelectionControllerInterface>('/moments/random', async (req, reply) => {
-        await omote.handle(req, reply);
-      });
+      this.omote.get('/moments/random', omote.handle.bind(omote));
     }
     { // (both)/moment/year/month/day/HH:mm:ss/
       const c = await MomentBodyController.create(this.shelf);
-      this.both.get('/moment/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/:time(^[0-9]{2}:[0-9]{2}:[0-9]{2}$)/', async (req, reply) => {
-        await c.handle(req, reply);
-      });
+      this.both.get('/moment/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/:time(^[0-9]{2}:[0-9]{2}:[0-9]{2}$)/', c.handle.bind(c));
     }
     { // (ura)/entity
       const c = await EntityController.create(this.shelf);
-      this.both.get<EntityControllerInterface>('/entity/:id', async (req, reply) => {
-        await c.handle('original', req, reply);
-      });
-      this.both.get<EntityControllerInterface>('/entity/:id/medium', async (req, reply) => {
-        await c.handle('medium', req, reply);
-      });
-      this.both.get<EntityControllerInterface>('/entity/:id/icon', async (req, reply) => {
-        await c.handle('icon', req, reply);
-      });
+      this.both.get('/entity/:id', async (req, reply) => c.handle('original', req, reply));
+      this.both.get('/entity/:id/medium', async (req, reply) => c.handle('medium', req, reply));
+      this.both.get('/entity/:id/icon', async (req, reply) => c.handle('icon', req, reply));
     }
     { // (ura)/moments
       const ura = await MomentListController.create(this.asset, this.shelf);
-      this.ura.get<MomentListControllerInterface>('/moments/', async (req, reply) => {
-        reply.redirect(303, `/moments/${dayjs().year()}`);
-      });
-      this.ura.get<MomentListControllerInterface>('/moments/:year', async (req, reply) => {
-        await ura.handle(req, reply);
-      });
+      this.ura.get(
+        '/moments/',
+        async (req, reply) => reply.redirect(303, `/moments/${dayjs().year()}`));
+      this.ura.get('/moments/:year', ura.handle.bind(ura));
     }
     { // (ura)/new
       const ura = await NewController.create(this.asset);
-      this.ura.get('/new', async (req, reply) => {
-        await ura.handle(req, reply);
-      });
+      this.ura.get('/new', ura.handle.bind(ura));
     }
     { // (ura)/save
       const ura = await SaveController.create(this.shelf);
-      this.ura.post('/save', async (req, reply) => {
-        await ura.handle(req, reply);
-      });
+      this.ura.post('/save', ura.handle.bind(ura));
     }
     { // (ura)/delete
       const ura = await DeleteController.create(this.shelf);
-      this.ura.post('/delete', async (req, reply) => {
-        await ura.handle(req, reply);
-      });
+      this.ura.post('/delete', ura.handle.bind(ura));
     }
     { // (ura)/preview
       const ura = await PreviewController.create(this.shelf);
-      this.ura.post('/preview', async (req, reply) => {
-        await ura.handle(req, reply);
-      });
+      this.ura.post('/preview', ura.handle.bind(ura));
     }
     { // (ura)/upload
       const ura = await UploadController.create(this.shelf);
-      this.ura.post('/upload', async(req, reply) => {
-        await ura.handle(req, reply);
-      });
+      this.ura.post('/upload', ura.handle.bind(this));
     }
 
     { // (omote/ura)/static/*
       this.each.get('/static/*', {
         omote: async(req, reply) => {
           const url = req.url;
-          reply
+          return reply
             .code(200)
             .sendFile(path.join('omote', url.slice(8)), staticRoot);
         },
         ura: async (req, reply) => {
           const url = req.url;
-          reply
+          return reply
             .code(200)
             .sendFile(path.join('ura', url.slice(8)), staticRoot);
         }
@@ -208,13 +183,13 @@ class Server {
       this.each.get('/js/*', {
         omote: async(req, reply) => {
           const url = req.url;
-          reply
+          return reply
             .code(200)
             .sendFile(path.join('omote', url.slice(4)), jsRoot);
         },
         ura: async (req, reply) => {
           const url = req.url;
-          reply
+          return reply
             .code(200)
             .sendFile(path.join('ura', url.slice(4)), jsRoot);
         }
@@ -242,44 +217,33 @@ class Server {
    * routing helpers
    * **************************************************************************/
   private readonly both = {
-    get: <Interface extends RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
-      this.http.get<Interface>(path, async (req, reply) => {
-        await handler(req, reply);
-        return reply;
-      });
+    get: (path: string, handler: Handler) => {
+      this.http.get(path, handler);
     }
   };
   private readonly each = {
-    get: <
-      OmoteInterface extends RouteGenericInterface,
-      UraInterface extends RouteGenericInterface,
-      >(path: string,
-        handlerSet: HandlerSet<OmoteInterface, UraInterface>
-    ) => {
+    get: (path: string, handlerSet: HandlerSet) => {
       this.http.get(path, async (req, reply) => {
         if (req.hostname === Config.OmoteHost && handlerSet.omote !== undefined) {
-          await handlerSet.omote(req as FastifyRequest<OmoteInterface>, reply);
-          return reply;
+          return handlerSet.omote(req as FastifyRequest, reply);
         } else if (req.hostname === Config.UraHost && handlerSet.ura !== undefined) {
-          await handlerSet.ura(req as FastifyRequest<UraInterface>, reply);
-          return reply;
+          return handlerSet.ura(req as FastifyRequest, reply);
         } else {
-          reply
-            .type('text/plain')
+          return reply
             .code(404)
+            .type('text/plain;charset=UTF-8')
             .send('Page not found');
         }
       });
     }
   };
   private readonly omote = {
-    get: <Interface extends RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
-      this.http.get<Interface>(path, async (req, reply) => {
+    get: (path: string, handler: Handler) => {
+      this.http.get(path, async (req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
         if (req.hostname === Config.OmoteHost) {
-          await handler(req, reply);
-          return reply;
+          return handler(req, reply);
         } else {
-          reply
+          return reply
             .type('text/plain')
             .code(404)
             .send('Page not found');
@@ -288,26 +252,24 @@ class Server {
     }
   };
   private readonly ura = {
-    get: <Interface extends RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
-      this.http.get<Interface>(path, async (req, reply) => {
+    get: (path: string, handler: Handler) => {
+      this.http.get(path, async (req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
         if (req.hostname === Config.UraHost) {
-          await handler(req, reply);
-          return reply;
+          return handler(req, reply);
         } else {
-          reply
+          return reply
             .type('text/plain')
             .code(404)
             .send('Page not found');
         }
       });
     },
-    post: <Interface extends RouteGenericInterface>(path: string, handler: (req: FastifyRequest<Interface>, reply: FastifyReply) => PromiseLike<void>) => {
-      this.http.post<Interface>(path, async(req, reply) => {
+    post: (path: string, handler: Handler) => {
+      this.http.post(path, async (req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
         if (req.hostname === Config.UraHost) {
-          await handler(req, reply);
-          return reply;
+          return handler(req, reply);
         } else {
-          reply
+          return reply
             .type('text/plain')
             .code(404)
             .send('Page not found');

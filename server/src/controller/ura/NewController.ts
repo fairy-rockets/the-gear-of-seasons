@@ -13,9 +13,9 @@ export default class NewController {
     const template = await EditorTemplate.create(asset);
     return new NewController(template);
   }
-  async handle(req: FastifyRequest, reply: FastifyReply) {
-    reply
-      .type('text/html')
+  async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    return reply
+      .type('text/html;charset=UTF-8')
       .code(200)
       .send(this.template.render({
         title: '',

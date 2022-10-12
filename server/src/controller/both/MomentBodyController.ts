@@ -15,18 +15,17 @@ export default class MomentBodyController {
   static async create(shelf: Shelf): Promise<MomentBodyController> {
     return new MomentBodyController(shelf);
   }
-  async handle(req: FastifyRequest, reply: FastifyReply) {
+  async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const date = parseMomentPath(req.url.slice(7));
     const moment = await this.shelf.findMoment(date);
     if (moment === null) {
-      reply
-        .type('text/plain')
+      return reply
+        .type('text/plain;charset=UTF-8')
         .code(404)
         .send('Moment not found');
-      return;
     }
-    reply
-      .type('text/html')
+    return reply
+      .type('text/html;charset=UTF-8')
       .code(200)
       .send(await this.renderer.render(dayjs(), moment));
   }

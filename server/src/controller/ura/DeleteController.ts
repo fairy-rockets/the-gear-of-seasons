@@ -16,22 +16,21 @@ export default class DeleteController {
   static async create(shelf: Shelf): Promise<DeleteController> {
     return new DeleteController(shelf);
   }
-  async handle(req: FastifyRequest, reply: FastifyReply) {
+  async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const r = req.body as protocol.Moment.Delete.Request;
     const timestamp = parseMomentTime(r.date)
     const result = await this.shelf.deleteMoment(timestamp);
     if (!result) {
-      reply
-        .type('plain/text')
+      return reply
+        .type('plain/text;charset=UTF-8')
         .code(500)
         .send('Moment not found!');
-      return;
     }
     const resp: protocol.Moment.Delete.Response = {
       year: timestamp.year().toString(10),
     };
-    reply
-      .type('application/json')
+    return reply
+      .type('application/json;charset=UTF-8')
       .code(200)
       .send(resp);
   }

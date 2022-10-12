@@ -4,7 +4,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import * as protocol from '../../lib/protocol.js';
 
 import Shelf from '../../shelf/Shelf.js';
-import { Moment, parseMomentTime } from '../../shelf/Moment.js';
+import {Moment, parseMomentTime} from '../../shelf/Moment.js';
 import MomentRenderer from '../../renderer/MomentRenderer.js';
 
 export default class PreviewController {
@@ -17,7 +17,7 @@ export default class PreviewController {
   static async create(shelf: Shelf): Promise<PreviewController> {
     return new PreviewController(shelf);
   }
-  async handle(req: FastifyRequest, reply: FastifyReply) {
+  async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const raw = req.body as protocol.Moment.Save.Request;
     const now = dayjs();
     const moment: Moment = {
@@ -27,8 +27,8 @@ export default class PreviewController {
       text: raw.text,
       iconID: undefined,
     };
-    reply
-      .type('text/html')
+    return reply
+      .type('text/html;charset=UTF-8')
       .code(200)
       .send(await this.renderer.render(now, moment));
   }

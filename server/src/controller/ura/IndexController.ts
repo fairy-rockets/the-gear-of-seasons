@@ -13,9 +13,10 @@ export default class IndexController {
     const template = await UraTemplate.create(asset, 'index.hbs');
     return new IndexController(template);
   }
-  async handle(req: FastifyRequest, reply: FastifyReply) {
-    reply.type('text/html')
+  async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    return reply
       .code(200)
+      .type('text/html;charset=UTF-8')
       .send(this.template.render({}));
   }
 }

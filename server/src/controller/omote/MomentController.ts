@@ -18,17 +18,16 @@ export default class MomentController {
     const template = Handlebars.compile(src);
     return new MomentController(shelf, template);
   }
-  async handle(req: FastifyRequest, reply: FastifyReply) {
+  async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const date = parseMomentPath(req.url);
     const moment = await this.shelf.findMoment(date);
     if (moment === null) {
-      reply
-        .type('text/plain')
+      return reply
+        .type('text/plain;charset=UTF-8')
         .code(404)
         .send('Moment not found');
-      return;
     }
-    reply
+    return reply
       .type('text/html')
       .code(200)
       .send(this.template({}));

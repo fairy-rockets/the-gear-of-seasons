@@ -13,7 +13,9 @@ export default class IndexController {
     const template = Handlebars.compile(src);
     return new IndexController(template);
   }
-  async handle(req: FastifyRequest, reply: FastifyReply) {
-    reply.type('text/html').code(200).send(this.template({}));
+  async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    return reply.code(200)
+      .type('text/html;charset=UTF-8')
+      .send(this.template({}));
   }
 }
