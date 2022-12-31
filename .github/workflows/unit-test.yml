@@ -40,6 +40,7 @@ jobs:
       - name: Setup ImageMagick (Ubuntu)
         run: |
           sudo curl --output "/usr/bin/magick" "https://imagemagick.org/archive/binaries/magick"
+          sudo chmod a+x "/usr/bin/magick"
         if: matrix.os == 'ubuntu-latest'
 
       - name: Prepare
