@@ -39,7 +39,7 @@ jobs:
 
       - name: Setup ImageMagick (Ubuntu)
         run: |
-          apt-get install --no-install-recommends imagemagick
+          sudo apt-get install --no-install-recommends imagemagick
         if: matrix.os == 'ubuntu-latest'
 
       - name: Prepare
