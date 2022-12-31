@@ -31,11 +31,16 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Setup ImageMagick
+      - name: Setup ImageMagick (mac OS)
         run: |
-          # You need brew (mac OS or Linux)
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          # You need brew on mac OS
           brew install imagemagick
+        if: matrix.os == 'macOS-latest'
+
+      - name: Setup ImageMagick (Ubuntu)
+        run: |
+          apt-get install --no-install-recommends imagemagick
+        if: matrix.os == 'ubuntu-latest'
 
       - name: Prepare
         run: dev/install
