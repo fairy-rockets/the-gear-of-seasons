@@ -39,7 +39,7 @@ jobs:
 
       - name: Setup ImageMagick (Ubuntu)
         run: |
-          sudo apt-get install --no-install-recommends imagemagick
+          sudo curl --output "/usr/bin/magick" "https://imagemagick.org/archive/binaries/magick"
         if: matrix.os == 'ubuntu-latest'
 
       - name: Prepare
