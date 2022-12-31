@@ -27,13 +27,14 @@ jobs:
         id: setup-ffmpeg
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3.5.1
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Setup ImageMagick
         run: |
           # You need brew (mac OS or Linux)
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew install imagemagick
 
       - name: Prepare
