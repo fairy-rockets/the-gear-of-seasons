@@ -41,6 +41,8 @@ jobs:
         run: |
           sudo curl --output "/usr/bin/magick" "https://imagemagick.org/archive/binaries/magick"
           sudo chmod a+x "/usr/bin/magick"
+          sudo apt-get install --no-install-recommends libfuse2
+          magick
         if: matrix.os == 'ubuntu-latest'
 
       - name: Prepare
