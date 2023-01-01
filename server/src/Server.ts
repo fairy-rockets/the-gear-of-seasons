@@ -139,7 +139,10 @@ class Server {
       const ura = await MomentListController.create(this.asset, this.shelf);
       this.ura.get(
         '/moments/',
-        async (req, reply) => reply.redirect(303, `/moments/${dayjs().year()}`));
+        async (_req, reply) => {
+          const year = dayjs().year();
+          return reply.redirect(303, `/moments/${year}`);
+        });
       this.ura.get('/moments/:year', ura.handle.bind(ura));
     }
     { // (ura)/new
