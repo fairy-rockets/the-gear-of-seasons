@@ -29,27 +29,27 @@
     "@types/generic-pool": "^3.1.11",
     "@types/marked": "^4.0.8",
     "@types/mocha": "^10.0.1",
-    "@types/node": "^18.11.18",
+    "@types/node": "^18.15.10",
     "mocha": "^10.2.0",
-    "npm-check-updates": "^16.6.2",
+    "npm-check-updates": "^16.8.0",
     "ts-node-dev": "^2.0.0"
   },
   "dependencies": {
-    "@expo/spawn-async": "^1.7.0",
-    "@fastify/static": "^6.6.0",
-    "@wordpress/escape-html": "^2.23.0",
-    "axios": "^1.2.2",
+    "@expo/spawn-async": "^1.7.2",
+    "@fastify/static": "^6.9.0",
+    "@wordpress/escape-html": "^2.29.0",
+    "axios": "^1.3.4",
     "dayjs": "^1.11.7",
     "exifr": "^7.1.3",
-    "fastify": "^4.11.0",
-    "file-type": "^18.0.0",
+    "fastify": "^4.15.0",
+    "file-type": "^18.2.1",
     "generic-pool": "^3.9.0",
     "handlebars": "^4.7.7",
-    "marked": "^4.2.5",
+    "marked": "^4.3.0",
     "node-cache": "^5.1.2",
-    "pino": "^8.8.0",
+    "pino": "^8.11.0",
     "ts-node": "^10.9.1",
     "ts-postgres": "^1.3.0",
-    "typescript": "^4.9.4"
+    "typescript": "^5.0.2"
   }
 }
