@@ -5,8 +5,9 @@
 
 ## Pre-requirements
 
- - node.js 16.0 or higher.
- - ffmpeg
+- node.js 16.0 or higher.
+- ffmpeg
+- ImageMagick 7.0 or higher
 
 ## How to build
 
