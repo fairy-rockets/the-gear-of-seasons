@@ -45,7 +45,7 @@ chown:
 
 .PHONY: backup
 backup:
-	sudo bash _helpers/backup.sh $(shell id -g) $(shell id -u) var _storage
+	sudo bash _scripts/backup.sh $(shell id -g) $(shell id -u) var _storage
 
 var/ _storage/ _share:
 	mkdir -p "$@"
