@@ -5,7 +5,7 @@
 
 ## Pre-requirements
 
-- node.js 16.0 or higher.
+- node.js 18.0 or higher.
 - ffmpeg
 - ImageMagick 7.0 or higher
 
