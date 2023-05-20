@@ -16,10 +16,12 @@ jobs:
         os: [macOS-latest, ubuntu-latest]
 
     steps:
+      # https://github.com/actions/checkout
       - name: Setup repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.5.2
 
-      - uses: FedericoCarboni/setup-ffmpeg@v1
+      # https://github.com/FedericoCarboni/setup-ffmpeg
+      - uses: FedericoCarboni/setup-ffmpeg@v2
         with:
           # Not strictly necessary, but it may prevent rate limit
           # errors especially on GitHub-hosted macos machines.
