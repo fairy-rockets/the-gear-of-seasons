@@ -28,8 +28,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
         id: setup-ffmpeg
 
+      # https://github.com/actions/setup-node
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3.6.0
         with:
           node-version: ${{ matrix.node-version }}
 
