@@ -68,8 +68,14 @@ class MomentRenderer {
       height = Math.min(2048, entity.height);
       width = entity.width * height / entity.height;
     }
+    let url: string;
+    if (!!block.link) {
+      url = block.link;
+    } else {
+      url = `/entity/${escapeAttribute(block.entity)}`;
+    }
     return `
-<a href="/entity/${escapeAttribute(block.entity)}" target="_blank" rel="noopener noreferrer">
+<a href="${url}" target="_blank" rel="noopener noreferrer">
   <img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="an image.">
 </a>
 `.trim();
