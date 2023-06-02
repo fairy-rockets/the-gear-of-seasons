@@ -20,7 +20,7 @@ restart: var/ _storage/
 
 .PHONY: build
 build:
-	docker pull node:18-alpine
+	docker pull node:20-alpine
 	docker-compose build
 
 .PHONY: pull
