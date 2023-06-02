@@ -1,5 +1,6 @@
 import v8 from 'node:v8';
 import fs from 'node:fs';
+import process from 'node:process';
 
 import Asset from '../lib/Asset.js';
 
@@ -8,6 +9,7 @@ import Shelf from '../shelf/Shelf.js';
 import Repo from '../repo/Repo.js';
 
 async function main() {
+  const abortController = new AbortController();
   process.on('SIGUSR1', () => {
     const fileName = `/share/heapdump_${Date.now()}.heapsnapshot`;
     const snapshotStream = v8.getHeapSnapshot();
@@ -16,6 +18,12 @@ async function main() {
     snapshotStream.on('end', () => {
       fileStream.close();
     });
+  });
+  process.once('SIGINT', () => {
+    abortController.abort();
+  });
+  process.on('SIGTERM', () => {
+    abortController.abort();
   });
   const asset = new Asset();
   const repo = new Repo();
@@ -31,7 +39,7 @@ async function main() {
           console.log(`Failed to exit server: ${err}`);
         });
     });
-    await server.listen();
+    await server.listen(abortController.signal);
   } finally {
     console.log('Closing repo...');
     await repo.close();

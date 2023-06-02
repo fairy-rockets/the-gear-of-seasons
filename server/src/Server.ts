@@ -2,15 +2,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import dayjs from 'dayjs';
-import fastify, { FastifyBaseLogger,
+import fastify, {
   FastifyInstance,
   FastifyReply,
   FastifyRequest,
-  FastifySchema,
-  FastifyTypeProviderDefault,
-  RawServerDefault
 } from 'fastify';
-import {RouteGenericInterface} from 'fastify/types/route';
 import fastifyStatic from '@fastify/static';
 
 import Asset from './lib/Asset.js';
@@ -26,7 +22,7 @@ import RandomSelectionController, {
 } from './controller/omote/RandomSelectionController.js';
 // Ura Controllers
 import UraIndexController from './controller/ura/IndexController.js';
-import MomentListController, {MomentListControllerInterface} from './controller/ura/MomentListController.js';
+import MomentListController from './controller/ura/MomentListController.js';
 import UploadController from './controller/ura/UploadController.js';
 import NewController from './controller/ura/NewController.js';
 import EditController from './controller/ura/EditController.js';
@@ -205,11 +201,15 @@ class Server {
    * start/exit
    * **************************************************************************/
 
-  async listen() {
-
+  async listen(abortSignal: AbortSignal) {
     await this.http.ready();
     console.log(this.http.printRoutes());
-    await this.http.listen(8888, '::', 512);
+    await this.http.listen({
+      port: 8888,
+      host: '::',
+      backlog: 512,
+      signal: abortSignal,
+    });
     await this.onClose;
   }
   async exit() {
