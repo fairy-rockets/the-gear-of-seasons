@@ -22,7 +22,7 @@ async function main() {
   process.once('SIGINT', () => {
     abortController.abort();
   });
-  process.on('SIGTERM', () => {
+  process.once('SIGTERM', () => {
     abortController.abort();
   });
   const asset = new Asset();
