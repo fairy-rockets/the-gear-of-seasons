@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import NodeCache from 'node-cache';
-import { ResultRow } from 'ts-postgres';
+import { ResultRecord, ResultRow } from 'ts-postgres';
 
 import Pool from './Pool.js';
 import { Entity, ImageEntity } from '../shelf/Entity.js';
@@ -333,28 +333,28 @@ delete from moments where "timestamp" = $1;
   }
 }
 
-function decodeMoment(row: ResultRow): Moment {
+function decodeMoment(row: ResultRecord): Moment {
   return {
-    timestamp: dayjs(row.get('timestamp') as Date),
-    title: row.get('title') as string || '',
-    author: row.get('author') as string || '',
-    text: row.get('text') as string || '',
-    iconID: row.get('icon_id') as (string | null) || undefined,
+    timestamp: dayjs(row['timestamp'] as Date),
+    title: row['title'] as string || '',
+    author: row['author'] as string || '',
+    text: row['text'] as string || '',
+    iconID: row['icon_id'] as (string | null) || undefined,
   };
 }
 
-function decodeMomentSummary(row: ResultRow): MomentSummary {
+function decodeMomentSummary(row: ResultRecord): MomentSummary {
   return {
-    timestamp: dayjs(row.get('timestamp') as Date),
-    title: row.get('title') as string || '',
-    iconID: row.get('icon_id') as (string | null) || undefined,
+    timestamp: dayjs(row['timestamp'] as Date),
+    title: row['title'] as string || '',
+    iconID: row['icon_id'] as (string | null) || undefined,
   };
 }
 
-function decodeEntity(row: ResultRow): Entity {
-  const type = row.get('type');
+function decodeEntity(row: ResultRecord): Entity {
+  const type = row['type'] as string;
   const timestamp = (() => {
-    const d = row.get('timestamp');
+    const d = row['timestamp'];
     if (d === undefined || d === null) {
       return undefined;
     } else {
@@ -365,33 +365,33 @@ function decodeEntity(row: ResultRow): Entity {
     case 'image':
       return {
         type: 'image',
-        id: row.get('id') as string,
-        mediumID: row.get('medium_id') as string,
-        iconID: row.get('icon_id') as string,
+        id: row['id'] as string,
+        mediumID: row['medium_id'] as string,
+        iconID: row['icon_id'] as string,
         timestamp: timestamp,
-        mimeType: row.get('mime_type') as string,
-        width: row.get('width') as number,
-        height: row.get('height') as number,
+        mimeType: row['mime_type'] as string,
+        width: row['width'] as number,
+        height: row['height'] as number,
       };
     case 'video':
       return {
         type: 'video',
-        id: row.get('id') as string,
-        iconID: row.get('icon_id') as string,
+        id: row['id'] as string,
+        iconID: row['icon_id'] as string,
         timestamp: timestamp,
-        mimeType: row.get('mime_type') as string,
-        width: row.get('width') as number,
-        height: row.get('height') as number,
-        duration: row.get('duration') as number,
+        mimeType: row['mime_type'] as string,
+        width: row['width'] as number,
+        height: row['height'] as number,
+        duration: row['duration'] as number,
       };
     case 'audio':
       return {
         type: 'audio',
-        id: row.get('id') as string,
-        iconID: row.get('icon_id') as string,
+        id: row['id'] as string,
+        iconID: row['icon_id'] as string,
         timestamp: timestamp,
-        mimeType: row.get('mime_type') as string,
-        duration: row.get('duration') as number,
+        mimeType: row['mime_type'] as string,
+        duration: row['duration'] as number,
       };
     default:
       throw new Error(`[FIXME] Unreachable code! (Unknown entity type: ${type})`);

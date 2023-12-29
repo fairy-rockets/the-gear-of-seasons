@@ -1,6 +1,5 @@
 import * as genericPool from 'generic-pool';
 import { Client, ResultIterator } from 'ts-postgres';
-import { Value } from 'ts-postgres/src/types';
 
 export default class Pool {
   private pool: genericPool.Pool<Client>
@@ -43,7 +42,7 @@ export default class Pool {
     return await this.pool.use(fn);
   }
 
-  async query(query: string, args?: Value[]): Promise<ResultIterator> {
+  async query(query: string, args?: any[]): Promise<ResultIterator> {
     return await this.use(async (cl) => {
       return cl.query(query, args);
     });
