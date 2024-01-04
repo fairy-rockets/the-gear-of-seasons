@@ -55,15 +55,15 @@ export default class Index extends Layer {
 
   render(time: number, matWorld: mat4) {
     const m = this.moments_.render(time, matWorld, this.mouseX_, this.mouseY_);
-    if(m !== null && m !== this.selected_) {
+    if(m !== this.selected_) {
       this.selected_ = m;
       this.onSelectionChanged_(m);
     }
   }
 
-  private onSelectionChanged_(m: Moment) {
+  private onSelectionChanged_(m: Moment | null) {
     const tooltip = this.tooltip_;
-    if(m == null) {
+    if(m === null) {
       tooltip.classList.add('hidden');
     } else {
       tooltip.classList.remove('hidden');
