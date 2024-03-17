@@ -1,5 +1,4 @@
 ---
-version: '3.8'
 services:
   flyway:
     image: 'flyway/flyway:7.3.1'
