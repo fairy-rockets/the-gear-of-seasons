@@ -1,5 +1,5 @@
 import * as genericPool from 'generic-pool';
-import { Client, ResultIterator } from 'ts-postgres';
+import { Client, ResultIterator, ResultRecord, connect } from 'ts-postgres';
 
 export default class Pool {
   private pool: genericPool.Pool<Client>
@@ -13,12 +13,8 @@ export default class Pool {
     };
     this.pool = genericPool.createPool({
       create: async (): Promise<Client> => {
-        const client = new Client(opt);
         try {
-          const timeout = new Promise((resolve, reject) => setTimeout(() => reject(new Error('Connection Timed out')), 500));
-          await Promise.race([client.connect(), timeout]);
-          client.on('error', console.error);
-          return client;
+          return await connect(opt);
         } catch (err) {
           console.error('Failed to connect: ', err);
           throw err;
@@ -42,7 +38,7 @@ export default class Pool {
     return await this.pool.use(fn);
   }
 
-  async query(query: string, args?: any[]): Promise<ResultIterator> {
+  async query(query: string, args?: any[]): Promise<ResultIterator<ResultRecord<any>>> {
     return await this.use(async (cl) => {
       return cl.query(query, args);
     });
