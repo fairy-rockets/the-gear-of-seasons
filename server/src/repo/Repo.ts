@@ -1,9 +1,9 @@
 import dayjs from 'dayjs';
 import NodeCache from 'node-cache';
-import { ResultRecord, ResultRow } from 'ts-postgres';
+import { ResultRecord } from 'ts-postgres';
 
 import Pool from './Pool.js';
-import { Entity, ImageEntity } from '../shelf/Entity.js';
+import { Entity } from '../shelf/Entity.js';
 import Config from '../Config.js';
 import { Moment, MomentSummary } from '../shelf/Moment.js';
 
