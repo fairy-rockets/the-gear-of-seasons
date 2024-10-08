@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 VOLUME /app/storage
 WORKDIR /app
@@ -16,4 +16,3 @@ EXPOSE 8888
 
 ENTRYPOINT [ "node" ]
 CMD [ "server/dist/cmd/main.js" ]
-
