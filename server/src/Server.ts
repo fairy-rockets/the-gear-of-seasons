@@ -137,7 +137,7 @@ class Server {
         '/moments/',
         async (_req, reply) => {
           const year = dayjs().year();
-          return reply.redirect(303, `/moments/${year}`);
+          return reply.redirect(`/moments/${year}`, 303);
         });
       this.ura.get('/moments/:year', ura.handle.bind(ura));
     }
