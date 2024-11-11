@@ -36,12 +36,35 @@ export default class EntityController {
         .type('text/plain')
         .send('Entity file has been lost.');
     }
+    let ext;
+    switch(entity.mimeType) {
+      case 'image/jpeg':
+        ext = 'jpeg';
+        break;
+      case 'image/png':
+        ext = 'png';
+        break;
+      case 'image/gif':
+        ext = 'gif';
+        break;
+      case 'video/mp4':
+        ext = 'mp4';
+        break;
+      case 'audio/x-flac':
+        ext = 'flac';
+      default:
+        return reply
+          .code(500)
+          .type('text/plain;charset=UTF-8')
+          .send(`Unsupported mime type: ${entity.mimeType}`);
+    }
     const [basePath, relativePath] = filepath;
     switch (type) {
       case 'original':
         return reply
           .code(200)
           .type(entity.mimeType)
+          .header("content-disposition", `attachment; filename=\"${id+".original."+ext}\"`)
           .sendFile(relativePath, basePath);
       case 'medium': {
         const meta = await fileTypeFromFile(path.join(basePath, relativePath));
@@ -54,12 +77,14 @@ export default class EntityController {
         return reply
           .code(200)
           .type(meta.mime)
+          .header("content-disposition", `attachment; filename=\"${id+".medium."+ext}\"`)
           .sendFile(relativePath, basePath);
       }
       case 'icon':
         return reply
           .code(200)
           .type('image/jpeg')
+          .header("content-disposition", `attachment; filename=\"${id+".icon."+ext}\"`)
           .sendFile(relativePath, basePath);
       default:
         return reply
