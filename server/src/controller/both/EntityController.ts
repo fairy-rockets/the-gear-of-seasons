@@ -64,7 +64,7 @@ export default class EntityController {
         return reply
           .code(200)
           .type(entity.mimeType)
-          .header("content-disposition", `attachment; filename=\"${id+".original"+ext}\"`)
+          .header("content-disposition", `inline; filename=\"${id+".original"+ext}\"`)
           .sendFile(relativePath, basePath);
       case 'medium': {
         const meta = await fileTypeFromFile(path.join(basePath, relativePath));
@@ -77,14 +77,14 @@ export default class EntityController {
         return reply
           .code(200)
           .type(meta.mime)
-          .header("content-disposition", `attachment; filename=\"${id+".medium"+ext}\"`)
+          .header("content-disposition", `inline; filename=\"${id+".medium"+ext}\"`)
           .sendFile(relativePath, basePath);
       }
       case 'icon':
         return reply
           .code(200)
           .type('image/jpeg')
-          .header("content-disposition", `attachment; filename=\"${id+".icon"+ext}\"`)
+          .header("content-disposition", `inline; filename=\"${id+".icon"+ext}\"`)
           .sendFile(relativePath, basePath);
       default:
         return reply
