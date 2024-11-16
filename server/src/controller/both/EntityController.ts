@@ -84,18 +84,12 @@ export default class EntityController {
         .type('text/plain;charset=UTF-8')
         .send(msg);
     }
-    if (sendResult.statusCode !== 200) {
-      return reply
-        .code(sendResult.statusCode)
-        .type('text/plain;charset=UTF-8')
-        .send(`[BUG] Failed to make valid stream.`);
-    }
     const stream = sendResult.stream;
 
     switch (type) {
       case 'original':
         return reply
-          .code(200)
+          .code(sendResult.statusCode)
           .type(entity.mimeType)
           .header('content-disposition', `inline; filename=\"${id+".original"+ext}\"`)
           .send(stream);
@@ -108,14 +102,14 @@ export default class EntityController {
           .send('Failed to probe entity.');
         }
         return reply
-          .code(200)
+          .code(sendResult.statusCode)
           .type(meta.mime)
           .header('content-disposition', `inline; filename=\"${id+".medium"+ext}\"`)
           .send(stream);
       }
       case 'icon':
         return reply
-          .code(200)
+          .code(sendResult.statusCode)
           .type('image/jpeg')
           .header("content-disposition", `inline; filename=\"${id+".icon"+ext}\"`)
           .send(stream);
