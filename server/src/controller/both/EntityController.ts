@@ -2,6 +2,7 @@ import path from 'path';
 
 import {FastifyReply, FastifyRequest, RequestGenericInterface} from 'fastify';
 import {fileTypeFromFile} from 'file-type';
+import send, {SendOptions} from '@fastify/send';
 
 import Shelf from '../../shelf/Shelf.js';
 
@@ -58,16 +59,46 @@ export default class EntityController {
           .type('text/plain;charset=UTF-8')
           .send(`Unsupported mime type: ${entity.mimeType}`);
     }
-    const [basePath, relativePath] = filepath;
+    const [rootPath, entityPath] = filepath;
+
+    // Make a file stream
+    const sendOption: SendOptions = {
+      'acceptRanges': true,
+      'cacheControl': true,
+      'root': rootPath,
+      'immutable': true,
+      'maxAge': 24 * 3600 * 7,
+    };
+    const sendResult = await send(req.raw, encodeURI(entityPath), sendOption);
+    if (sendResult.type === 'directory') {
+      return reply
+        .code(500)
+        .type('text/plain;charset=UTF-8')
+        .send(`[BUG] Invalid SendResult. Directory is specified, please give me a filepath.`);
+    }
+    if (sendResult.type === 'error') {
+      return reply
+        .code(500)
+        .type('text/plain;charset=UTF-8')
+        .send(`[BUG] Invalid SendResult. Error: ${sendResult.metadata.error}`);
+    }
+    if (sendResult.statusCode !== 200) {
+      return reply
+        .code(sendResult.statusCode)
+        .type('text/plain;charset=UTF-8')
+        .send(`[BUG] Failed to make stream`);
+    }
+    const stream = sendResult.stream;
+
     switch (type) {
       case 'original':
         return reply
           .code(200)
           .type(entity.mimeType)
-          .header("content-disposition", `inline; filename=\"${id+".original"+ext}\"`)
-          .sendFile(relativePath, basePath);
+          .header('content-disposition', `inline; filename=\"${id+".original"+ext}\"`)
+          .send(stream);
       case 'medium': {
-        const meta = await fileTypeFromFile(path.join(basePath, relativePath));
+        const meta = await fileTypeFromFile(path.join(rootPath, entityPath));
         if(meta === undefined || meta.mime === undefined) {
           return reply
           .code(500)
@@ -77,15 +108,15 @@ export default class EntityController {
         return reply
           .code(200)
           .type(meta.mime)
-          .header("content-disposition", `inline; filename=\"${id+".medium"+ext}\"`)
-          .sendFile(relativePath, basePath);
+          .header('content-disposition', `inline; filename=\"${id+".medium"+ext}\"`)
+          .send(stream);
       }
       case 'icon':
         return reply
           .code(200)
           .type('image/jpeg')
           .header("content-disposition", `inline; filename=\"${id+".icon"+ext}\"`)
-          .sendFile(relativePath, basePath);
+          .send(stream);
       default:
         return reply
           .code(500)

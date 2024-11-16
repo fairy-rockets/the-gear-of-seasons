@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@fastify/send": "^3.1.1"
+  }
+}
