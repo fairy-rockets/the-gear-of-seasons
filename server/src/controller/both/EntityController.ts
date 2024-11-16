@@ -64,10 +64,11 @@ export default class EntityController {
     // Make a file stream
     const sendOption: SendOptions = {
       'acceptRanges': true,
-      'cacheControl': true,
+      // 'maxChunkSize': 1024 * 1024 * 8,
+      // 'cacheControl': true,
       'root': rootPath,
-      'immutable': true,
-      'maxAge': 24 * 3600 * 7,
+      // 'immutable': true,
+      // 'maxAge': 24 * 3600 * 7 * 1000,
     };
     const sendResult = await send(req.raw, encodeURI(entityPath), sendOption);
     if (sendResult.type !== 'file') {
