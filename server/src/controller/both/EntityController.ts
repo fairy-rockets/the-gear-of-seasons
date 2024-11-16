@@ -70,23 +70,25 @@ export default class EntityController {
       'maxAge': 24 * 3600 * 7,
     };
     const sendResult = await send(req.raw, encodeURI(entityPath), sendOption);
-    if (sendResult.type === 'directory') {
+    if (sendResult.type !== 'file') {
+      let msg;
+      switch (sendResult.type) {
+        case 'error':
+          msg = `[BUG] Invalid SendResult. Error: ${sendResult.metadata.error}`;
+          break;
+        case 'directory':
+          msg = `[BUG] Invalid SendResult. Directory is specified, please give me a filepath.`;
+      }
       return reply
         .code(500)
         .type('text/plain;charset=UTF-8')
-        .send(`[BUG] Invalid SendResult. Directory is specified, please give me a filepath.`);
-    }
-    if (sendResult.type === 'error') {
-      return reply
-        .code(500)
-        .type('text/plain;charset=UTF-8')
-        .send(`[BUG] Invalid SendResult. Error: ${sendResult.metadata.error}`);
+        .send(msg);
     }
     if (sendResult.statusCode !== 200) {
       return reply
         .code(sendResult.statusCode)
         .type('text/plain;charset=UTF-8')
-        .send(`[BUG] Failed to make stream`);
+        .send(`[BUG] Failed to make valid stream.`);
     }
     const stream = sendResult.stream;
 
