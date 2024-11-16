@@ -8,14 +8,15 @@
       "name": "test",
       "request": "launch",
       "runtimeArgs": [
-        "run-script",
+        "run",
         "test"
       ],
       "runtimeExecutable": "npm",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "type": "pwa-node"
+      "cwd": "${workspaceFolder}/server",
+      "type": "node"
     }
   ]
 }
