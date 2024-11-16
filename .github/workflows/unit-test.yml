@@ -23,9 +23,7 @@ jobs:
       # https://github.com/FedericoCarboni/setup-ffmpeg
       - uses: FedericoCarboni/setup-ffmpeg@v3.1
         with:
-          # Not strictly necessary, but it may prevent rate limit
-          # errors especially on GitHub-hosted macos machines.
-          token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
         id: setup-ffmpeg
 
       # https://github.com/actions/setup-node
