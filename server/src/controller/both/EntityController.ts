@@ -90,6 +90,7 @@ export default class EntityController {
       case 'original':
         return reply
           .code(sendResult.statusCode)
+          .headers(sendResult.headers)
           .type(entity.mimeType)
           .header('content-disposition', `inline; filename=\"${id+".original"+ext}\"`)
           .send(stream);
@@ -103,6 +104,7 @@ export default class EntityController {
         }
         return reply
           .code(sendResult.statusCode)
+          .headers(sendResult.headers)
           .type(meta.mime)
           .header('content-disposition', `inline; filename=\"${id+".medium"+ext}\"`)
           .send(stream);
@@ -110,6 +112,7 @@ export default class EntityController {
       case 'icon':
         return reply
           .code(sendResult.statusCode)
+          .headers(sendResult.headers)
           .type('image/jpeg')
           .header("content-disposition", `inline; filename=\"${id+".icon"+ext}\"`)
           .send(stream);
