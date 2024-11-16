@@ -12,16 +12,16 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x, 22.x]
         os: [macOS-latest, ubuntu-latest]
 
     steps:
       # https://github.com/actions/checkout
       - name: Setup repo
-        uses: actions/checkout@v3.5.2
+        uses: actions/checkout@v4.2.2
 
       # https://github.com/FedericoCarboni/setup-ffmpeg
-      - uses: FedericoCarboni/setup-ffmpeg@v2
+      - uses: FedericoCarboni/setup-ffmpeg@v3.1
         with:
           # Not strictly necessary, but it may prevent rate limit
           # errors especially on GitHub-hosted macos machines.
@@ -30,7 +30,7 @@ jobs:
 
       # https://github.com/actions/setup-node
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3.6.0
+        uses: actions/setup-node@v4.1.0
         with:
           node-version: ${{ matrix.node-version }}
 
