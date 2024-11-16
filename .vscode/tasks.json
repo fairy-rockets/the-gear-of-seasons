@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "test",
+			"path": "server",
+			"group": "test",
+			"problemMatcher": [],
+			"label": "npm: run test - server",
+			"detail": "mocha"
+		}
+	]
+}
