@@ -16,6 +16,9 @@ jobs:
         os: [macOS-latest, ubuntu-latest]
 
     steps:
+      - name: Print env
+        run: uname -a
+
       # https://github.com/actions/checkout
       - name: Setup repo
         uses: actions/checkout@v4.2.2
