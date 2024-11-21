@@ -49,9 +49,9 @@ async function main() {
       entities.delete(id);
     }
     for (const id of entities.keys()) {
-      console.log(`Unused: ${id}`);
       const e = entities.get(id)!!;
-      await shelf.deleteEntity(e);
+      console.log(`Unused: ${id} (type=${e.type})`);
+      // await shelf.deleteEntity(e);
     }
   } finally {
     await repo.close();
