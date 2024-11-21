@@ -205,7 +205,7 @@ class Server {
     await this.http.ready();
     console.log(this.http.printRoutes());
     await this.http.listen({
-      port: 8888,
+      port: 3000,
       host: '::',
       backlog: 512,
       signal: abortSignal,
