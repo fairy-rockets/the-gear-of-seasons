@@ -15,27 +15,27 @@ async function main() {
       numMoments++;
       for (let block of fml.parse(m.text).blocks) {
         switch (block.type) {
-          case "image": {
-            if (block.entity != undefined) {
+          case 'image': {
+            if (block.entity !== undefined) {
               usedEntities.add(block.entity);
             }
             break;
           }
-          case "video": {
-            if (block.entity != undefined) {
+          case 'video': {
+            if (block.entity !== undefined) {
               usedEntities.add(block.entity);
             }
             break;
           }
-          case "audio": {
-            if (block.entity != undefined) {
+          case 'audio': {
+            if (block.entity !== undefined) {
               usedEntities.add(block.entity);
             }
             break;
           }
-          case "text":
-          case "link":
-          case "markdown":
+          case 'text':
+          case 'link':
+          case 'markdown':
           default:
             break;
         }
