@@ -1,4 +1,6 @@
+import twemoji from 'twemoji';
 import Editor from './Editor';
+import { EMOJI_URL_BASE } from '../../constant';
 
 export default class Preview {
   private readonly container_: HTMLDivElement;
@@ -12,6 +14,8 @@ export default class Preview {
     this.editor_ = editor;
   }
   onChange(body: string) {
-    this.container_.innerHTML = body;
+    this.container_.innerHTML = twemoji.parse(body, {
+      base: EMOJI_URL_BASE,
+    });
   }
 }

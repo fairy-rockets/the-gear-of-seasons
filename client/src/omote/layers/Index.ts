@@ -6,6 +6,7 @@ import { mat4 } from 'gl-matrix';
 import Page from './Page';
 import twemoji from 'twemoji';
 import * as protocol from '../../protocol';
+import { EMOJI_URL_BASE } from '../../constant';
 
 export default class Index extends Layer {
   private readonly wheelEventListener_: (ev: WheelEvent) => void;
@@ -69,8 +70,7 @@ export default class Index extends Layer {
       tooltip.classList.remove('hidden');
 
       // title
-      this.tooltipTitle_.textContent = m.title;
-      twemoji.parse(this.tooltipTitle_);
+      this.tooltipTitle_.innerHTML = twemoji.parse(m.title, { base: EMOJI_URL_BASE });
       this.tooltipDate_.innerHTML = m.date;
       this.fixTooltipPosition_();
     }

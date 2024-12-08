@@ -2,6 +2,7 @@ import World from '../World'
 import Layer from '../Layer';
 import { mat4 } from 'gl-matrix';
 import twemoji from 'twemoji';
+import { EMOJI_URL_BASE } from '../../constant';
 
 export default class Page extends Layer {
 
@@ -40,8 +41,7 @@ export default class Page extends Layer {
   }
 
   onLoad_(body: string) {
-    this.content_.innerHTML = body;
-    twemoji.parse(this.content_);
+    this.content_.innerHTML = twemoji.parse(body, { base: EMOJI_URL_BASE });
 
     const contents = this.content_.getElementsByTagName('script');
     for(let i = 0; i < contents.length; ++i) {
