@@ -53,6 +53,7 @@ export default class EntityController {
         break;
       case 'audio/x-flac':
         ext = '.flac';
+        break;
       default:
         return reply
           .code(500)
