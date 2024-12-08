@@ -71,7 +71,7 @@ async function main() {
       console.log(`** Delete unused ${entities.size} entities? **`)
       for (const id of entities.keys()) {
         const e = entities.get(id)!!;
-        const ans = (await terminal.question(`Unused: ${id} (type=${e.type}), https://hexe.net/entity/${id} [yN]: `)).trim().toLowerCase();
+        const ans = (await terminal.question(`  https://hexe.net/entity/${id} (type=${e.type}) [yN]: `)).trim().toLowerCase();
         if (ans === 'y' || ans === 'yes') {
           await shelf.deleteEntity(e);
         }
