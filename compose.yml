@@ -42,13 +42,13 @@ services:
     hostname: 'the-gear-of-seasons_the-gear-of-seasons'
     restart: 'always'
     environment:
-      OMOTE_HOST: 'hexe.net'
-      URA_HOST: 'ura.hexe.net'
-      DB_HOST: 'postgres'
-      TZ: 'Asia/Tokyo'
+      - 'OMOTE_HOST=hexe.net'
+      - 'URA_HOST=ura.hexe.net'
+      - 'DB_HOST=postgres'
+      - 'TZ=Asia/Tokyo'
     expose:
       - '8888'
-psql    networks:
+    networks:
       - 'default'
       - 'planet-link'
 
