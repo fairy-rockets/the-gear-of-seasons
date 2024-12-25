@@ -13,7 +13,7 @@ set -o pipefail
 
 export "USER_ID=$(id -u)"
 export "GROUP_ID=$(id -g)"
-docker-compose -f docker-compose.dev.yml --profile tool run \
+compose -f compose.dev.yml --profile tool run \
   --rm \
   -e 'FLYWAY_CONFIG_FILES=/flyway/conf/flyway.dev.conf' \
   flyway "$@"

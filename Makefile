@@ -3,11 +3,11 @@ all: ps ;
 
 .PHONY: up
 up: var/ _storage/ _share
-	docker-compose up -d
+	docker compose up -d
 
 .PHONY: down
 down:
-	docker-compose down
+	docker compose down
 
 .PHONY: reload
 reload:
@@ -16,28 +16,28 @@ reload:
 
 .PHONY: restart
 restart: var/ _storage/
-	docker-compose restart
+	docker compose restart
 
 .PHONY: build
 build:
 	docker pull node:22-alpine
-	docker-compose build
+	docker compose build
 
 .PHONY: pull
 pull:
-	docker-compose pull
+	docker compose pull
 
 .PHONY: log
 log:
-	docker-compose logs -f --tail 0
+	docker compose logs -f --tail 0
 
 .PHONY: ps
 ps:
-	docker-compose ps
+	docker compose ps
 
 .PHONY: top
 top:
-	docker-compose top
+	docker compose top
 
 .PHONY: chown
 chown:
@@ -68,7 +68,7 @@ db-dump:
 
 .PHONY: gear-cli
 gear-cli:
-	docker-compose exec 'the-gear-of-seasons' bash
+	docker compose exec 'the-gear-of-seasons' bash
 
 # -----------------------------------------------------------------------------
 # batch
@@ -76,19 +76,19 @@ gear-cli:
 
 .PHONY: gear-cli
 gear-gc:
-	docker-compose run --rm \
+	docker compose run --rm \
 		'the-gear-of-seasons' \
 		'/app/server/dist/cmd/gc.js'
 
 .PHONY: gear-cli
 gear-regenerate:
-	docker-compose run --rm \
+	docker compose run --rm \
 		'the-gear-of-seasons' \
 		'/app/server/dist/cmd/regenerate-cache.js'
 
 .PHONY: gear-heapdump
 gear-heapdump:
-	docker-compose kill -s SIGUSR1 'the-gear-of-seasons'
+	docker compose kill -s SIGUSR1 'the-gear-of-seasons'
 
 # -----------------------------------------------------------------------------
 # npm

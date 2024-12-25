@@ -14,7 +14,7 @@ set -o pipefail
 export "USER_ID=$(id -u)"
 export "GROUP_ID=$(id -g)"
 
-docker-compose -f docker-compose.dev.yml run \
+compose -f compose.dev.yml run \
 		--rm \
 		--use-aliases \
 		"postgres-dev" \

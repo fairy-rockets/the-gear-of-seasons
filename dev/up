@@ -15,5 +15,5 @@ mkdir -p "./dev-var/postgres"
 
 export "USER_ID=$(id -u)"
 export "GROUP_ID=$(id -g)"
-docker-compose -f docker-compose.dev.yml up -d
+compose -f compose.dev.yml up -d
 dev/wait

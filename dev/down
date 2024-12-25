@@ -13,4 +13,4 @@ set -o pipefail
 
 export "USER_ID=$(id -u)"
 export "GROUP_ID=$(id -g)"
-docker-compose -f docker-compose.dev.yml down
+docker compose -f compose.dev.yml down
