@@ -41,6 +41,8 @@ services:
     container_name: 'the-gear-of-seasons_the-gear-of-seasons'
     hostname: 'the-gear-of-seasons_the-gear-of-seasons'
     restart: 'always'
+    depends_on:
+      - postgres
     environment:
       - 'OMOTE_HOST=hexe.net'
       - 'URA_HOST=ura.hexe.net'
