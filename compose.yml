@@ -1,17 +1,5 @@
 ---
 services:
-  flyway:
-    image: 'flyway/flyway:7.3.1'
-    container_name: 'the-gear-of-seasons_flyway'
-    hostname: 'the-gear-of-seasons_flyway'
-    restart: 'no'
-    volumes:
-      - ./db/flyway_data/sql:/flyway/sql
-      - ./db/flyway_data/conf:/flyway/conf
-    networks:
-      - 'default'
-    profiles: ['tool']
-
   postgres:
     image: 'postgres:13-alpine'
     container_name: 'the-gear-of-seasons_postgres'
@@ -53,6 +41,18 @@ services:
     networks:
       - 'default'
       - 'planet-link'
+
+  flyway:
+    image: 'flyway/flyway:7.3.1'
+    container_name: 'the-gear-of-seasons_flyway'
+    hostname: 'the-gear-of-seasons_flyway'
+    restart: 'no'
+    volumes:
+      - './db/flyway_data/sql:/flyway/sql'
+      - './db/flyway_data/conf:/flyway/conf'
+    networks:
+      - 'default'
+    profiles: ['tool']
 
 networks:
   default:
