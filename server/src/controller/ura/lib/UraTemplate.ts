@@ -20,7 +20,6 @@ export default class UraTemplate<T = any> {
     hbs.registerPartial('omote-url', hbs.compile(`//${Config.OmoteHost}/`, kCompileOption));
     hbs.registerPartial('ura-url', hbs.compile(`//${Config.UraHost}/`, kCompileOption));
     hbs.registerPartial('content', hbs.compile(await asset.loadString(`templates/ura/${contentFilepath}`), kCompileOption));
-    hbs.registerPartial('currentYear', hbs.compile(`${dayjs().year()}`, kCompileOption));
     hbs.registerHelper('eq', function (arg1: any, arg2: any):boolean {
       return arg1 === arg2;
     })
