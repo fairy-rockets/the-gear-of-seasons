@@ -27,18 +27,6 @@ export default class UraTemplate<T = any> {
     const template = hbs.compile<T>(src, kCompileOption);
     return new UraTemplate<T>(hbs, template);
   }
-  registerPartial(name: string, fn: Template): UraTemplate<T> {
-    this.hbs.registerPartial(name, fn);
-    return this;
-  }
-  registerString(name: string, content: string): UraTemplate<T> {
-    this.hbs.registerPartial(name, this.hbs.compile(content, kCompileOption));
-    return this;
-  }
-  registerHelper(name: string, fn: Handlebars.HelperDelegate): UraTemplate<T> {
-    this.hbs.registerHelper(name, fn);
-    return this;
-  }
   render(data: T): string {
     return this.template(data);
   }
