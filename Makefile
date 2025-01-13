@@ -8,7 +8,7 @@ FORCE: ;
 ## params
 ########################################################################################################################
 # common
-VAR_DIR=./var/
+VAR_DIR=./var
 VARS = $(VAR_DIR) $(VAR_DIR)/psql $(VAR_DIR)/storage $(VAR_DIR)/share
 
 # postgres
