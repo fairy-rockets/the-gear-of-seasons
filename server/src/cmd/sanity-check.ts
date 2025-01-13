@@ -16,7 +16,7 @@ async function main() {
         try {
           await fs.lstat(file);
         } catch (err) {
-          console.error('FileNotFound: ', file, 'id=', entity.id);
+          console.log(`${entity.id}, ${file}`);
         }
       }
     }
