@@ -9,7 +9,7 @@ FORCE: ;
 ########################################################################################################################
 # common
 VAR_DIR=./var
-VARS = $(VAR_DIR) $(VAR_DIR)/psql $(VAR_DIR)/storage $(VAR_DIR)/share
+VARS = $(VAR_DIR) $(VAR_DIR)/psql $(VAR_DIR)/storage
 
 # postgres
 PSQL_USER=the-gear-of-seasons
