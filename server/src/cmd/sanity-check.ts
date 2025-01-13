@@ -31,9 +31,9 @@ async function main() {
   console.log();
   try {
     console.log('[Checking all moments...]')
+    const map = new Map<string, Set<string>>();
     for await(let entity of shelf.enumurateAllEntities()) {
       const files = await shelf.resolveFilepaths(entity);
-      const map = new Map<string, Set<string>>();
       for (const file of files) {
         try {
           await fs.lstat(file);
@@ -52,11 +52,11 @@ async function main() {
           }
         }
       }
-      for (const [path, set] of map) {
-        console.log(`https://ura.hexe.net${path}`);
-        for (const id of set) {
-          console.log(`  - ${id}`);
-        }
+    }
+    for (const [path, set] of map) {
+      console.log(`https://ura.hexe.net${path}`);
+      for (const id of set) {
+        console.log(`  - ${id}`);
       }
     }
     console.log();
