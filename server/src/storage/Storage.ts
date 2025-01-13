@@ -42,6 +42,11 @@ class Storage {
     }
   }
 
+  public resolveAbsolutePath(hash: string): string {
+    const relativePath = path.join(this.kind, storedPathOf(hash));
+    return path.join(this.base, relativePath);
+  }
+
   async remove(hash: string): Promise<boolean> {
     const relativePath = path.join(this.kind, storedPathOf(hash));
     const src = path.join(this.base, relativePath);

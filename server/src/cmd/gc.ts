@@ -54,7 +54,7 @@ async function main() {
       }
     }
     console.log('[Checking all entities...]');
-    for await (const e of shelf.enumurateAllEntries()) {
+    for await (const e of shelf.enumurateAllEntities()) {
       if ((entities.size % 100) === 0) {
         console.log('  ', `${numMoments} analyzed.`);
       }

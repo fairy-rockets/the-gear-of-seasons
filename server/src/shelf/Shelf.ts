@@ -24,6 +24,7 @@ class Shelf {
     medium: Storage,
     icon: Storage,
   };
+
   constructor(repo: Repo) {
     this.storagePath = path.join(dirname, '..', '..', '..', '_storage');
     this.repo = repo;
@@ -34,12 +35,18 @@ class Shelf {
     };
   }
 
-  enumurateAllEntries(): AsyncGenerator<Entity> {
-    return this.repo.enumurateAllEntries();
+  /* ***********************************************************************************************
+   * Entity
+   ********************************************************************************************** */
+
+  enumurateAllEntities(): AsyncGenerator<Entity> {
+    return this.repo.enumurateAllEntities();
   }
+
   async findEntity(id: string): Promise<Entity | null> {
     return await this.repo.findEntity(id);
   }
+
   async resolveEntityPath(entity: Entity, type: 'original' | 'medium' | 'icon'): Promise<[string, string] | null> {
     switch(type) {
       case 'original':
@@ -125,6 +132,7 @@ class Shelf {
       });
     }
   }
+
   async deleteEntity(e: Entity) {
     switch(e.type) {
       case 'image':
@@ -145,6 +153,7 @@ class Shelf {
         break;
     }
   }
+
   async regenerateEntityCache(entity: Entity) {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
     try {
@@ -219,6 +228,31 @@ class Shelf {
     }
   }
 
+  async resolveFilepaths(entity: Entity): Promise<Set<string>> {
+    const set = new Set<string>();
+    const originalPath = this.storage.original.resolveAbsolutePath(entity.id);
+    if (originalPath !== null) {
+      set.add(originalPath);
+    }
+    const iconPath = this.storage.icon.resolveAbsolutePath(entity.iconID);
+    if (iconPath !== null) {
+      set.add(iconPath);
+    }
+    switch (entity.type) {
+      case 'audio':
+        break;
+      case 'video':
+        break;
+      case 'image': {
+        const mediumPath = this.storage.medium.resolveAbsolutePath(entity.mediumID);
+        if (mediumPath !== null) {
+          set.add(mediumPath);
+        }
+      }
+        break;
+    }
+    return set;
+  }
 
   async updateMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
     const m = await this.makeMomentFromRequest(req);
@@ -235,21 +269,11 @@ class Shelf {
     }
     return m;
   }
-  enumurateAllMoments(): AsyncGenerator<Moment> {
-    return this.repo.enumurateAllMoments();
-  }
-  async findMomentSummariesInYear(year: number): Promise<MomentSummary[]> {
-    return await this.repo.findMomentSummariesInYear(year);
-  }
-  async findMoment(timestamp: dayjs.Dayjs): Promise<Moment | null> {
-    return await this.repo.findMoment(timestamp);
-  }
-  async findMomentSummariesByRandom(size: number): Promise<MomentSummary[]> {
-    return await this.repo.findMomentSummariesByRandom(size);
-  }
-  async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {
-    return await this.repo.deleteMoment(timestamp);
-  }
+
+  /* ***********************************************************************************************
+   * Moment
+   ********************************************************************************************** */
+
   private async makeMomentFromRequest(req: protocol.Moment.Save.Request): Promise<Moment> {
     let date = req.date;
     let iconID: string | undefined = undefined;
@@ -302,6 +326,25 @@ class Shelf {
     };
   }
 
+  enumurateAllMoments(): AsyncGenerator<Moment> {
+    return this.repo.enumurateAllMoments();
+  }
+
+  async findMomentSummariesInYear(year: number): Promise<MomentSummary[]> {
+    return await this.repo.findMomentSummariesInYear(year);
+  }
+
+  async findMoment(timestamp: dayjs.Dayjs): Promise<Moment | null> {
+    return await this.repo.findMoment(timestamp);
+  }
+
+  async findMomentSummariesByRandom(size: number): Promise<MomentSummary[]> {
+    return await this.repo.findMomentSummariesByRandom(size);
+  }
+
+  async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {
+    return await this.repo.deleteMoment(timestamp);
+  }
 }
 
 export default Shelf;

@@ -10,7 +10,7 @@ async function main() {
   const entities: Entity[] = []; 
 
   try {
-    for await (const e of shelf.enumurateAllEntries()) {
+    for await (const e of shelf.enumurateAllEntities()) {
       entities.push(e);
     }
     let processed = 0;

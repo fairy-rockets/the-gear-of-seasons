@@ -26,7 +26,7 @@ export default class Repo {
     await this.pool.close();
   }
 
- async* enumurateAllEntries(): AsyncGenerator<Entity> {
+ async* enumurateAllEntities(): AsyncGenerator<Entity> {
        // language=PostgreSQL
     const q1 = `
 select
