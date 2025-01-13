@@ -18,6 +18,7 @@ async function main() {
     'output': process.stdout,
   });
   let numMoments = 0;
+  let numEntities = 0;
   try {
     console.log('[Checking all moments...]')
     for await (const m of shelf.enumurateAllMoments()) {
@@ -55,8 +56,9 @@ async function main() {
     }
     console.log('[Checking all entities...]');
     for await (const e of shelf.enumurateAllEntities()) {
-      if ((entities.size % 100) === 0) {
-        console.log('  ', `${numMoments} analyzed.`);
+      numEntities++;
+      if ((numEntities % 100) === 0) {
+        console.log('  ', `${numEntities} analyzed.`);
       }
       entities.set(e.id, e);
     }
