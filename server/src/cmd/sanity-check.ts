@@ -39,7 +39,6 @@ async function main() {
           await fs.lstat(file);
         } catch (err) {
           const moments = await findMoment(entity.id);
-          console.log(`Not found: ${entity.id}`);
           for (const moment of moments) {
             if (moment.timestamp === undefined) {
               continue;
