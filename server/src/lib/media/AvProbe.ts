@@ -1,12 +1,18 @@
 import spawn from '@expo/spawn-async';
 import FormatError from './FormatError.js';
 
+type RawVideoStreamProbeResult = {
+  codec_type: 'video';
+  readonly width: number;
+  readonly height: number;
+};
+
+type RawAudioStreamProbeResult = {
+  codec_type: 'audio';
+};
+
 type RawProbeResult = {
-  readonly streams: {
-    readonly codec_type: string;
-    readonly width: number;
-    readonly height: number;
-  }[];
+  readonly streams: (RawVideoStreamProbeResult | RawAudioStreamProbeResult)[];
   readonly format: {
     readonly duration: number;
   };
