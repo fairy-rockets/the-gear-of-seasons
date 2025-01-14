@@ -66,7 +66,7 @@ export default class Uploader {
     const upload: (i: number) => Promise<boolean> = (i: number) => new Promise((resolve, reject) => {
       this.progressImage_.src = '';
       const file = files[i];
-      const execUpload = () => {
+      const execUpload = () =>
         fetch('/upload', {
           method: 'POST',
           body: file,
@@ -79,21 +79,15 @@ export default class Uploader {
           embeds.push(resp);
           this.progressBar_.value = i+1;
           return (i + 1) < files.length ? upload(1 + i) : Promise.resolve(true);
-        }).then(resolve, reject);  
-      };
-      if(file.type.startsWith('image/')){
-        const fr = new FileReader();
-        fr.onload = event => {
-          this.progressImage_.onload = () => execUpload();
-          this.progressImage_.src = event.target!.result as string;
-        };
-        fr.onerror = ev => reject(fr.error);
-        fr.onabort = ev => reject(fr.error);
-        fr.readAsDataURL(file);
+        });
+      if(file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        this.progressImage_.src = url;
+        execUpload().finally(() => URL.revokeObjectURL(url)).then(resolve, reject);
       } else if (file.type.startsWith('video/')) {
-        execUpload();
+        execUpload().then(resolve, reject);
       } else if (file.type.startsWith('audio/')) {
-        execUpload();
+        execUpload().then(resolve, reject);
       }
     });
 
