@@ -21,7 +21,7 @@ type RawProbeResult = {
 export type AVProbeResult = {
   width?: number,
   height?: number,
-  duration?: number,
+  duration: number,
 }
 
 export default async function avProbe(path: string): Promise<AVProbeResult> {
