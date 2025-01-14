@@ -30,7 +30,8 @@ async function main() {
   console.log('** Starting Sanity Check **');
   console.log();
   try {
-    console.log('[Checking all moments...]')
+    console.log('Analyzing...')
+    let numMissingEntity = 0;
     const map = new Map<string, Set<string>>();
     for await(let entity of shelf.enumurateAllEntities()) {
       const files = await shelf.resolveFilepaths(entity);
@@ -49,11 +50,15 @@ async function main() {
             }
             const set = map.get(path)!;
             set.add(entity.id);
+	    numMissingEntity++;
           }
         }
       }
     }
-    for (const [path, set] of map) {
+    console.log(`Missing files in ${map.size} moments, ${numMissingEntity} entities.`);
+    const paths = [...map.keys()].sort();
+    for (const path of paths) {
+      const set = map.get(path)!;
       console.log(`https://ura.hexe.net${path}`);
       for (const id of set) {
         console.log(`  - ${id}`);

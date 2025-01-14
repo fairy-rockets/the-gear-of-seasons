@@ -51,6 +51,9 @@ export default class EntityController {
       case 'video/mp4':
         ext = '.mp4';
         break;
+      case 'video/webm':
+        ext = '.webm';
+        break;
       case 'audio/x-flac':
         ext = '.flac';
         break;

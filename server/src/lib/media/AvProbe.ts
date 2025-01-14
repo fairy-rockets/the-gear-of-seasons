@@ -6,8 +6,10 @@ type RawProbeResult = {
     readonly codec_type: string;
     readonly width: number;
     readonly height: number;
-    readonly duration?: number;
   }[];
+  readonly format: {
+    readonly duration: number;
+  };
 };
 
 export type AVProbeResult = {
@@ -38,12 +40,12 @@ export default async function avProbe(path: string): Promise<AVProbeResult> {
     return {
       width: videoStream.width,
       height: videoStream.height,
-      duration: videoStream.duration,
+      duration: r.format.duration,
     };
   }
   if (audioStream !== undefined) {
     return {
-      duration: audioStream.duration,
+      duration: r.format.duration,
     };
   }
   throw new FormatError('Stream not found');
