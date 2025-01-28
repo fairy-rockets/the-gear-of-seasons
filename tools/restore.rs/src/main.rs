@@ -1,6 +1,3 @@
-use std::path::Path;
-use clap::ArgMatches;
-
 mod app;
 
 const PATH: &'static str = r#"\\10.2.4.16\Public\Works\Photos"#;
