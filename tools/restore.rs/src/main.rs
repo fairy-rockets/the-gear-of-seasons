@@ -50,7 +50,7 @@ fn main() -> anyhow::Result<()> {
     .finish()
     .init();
   match app().get_matches().subcommand() {
-    Some(("exact", m)) => app::exact::run(m),
+    Some(("hash", m)) => app::hash::run(m),
     Some((name, _)) => Err(anyhow::anyhow!("Unknown subcommand {}", name)),
     None => Err(anyhow::anyhow!("No subcommand given")),
   }
