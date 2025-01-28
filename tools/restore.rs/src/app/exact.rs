@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use tracing::info;
 use crate::app;
 
-pub fn walk<F>(path: &Path, mut f: F)
+fn walk<F>(path: &Path, mut f: F)
   where F: FnMut(&str, PathBuf) -> anyhow::Result<()>
 {
   let ext_jpgs = HashSet::from([
