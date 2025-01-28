@@ -68,7 +68,7 @@ pub fn run(m: &clap::ArgMatches) -> anyhow::Result<()> {
 
   // Walk the storage dir.
   std::fs::create_dir_all(output)?;
-  app::storage::walk(Path::new(storage), |hash, path| {
+  app::exact::walk(Path::new(storage), |hash, path| {
     if !images.contains(hash) {
       return Ok(());
     }

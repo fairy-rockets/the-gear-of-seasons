@@ -52,9 +52,8 @@ fn main() -> anyhow::Result<()> {
     .with_writer(std::io::stderr)
     .finish()
     .init();
-  let m = app().get_matches();
-  match m.subcommand() {
-    Some(("exact", m)) => app::storage::run(m),
+  match app().get_matches().subcommand() {
+    Some(("exact", m)) => app::exact::run(m),
     Some((name, _)) => Err(anyhow::anyhow!("Unknown subcommand {}", name)),
     None => Err(anyhow::anyhow!("No subcommand given")),
   }
