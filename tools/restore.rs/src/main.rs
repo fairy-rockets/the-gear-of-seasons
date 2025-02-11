@@ -1,4 +1,5 @@
 mod app;
+mod util;
 
 const PATH: &'static str = r#"\\10.2.4.16\Public\Works\Photos"#;
 
@@ -36,7 +37,32 @@ fn app() -> clap::Command {
         .action(ArgAction::Set)
         .value_parser(value_parser!(String))
         .help("Output storage path")))
-
+    .subcommand(clap::Command::new("image")
+      .about("image-match by PSNR")
+      .arg(Arg::new("MEDIUM")
+        .long("medium")
+        .required(true)
+        .action(ArgAction::Set)
+        .value_parser(value_parser!(String))
+        .help("medium file path"))
+      .arg(Arg::new("STORAGE")
+        .long("storage")
+        .required(true)
+        .action(ArgAction::Set)
+        .value_parser(value_parser!(String))
+        .help("File origin"))
+      .arg(Arg::new("INPUT")
+        .long("input")
+        .required(true)
+        .action(ArgAction::Set)
+        .value_parser(value_parser!(String))
+        .help("Input file (md5 hash list, `original,medium`)"))
+      .arg(Arg::new("OUTPUT")
+        .long("output")
+        .required(true)
+        .action(ArgAction::Set)
+        .value_parser(value_parser!(String))
+        .help("Output storage path")))
 }
 
 fn main() -> anyhow::Result<()> {
@@ -51,6 +77,7 @@ fn main() -> anyhow::Result<()> {
     .init();
   match app().get_matches().subcommand() {
     Some(("hash", m)) => app::hash::run(m),
+    Some(("image", m)) => app::image::run(m),
     Some((name, _)) => Err(anyhow::anyhow!("Unknown subcommand {}", name)),
     None => Err(anyhow::anyhow!("No subcommand given")),
   }
