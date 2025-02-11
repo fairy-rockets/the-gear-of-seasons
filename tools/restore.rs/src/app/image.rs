@@ -3,10 +3,10 @@ use std::path::{Path, PathBuf};
 use tracing::{info, warn};
 
 pub fn run(m: &clap::ArgMatches) -> anyhow::Result<()> {
-  let md5_map = m.get_one::<String>("MD5_MAP").expect("[BUG] No INPUT");
-  let ahash_map = m.get_one::<String>("AHASH_MAP").expect("[BUG] No INPUT");
-  let medium_path = m.get_one::<String>("MEDIUM").expect("[BUG] No MEDIUM PATH");
-  let original_path = m.get_one::<String>("ORIGINAL").expect("[BUG] No ORIGINAL PATH");
+  let md5_map = m.get_one::<String>("MD5_MAP").expect("[BUG] No MD5_MAP");
+  let ahash_map = m.get_one::<String>("AHASH_MAP").expect("[BUG] No AHASH_MAP");
+  let medium_path = m.get_one::<String>("MEDIUM").expect("[BUG] No MEDIUM");
+  let original_path = m.get_one::<String>("ORIGINAL").expect("[BUG] No ORIGINAL");
   let dest = m.get_one::<String>("DESTINATION").expect("[BUG] No DESTINATION");
   info!("md5 map: {}", md5_map);
   info!("ahash map: {}", ahash_map);
