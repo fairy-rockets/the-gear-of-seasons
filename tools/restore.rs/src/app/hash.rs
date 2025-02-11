@@ -2,27 +2,21 @@ use std::path::Path;
 use tracing::info;
 
 pub fn run(m: &clap::ArgMatches) -> anyhow::Result<()> {
-  let input = m.get_one::<String>("INPUT").expect("[BUG] No INPUT");
-  let output = m.get_one::<String>("OUTPUT").expect("[BUG] No OUTPUT");
-  let storage = m.get_one::<String>("STORAGE").expect("[BUG] No PATH");
-  info!("input: {}", input);
-  info!("output: {}", output);
-  info!("storage: {}", storage);
+  let md5_map = m.get_one::<String>("MD5_MAP").expect("[BUG] No MD5_MAP");
+  let original_path = m.get_one::<String>("ORIGINAL").expect("[BUG] No ORIGINAL");
+  let dest = m.get_one::<String>("DESTINATION").expect("[BUG] No DESTINATION");
+  info!("md5 map: {}", md5_map);
+  info!("original path: {}", original_path);
+  info!("destination: {}", dest);
 
   // Read the input hashes
   let mut entities = crate::util::Entities::new();
-  info!("[{}] reading input file.", input);
-  let duration = {
-    let beg = std::time::Instant::now();
-    entities.load(input)?;
-    let end = std::time::Instant::now();
-    end.duration_since(beg)
-  };
-  info!("[{}] {} images, took {} [ms]", input, entities.len(), duration.as_millis());
+  info!("[{}] reading md5 map file.", md5_map);
+  entities.load(md5_map)?;
 
   // Walk the storage dir.
-  std::fs::create_dir_all(output)?;
-  crate::util::walk_images(storage, |hash, path| {
+  std::fs::create_dir_all(dest)?;
+  crate::util::walk_images(original_path, |hash, path| {
     let Some(hash) = entities.medium_of(hash) else {
       return Ok(());
     };
@@ -30,7 +24,7 @@ pub fn run(m: &clap::ArgMatches) -> anyhow::Result<()> {
     let d2 = &hash[2..4];
     let d3 = &hash[4..6];
     let f = &hash[6..];
-    let dst = Path::new(output).join(d1).join(d2).join(d3);
+    let dst = Path::new(dest).join(d1).join(d2).join(d3);
     std::fs::create_dir_all(dst.clone())?;
     std::fs::copy(path, dst.join(f))?;
     Ok(())

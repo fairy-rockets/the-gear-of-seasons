@@ -3,31 +3,31 @@ use std::path::{Path, PathBuf};
 use tracing::{info, warn};
 
 pub fn run(m: &clap::ArgMatches) -> anyhow::Result<()> {
-  let input = m.get_one::<String>("INPUT").expect("[BUG] No INPUT");
-  let output = m.get_one::<String>("OUTPUT").expect("[BUG] No OUTPUT");
-  let medium_path = m.get_one::<String>("MEDIUM").expect("[BUG] No PATH");
-  let storage_path = m.get_one::<String>("STORAGE").expect("[BUG] No PATH");
-  info!("input: {}", input);
-  info!("output: {}", output);
+  let md5_map = m.get_one::<String>("MD5_MAP").expect("[BUG] No INPUT");
+  let ahash_map = m.get_one::<String>("AHASH_MAP").expect("[BUG] No INPUT");
+  let medium_path = m.get_one::<String>("MEDIUM").expect("[BUG] No MEDIUM PATH");
+  let original_path = m.get_one::<String>("ORIGINAL").expect("[BUG] No ORIGINAL PATH");
+  let dest = m.get_one::<String>("DESTINATION").expect("[BUG] No DESTINATION");
+  info!("md5 map: {}", md5_map);
+  info!("ahash map: {}", ahash_map);
+  info!("original path: {}", original_path);
   info!("medium: {}", medium_path);
-  info!("storage: {}", storage_path);
+  info!("dest: {}", dest);
+
+  let hasher = crate::util::make_hasher();
 
   // Read the input hashes
   let mut entities = crate::util::Entities::new();
-  entities.load(input)?;
+  entities.load(md5_map)?;
+  let mut originals = crate::util::Originals::new();
+  originals.load(ahash_map)?;
 
-  std::fs::create_dir_all(output)?;
+  std::fs::create_dir_all(dest)?;
 
   // Walk the storage dir.
   let mut original_images = HashMap::<String, PathBuf>::new();
-  let hasher = imagehash::AverageHash::new()
-    .with_image_size(512, 512)
-    .with_hash_size(512, 512)
-    .with_resizer(|img, w, h| {
-      img.resize_exact(w as u32, h as u32, image::imageops::FilterType::Lanczos3)
-    });
 
-  crate::util::walk_images(storage_path, |_, original_path| {
+  crate::util::walk_images(original_path, |_, original_path| {
     let original_img = image::open(&original_path)?;
     let ahash = hasher.hash(&original_img);
     info!("[ORIG] Processing: {:?}", &original_path);
@@ -35,7 +35,7 @@ pub fn run(m: &clap::ArgMatches) -> anyhow::Result<()> {
     Ok(())
   })?;
 
-  crate::util::walk_images(storage_path, |hash, medium_path| {
+  crate::util::walk_images(original_path, |hash, medium_path| {
     let Some(hash) = entities.original_of(hash) else {
       warn!("[WARNING] No original image found for {}", hash);
       return Ok(());
@@ -49,7 +49,7 @@ pub fn run(m: &clap::ArgMatches) -> anyhow::Result<()> {
     let d2 = &hash[2..4];
     let d3 = &hash[4..6];
     let f = &hash[6..];
-    let dst = Path::new(output).join(d1).join(d2).join(d3);
+    let dst = Path::new(dest).join(d1).join(d2).join(d3);
     std::fs::create_dir_all(dst.clone())?;
     std::fs::copy(orig_path, dst.join(f))?;
     Ok(())
