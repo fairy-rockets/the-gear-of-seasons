@@ -1,7 +1,5 @@
-use std::collections::HashMap;
 use std::fs::OpenOptions;
-use std::io::{Seek, SeekFrom, Write};
-use std::path::PathBuf;
+use std::io::{SeekFrom, Write};
 use tracing::info;
 
 pub fn run(m: &clap::ArgMatches) -> anyhow::Result<()> {
@@ -19,15 +17,27 @@ pub fn run(m: &clap::ArgMatches) -> anyhow::Result<()> {
   let mut f = OpenOptions::new().write(true).append(true).open(output)?;
   crate::util::walk_images(original_path, |_, path| {
     if let Some(_) = originals.hash_of(&path) {
+      info!("Skip: {:?}", &path);
       return Ok(());
     }
+    let Ok(img) = image::open(&path) else {
+      info!("Not an image: {:?}", &path);
+      return Ok(());
+    };
     info!("Processing: {:?}", &path);
-    let img = image::open(&path)?;
     {
-      f.write(path.into_os_string().as_encoded_bytes())?;
-      f.write(",".as_bytes())?;
-      f.write(hasher.hash(&img).to_string().as_bytes())?;
-      f.write("\n".as_bytes())?;
+      use std::io::BufWriter;
+      let mut buff = Vec::<u8>::new();
+      {
+        let mut f = BufWriter::new(&mut buff);
+        f.write(path.into_os_string().as_encoded_bytes())?;
+        f.write(",".as_bytes())?;
+        f.write(hasher.hash(&img).to_string().as_bytes())?;
+        f.write("\n".as_bytes())?;
+        f.flush()?;
+      }
+      f.write_all(&buff)?;
+      f.flush()?;
     }
     Ok(())
   })?;
