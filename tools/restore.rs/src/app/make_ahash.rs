@@ -1,6 +1,6 @@
 use std::fs::OpenOptions;
-use std::io::{SeekFrom, Write};
-use tracing::info;
+use std::io::Write;
+use tracing::{info, warn};
 
 pub fn run(m: &clap::ArgMatches) -> anyhow::Result<()> {
   let output = m.get_one::<String>("OUTPUT").expect("[BUG] No OUTPUT");
@@ -12,8 +12,12 @@ pub fn run(m: &clap::ArgMatches) -> anyhow::Result<()> {
   let mut originals = crate::util::Originals::new();
   match originals.load(output) {
     Ok(_) => info!("Restored"),
-    Err(_) => std::fs::remove_file(output)?,
+    Err(err) => {
+      warn!("{} may be broken. Removed. err = {:?}", output, err);
+      std::fs::remove_file(output)?;
+    },
   }
+
   let mut f = OpenOptions::new().write(true).append(true).open(output)?;
   crate::util::walk_images(original_path, |_, path| {
     if let Some(_) = originals.hash_of(&path) {
