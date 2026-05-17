@@ -4,7 +4,7 @@ import os from 'os';
 
 import exifr from 'exifr';
 import dayjs from 'dayjs';
-import {fileTypeFromFile, MimeType} from 'file-type';
+import {fileTypeFromFile} from 'file-type';
 
 import md5sum from '../md5sum.js';
 import FormatError from './FormatError.js';
@@ -18,7 +18,7 @@ export type ProbeResult = {
   readonly ext: string;
   readonly md5sum: string;
   readonly timestamp: dayjs.Dayjs | undefined;
-  readonly mimeType: MimeType;
+  readonly mimeType: string;
   readonly width?: number;
   readonly height?: number;
   readonly duration?: number;
