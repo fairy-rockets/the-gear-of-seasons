@@ -61,6 +61,45 @@ export default class Page extends Layer {
       this.title_ = titles[0].textContent ?? "";
       document.title = `${this.title_} :: the gear of seasons`;
     }
+
+    this.setupFooter_();
+  }
+
+  // moment 本文の末尾に付く .moment-footer（無ければ何もしない。about-us 等はフッター無し）
+  private setupFooter_() {
+    const gearLink = this.content_.querySelector<HTMLAnchorElement>('.moment-footer-gear');
+    if(gearLink) {
+      gearLink.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        this.onClose_();
+      });
+    }
+
+    const prevLink = this.content_.querySelector<HTMLAnchorElement>('a.moment-footer-prev');
+    if(prevLink) {
+      prevLink.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        this.world.openLayer(prevLink.getAttribute('href')!);
+      });
+    }
+
+    const nextLink = this.content_.querySelector<HTMLAnchorElement>('a.moment-footer-next');
+    if(nextLink) {
+      nextLink.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        this.world.openLayer(nextLink.getAttribute('href')!);
+      });
+    }
+
+    const links = this.content_.querySelector<HTMLElement>('.moment-footer-links');
+    if(links) {
+      for(const a of Array.from(links.querySelectorAll<HTMLAnchorElement>('a'))) {
+        a.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          this.world.openLayer(a.getAttribute('href')!);
+        });
+      }
+    }
   }
 
   onClose_() {

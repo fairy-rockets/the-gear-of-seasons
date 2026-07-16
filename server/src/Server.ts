@@ -17,6 +17,7 @@ import Shelf from './shelf/Shelf.js';
 // Omote Controllers
 import OmoteIndexController from './controller/omote/IndexController.js';
 import MomentController from './controller/omote/MomentController.js';
+import PickupController from './controller/omote/PickupController.js';
 import RandomSelectionController, {
   RandomSelectionControllerInterface
 } from './controller/omote/RandomSelectionController.js';
@@ -108,6 +109,14 @@ class Server {
       });
       // (omote)/about-us/
       this.omote.get('/about-us/', omote.handle.bind(omote));
+      // (omote)/shop/
+      this.omote.get('/shop/', omote.handle.bind(omote));
+      this.omote.get('/shop', async (_req, reply) => { return reply.redirect('/shop/', 301); });
+      // (omote)/pickup/
+      const pickup = await PickupController.create(this.asset, this.shelf);
+      this.omote.get('/pickup/', omote.handle.bind(omote));
+      this.omote.get('/pickup', async (_req, reply) => { return reply.redirect('/pickup/', 301); });
+      this.omote.get('/pickup/body', pickup.handleBody.bind(pickup));
     }
     { // (ura/omote)/year/month/day/HH:mm:ss/
       const omote = await MomentController.create(this.asset, this.shelf);

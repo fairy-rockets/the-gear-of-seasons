@@ -1,6 +1,7 @@
 import {FastifyReply, FastifyRequest} from 'fastify';
 import dayjs from 'dayjs';
 
+import Config from '../../Config.js';
 import MomentRenderer from '../../renderer/MomentRenderer.js';
 import Shelf from '../../shelf/Shelf.js';
 import {parseMomentPath} from '../../shelf/Moment.js';
@@ -24,9 +25,18 @@ export default class MomentBodyController {
         .code(404)
         .send('Moment not found');
     }
+    let body = await this.renderer.render(dayjs(), moment);
+    // ura のプレビュー等に「まえ/つぎ/歯車にもどる」を混ぜないよう、omote のときだけフッターを付ける。
+    if (req.hostname === Config.OmoteHost) {
+      const [prev, next] = await Promise.all([
+        this.shelf.findPreviousMomentSummary(date),
+        this.shelf.findNextMomentSummary(date),
+      ]);
+      body += MomentRenderer.renderNavigationFooter(prev, next);
+    }
     return reply
       .type('text/html;charset=UTF-8')
       .code(200)
-      .send(await this.renderer.render(dayjs(), moment));
+      .send(body);
   }
 }

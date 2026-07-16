@@ -6,12 +6,36 @@ import dayjs from 'dayjs';
 import * as fml from '../lib/fml.js';
 
 import Shelf from '../shelf/Shelf.js';
-import { Moment } from '../shelf/Moment.js';
+import { Moment, MomentSummary, formatMomentPath } from '../shelf/Moment.js';
 
 class MomentRenderer {
   private readonly shelf: Shelf;
   constructor(shelf: Shelf) {
     this.shelf = shelf;
+  }
+  // DBを触らない純関数。moment ページ下部の「まえ/つぎ/歯車にもどる」＋動線リンクを組み立てる。
+  static renderNavigationFooter(prev: MomentSummary | null, next: MomentSummary | null): string {
+    const prevLink = (prev !== null && prev.timestamp !== undefined)
+      ? `<a class="moment-footer-prev" href="${escapeAttribute(formatMomentPath(prev.timestamp))}" title="${escapeAttribute(prev.title)}">← まえの絵</a>`
+      : `<span class="moment-footer-prev disabled">← まえの絵</span>`;
+    const nextLink = (next !== null && next.timestamp !== undefined)
+      ? `<a class="moment-footer-next" href="${escapeAttribute(formatMomentPath(next.timestamp))}" title="${escapeAttribute(next.title)}">つぎの絵 →</a>`
+      : `<span class="moment-footer-next disabled">つぎの絵 →</span>`;
+    return `
+<hr>
+<div class="moment-footer">
+  <nav class="moment-footer-nav">
+    ${prevLink}
+    <a class="moment-footer-gear" href="/">歯車にもどる</a>
+    ${nextLink}
+  </nav>
+  <nav class="moment-footer-links">
+    <a href="/pickup/">🏮 えらんだ絵をみる</a>
+    <span class="moment-footer-sep">・</span>
+    <a href="/shop/">お店</a>
+  </nav>
+</div>
+`.trim();
   }
   async render(now: dayjs.Dayjs, moment: Moment): Promise<string> {
     const buff: string[] = [];

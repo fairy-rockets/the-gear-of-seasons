@@ -234,3 +234,174 @@ img.emoji {
 .content .moment-author {
   float: right;
 }
+
+/* ---- /pickup/ えらんだ絵 ---- */
+
+.pickup-intro {
+  color: rgba(230,230,230,0.9);
+}
+
+.pickup-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10em, 1fr));
+  gap: 1em;
+  margin: 1em 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pickup-list li a {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.pickup-list img {
+  width: 8em;
+  height: 8em;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(30,30,80,0.3);
+}
+
+.pickup-title {
+  display: block;
+  margin-top: 0.5em;
+  font-size: small;
+  color: rgba(230,230,230,1);
+}
+
+.pickup-links,
+.shop-links {
+  text-align: center;
+}
+
+/* ---- /shop/ お店 ---- */
+
+.shop-intro {
+  color: rgba(230,230,230,0.9);
+}
+
+.shop-list {
+  margin: 1em 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shop-list li {
+  padding: 0.75em 1em;
+  margin-bottom: 0.5em;
+  border-radius: 0.5em;
+  background: rgba(30,30,80,0.3);
+}
+
+.shop-list li a {
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.shop-desc {
+  display: block;
+  margin-top: 0.25em;
+  font-size: small;
+  color: rgba(230,230,230,0.8);
+}
+
+/* ---- moment ページ下部のフッター ---- */
+
+.moment-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5em;
+}
+
+.moment-footer-nav a,
+.moment-footer-nav span {
+  flex: 1 1 auto;
+  text-align: center;
+}
+
+.moment-footer-prev.disabled,
+.moment-footer-next.disabled {
+  color: rgba(230,230,230,0.4);
+  cursor: default;
+}
+
+.moment-footer-links {
+  margin-top: 0.5em;
+  text-align: center;
+  font-size: small;
+}
+
+.moment-footer-sep {
+  color: rgba(230,230,230,0.6);
+  margin: 0 0.3em;
+}
+
+/* ---- ランタン（道しるべ） ---- */
+
+.lantern {
+  position: fixed;
+  left: 1em;
+  bottom: 1em;
+  z-index: 100;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+}
+
+.lantern-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0.5em;
+  cursor: pointer;
+  color: rgba(255,183,105,0.9);
+}
+
+.lantern-icon {
+  filter: drop-shadow(0 0 6px rgba(255,183,105,0.8));
+}
+
+.lantern-label {
+  margin-top: 0.2em;
+  font-size: 0.7em;
+  color: rgba(230,230,230,0.8);
+  font-family: serif;
+}
+
+.lantern-menu {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5em;
+  padding: 0.5em 0;
+  border-radius: 0.5em;
+  background: rgba(10,10,30,0.85);
+
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.5em);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+
+.lantern-menu.open {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.lantern-menu a {
+  padding: 0.4em 1.2em;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.lantern-menu a:hover {
+  color: #89ff89;
+}

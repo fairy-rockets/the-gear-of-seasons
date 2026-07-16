@@ -21,6 +21,9 @@ export default class World {
   private readonly matProjection_: mat4;
   private readonly matWorld_: mat4;
   private cursor_: boolean;
+  private readonly lantern_: HTMLDivElement;
+  private readonly lanternButton_: HTMLButtonElement;
+  private readonly lanternMenu_: HTMLElement;
   static fromCanvas(canvas: HTMLCanvasElement): World | null {
     const gl = canvas.getContext('webgl2');
     if(!gl) {
@@ -45,6 +48,50 @@ export default class World {
     this.cursor_ = false;
     this.canvas_.style.cursor = 'default';
     window.onpopstate = this.onPopState_.bind(this);
+
+    // ランタン（道しるべ）。レイヤに関係なく常に画面左下に灯す。
+    this.lantern_ = document.createElement('div');
+    this.lantern_.className = 'lantern';
+    this.lantern_.innerHTML = lanternSrc;
+    this.lanternButton_ = this.lantern_.querySelector<HTMLButtonElement>('.lantern-button')!;
+    this.lanternMenu_ = this.lantern_.querySelector<HTMLElement>('.lantern-menu')!;
+    this.lanternButton_.addEventListener('click', this.onLanternButtonClick_.bind(this));
+    for (const a of Array.from(this.lanternMenu_.querySelectorAll<HTMLAnchorElement>('a[data-internal]'))) {
+      a.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        this.closeLanternMenu_();
+        this.openLayer(a.getAttribute('href')!);
+      });
+    }
+    document.addEventListener('mouseup', this.onDocumentMouseUp_.bind(this), false);
+    document.body.appendChild(this.lantern_);
+  }
+
+  private onLanternButtonClick_(ev: MouseEvent) {
+    ev.stopPropagation();
+    if (this.lanternMenu_.classList.contains('open')) {
+      this.closeLanternMenu_();
+    } else {
+      this.openLanternMenu_();
+    }
+  }
+
+  private openLanternMenu_() {
+    this.lanternMenu_.classList.add('open');
+    this.lanternMenu_.setAttribute('aria-hidden', 'false');
+    this.lanternButton_.setAttribute('aria-expanded', 'true');
+  }
+
+  private closeLanternMenu_() {
+    this.lanternMenu_.classList.remove('open');
+    this.lanternMenu_.setAttribute('aria-hidden', 'true');
+    this.lanternButton_.setAttribute('aria-expanded', 'false');
+  }
+
+  private onDocumentMouseUp_(ev: MouseEvent) {
+    if (!this.lantern_.contains(ev.target as Node)) {
+      this.closeLanternMenu_();
+    }
   }
 
   public start() {
@@ -153,6 +200,12 @@ export default class World {
     } else if (path.startsWith('/about-us/')) {
       const content = fetch('/static/about-us.html').then(resp => resp.text());
       return new Page(this, '/about-us/', content);
+    } else if (path.startsWith('/pickup/')) {
+      const content = fetch('/pickup/body').then(resp => resp.text());
+      return new Page(this, '/pickup/', content);
+    } else if (path.startsWith('/shop/')) {
+      const content = fetch('/static/shop.html').then(resp => resp.text());
+      return new Page(this, '/shop/', content);
     } else {
       const content = fetch(`/moment${path}`).then(resp => resp.text());
       return new Page(this, path, content);
@@ -324,3 +377,25 @@ export default class World {
     return new ArrayBuffer(gl, buff, elemSize, data.length);
   }
 }
+
+const lanternSrc = `
+<button class="lantern-button" aria-label="メニューをひらく" aria-expanded="false">
+  <svg class="lantern-icon" viewBox="0 0 64 64" width="2.5em" height="2.5em" aria-hidden="true">
+    <line x1="32" y1="2" x2="32" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <polygon points="32,10 8,26 56,26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+    <rect x="12" y="26" width="40" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+    <rect x="20" y="34" width="10" height="14" rx="1" fill="#ffb769" stroke="currentColor" stroke-width="1.5"/>
+    <rect x="34" y="34" width="10" height="14" rx="1" fill="#ffb769" stroke="currentColor" stroke-width="1.5"/>
+    <line x1="12" y1="56" x2="52" y2="56" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>
+  <span class="lantern-label">あかり</span>
+</button>
+<nav class="lantern-menu" aria-hidden="true">
+  <a href="/pickup/" data-internal>えらんだ絵</a>
+  <a href="/shop/" data-internal>お店</a>
+  <a href="https://www.pixiv.net/users/101966442" target="_blank" rel="noopener">pixiv</a>
+  <a href="https://www.instagram.com/nagi.yomiya/" target="_blank" rel="noopener">Instagram</a>
+  <a href="https://ci-en.net/creator/26041" target="_blank" rel="noopener">ci-en</a>
+  <a href="https://www.youtube.com/@fairy-rockets" target="_blank" rel="noopener">YouTube</a>
+</nav>
+`;
