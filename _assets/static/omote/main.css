@@ -356,9 +356,11 @@ img.emoji {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: none;
+  /* .title（タイトルカード）と同じ囲い */
   border: none;
-  padding: 0.5em;
+  border-radius: 1em;
+  background: rgba(30,30,80,0.3);
+  padding: 0.5em 1em;
   cursor: pointer;
   color: rgba(255,183,105,0.9);
 }
