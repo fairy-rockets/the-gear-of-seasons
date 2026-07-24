@@ -13,7 +13,7 @@ RUN npm install -g npm@latest \
  && (cd client && npm ci && npm run build) \
  && (cd server && npm ci && npm run build)
 
-EXPOSE 8888
+EXPOSE 3000
 
 ENTRYPOINT [ "node" ]
 CMD [ "server/dist/cmd/main.js" ]

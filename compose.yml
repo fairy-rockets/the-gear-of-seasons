@@ -37,7 +37,7 @@ services:
       - 'DB_HOST=postgres'
       - 'TZ=Asia/Tokyo'
     expose:
-      - '8888'
+      - '3000'
     networks:
       - 'default'
       - 'planet-link'
