@@ -310,6 +310,42 @@ from moments
     return null;
   }
 
+  async findPreviousMomentSummary(timestamp: dayjs.Dayjs): Promise<MomentSummary | null> {
+    // language=PostgreSQL
+    const q=`
+select
+  "timestamp", "title", "icon_id"
+from moments
+  where
+    "timestamp" < $1
+order by "timestamp" desc
+limit 1;
+`;
+    const rows = await this.pool.query(q, [timestamp.toDate()]);
+    for await (const row of rows) {
+      return decodeMomentSummary(row);
+    }
+    return null;
+  }
+
+  async findNextMomentSummary(timestamp: dayjs.Dayjs): Promise<MomentSummary | null> {
+    // language=PostgreSQL
+    const q=`
+select
+  "timestamp", "title", "icon_id"
+from moments
+  where
+    "timestamp" > $1
+order by "timestamp" asc
+limit 1;
+`;
+    const rows = await this.pool.query(q, [timestamp.toDate()]);
+    for await (const row of rows) {
+      return decodeMomentSummary(row);
+    }
+    return null;
+  }
+
   async* enumurateAllMoments(): AsyncGenerator<Moment> {
     // language=PostgreSQL
     const q=`

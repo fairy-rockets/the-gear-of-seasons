@@ -17,6 +17,7 @@ import Shelf from './shelf/Shelf.js';
 // Omote Controllers
 import OmoteIndexController from './controller/omote/IndexController.js';
 import MomentController from './controller/omote/MomentController.js';
+import PickupController from './controller/omote/PickupController.js';
 import RandomSelectionController, {
   RandomSelectionControllerInterface
 } from './controller/omote/RandomSelectionController.js';
@@ -108,6 +109,14 @@ class Server {
       });
       // (omote)/about-us/
       this.omote.get('/about-us/', omote.handle.bind(omote));
+      // (omote)/shop/
+      this.omote.get('/shop/', omote.handle.bind(omote));
+      this.omote.get('/shop', async (_req, reply) => { return reply.redirect('/shop/', 301); });
+      // (omote)/pickup/
+      const pickup = await PickupController.create(this.asset, this.shelf);
+      this.omote.get('/pickup/', omote.handle.bind(omote));
+      this.omote.get('/pickup', async (_req, reply) => { return reply.redirect('/pickup/', 301); });
+      this.omote.get('/pickup/body', pickup.handleBody.bind(pickup));
     }
     { // (ura/omote)/year/month/day/HH:mm:ss/
       const omote = await MomentController.create(this.asset, this.shelf);
@@ -121,9 +130,12 @@ class Server {
       const omote = await RandomSelectionController.create(this.shelf);
       this.omote.get('/moments/random', omote.handle.bind(omote));
     }
-    { // (both)/moment/year/month/day/HH:mm:ss/
+    { // (each)/moment/year/month/day/HH:mm:ss/ — omote はフッター付き / ura はフッター無し
       const c = await MomentBodyController.create(this.shelf);
-      this.both.get('/moment/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/:time(^[0-9]{2}:[0-9]{2}:[0-9]{2}$)/', c.handle.bind(c));
+      this.each.get('/moment/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/:time(^[0-9]{2}:[0-9]{2}:[0-9]{2}$)/', {
+        omote: c.handleOmote.bind(c),
+        ura: c.handleUra.bind(c),
+      });
     }
     { // (ura)/entity
       const c = await EntityController.create(this.shelf);

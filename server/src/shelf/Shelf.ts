@@ -342,6 +342,14 @@ class Shelf {
     return await this.repo.findMomentSummariesByRandom(size);
   }
 
+  async findPreviousMomentSummary(timestamp: dayjs.Dayjs): Promise<MomentSummary | null> {
+    return await this.repo.findPreviousMomentSummary(timestamp);
+  }
+
+  async findNextMomentSummary(timestamp: dayjs.Dayjs): Promise<MomentSummary | null> {
+    return await this.repo.findNextMomentSummary(timestamp);
+  }
+
   async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {
     return await this.repo.deleteMoment(timestamp);
   }

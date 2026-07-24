@@ -1,0 +1,17 @@
+<h1>えらんだ絵</h1>
+<p class="pickup-intro">
+  妖精⊸ロケットの宵宮ナギが描いた絵から、えらんだものをここに並べています。<br>
+  一見かわいくて、よく見るとすこし翳りのある、hexe（魔女）の世界。<br>
+  気に入った絵があったら、そっと灯りをたどってみてください。
+</p>
+<ul class="pickup-list">
+  {{#each moments}}
+  <li><a href="{{path}}"><img src="{{imageURL}}" alt="{{title}}" loading="lazy"><span class="pickup-title">{{title}}</span></a></li>
+  {{/each}}
+</ul>
+<hr>
+<nav class="pickup-links">
+  <a href="/shop/">🏮 お店をみる</a>
+  <span>・</span>
+  <a href="/">歯車にもどる</a>
+</nav>

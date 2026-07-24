@@ -153,6 +153,12 @@ export default class World {
     } else if (path.startsWith('/about-us/')) {
       const content = fetch('/static/about-us.html').then(resp => resp.text());
       return new Page(this, '/about-us/', content);
+    } else if (path.startsWith('/pickup/')) {
+      const content = fetch('/pickup/body').then(resp => resp.text());
+      return new Page(this, '/pickup/', content);
+    } else if (path.startsWith('/shop/')) {
+      const content = fetch('/static/shop.html').then(resp => resp.text());
+      return new Page(this, '/shop/', content);
     } else {
       const content = fetch(`/moment${path}`).then(resp => resp.text());
       return new Page(this, path, content);

@@ -50,6 +50,14 @@ export default class Index extends Layer {
       e.preventDefault();
       world.openLayer('/about-us/');
     });
+    this.element_.querySelector<HTMLElement>('#pickup-link')!.addEventListener('click', (e) => {
+      e.preventDefault();
+      world.openLayer('/pickup/');
+    });
+    this.element_.querySelector<HTMLElement>('#shop-link')!.addEventListener('click', (e) => {
+      e.preventDefault();
+      world.openLayer('/shop/');
+    });
 
     this.loaded_ = false;
   }
@@ -190,6 +198,12 @@ const htmlSrc = `
   </div>
   <div class="description">
   <a href="/about-us/" id="about-us-link">About us</a>
+  </div>
+  <div class="description">
+  <a href="/pickup/" id="pickup-link">えらんだ絵</a>
+  </div>
+  <div class="description">
+  <a href="/shop/" id="shop-link">お店</a>
   </div>
 </div>
 `;

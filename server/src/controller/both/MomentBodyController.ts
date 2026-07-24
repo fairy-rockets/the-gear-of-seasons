@@ -15,7 +15,15 @@ export default class MomentBodyController {
   static async create(shelf: Shelf): Promise<MomentBodyController> {
     return new MomentBodyController(shelf);
   }
-  async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+  // omote: 本文＋「まえ/つぎ/歯車にもどる」フッター付き。
+  async handleOmote(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    return this.render(req, reply, true);
+  }
+  // ura: 本文のみ。プレビュー等にフッターを混ぜない。
+  async handleUra(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    return this.render(req, reply, false);
+  }
+  private async render(req: FastifyRequest, reply: FastifyReply, withFooter: boolean): Promise<FastifyReply> {
     const date = parseMomentPath(req.url.slice(7));
     const moment = await this.shelf.findMoment(date);
     if (moment === null) {
@@ -24,9 +32,17 @@ export default class MomentBodyController {
         .code(404)
         .send('Moment not found');
     }
+    let body = await this.renderer.render(dayjs(), moment);
+    if (withFooter) {
+      const [prev, next] = await Promise.all([
+        this.shelf.findPreviousMomentSummary(date),
+        this.shelf.findNextMomentSummary(date),
+      ]);
+      body += MomentRenderer.renderNavigationFooter(prev, next);
+    }
     return reply
       .type('text/html;charset=UTF-8')
       .code(200)
-      .send(await this.renderer.render(dayjs(), moment));
+      .send(body);
   }
 }
