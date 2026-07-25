@@ -122,6 +122,11 @@ export default class World {
     return this.gear_;
   }
 
+  // 投影+視点行列(proj * eye)。歯車中心のスクリーン座標算出などに使う。
+  get matWorld(): mat4 {
+    return this.matWorld_;
+  }
+
   get aspect(): number {
     return this.canvas_.width / this.canvas_.height;
   }
