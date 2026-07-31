@@ -219,7 +219,6 @@ img.emoji {
   width: 5em;
   height: 5em;
   cursor: pointer;
-  z-index: 1;
 }
 
 .content .moment-info::after {
