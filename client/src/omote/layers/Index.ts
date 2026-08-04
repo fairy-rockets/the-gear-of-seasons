@@ -24,8 +24,9 @@ export default class Index extends Layer {
   private readonly pointerUpListener_: (ev: PointerEvent) => void;
   private readonly pointerCancelListener_: (ev: PointerEvent) => void;
   private readonly moments_: Moments;
-  private mouseX_: number;
-  private mouseY_: number;
+  // ヒット判定に使うポインタ位置(正規化 -1..1)。pointer イベントから更新する。
+  private pointerX_: number;
+  private pointerY_: number;
   private selected_: Moment | null;
   private readonly tooltip_: HTMLDivElement;
   private readonly tooltipTitle_: HTMLDivElement;
@@ -53,8 +54,8 @@ export default class Index extends Layer {
     this.pointerUpListener_ = this.onPointerUp_.bind(this);
     this.pointerCancelListener_ = this.onPointerCancel_.bind(this);
     this.moments_ = new Moments(world);
-    this.mouseX_ = NaN;
-    this.mouseY_ = NaN;
+    this.pointerX_ = NaN;
+    this.pointerY_ = NaN;
     this.pointerId_ = null;
     this.pointerLastX_ = NaN;
     this.pointerLastY_ = NaN;
@@ -101,7 +102,7 @@ export default class Index extends Layer {
 
   render(time: number, matWorld: mat4) {
     this.applyInertia_(time);
-    const m = this.moments_.render(time, matWorld, this.mouseX_, this.mouseY_);
+    const m = this.moments_.render(time, matWorld, this.pointerX_, this.pointerY_);
     if(m !== this.selected_) {
       this.selected_ = m;
       this.onSelectionChanged_(m);
@@ -114,8 +115,8 @@ export default class Index extends Layer {
       }
       if(this.isTouchInput_) {
         // タッチ操作では選択を残さない(ツールチップを出さない)。
-        this.mouseX_ = NaN;
-        this.mouseY_ = NaN;
+        this.pointerX_ = NaN;
+        this.pointerY_ = NaN;
       }
     }
   }
@@ -185,8 +186,8 @@ export default class Index extends Layer {
     if(!this.loaded_) {
       this.fetch(300);
     }
-    this.mouseX_ = NaN;
-    this.mouseY_ = NaN;
+    this.pointerX_ = NaN;
+    this.pointerY_ = NaN;
     this.pointerId_ = null;
     this.isTouchInput_ = false;
     this.pendingTapOpen_ = false;
@@ -196,8 +197,8 @@ export default class Index extends Layer {
   }
 
   override onDetached() {
-    this.mouseX_ = NaN;
-    this.mouseY_ = NaN;
+    this.pointerX_ = NaN;
+    this.pointerY_ = NaN;
     this.pointerId_ = null;
     this.isTouchInput_ = false;
     this.pendingTapOpen_ = false;
@@ -219,6 +220,13 @@ export default class Index extends Layer {
 
   // 歯車の中心(モデル原点)を現在のスクリーン座標(px)に投影して返す。
   // 回転しても原点は不変なので angle には依存しない。
+  //
+  // 回転はこの投影中心まわりのスクリーン角(px)で測って angle にそのまま加算している。
+  // これが成り立つのは歯車の回転軸(モデルZ)が視線(-Z)と平行=回転面が画面と正対して
+  // いるから(Gear.onSizeChanged は matModel/matLoc に回転を入れていない)。正対面の
+  // Z 回転は投影しても投影中心まわりの純粋な回転になり、投影の x/aspect と viewport の
+  // ×width(=aspect·height)が相殺するので px 空間の角度=モデル回転角(符号のみ)になる。
+  // 前提が崩れるのは歯車を傾けた場合で、その時は指をモデル平面へ unproject して測る必要がある。
   private gearCenterScreen_(): [number, number] {
     const v = this.centerTmp_;
     vec4.set(v, 0, 0, 0, 1);
@@ -230,13 +238,13 @@ export default class Index extends Layer {
     return [cx, cy];
   }
 
-  // 画面座標をヒット判定用の正規化座標(-1..1)へ変換して mouseX_/mouseY_ に入れる。
+  // 画面座標をヒット判定用の正規化座標(-1..1)へ変換して pointerX_/pointerY_ に入れる。
   private updateHitPosition_(clientX: number, clientY: number) {
     const canvas = this.world.canvas;
     const hw = canvas.width/2;
     const hh = canvas.height/2;
-    this.mouseX_ = (clientX - hw) / hw;
-    this.mouseY_ = -(clientY - hh) / hh;
+    this.pointerX_ = (clientX - hw) / hw;
+    this.pointerY_ = -(clientY - hh) / hh;
   }
 
   private onPointerDown_(ev: PointerEvent) {
@@ -311,8 +319,8 @@ export default class Index extends Layer {
       }
       if(this.isTouchInput_) {
         // タッチのドラッグ後は選択を残さない。
-        this.mouseX_ = NaN;
-        this.mouseY_ = NaN;
+        this.pointerX_ = NaN;
+        this.pointerY_ = NaN;
       }
     }
   }
@@ -325,8 +333,8 @@ export default class Index extends Layer {
     this.pendingTapOpen_ = false;
     this.angularVelocity_ = 0;
     if(this.isTouchInput_) {
-      this.mouseX_ = NaN;
-      this.mouseY_ = NaN;
+      this.pointerX_ = NaN;
+      this.pointerY_ = NaN;
     }
   }
 
