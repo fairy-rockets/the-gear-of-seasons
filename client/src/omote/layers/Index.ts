@@ -184,6 +184,8 @@ export default class Index extends Layer {
     this.world.canvas.addEventListener('pointerup', this.pointerUpListener_, false);
     this.world.canvas.addEventListener('pointercancel', this.pointerCancelListener_, false);
     if(!this.loaded_) {
+      // 300 件はランダムに引く母数。少ないと季節ごとの偏りで、時期によっては画面が
+      // モーメントで埋まりきらないことがある。減らすなら各季節での見え方を確かめること。
       this.fetch(300);
     }
     this.pointerX_ = NaN;

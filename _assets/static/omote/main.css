@@ -380,3 +380,17 @@ img.emoji {
     box-sizing: border-box;
   }
 }
+
+/* 縦長画面では歯車が上部中央に来るので、タイトルとメニューも中央へ寄せる (#6)。
+   条件は Gear の PortraitMaxAspect と揃えてあり、幅ではなくアスペクト比で切り替える
+   (スマホを横に倒したときは歯車が左上に戻るので、ヘッダーも左上のままにしたい)。 */
+@media (max-aspect-ratio: 1/1) {
+  .header {
+    left: 0;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    /* 上の 60vw だとタイトルが「妖精⊸ロケッ/ト」で折り返してしまうので広げる。 */
+    max-width: 90vw;
+  }
+}
