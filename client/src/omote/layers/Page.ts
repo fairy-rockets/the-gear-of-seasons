@@ -32,7 +32,8 @@ export default class Page extends Layer {
     this.prevTitle_ = "";
     this.title_ = "";
 
-    this.backButton_.addEventListener('mouseup', this.closeListener_, false);
+    // タッチでも確実に閉じられるよう click を使う(合成 click が発火する)。
+    this.backButton_.addEventListener('click', this.closeListener_, false);
 
     contentPromise.then(this.onLoad_.bind(this), this.onError_.bind(this));
   }
@@ -133,18 +134,19 @@ const htmlSrc = `
 </div>
 `;
 
+// viewBox 基準にして、ボタンの大きさは .back-button の width/height で決める。
 const backButtonSrc = `
-<svg width="5em" height="5em">
+<svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
   <rect
       x="0" y="0"
-      width="5em" height="5em"
-      rx="1em" ry="1em"
+      width="100" height="100"
+      rx="20" ry="20"
       style="fill:white;fill-opacity:0.7;" />
   <line stroke-linecap="round"
-          x1="1em" y1="1em" x2="4em" y2="4em"
-          stroke="rgba(0, 0, 0, 0.5)" stroke-width="1em"/>
+          x1="25" y1="25" x2="75" y2="75"
+          stroke="rgba(0, 0, 0, 0.5)" stroke-width="14"/>
   <line stroke-linecap="round"
-          x1="1em" y1="4em" x2="4em" y2="1em"
-          stroke="rgba(0, 0, 0, 0.5)" stroke-width="1em"/>
+          x1="25" y1="75" x2="75" y2="25"
+          stroke="rgba(0, 0, 0, 0.5)" stroke-width="14"/>
 </svg>
 `;
