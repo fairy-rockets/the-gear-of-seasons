@@ -1,5 +1,5 @@
 import World from '../World';
-import { TanHalfFovY, EyeZ } from '../camera';
+import { Camera } from '../WorldConstant';
 import Program from '../gl/Program';
 import ArrayBuffer from '../gl/ArrayBuffer';
 import IndexBuffer from '../gl/IndexBuffer';
@@ -13,13 +13,15 @@ import { Winter, Spring, Summer, Autumn } from './Seasons';
 // 光源までの距離も k 倍になり、フラグメントシェーダの距離減衰 pow(d/15, 5) で明るさが
 // k^-5 に振れる(縮めると白飛びする)。歯車の見かけの大きさを変えたいときは、代わりに
 // matLoc の平行移動(z)でカメラから遠ざける。平行移動は光源と頂点の両方に等しく効くので
-// 距離が変わらず、ライティングに一切影響しない。
+// 距離が変わらず、歯車自身のライティングには影響しない(Background は別。季節ライトだけが
+// 奥へ動くので明るさがわずかに変わるが、視覚上の差は出ていない)。
 const ModelScale = 10;
 
 /* ---- 縦長画面(スマホ)のレイアウト。#6 ---- */
 
-// これ未満のアスペクト比を「縦長」とみなし、歯車を上部中央に置く。
-// 境界をまたぐと構図が切り替わる(CSS のメディアクエリと同じで、そこは不連続になる)。
+// この値以下のアスペクト比を「縦長」とみなし、歯車を上部中央に置く。境界をまたぐと
+// 構図が切り替わる(CSS のメディアクエリと同じで、そこは不連続になる)。ヘッダーを
+// 中央へ寄せる main.css の @media (max-aspect-ratio: 1/1) と同じく、境界値を含む。
 const PortraitMaxAspect = 1.0;
 // 歯車の直径を画面幅の何倍にするか。これを満たす奥行きまで引く。
 const PortraitGearWidthRatio = 1.3;
@@ -45,8 +47,8 @@ export default class Gear {
   private readonly matTmp_: mat4;
   private readonly todayAngle_: number;
   private angle_: number;
-  // 初回の onSizeChanged で着地角を決めたか。
-  private angleInitialized_: boolean;
+  // 今のレイアウトで今日のモーメントを置く向き(画面上の角度)。未確定なら null。
+  private landingAngle_: number | null;
 
   private readonly winterLightPos_: vec4;
   private readonly springLightPos_: vec4;
@@ -72,7 +74,7 @@ export default class Gear {
     this.todayAngle_ = calcTodayAngle();
     // 実際の着地角は最初の onSizeChanged でレイアウトに合わせて決め直す。
     this.angle_ = this.todayAngle_ - Math.PI/6;
-    this.angleInitialized_ = false;
+    this.landingAngle_ = null;
 
     this.winterLightPos_ = vec4.create();
     this.springLightPos_ = vec4.create();
@@ -83,7 +85,7 @@ export default class Gear {
 
   onSizeChanged(width: number, height: number) {
     const aspect = width / height;
-    const portrait = aspect < PortraitMaxAspect;
+    const portrait = aspect <= PortraitMaxAspect;
     const matModel = this.matModel_;
     const matLoc = this.matLoc_;
     mat4.identity(matModel);
@@ -93,28 +95,32 @@ export default class Gear {
     if (portrait) {
       // 歯車を上部中央に置き、モーメントの弧を画面下に降ろす。
       //
-      // 大きさは奥行きだけで決める。半画面幅 = TanHalfFovY * dist * aspect なので、
+      // 大きさは奥行きだけで決める。半画面幅 = Camera.TanHalfFovY * dist * aspect なので、
       // 直径(2 * ModelScale) が画面幅の PortraitGearWidthRatio 倍になる dist は
-      //   2 * ModelScale = ratio * 2 * TanHalfFovY * dist * aspect
+      //   2 * ModelScale = ratio * 2 * Camera.TanHalfFovY * dist * aspect
       // を解いて次のとおり。
       const dist = Math.min(
-        ModelScale / (PortraitGearWidthRatio * TanHalfFovY * aspect),
+        ModelScale / (PortraitGearWidthRatio * Camera.TanHalfFovY * aspect),
         MaxGearDistance);
-      const y = PortraitGearCenterY * TanHalfFovY * dist;
+      const y = PortraitGearCenterY * Camera.TanHalfFovY * dist;
       // matLoc の平行移動は matModel(スケール ModelScale)より手前に掛かるので、
       // ここでの 1 単位はワールドの ModelScale 単位にあたる。
-      mat4.translate(matLoc, matLoc, [0, y / ModelScale, -(dist - EyeZ) / ModelScale]);
+      mat4.translate(matLoc, matLoc, [0, y / ModelScale, -(dist - Camera.EyeZ) / ModelScale]);
     } else {
       mat4.translate(matLoc, matLoc, [-0.8 * aspect, 0.8, -1.5]);
     }
-    // 最初のレイアウトが決まった時点で、今日のモーメントの着地位置を合わせる。
-    // 一度ユーザーが回したあとは動かさない(リサイズのたびに引き戻さない)。
-    if (!this.angleInitialized_) {
-      this.angleInitialized_ = true;
-      // モデル上の位置角は -θ、そこへ Rz(+angle) が掛かるので、画面上の向きは angle - θ。
-      // 縦長では弧の中央である真下(-π/2)に、横長では従来どおり右下(-π/6)に置く。
-      this.angle_ = this.todayAngle_ + (portrait ? -Math.PI / 2 : -Math.PI / 6);
+    // 今日のモーメントを置く向き。モデル上の位置角は -θ で、そこへ Rz(+angle) が
+    // 掛かるので、画面上の向きは angle - θ。縦長では弧の中央である真下(-π/2)に、
+    // 横長では従来どおり右下(-π/6)に置く。
+    const landing = portrait ? -Math.PI / 2 : -Math.PI / 6;
+    if (this.landingAngle_ === null) {
+      this.angle_ = this.todayAngle_ + landing;
+    } else if (landing !== this.landingAngle_) {
+      // 構図が切り替わったぶんだけ回す。ユーザーが回した相対位置は保つので、
+      // 同じ向きのままのリサイズでは何も起きない(引き戻さない)。
+      this.angle_ += landing - this.landingAngle_;
     }
+    this.landingAngle_ = landing;
   }
   set angle(v: number) {
     this.angle_ = v;
