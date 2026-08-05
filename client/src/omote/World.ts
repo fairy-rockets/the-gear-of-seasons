@@ -1,4 +1,5 @@
 import {mat4} from 'gl-matrix';
+import { FovY, EyeZ } from './camera';
 import IndexBuffer from './gl/IndexBuffer';
 import ArrayBuffer from './gl/ArrayBuffer';
 import Program from './gl/Program';
@@ -58,7 +59,7 @@ export default class World {
     //gl.enable(gl.BLEND);
     //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    mat4.lookAt(this.matEye_, [0, 0, 3], [0, 0, 0], [0, 1, 0]);
+    mat4.lookAt(this.matEye_, [0, 0, EyeZ], [0, 0, 0], [0, 1, 0]);
 
     // Start animation
     requestAnimationFrame(this.runner_);
@@ -68,7 +69,7 @@ export default class World {
     const gl = this.gl_;
     const matWorld = this.matWorld_;
     gl.viewport(0, 0, width, height);
-    mat4.perspective(this.matProjection_, 45, width / height, 1, 100);
+    mat4.perspective(this.matProjection_, FovY, width / height, 1, 100);
     mat4.multiply(matWorld, this.matProjection_, this.matEye_);
     this.gear_.onSizeChanged(width, height);
   }
