@@ -1,10 +1,32 @@
 import World from '../World';
+import { TanHalfFovY, EyeZ } from '../camera';
 import Program from '../gl/Program';
 import ArrayBuffer from '../gl/ArrayBuffer';
 import IndexBuffer from '../gl/IndexBuffer';
 import { mat4, vec4, ReadonlyMat4 } from 'gl-matrix';
 
 import { Winter, Spring, Summer, Autumn } from './Seasons';
+
+// matModel のスケール。歯車モデルの外周半径は 1 なので、ワールドでの半径もこの値になる。
+//
+// **この値は動かせない。** 頂点も光源も同じ matLocModel を通るので、モデルを k 倍すると
+// 光源までの距離も k 倍になり、フラグメントシェーダの距離減衰 pow(d/15, 5) で明るさが
+// k^-5 に振れる(縮めると白飛びする)。歯車の見かけの大きさを変えたいときは、代わりに
+// matLoc の平行移動(z)でカメラから遠ざける。平行移動は光源と頂点の両方に等しく効くので
+// 距離が変わらず、ライティングに一切影響しない。
+const ModelScale = 10;
+
+/* ---- 縦長画面(スマホ)のレイアウト。#6 ---- */
+
+// これ未満のアスペクト比を「縦長」とみなし、歯車を上部中央に置く。
+// 境界をまたぐと構図が切り替わる(CSS のメディアクエリと同じで、そこは不連続になる)。
+const PortraitMaxAspect = 1.0;
+// 歯車の直径を画面幅の何倍にするか。これを満たす奥行きまで引く。
+const PortraitGearWidthRatio = 1.3;
+// 歯車の中心を置く高さ(NDC。+1 が画面上端)。1 を超えると上端がはみ出て切れる。
+const PortraitGearCenterY = 0.85;
+// 遠ざけすぎて far クリップ面(100)に飲まれないための上限。極端に細長い窓のための保険。
+const MaxGearDistance = 60;
 
 function calcTodayAngle(): number {
   const now = new Date();
@@ -23,6 +45,8 @@ export default class Gear {
   private readonly matTmp_: mat4;
   private readonly todayAngle_: number;
   private angle_: number;
+  // 初回の onSizeChanged で着地角を決めたか。
+  private angleInitialized_: boolean;
 
   private readonly winterLightPos_: vec4;
   private readonly springLightPos_: vec4;
@@ -46,7 +70,9 @@ export default class Gear {
     this.matTmp_ = mat4.identity(mat4.create());
 
     this.todayAngle_ = calcTodayAngle();
+    // 実際の着地角は最初の onSizeChanged でレイアウトに合わせて決め直す。
     this.angle_ = this.todayAngle_ - Math.PI/6;
+    this.angleInitialized_ = false;
 
     this.winterLightPos_ = vec4.create();
     this.springLightPos_ = vec4.create();
@@ -57,13 +83,38 @@ export default class Gear {
 
   onSizeChanged(width: number, height: number) {
     const aspect = width / height;
+    const portrait = aspect < PortraitMaxAspect;
     const matModel = this.matModel_;
     const matLoc = this.matLoc_;
     mat4.identity(matModel);
     mat4.identity(matLoc);
     //mat4.rotateY(matModel, matModel, -90/180*Math.PI);
-    mat4.scale(matModel, matModel, [10, 10, 10]);
-    mat4.translate(matLoc, matLoc, [-0.8 * aspect, 0.8, -1.5]);
+    mat4.scale(matModel, matModel, [ModelScale, ModelScale, ModelScale]);
+    if (portrait) {
+      // 歯車を上部中央に置き、モーメントの弧を画面下に降ろす。
+      //
+      // 大きさは奥行きだけで決める。半画面幅 = TanHalfFovY * dist * aspect なので、
+      // 直径(2 * ModelScale) が画面幅の PortraitGearWidthRatio 倍になる dist は
+      //   2 * ModelScale = ratio * 2 * TanHalfFovY * dist * aspect
+      // を解いて次のとおり。
+      const dist = Math.min(
+        ModelScale / (PortraitGearWidthRatio * TanHalfFovY * aspect),
+        MaxGearDistance);
+      const y = PortraitGearCenterY * TanHalfFovY * dist;
+      // matLoc の平行移動は matModel(スケール ModelScale)より手前に掛かるので、
+      // ここでの 1 単位はワールドの ModelScale 単位にあたる。
+      mat4.translate(matLoc, matLoc, [0, y / ModelScale, -(dist - EyeZ) / ModelScale]);
+    } else {
+      mat4.translate(matLoc, matLoc, [-0.8 * aspect, 0.8, -1.5]);
+    }
+    // 最初のレイアウトが決まった時点で、今日のモーメントの着地位置を合わせる。
+    // 一度ユーザーが回したあとは動かさない(リサイズのたびに引き戻さない)。
+    if (!this.angleInitialized_) {
+      this.angleInitialized_ = true;
+      // モデル上の位置角は -θ、そこへ Rz(+angle) が掛かるので、画面上の向きは angle - θ。
+      // 縦長では弧の中央である真下(-π/2)に、横長では従来どおり右下(-π/6)に置く。
+      this.angle_ = this.todayAngle_ + (portrait ? -Math.PI / 2 : -Math.PI / 6);
+    }
   }
   set angle(v: number) {
     this.angle_ = v;
