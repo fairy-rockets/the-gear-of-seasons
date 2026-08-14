@@ -21,6 +21,7 @@ import PickupController from './controller/omote/PickupController.js';
 import RandomSelectionController, {
   RandomSelectionControllerInterface
 } from './controller/omote/RandomSelectionController.js';
+import SitemapController from './controller/omote/SitemapController.js';
 // Ura Controllers
 import UraIndexController from './controller/ura/IndexController.js';
 import MomentListController from './controller/ura/MomentListController.js';
@@ -33,6 +34,7 @@ import PreviewController from './controller/ura/PreviewController.js';
 // Both Controllers
 import EntityController, {EntityControllerInterface} from './controller/both/EntityController.js';
 import MomentBodyController from './controller/both/MomentBodyController.js';
+import RobotsController from './controller/both/RobotsController.js';
 
 type Handler =
   (req: FastifyRequest, reply: FastifyReply) => PromiseLike<FastifyReply>;
@@ -104,17 +106,17 @@ class Server {
       const omote = await OmoteIndexController.create(this.asset);
       const ura = await UraIndexController.create(this.asset);
       this.each.get('/', {
-        omote: omote.handle.bind(omote),
+        omote: omote.handlerOf('index'),
         ura: ura.handle.bind(ura),
       });
       // (omote)/about-us/
-      this.omote.get('/about-us/', omote.handle.bind(omote));
+      this.omote.get('/about-us/', omote.handlerOf('about-us'));
       // (omote)/shop/
-      this.omote.get('/shop/', omote.handle.bind(omote));
+      this.omote.get('/shop/', omote.handlerOf('shop'));
       this.omote.get('/shop', async (_req, reply) => { return reply.redirect('/shop/', 301); });
       // (omote)/pickup/
       const pickup = await PickupController.create(this.asset, this.shelf);
-      this.omote.get('/pickup/', omote.handle.bind(omote));
+      this.omote.get('/pickup/', omote.handlerOf('pickup'));
       this.omote.get('/pickup', async (_req, reply) => { return reply.redirect('/pickup/', 301); });
       this.omote.get('/pickup/body', pickup.handleBody.bind(pickup));
     }
@@ -124,6 +126,17 @@ class Server {
       this.each.get('/:year(^[0-9]{4}$)/:month(^[0-9]{2}$)/:day(^[0-9]{2}$)/:time(^[0-9]{2}:[0-9]{2}:[0-9]{2}$)/', {
         omote: omote.handle.bind(omote),
         ura: ura.handle.bind(ura),
+      });
+    }
+    { // (omote)/sitemap.xml
+      const omote = await SitemapController.create(this.shelf);
+      this.omote.get('/sitemap.xml', omote.handle.bind(omote));
+    }
+    { // (each)/robots.txt — omote は全許可、ura は全拒否
+      const c = await RobotsController.create();
+      this.each.get('/robots.txt', {
+        omote: c.handleOmote.bind(c),
+        ura: c.handleUra.bind(c),
       });
     }
     { // (omote)/moments/random

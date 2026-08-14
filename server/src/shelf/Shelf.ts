@@ -342,6 +342,10 @@ class Shelf {
     return await this.repo.findMomentSummariesByRandom(size);
   }
 
+  async findAllMomentSummaries(): Promise<MomentSummary[]> {
+    return await this.repo.findAllMomentSummaries();
+  }
+
   async findPreviousMomentSummary(timestamp: dayjs.Dayjs): Promise<MomentSummary | null> {
     return await this.repo.findPreviousMomentSummary(timestamp);
   }

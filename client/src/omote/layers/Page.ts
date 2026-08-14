@@ -10,8 +10,6 @@ export default class Page extends Layer {
   private readonly content_: HTMLDivElement;
   private readonly backButton_: HTMLDivElement;
   private readonly closeListener_: () => void;
-  private prevTitle_: string;
-  private title_: string;
   constructor(world: World, path: string, contentPromise: Promise<string>) {
     super(world, path);
 
@@ -29,8 +27,6 @@ export default class Page extends Layer {
     this.contentWrapper_.appendChild(this.backButton_);
 
     this.closeListener_ = this.onClose_.bind(this);
-    this.prevTitle_ = "";
-    this.title_ = "";
 
     // タッチでも確実に閉じられるよう click を使う(合成 click が発火する)。
     this.backButton_.addEventListener('click', this.closeListener_, false);
@@ -56,11 +52,11 @@ export default class Page extends Layer {
       p.removeChild(src);
     }
 
-    this.prevTitle_ = document.title;
+    // サーバが SSR した <title> と同じ形にすること(server/src/lib/meta.ts の pageTitle)。
     const titles = this.content_.getElementsByClassName("title");
     if(titles.length > 0) {
-      this.title_ = titles[0].textContent ?? "";
-      document.title = `${this.title_} :: the gear of seasons`;
+      this.title_ = `${titles[0].textContent ?? ""} :: the gear of seasons`;
+      this.world.notifyTitleChanged(this);
     }
 
     this.setupFooter_();
@@ -104,7 +100,6 @@ export default class Page extends Layer {
   }
 
   onClose_() {
-    document.title = this.prevTitle_;
     if(this.world.canPopLayer()) {
       this.world.popLayer();
     } else {

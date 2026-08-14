@@ -22,6 +22,10 @@ export default class World {
   private readonly matProjection_: mat4;
   private readonly matWorld_: mat4;
   private cursor_: boolean;
+  // サーバが最初に配信した URL と、そのとき <head> に入れてきた SSR のタグ。
+  private readonly initialPath_: string;
+  private readonly siteTitle_: string;
+  private readonly ssrHead_: Element[];
   static fromCanvas(canvas: HTMLCanvasElement): World | null {
     const gl = canvas.getContext('webgl2');
     if(!gl) {
@@ -45,6 +49,13 @@ export default class World {
     //
     this.cursor_ = false;
     this.canvas_.style.cursor = 'default';
+
+    this.initialPath_ = location.pathname;
+    this.siteTitle_ = document.body.dataset['siteTitle'] ?? document.title;
+    this.ssrHead_ = Array.from(document.head.querySelectorAll(
+      'meta[property^="og:"], meta[name^="twitter:"], meta[name="description"], link[rel="canonical"]'
+    ));
+
     window.onpopstate = this.onPopState_.bind(this);
   }
 
@@ -146,6 +157,50 @@ export default class World {
       this.cursor_ = on;
     }
   }
+  get initialPath(): string {
+    return this.initialPath_;
+  }
+
+  get siteTitle(): string {
+    return this.siteTitle_;
+  }
+
+  /****************************************************************************
+   *                                  <head>                                  *
+   ****************************************************************************/
+
+  /**
+   * <head> をスタック最上位のレイヤから導出する。
+   *
+   * title はレイヤが持っている値をそのまま使う。SSR の og: や description は、
+   * 最初に配信された URL に居る間だけ正しいので、他のレイヤに移ったら外す。
+   * (外に出したまま古い値を晒すより、無くて <title> と URL に落ちる方が安全)
+   */
+  private applyHead_() {
+    const layers = this.layers_;
+    if (layers.length === 0) {
+      return;
+    }
+    const top = layers[layers.length-1];
+    document.title = top.title;
+    const valid = top.path === this.initialPath_;
+    for (const el of this.ssrHead_) {
+      if (valid && !el.isConnected) {
+        document.head.appendChild(el);
+      } else if (!valid && el.isConnected) {
+        el.remove();
+      }
+    }
+  }
+
+  /** 本文は非同期に届くので、届いた時点でまだ最上位なら反映する。 */
+  notifyTitleChanged(layer: Layer) {
+    const layers = this.layers_;
+    if (layers.length > 0 && layers[layers.length-1] === layer) {
+      this.applyHead_();
+    }
+  }
+
   /****************************************************************************
    *                            Layer  Transitions                            *
    ****************************************************************************/
@@ -193,6 +248,7 @@ export default class World {
     layers.push(next);
     document.body.appendChild(next.element);
     next.onAttached();
+    this.applyHead_();
   }
 
   canPopLayer(): boolean {
@@ -217,6 +273,7 @@ export default class World {
     const next = layers[layers.length-1];
     document.body.appendChild(next.element);
     next.onAttached();
+    this.applyHead_();
   }
 
   private replaceLayer_(next: Layer) {
@@ -232,6 +289,7 @@ export default class World {
     layers.push(next);
     document.body.appendChild(next.element);
     next.onAttached();
+    this.applyHead_();
   }
 
   onPopState_(ev: PopStateEvent) {
