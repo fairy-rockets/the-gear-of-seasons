@@ -18,6 +18,9 @@ export const kSiteTitle = '妖精⊸ロケット :: the gear of seasons';
 
 // Page.ts (client) が本文から組み立てるタイトルと同じ形にすること。
 // ズレると SSR された title が遷移のたびに書き換わって見える。
+//
+// TODO: サーバとクライアントで同じ組み立てを二重に持っている。今は1箇所ずつなので
+// 手で揃えているが、増えてきたら protocol.ts のように共有する場所へ移すか考える。
 export function pageTitle(title: string): string {
   return `${title} :: the gear of seasons`;
 }

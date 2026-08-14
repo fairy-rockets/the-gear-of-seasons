@@ -7,7 +7,9 @@ import {PageMeta, absoluteURL, kSiteTitle, pageTitle} from '../../lib/meta.js';
 // 静的な omote のページ。どれも同じ index.hbs のシェルを返すが、<head> だけが違う。
 export type StaticPage = 'index' | 'about-us' | 'shop' | 'pickup';
 
-const kSiteImage = absoluteURL('/static/kaede.jpg');
+// サイト共通の OGP 画像。「太陽と帽子とお月さま」(/2018/12/17/18:18:29/) の絵で、
+// この entity はその moment の iconID そのもの。medium(長辺2048px)を使う。
+const kSiteImage = absoluteURL('/entity/84c23994da70378209994c29880fd1ba/medium');
 
 const kPages: { [key in StaticPage]: PageMeta } = {
   'index': {

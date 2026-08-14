@@ -53,6 +53,8 @@ export default class Page extends Layer {
     }
 
     // サーバが SSR した <title> と同じ形にすること(server/src/lib/meta.ts の pageTitle)。
+    // TODO: 同じ組み立てをサーバとクライアントで二重に持っている。増えてきたら
+    // protocol.ts のように共有する場所へ移すか考える。
     const titles = this.content_.getElementsByClassName("title");
     if(titles.length > 0) {
       this.title_ = `${titles[0].textContent ?? ""} :: the gear of seasons`;
