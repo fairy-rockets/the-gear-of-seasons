@@ -59,6 +59,9 @@ export function summarizeMomentText(text: string): string {
   // ので、まるごと落として本文だけを残す(残らなければ呼び出し側でタイトルに落とす)。
   plain = plain.replace(/<(script|style|ul|ol)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ');
   plain = plain.replace(/<[^>]*>/g, ' ');
+  // パースに失敗した fml タグは text ブロックとして残る(857 件中 1 件あった)。
+  // 本文としては意味を持たないので description からは落とす。
+  plain = plain.replace(/\[(image|video|audio|link|markdown)\b[^\]]*\]/g, ' ');
   for (const [pattern, ch] of kEntities) {
     plain = plain.replace(pattern, ch);
   }

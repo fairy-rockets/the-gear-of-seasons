@@ -37,6 +37,12 @@ describe("meta", () => {
         summarizeMomentText(`本文。<script>alert("x");</script>`),
         `本文。`);
     });
+    it("Drops fml tags that failed to parse", () => {
+      // パースに失敗すると text ブロックとしてそのまま残る。
+      assert.strictEqual(
+        summarizeMomentText(`本文。 [image entity="deadbeef"] つづき。`),
+        `本文。 つづき。`);
+    });
     it("Truncates long text", () => {
       const summary = summarizeMomentText('あ'.repeat(200));
       assert.strictEqual(summary, `${'あ'.repeat(120)}…`);

@@ -3,6 +3,11 @@ import {FastifyReply, FastifyRequest} from 'fastify';
 import {absoluteURL} from '../../lib/meta.js';
 
 // omote: 全部クロールしてよい。ura は編集画面なので丸ごと拒否する。
+//
+// /moment/... や /moments/random を Disallow で塞がないこと。Google のレンダラは
+// robots.txt をサブリソースの取得にも適用するので、塞ぐと本文もアイコンも取れなく
+// なる(実際 Googlebot は /js/main.js と /moments/random を叩いて中身に届いている)。
+// 断片が単体でインデックスされるのは X-Robots-Tag: noindex の方で止める。
 const kOmote = `User-agent: *
 Allow: /
 

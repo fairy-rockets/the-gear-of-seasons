@@ -42,6 +42,10 @@ export default class MomentBodyController {
     }
     return reply
       .type('text/html;charset=UTF-8')
+      // 本文の断片(<html> も <title> も無い)なので、単体でインデックスされると
+      // moment ページの薄い重複になる。クロールは許して索引だけ止める
+      // (robots.txt で塞ぐと Google のレンダラが本文を取れなくなる)。
+      .header('X-Robots-Tag', 'noindex')
       .code(200)
       .send(body);
   }
