@@ -42,6 +42,7 @@ export default class MomentController {
       canonical: absoluteURL(path),
       ogType: 'article',
       ogImage: await this.ogImageOf(moment),
+      ogImageAlt: moment.title,
       publishedTime: moment.timestamp?.format(),
     };
   }

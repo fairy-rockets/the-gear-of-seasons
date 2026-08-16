@@ -11,6 +11,8 @@ export type PageMeta = {
   canonical: string;
   ogType: 'website' | 'article';
   ogImage: string | undefined;
+  // 画像の中身の説明。og:image を出すなら出すべき、と仕様(ogp.me)に書いてある。
+  ogImageAlt: string | undefined;
   publishedTime: string | undefined;
 };
 

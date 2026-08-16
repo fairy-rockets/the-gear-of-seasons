@@ -10,6 +10,7 @@ export type StaticPage = 'index' | 'about-us' | 'shop' | 'pickup';
 // サイト共通の OGP 画像。「太陽と帽子とお月さま」(/2018/12/17/18:18:29/) の絵で、
 // この entity はその moment の iconID そのもの。medium(長辺2048px)を使う。
 const kSiteImage = absoluteURL('/entity/84c23994da70378209994c29880fd1ba/medium');
+const kSiteImageAlt = '太陽と帽子とお月さま';
 
 const kPages: { [key in StaticPage]: PageMeta } = {
   'index': {
@@ -19,6 +20,7 @@ const kPages: { [key in StaticPage]: PageMeta } = {
     canonical: absoluteURL('/'),
     ogType: 'website',
     ogImage: kSiteImage,
+    ogImageAlt: kSiteImageAlt,
     publishedTime: undefined,
   },
   'about-us': {
@@ -28,6 +30,7 @@ const kPages: { [key in StaticPage]: PageMeta } = {
     canonical: absoluteURL('/about-us/'),
     ogType: 'website',
     ogImage: kSiteImage,
+    ogImageAlt: kSiteImageAlt,
     publishedTime: undefined,
   },
   'shop': {
@@ -37,6 +40,7 @@ const kPages: { [key in StaticPage]: PageMeta } = {
     canonical: absoluteURL('/shop/'),
     ogType: 'website',
     ogImage: kSiteImage,
+    ogImageAlt: kSiteImageAlt,
     publishedTime: undefined,
   },
   'pickup': {
@@ -46,6 +50,7 @@ const kPages: { [key in StaticPage]: PageMeta } = {
     canonical: absoluteURL('/pickup/'),
     ogType: 'website',
     ogImage: kSiteImage,
+    ogImageAlt: kSiteImageAlt,
     publishedTime: undefined,
   },
 };
