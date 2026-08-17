@@ -47,11 +47,11 @@ describe("meta", () => {
         summarizeMomentText(`本文。<script>alert("x");</script>`),
         `本文。`);
     });
-    it("Drops fml tags that failed to parse", () => {
-      // パースに失敗すると text ブロックとしてそのまま残る。
+    // 書き間違えたタグは本文でも文字として表示される。description でも落とさない。
+    it("Keeps fml tags that failed to parse", () => {
       assert.strictEqual(
-        summarizeMomentText(`本文。 [image entity="deadbeef"] つづき。`),
-        `本文。 つづき。`);
+        summarizeMomentText(`本文。 [imagee entity="deadbeef"] つづき。`),
+        `本文。 [imagee entity="deadbeef"] つづき。`);
     });
     it("Truncates long text", () => {
       const summary = summarizeMomentText('あ'.repeat(200));

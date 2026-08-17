@@ -41,6 +41,9 @@ const kMaxDescriptionLength = 120;
  * text ブロックは生の HTML を含みうる(MomentRenderer が <p> で包むだけで
  * エスケープしない)ので、タグを剥いでから使う。markdown ブロックは中身が
  * 外部 URL でネットワークを踏むため、ここでは読まない。
+ *
+ * 書き間違えて fml のブロックにならなかったタグは、本文でもそのまま文字として
+ * 表示される。description でも落とさず、本文の見え方に合わせる。
  */
 export function summarizeMomentText(text: string): string {
   const doc = fml.parse(text);
@@ -56,10 +59,6 @@ export function summarizeMomentText(text: string): string {
   // ので、まるごと落として本文だけを残す(残らなければ呼び出し側でタイトルに落とす)。
   plain = plain.replace(/<(script|style|ul|ol)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ');
   plain = plain.replace(/<[^>]*>/g, ' ');
-  // タグの綴り間違いなどでパースに失敗した fml タグは text ブロックとして残る。
-  // 本文としては意味を持たないので description からは落とす(#10 のパーサ修正で、
-  // 現時点の全 857 件に該当するものは無くなった。以降のための保険)。
-  plain = plain.replace(/\[(image|video|audio|link|markdown)\b[^\]]*\]/g, ' ');
   // 実体参照を平文へ戻す。description は Handlebars が属性値として改めて
   // エスケープするので、戻さないと "&amp;" が "&amp;amp;" になって閲覧側に
   // "&amp;" という文字列が見えてしまう。復号は自前でやらず html-entities に任せる。
