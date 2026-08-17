@@ -45,6 +45,7 @@
     "file-type": "^22.0.1",
     "generic-pool": "^3.9.0",
     "handlebars": "^4.7.9",
+    "html-entities": "^2.6.0",
     "marked": "^18.0.3",
     "node-cache": "^5.1.2",
     "pino": "^10.3.1",

@@ -46,6 +46,8 @@ export default class PickupController {
     return reply
       .code(200)
       .type('text/html;charset=UTF-8')
+      // /pickup/ の本文の断片。単体でインデックスされないようにする。
+      .header('X-Robots-Tag', 'noindex')
       .send(this.template({moments}));
   }
 }

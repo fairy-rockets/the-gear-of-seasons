@@ -277,6 +277,23 @@ order by timestamp desc;
     return moments;
   }
 
+  // sitemap.xml 用。全件を新しい順に返す。
+  async findAllMomentSummaries(): Promise<MomentSummary[]> {
+    // language=PostgreSQL
+    const q=`
+select
+  "timestamp", "title", "icon_id"
+from moments
+order by timestamp desc;
+`;
+    const moments: MomentSummary[] = [];
+    const rows = await this.pool.query(q, []);
+    for await (const row of rows) {
+      moments.push(decodeMomentSummary(row));
+    }
+    return moments;
+  }
+
   async findMomentSummariesByRandom(size: number): Promise<MomentSummary[]> {
     // https://stackoverflow.com/a/41337788
     // language=PostgreSQL

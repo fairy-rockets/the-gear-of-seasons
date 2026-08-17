@@ -3,10 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>妖精⊸ロケット :: the gear of seasons</title>
+  <title>{{title}}</title>
+  <meta name="description" content="{{description}}">
+  <link rel="canonical" href="{{canonical}}">
+  <meta property="og:type" content="{{ogType}}">
+  <meta property="og:site_name" content="{{siteTitle}}">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:title" content="{{title}}">
+  <meta property="og:description" content="{{description}}">
+  <meta property="og:url" content="{{canonical}}">
+{{#if ogImage}}
+  <meta property="og:image" content="{{ogImage}}">
+  <meta property="og:image:alt" content="{{ogImageAlt}}">
+  <meta name="twitter:card" content="summary_large_image">
+{{else}}
+  <meta name="twitter:card" content="summary">
+{{/if}}
+{{#if publishedTime}}
+  <meta property="article:published_time" content="{{publishedTime}}">
+{{/if}}
   <link rel="stylesheet" href="/static/main.css">
 </head>
-<body>
+<body data-site-title="{{siteTitle}}">
   <canvas id="background"></canvas>
   <script src="/js/main.js"></script>
   <!-- Google tag (gtag.js) -->
