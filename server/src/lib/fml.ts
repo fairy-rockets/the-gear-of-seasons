@@ -118,6 +118,13 @@ export class Parser {
       default:
         this.buff.skipWhitespace();
         if (this.buff.available()) {
+          // 空白を飛ばした先がブロックなら、テキストとして読まずに case '[' に
+          // 回す。readText() は先頭 1 文字を無条件に take1() するので、ここで
+          // そのまま呼ぶと '[' を食ってタグ 1 つ分が丸ごとテキストになる
+          // (`[image ...] [image ...]` の 2 つめが化ける)。
+          if (this.buff.look1() === '[') {
+            continue;
+          }
           texts.push(this.readText());
         }
         break;
