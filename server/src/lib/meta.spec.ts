@@ -19,8 +19,18 @@ describe("meta", () => {
     it("Unescapes entities", () => {
       assert.strictEqual(summarizeMomentText(`A&amp;B &lt;タグ&gt;`), `A&B <タグ>`);
     });
+    // 自前のテーブルではなく html-entities に任せているので、名前付き・10進・16進が
+    // まとめて解ける。&nbsp; は U+00A0 になり、後段の空白畳み込みで潰れる。
+    it("Unescapes named, decimal and hexadecimal references", () => {
+      assert.strictEqual(summarizeMomentText(`&hellip;&#39;&#x41;&nbsp;B`), `…'A B`);
+    });
     it("Does not unescape twice", () => {
       assert.strictEqual(summarizeMomentText(`&amp;lt;`), `&lt;`);
+    });
+    // 復号はタグを剥いだ後にやる。先に復号すると「タグに見える文字列」が本物の
+    // タグとして消えてしまう。
+    it("Keeps text that looks like a tag", () => {
+      assert.strictEqual(summarizeMomentText(`&lt;script&gt;の話`), `<script>の話`);
     });
     it("Skips non-text blocks", () => {
       assert.strictEqual(

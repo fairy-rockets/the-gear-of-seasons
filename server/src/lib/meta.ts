@@ -1,3 +1,5 @@
+import { decode } from 'html-entities';
+
 import * as fml from './fml.js';
 
 import Config from '../Config.js';
@@ -33,23 +35,6 @@ export function absoluteURL(path: string): string {
 
 const kMaxDescriptionLength = 120;
 
-// text ブロックは生の HTML なので、実体参照は「HTML としてのエスケープ」の形で
-// 入っている。description は Handlebars が属性値として改めてエスケープするので、
-// ここで一度平文へ戻さないと "&amp;" が "&amp;amp;" になって、閲覧側に
-// "&amp;" という文字列が見えてしまう。二重エスケープを防ぐための復号。
-//
-// 全 857 件の本文に実際に現れる実体参照は &nbsp;(17回) と &amp;(6回) の2種類だけ
-// (2026-08-17 に集計)。残りの4つは同種のものが増えたときのため。
-const kEntities: [RegExp, string][] = [
-  [/&lt;/g, '<'],
-  [/&gt;/g, '>'],
-  [/&quot;/g, '"'],
-  [/&#0*39;/g, "'"],
-  [/&nbsp;/g, ' '],
-  // &amp; は最後。先に戻すと "&amp;lt;" が "<" になってしまう。
-  [/&amp;/g, '&'],
-];
-
 /**
  * moment 本文(fml)から meta description 用の平文を作る。
  *
@@ -71,12 +56,16 @@ export function summarizeMomentText(text: string): string {
   // ので、まるごと落として本文だけを残す(残らなければ呼び出し側でタイトルに落とす)。
   plain = plain.replace(/<(script|style|ul|ol)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ');
   plain = plain.replace(/<[^>]*>/g, ' ');
-  // パースに失敗した fml タグは text ブロックとして残る(857 件中 1 件あった)。
-  // 本文としては意味を持たないので description からは落とす。
+  // タグの綴り間違いなどでパースに失敗した fml タグは text ブロックとして残る。
+  // 本文としては意味を持たないので description からは落とす(#10 のパーサ修正で、
+  // 現時点の全 857 件に該当するものは無くなった。以降のための保険)。
   plain = plain.replace(/\[(image|video|audio|link|markdown)\b[^\]]*\]/g, ' ');
-  for (const [pattern, ch] of kEntities) {
-    plain = plain.replace(pattern, ch);
-  }
+  // 実体参照を平文へ戻す。description は Handlebars が属性値として改めて
+  // エスケープするので、戻さないと "&amp;" が "&amp;amp;" になって閲覧側に
+  // "&amp;" という文字列が見えてしまう。復号は自前でやらず html-entities に任せる。
+  // タグを剥いだ後に復号する順番は変えないこと。先に復号すると、本文に書かれた
+  // "&lt;script&gt;" のような「タグに見える文字列」が本物のタグになってしまう。
+  plain = decode(plain);
   plain = plain.replace(/\s+/g, ' ').trim();
   if (plain.length > kMaxDescriptionLength) {
     plain = `${plain.slice(0, kMaxDescriptionLength)}…`;
