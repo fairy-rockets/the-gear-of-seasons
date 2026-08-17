@@ -1,3 +1,4 @@
+import {escapeHTML} from '@wordpress/escape-html';
 import {FastifyReply, FastifyRequest} from 'fastify';
 
 import {absoluteURL} from '../../lib/meta.js';
@@ -41,30 +42,51 @@ export default class SitemapController {
   }
   private async render(): Promise<string> {
     const moments = await this.shelf.findAllMomentSummaries();
-    const buff: string[] = [];
-    buff.push('<?xml version="1.0" encoding="UTF-8"?>');
-    buff.push('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
-    for (const path of kStaticPaths) {
-      buff.push(`  <url><loc>${escapeXML(absoluteURL(path))}</loc></url>`);
-    }
+    const entries: SitemapEntry[] = kStaticPaths.map((path) => ({
+      loc: absoluteURL(path),
+    }));
     for (const m of moments) {
       if (m.timestamp === undefined) {
         continue;
       }
-      const loc = escapeXML(absoluteURL(formatMomentPath(m.timestamp)));
-      const lastmod = m.timestamp.format('YYYY-MM-DD');
-      buff.push(`  <url><loc>${loc}</loc><lastmod>${lastmod}</lastmod></url>`);
+      entries.push({
+        loc: absoluteURL(formatMomentPath(m.timestamp)),
+        lastmod: m.timestamp.format('YYYY-MM-DD'),
+      });
     }
-    buff.push('</urlset>');
-    return buff.join('\n');
+    return renderSitemapXML(entries);
   }
 }
 
-function escapeXML(str: string): string {
-  return str
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&apos;');
+export type SitemapEntry = {
+  loc: string,
+  lastmod?: string,
+};
+
+/**
+ * sitemap.xml を組む。DB を触らない純関数。
+ *
+ * <loc> と <lastmod> は XML の文字データなので、エスケープが必要なのは
+ * `<` と `&` だけ(XML 1.0 §2.4。`>` は "]]>" の並びの中だけが必須で、
+ * ここでは現れない)。それがちょうど escapeHTML の仕事なので、
+ * MomentRenderer と同じ @wordpress/escape-html を使う。
+ *
+ * そもそも今の入力は Config.OmoteOrigin + kStaticPaths か
+ * formatMomentPath() の '/YYYY/MM/DD/HH:mm:ss/' で、[0-9/:a-z-] しか
+ * 含まないため実際には何も置換されない。loc の作り方が変わったときの
+ * 保険として通してある。
+ */
+export function renderSitemapXML(entries: SitemapEntry[]): string {
+  const buff: string[] = [];
+  buff.push('<?xml version="1.0" encoding="UTF-8"?>');
+  buff.push('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
+  for (const entry of entries) {
+    const loc = `<loc>${escapeHTML(entry.loc)}</loc>`;
+    const lastmod = entry.lastmod !== undefined
+      ? `<lastmod>${escapeHTML(entry.lastmod)}</lastmod>`
+      : '';
+    buff.push(`  <url>${loc}${lastmod}</url>`);
+  }
+  buff.push('</urlset>');
+  return buff.join('\n');
 }

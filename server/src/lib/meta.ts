@@ -33,6 +33,13 @@ export function absoluteURL(path: string): string {
 
 const kMaxDescriptionLength = 120;
 
+// text ブロックは生の HTML なので、実体参照は「HTML としてのエスケープ」の形で
+// 入っている。description は Handlebars が属性値として改めてエスケープするので、
+// ここで一度平文へ戻さないと "&amp;" が "&amp;amp;" になって、閲覧側に
+// "&amp;" という文字列が見えてしまう。二重エスケープを防ぐための復号。
+//
+// 全 857 件の本文に実際に現れる実体参照は &nbsp;(17回) と &amp;(6回) の2種類だけ
+// (2026-08-17 に集計)。残りの4つは同種のものが増えたときのため。
 const kEntities: [RegExp, string][] = [
   [/&lt;/g, '<'],
   [/&gt;/g, '>'],
