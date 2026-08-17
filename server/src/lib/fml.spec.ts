@@ -27,6 +27,40 @@ describe("FML", () => {
       fml.makeText("aa"),
     ]));
   });
+  // 空白で区切って並べたブロックが、2 つめからテキストに化けていた。
+  it("Blocks separated by a space", () => {
+    const buffer = new fml.Buffer(`[image entity="a"] [image entity="b"]`);
+    const p = new fml.Parser(buffer);
+    assert.deepEqual(p.parse(), new fml.Document([
+      fml.makeImage("a"),
+      fml.makeImage("b"),
+    ]));
+  });
+  it("Three blocks separated by spaces", () => {
+    const buffer = new fml.Buffer(`[image entity="a"] [image entity="b"] [image entity="c"]`);
+    const p = new fml.Parser(buffer);
+    assert.deepEqual(p.parse(), new fml.Document([
+      fml.makeImage("a"),
+      fml.makeImage("b"),
+      fml.makeImage("c"),
+    ]));
+  });
+  it("Block after text and a space", () => {
+    const buffer = new fml.Buffer(`aa [image entity="a"]`);
+    const p = new fml.Parser(buffer);
+    assert.deepEqual(p.parse(), new fml.Document([
+      fml.makeText("aa "),
+      fml.makeImage("a"),
+    ]));
+  });
+  it("Broken brancket after a space", () => {
+    const buffer = new fml.Buffer(`[image entity="a"] [image entity="b`);
+    const p = new fml.Parser(buffer);
+    assert.deepEqual(p.parse(), new fml.Document([
+      fml.makeImage("a"),
+      fml.makeText(`[image entity="b`),
+    ]));
+  });
   it("Broken brancket", () => {
     const buffer = new fml.Buffer(`aa[image entity="test`);
     const p = new fml.Parser(buffer);
