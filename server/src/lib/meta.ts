@@ -41,9 +41,6 @@ const kMaxDescriptionLength = 120;
  * text ブロックは生の HTML を含みうる(MomentRenderer が <p> で包むだけで
  * エスケープしない)ので、タグを剥いでから使う。markdown ブロックは中身が
  * 外部 URL でネットワークを踏むため、ここでは読まない。
- *
- * 書き間違えて fml のブロックにならなかったタグは、本文でもそのまま文字として
- * 表示される。description でも落とさず、本文の見え方に合わせる。
  */
 export function summarizeMomentText(text: string): string {
   const doc = fml.parse(text);

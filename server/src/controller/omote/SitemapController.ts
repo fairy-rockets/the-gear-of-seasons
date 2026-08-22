@@ -71,10 +71,9 @@ export type SitemapEntry = {
  * ここでは現れない)。それがちょうど escapeHTML の仕事なので、
  * MomentRenderer と同じ @wordpress/escape-html を使う。
  *
- * そもそも今の入力は Config.OmoteOrigin + kStaticPaths か
+ * ただし、今の entry.loc は Config.OmoteOrigin + kStaticPaths か
  * formatMomentPath() の '/YYYY/MM/DD/HH:mm:ss/' で、[0-9/:a-z-] しか
- * 含まないため実際には何も置換されない。loc の作り方が変わったときの
- * 保険として通してある。
+ * 含まないため実際には何も置換されない。
  */
 export function renderSitemapXML(entries: SitemapEntry[]): string {
   const buff: string[] = [];
