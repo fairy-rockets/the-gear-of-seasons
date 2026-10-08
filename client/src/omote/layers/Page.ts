@@ -38,7 +38,10 @@ export default class Page extends Layer {
   }
 
   onLoad_(body: string) {
-    this.content_.innerHTML = twemoji.parse(body, { base: EMOJI_URL_BASE });
+    // 文字列に対して parse すると、属性値(title="カエル🐸…" など)の絵文字まで
+    // <img> に置換されてタグが壊れる。DOM に対して parse すればテキストノードだけが対象になる。
+    this.content_.innerHTML = body;
+    twemoji.parse(this.content_, { base: EMOJI_URL_BASE });
 
     const contents = this.content_.getElementsByTagName('script');
     for(let i = 0; i < contents.length; ++i) {
