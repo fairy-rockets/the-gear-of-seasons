@@ -139,7 +139,7 @@ export class Parser {
     }
     return '';
   }
-  private parseBlock(): Image | Video | Audio | Link | Markdown {
+  private parseBlock(): Image | Video | Audio | Link | Markdown | Youtube {
     const [tag, map] = this.parseBracket();
     switch(tag) {
       case 'image':
@@ -152,6 +152,8 @@ export class Parser {
         return makeLink(map.get('entity'), map.get('text'));
       case 'markdown':
         return makeMarkdown(map.get('url'));
+      case 'youtube':
+        return makeYoutube(map.get('url'));
       default:
         throw new ParseError(`Unknown block type: ${tag}`);
     }
@@ -198,7 +200,7 @@ export class Document {
   }
 }
 
-type Block = Text | Image | Video | Audio | Link | Markdown;
+type Block = Text | Image | Video | Audio | Link | Markdown | Youtube;
 
 export type Text = {
   type: 'text';
@@ -273,6 +275,60 @@ export function makeMarkdown(url: string | undefined): Markdown {
   return {
     type: 'markdown',
     url: url,
+  }
+}
+
+export type Youtube = {
+  type: 'youtube';
+  id: string;
+}
+
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+const YOUTUBE_HOSTS = new Set([
+  'youtube.com',
+  'www.youtube.com',
+  'm.youtube.com',
+  'music.youtube.com',
+  'www.youtube-nocookie.com',
+  'youtube-nocookie.com',
+]);
+
+// watch?v=<id> / youtu.be/<id> / shorts|embed|live/<id> のどれかから動画 ID を取り出す。
+// レンダラには ID だけを渡すので、ここを通らない文字列が iframe の src に入ることはない。
+export function parseYoutubeId(url: string | undefined): string {
+  if (url === undefined) {
+    throw new ParseError(`youtube: url is not set`);
+  }
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch (e) {
+    throw new ParseError(`youtube: invalid url: ${url}`);
+  }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') {
+    throw new ParseError(`youtube: invalid url: ${url}`);
+  }
+  let id: string | null = null;
+  const segments = u.pathname.split('/').filter((s) => s !== '');
+  if (u.hostname === 'youtu.be') {
+    id = segments[0] ?? null;
+  } else if (YOUTUBE_HOSTS.has(u.hostname)) {
+    if (segments[0] === 'watch') {
+      id = u.searchParams.get('v');
+    } else if (['shorts', 'embed', 'live'].includes(segments[0])) {
+      id = segments[1] ?? null;
+    }
+  }
+  if (id === null || !YOUTUBE_ID.test(id)) {
+    throw new ParseError(`youtube: video id not found: ${url}`);
+  }
+  return id;
+}
+
+export function makeYoutube(url: string | undefined): Youtube {
+  return {
+    type: 'youtube',
+    id: parseYoutubeId(url),
   }
 }
 

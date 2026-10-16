@@ -3,6 +3,7 @@ import assert from 'assert';
 import dayjs from 'dayjs';
 
 import MomentRenderer from './MomentRenderer.js';
+import * as fml from '../lib/fml.js';
 import { MomentSummary } from '../shelf/Moment.js';
 
 describe("MomentRenderer.renderNavigationFooter", () => {
@@ -42,5 +43,14 @@ describe("MomentRenderer.renderNavigationFooter", () => {
     const html = MomentRenderer.renderNavigationFooter(prev, null);
     assert.ok(!html.includes('<script>alert(1)</script>'));
     assert.ok(html.includes('&lt;script&gt;'));
+  });
+});
+
+describe("MomentRenderer.renderYoutube", () => {
+  it("youtube-nocookie の iframe になる", () => {
+    const html = MomentRenderer.renderYoutube(fml.makeYoutube('https://youtu.be/dQw4w9WgXcQ'));
+    assert.ok(html.startsWith('<iframe class="embed youtube" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"'));
+    assert.ok(html.includes('loading="lazy"'));
+    assert.ok(html.endsWith('</iframe>'));
   });
 });

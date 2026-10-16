@@ -96,4 +96,35 @@ describe("FML", () => {
     const p = new fml.Parser(buffer);
     assert.deepEqual(p.parse(), new fml.Document([fml.makeImage("test_id")]));
   });
+  it("Youtube block", () => {
+    const urls = [
+      `https://www.youtube.com/watch?v=dQw4w9WgXcQ`,
+      `https://www.youtube.com/watch?feature=share&v=dQw4w9WgXcQ&t=10`,
+      `https://youtu.be/dQw4w9WgXcQ?si=abc`,
+      `https://m.youtube.com/shorts/dQw4w9WgXcQ`,
+      `https://www.youtube.com/live/dQw4w9WgXcQ`,
+      `https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ`,
+    ];
+    for (const url of urls) {
+      const p = new fml.Parser(new fml.Buffer(`[youtube url="${url}"]`));
+      assert.deepEqual(p.parse(), new fml.Document([fml.makeYoutube(url)]), url);
+      assert.equal(fml.parseYoutubeId(url), 'dQw4w9WgXcQ', url);
+    }
+  });
+  it("Youtube block rejects invalid urls", () => {
+    const urls = [
+      undefined,
+      ``,
+      `dQw4w9WgXcQ`,
+      `https://example.com/watch?v=dQw4w9WgXcQ`,
+      `https://evil.youtube.com.example.com/watch?v=dQw4w9WgXcQ`,
+      `https://www.youtube.com/watch?v=short`,
+      `https://www.youtube.com/watch?v=dQw4w9WgXcQ"onload="x`,
+      `https://www.youtube.com/`,
+      `javascript:alert(1)`,
+    ];
+    for (const url of urls) {
+      assert.throws(() => fml.makeYoutube(url), fml.ParseError, String(url));
+    }
+  });
 });

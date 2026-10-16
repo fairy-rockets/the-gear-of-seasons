@@ -204,6 +204,13 @@ h1 {
   width: 100%;
 }
 
+.content-wrapper .content iframe.embed.youtube {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border: 0;
+}
+
 
 img.emoji {
   height: 1em;

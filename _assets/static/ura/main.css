@@ -226,6 +226,13 @@ div.uploader-progress > progress {
   width: 100%;
 }
 
+#preview iframe.embed.youtube {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border: 0;
+}
+
 #preview .moment-info::after {
   clear: both;
   content: "";

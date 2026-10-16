@@ -68,6 +68,9 @@ class MomentRenderer {
         case 'markdown':
           buff.push(await MomentRenderer.renderMarkdown(block));
           break;
+        case 'youtube':
+          buff.push(MomentRenderer.renderYoutube(block));
+          break;
       }
     }
     return buff.join('');
@@ -135,6 +138,11 @@ class MomentRenderer {
     }
     return `
 <audio class="embed" class="" src="/entity/${escapeAttribute(entity.id)}" title="" controls="controls"></audio>
+`.trim();
+  }
+  static renderYoutube(block: fml.Youtube): string {
+    return `
+<iframe class="embed youtube" src="https://www.youtube-nocookie.com/embed/${escapeAttribute(block.id)}" title="YouTube video player" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
 `.trim();
   }
   private static renderLink(block: fml.Link): string {
