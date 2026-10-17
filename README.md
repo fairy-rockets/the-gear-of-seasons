@@ -29,10 +29,10 @@ The schema is managed by Flyway (`db/flyway_data/sql/V*__*.sql`).
 The `flyway` service in `compose.yml` belongs to the `tool` profile, so `make up` (`docker compose up`) does not run it.
 Run the steps below by hand, in the directory holding the `compose.yml` that runs the production stack.
 
-1. Back up the database:
+1. Back up the database. The user and database name are the `postgres` service's own `POSTGRES_USER` / `POSTGRES_DB`, read inside the container:
 
    ```sh
-   docker compose exec -T postgres pg_dump "user=the-gear-of-seasons password=the-gear-of-seasons dbname=the-gear-of-seasons" > "backup-$(date +%Y%m%d-%H%M%S).sql"
+   docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > "backup-$(date +%Y%m%d-%H%M%S).sql"
    ```
 
 2. Apply the migrations. `FLYWAY_CONFIG_FILES` selects `flyway.conf`, which points at the `postgres` service:
