@@ -269,9 +269,25 @@ a.moment {
   border: cadetblue 1px solid;
 }
 
+.moment-list .moment-image {
+  position: relative;
+}
+
 .moment-list .moment-image img{
   width: 15em;
   height: 15em;
+}
+
+.moment-list .moment-badge-draft {
+  position: absolute;
+  top: 0.5em;
+  left: 0.5em;
+  padding: 0.2em 0.6em;
+  background: #d9822b;
+  color: #ffffff;
+  font-weight: 800;
+  border-radius: 0.3em;
+  box-shadow: 0 0 0.3em rgba(0, 0, 0, 0.6);
 }
 
 .moment-list .moment-date{

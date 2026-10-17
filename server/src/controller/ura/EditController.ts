@@ -19,7 +19,7 @@ export default class EditController {
   }
   async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const date = parseMomentPath(req.url);
-    const moment = await this.shelf.findMoment(date);
+    const moment = await this.shelf.findMoment(date, 'all');
     if (moment === null) {
       return reply
         .type('text/plain;charset=UTF-8')
@@ -34,6 +34,7 @@ export default class EditController {
         author: moment.author,
         date: formatMomentTime(moment.timestamp!!),
         text: moment.text,
+        status: moment.status,
       }));
   }
 }

@@ -12,7 +12,7 @@ import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from '../lib
 import Repo from '../repo/Repo.js';
 import Storage from '../storage/Storage.js';
 import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity.js';
-import { Moment, MomentSummary, formatMomentTime, parseMomentTime } from './Moment.js';
+import { Moment, MomentSummary, Visibility, formatMomentTime, parseMomentStatus, parseMomentTime } from './Moment.js';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -275,6 +275,7 @@ class Shelf {
    ********************************************************************************************** */
 
   private async makeMomentFromRequest(req: protocol.Moment.Save.Request): Promise<Moment> {
+    const status = parseMomentStatus(req.status);
     let date = req.date;
     let iconID: string | undefined = undefined;
     const doc = fml.parse(req.text);
@@ -323,35 +324,38 @@ class Shelf {
       author: req.author,
       text: req.text,
       iconID: iconID,
+      status: status,
     };
   }
 
+  // 下書きも含めた全件。gc などが使用中の entity を数えるのに使うので、絞らない。
   enumurateAllMoments(): AsyncGenerator<Moment> {
     return this.repo.enumurateAllMoments();
   }
 
-  async findMomentSummariesInYear(year: number): Promise<MomentSummary[]> {
-    return await this.repo.findMomentSummariesInYear(year);
+  // 以下、visibility は omote から呼ぶなら 'published'、ura から呼ぶなら 'all'。
+  async findMomentSummariesInYear(year: number, visibility: Visibility): Promise<MomentSummary[]> {
+    return await this.repo.findMomentSummariesInYear(year, visibility);
   }
 
-  async findMoment(timestamp: dayjs.Dayjs): Promise<Moment | null> {
-    return await this.repo.findMoment(timestamp);
+  async findMoment(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<Moment | null> {
+    return await this.repo.findMoment(timestamp, visibility);
   }
 
-  async findMomentSummariesByRandom(size: number): Promise<MomentSummary[]> {
-    return await this.repo.findMomentSummariesByRandom(size);
+  async findMomentSummariesByRandom(size: number, visibility: Visibility): Promise<MomentSummary[]> {
+    return await this.repo.findMomentSummariesByRandom(size, visibility);
   }
 
-  async findAllMomentSummaries(): Promise<MomentSummary[]> {
-    return await this.repo.findAllMomentSummaries();
+  async findAllMomentSummaries(visibility: Visibility): Promise<MomentSummary[]> {
+    return await this.repo.findAllMomentSummaries(visibility);
   }
 
-  async findPreviousMomentSummary(timestamp: dayjs.Dayjs): Promise<MomentSummary | null> {
-    return await this.repo.findPreviousMomentSummary(timestamp);
+  async findPreviousMomentSummary(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<MomentSummary | null> {
+    return await this.repo.findPreviousMomentSummary(timestamp, visibility);
   }
 
-  async findNextMomentSummary(timestamp: dayjs.Dayjs): Promise<MomentSummary | null> {
-    return await this.repo.findNextMomentSummary(timestamp);
+  async findNextMomentSummary(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<MomentSummary | null> {
+    return await this.repo.findNextMomentSummary(timestamp, visibility);
   }
 
   async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {

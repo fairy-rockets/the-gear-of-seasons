@@ -32,7 +32,7 @@ export default class PickupController {
   }
   async handleBody(_req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const found = await Promise.all(kPickupMoments.map(async (ts) => {
-      const moment = await this.shelf.findMoment(dayjs(ts));
+      const moment = await this.shelf.findMoment(dayjs(ts), 'published');
       if (moment === null || moment.timestamp === undefined || moment.iconID === undefined) {
         return null;
       }

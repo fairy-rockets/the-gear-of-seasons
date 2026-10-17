@@ -15,6 +15,8 @@ docker compose exec the-gear-of-seasons \
 - entities の行ごと失われた entity（本文の `[image entity="..."]` だけが生き残っている絵）
 - どの entity からも参照されていない storage のファイル
 
+本文からの参照は、下書き（`status = 'draft'`）の moment からのものも含めて数える（`gc` も同じ）。
+
 `--out` に書き出されるもの:
 
 | ファイル | 中身 |

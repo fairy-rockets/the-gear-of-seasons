@@ -29,6 +29,7 @@ export default class SaveController {
     const resp: protocol.Moment.Save.Response = {
       path: formatMomentPath(moment.timestamp),
       date: formatMomentTime(moment.timestamp),
+      status: moment.status,
       body: await this.renderer.render(now, moment),
     };
     return reply

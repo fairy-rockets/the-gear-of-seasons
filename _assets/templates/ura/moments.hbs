@@ -9,11 +9,16 @@
 {{#each moments}}
 <a href="{{path}}" class="moment">
   <div class="moment-date">{{date}}</div>
+  <div class="moment-image">
 {{#if iconID}}
-  <div class="moment-image"><img src="/entity/{{iconID}}/icon" alt="icon"></div>
+    <img src="/entity/{{iconID}}/icon" alt="icon">
 {{else}}
-  <div class="moment-image"><img src="" alt="icon"></div>
+    <img src="" alt="icon">
 {{/if}}
+{{#if (eq status "draft")}}
+    <div class="moment-badge-draft">下書き</div>
+{{/if}}
+  </div>
   <div class="moment-title">{{title}}</div>
 </a>
 {{/each}}

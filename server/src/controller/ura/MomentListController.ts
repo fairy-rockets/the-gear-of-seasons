@@ -27,11 +27,12 @@ export default class MomentListController {
   async handle(_req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const req = _req as FastifyRequest<MomentListControllerInterface>;
     const year = parseInt(req.params.year, 10) || dayjs().year();
-    const moments = (await this.shelf.findMomentSummariesInYear(year)).map((it) => {
+    const moments = (await this.shelf.findMomentSummariesInYear(year, 'all')).map((it) => {
       return {
         iconID: it.iconID || '',
         path: formatMomentPath(it.timestamp!!),
         title: it.title,
+        status: it.status,
       };
     });
     return reply

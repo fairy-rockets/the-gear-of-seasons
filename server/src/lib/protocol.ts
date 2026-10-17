@@ -1,4 +1,7 @@
 
+// draft は ura でだけ見える。omote に出るのは published だけ。
+export type MomentStatus = 'draft' | 'published';
+
 export namespace Moment {
   export namespace Save {
     export type Request = {
@@ -7,10 +10,12 @@ export namespace Moment {
       date: string | null;
       author: string;
       text: string;
+      status: MomentStatus;
     };
     export type Response = {
       path: string;
       date: string;
+      status: MomentStatus;
       body: string;
     };
   }
