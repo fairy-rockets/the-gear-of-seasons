@@ -45,22 +45,34 @@ const kVisibilityAware: { [name: string]: (repo: Repo, v: MomentVisibility) => P
   findMomentSummariesInYear: (repo, v) => repo.findMomentSummariesInYear(2020, v),
 };
 
-// visibility を取らないことが決まっているもの。
-const kNotFiltered = new Set([
-  'enumurateAllMoments', // gc などが使う。下書きも含めて全件
-  'insertMoment',
-  'updateMoment',
-  'deleteMoment',
-]);
+// MomentVisibility を取らないことが決まっているもの。理由もここに書く。
+const kWithoutVisibility: { [name: string]: string } = {
+  close: 'moment を引かない',
+  enumurateAllEntities: 'moment を引かない',
+  findEntity: 'moment を引かない',
+  insertEntity: 'moment を引かない',
+  deleteEntity: 'moment を引かない',
+  updateEntity: 'moment を引かない',
+  enumurateAllMoments: 'gc などが使用中の entity を数える。下書きも含めて全件',
+  insertMoment: '書き込みだけ',
+  updateMoment: '書き込みだけ',
+  deleteMoment: '書き込みだけ',
+};
 
-describe("Repo の moment を扱うメソッド", () => {
-  // visibility を取らない新しい読み出しを足すと、ここで落ちる。
-  // omote から使うなら visibility を取らせて kVisibilityAware に足す。
-  it("visibility の扱いがすべて決まっている", () => {
-    const names = Object.getOwnPropertyNames(Repo.prototype).filter((n) => /Moment/.test(n));
+describe("Repo のメソッド", () => {
+  // 名前によらず、Repo のメソッドはすべてどちらかに分類する。
+  // 新しいメソッドを足すとここで落ちる。moment を引くなら MomentVisibility を取らせて
+  // kVisibilityAware に、引かないなら理由を添えて kWithoutVisibility に足す。
+  it("MomentVisibility の扱いがすべて決まっている", () => {
+    const names = Object.getOwnPropertyNames(Repo.prototype).filter((n) => n !== 'constructor');
     assert.ok(names.length > 0);
     for (const name of names) {
-      assert.ok(name in kVisibilityAware || kNotFiltered.has(name), `${name} の visibility が未分類`);
+      assert.ok(name in kVisibilityAware || name in kWithoutVisibility, `${name} の MomentVisibility が未分類`);
+    }
+  });
+  it("両方に分類されているメソッドは無い", () => {
+    for (const name of Object.keys(kVisibilityAware)) {
+      assert.ok(!(name in kWithoutVisibility), name);
     }
   });
 });
