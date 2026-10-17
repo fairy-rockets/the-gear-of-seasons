@@ -92,7 +92,7 @@ export default class Editor {
           'Content-Type': 'application/json'
         }});
       if (!r.ok) {
-        throw new Error(await r.text());
+        throw new Error(`${r.status} ${r.statusText}: ${(await r.text()).slice(0, 500)}`);
       }
       result = await r.json() as protocol.Moment.Save.Response;
     } catch (e) {
@@ -152,7 +152,7 @@ export default class Editor {
           'Content-Type': 'application/json'
         }});
       if (!r.ok) {
-        throw new Error(await r.text());
+        throw new Error(`${r.status} ${r.statusText}: ${(await r.text()).slice(0, 500)}`);
       }
       body = await r.text();
     } catch (e) {
