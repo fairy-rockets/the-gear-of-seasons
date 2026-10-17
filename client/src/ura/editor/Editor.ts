@@ -5,6 +5,7 @@ export default class Editor {
   private readonly title_: HTMLInputElement;
   private readonly date_: HTMLInputElement;
   private readonly author_: HTMLSelectElement;
+  private readonly status_: HTMLSelectElement;
   private readonly text_: HTMLTextAreaElement;
   private readonly save_: HTMLButtonElement;
   private readonly delete_: HTMLButtonElement;
@@ -15,10 +16,11 @@ export default class Editor {
   executePreviewUpdater_: () => void;
   onSaveEventListener_: () => void;
   onDeleteEventListener_: () => void;
-  constructor(title: HTMLInputElement, date: HTMLInputElement, author: HTMLSelectElement, text: HTMLTextAreaElement, save: HTMLButtonElement, del: HTMLButtonElement) {
+  constructor(title: HTMLInputElement, date: HTMLInputElement, author: HTMLSelectElement, status: HTMLSelectElement, text: HTMLTextAreaElement, save: HTMLButtonElement, del: HTMLButtonElement) {
     this.title_ = title;
     this.date_ = date;
     this.author_ = author;
+    this.status_ = status;
     this.text_ = text;
     this.save_ = save;
     this.delete_ = del;
@@ -37,6 +39,7 @@ export default class Editor {
     this.title_.addEventListener('input', this.onChangeEventListener_);
     this.date_.addEventListener('input', this.onChangeEventListener_);
     this.author_.addEventListener('change', this.onChangeEventListener_);
+    this.status_.addEventListener('change', this.onChangeEventListener_);
     this.save_.addEventListener('click', this.onSaveEventListener_);
     this.delete_.addEventListener('click', this.onDeleteEventListener_);
     window.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -71,7 +74,8 @@ export default class Editor {
       originalDate: this.originalDate_.length > 0 ? this.originalDate_ : null,
       date: this.date_.value.length > 0 ? this.date_.value : null,
       author: this.author_.value,
-      text: this.text_.value
+      text: this.text_.value,
+      status: this.status_.value as protocol.MomentStatus,
     };
   }
 
@@ -91,6 +95,7 @@ export default class Editor {
         this.preview_!.onChange(result.body);
         this.date_.value = result.date;
         this.originalDate_ = result.date;
+        this.status_.value = result.status;
         history.replaceState(null, moment.title, result.path);
       });
   }

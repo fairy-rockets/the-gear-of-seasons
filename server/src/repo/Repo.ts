@@ -5,7 +5,21 @@ import { ResultRecord } from 'ts-postgres';
 import Pool from './Pool.js';
 import { Entity } from '../shelf/Entity.js';
 import Config from '../Config.js';
-import { Moment, MomentSummary } from '../shelf/Moment.js';
+import { Moment, MomentSummary, MomentVisibility, parseMomentStatus } from '../shelf/Moment.js';
+
+/**
+ * moments を引くクエリの WHERE に足す条件。
+ * 'published' なら公開済みだけ、'all' なら下書きも含めた全件。
+ * 引数は MomentVisibility 型の固定値だけなので、文字列に埋め込んでも注入にはならない。
+ */
+export function momentVisibilityCondition(visibility: MomentVisibility): string {
+  switch (visibility) {
+    case 'published':
+      return `"status" = 'published'`;
+    case 'all':
+      return 'true';
+  }
+}
 
 export default class Repo {
   private readonly pool: Pool;
@@ -222,9 +236,9 @@ where
     // language=PostgreSQL
     const q = `
 insert into moments(
-  "timestamp", "title", "author", "text", "icon_id"
+  "timestamp", "title", "author", "text", "icon_id", "status"
 ) values (
-  $1, $2, $3, $4, $5
+  $1, $2, $3, $4, $5, $6
 );`;
     await this.pool.query(q, [
       moment.timestamp.toDate(),
@@ -232,6 +246,7 @@ insert into moments(
       moment.author,
       moment.text,
       moment.iconID === undefined ? null : moment.iconID,
+      moment.status,
     ]);
   }
 
@@ -246,8 +261,9 @@ update moments set
   "title" = $2,
   "author" = $3,
   "text" = $4,
-  "icon_id" = $5
-where "timestamp" = $6;
+  "icon_id" = $5,
+  "status" = $6
+where "timestamp" = $7;
 `;
     await this.pool.query(q, [
       moment.timestamp.toDate(),
@@ -255,18 +271,20 @@ where "timestamp" = $6;
       moment.author,
       moment.text,
       moment.iconID === undefined ? null : moment.iconID,
+      moment.status,
       oldTimestamp.toDate(),
     ]);
   }
 
-  async findMomentSummariesInYear(year: number): Promise<MomentSummary[]> {
+  async findMomentSummariesInYear(year: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
     // language=PostgreSQL
     const q=`
 select
-  "timestamp", "title", "icon_id"
+  "timestamp", "title", "icon_id", "status"
 from moments
   where
     '${year}-01-01' <= "timestamp" and "timestamp" < '${year+1}-01-01'
+    and ${momentVisibilityCondition(visibility)}
 order by timestamp desc;
 `;
     const moments: MomentSummary[] = [];
@@ -277,13 +295,15 @@ order by timestamp desc;
     return moments;
   }
 
-  // sitemap.xml 用。全件を新しい順に返す。
-  async findAllMomentSummaries(): Promise<MomentSummary[]> {
+  // sitemap.xml 用。visibility で見える全件を新しい順に返す。
+  async findAllMomentSummaries(visibility: MomentVisibility): Promise<MomentSummary[]> {
     // language=PostgreSQL
     const q=`
 select
-  "timestamp", "title", "icon_id"
+  "timestamp", "title", "icon_id", "status"
 from moments
+  where
+    ${momentVisibilityCondition(visibility)}
 order by timestamp desc;
 `;
     const moments: MomentSummary[] = [];
@@ -294,14 +314,17 @@ order by timestamp desc;
     return moments;
   }
 
-  async findMomentSummariesByRandom(size: number): Promise<MomentSummary[]> {
+  // 抜き出してから visibility で絞るので、返る件数は size を下回ることがある。
+  async findMomentSummariesByRandom(size: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
     // https://stackoverflow.com/a/41337788
     // language=PostgreSQL
     const q=`
 select
-  "timestamp", "title", "icon_id"
+  "timestamp", "title", "icon_id", "status"
 from moments
-  TABLESAMPLE SYSTEM_ROWS($1);
+  TABLESAMPLE SYSTEM_ROWS($1)
+  where
+    ${momentVisibilityCondition(visibility)};
 `;
     const moments: MomentSummary[] = [];
     const rows = await this.pool.query(q, [size]);
@@ -311,14 +334,15 @@ from moments
     return moments;
   }
 
-  async findMoment(timestamp: dayjs.Dayjs): Promise<Moment | null> {
+  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
     // language=PostgreSQL
     const q=`
 select
-  "timestamp", "title", "author", "text", "icon_id"
+  "timestamp", "title", "author", "text", "icon_id", "status"
 from moments
   where
-    "timestamp" = $1;
+    "timestamp" = $1
+    and ${momentVisibilityCondition(visibility)};
 `;
     const rows = await this.pool.query(q, [timestamp.toDate()]);
     for await (const row of rows) {
@@ -327,14 +351,15 @@ from moments
     return null;
   }
 
-  async findPreviousMomentSummary(timestamp: dayjs.Dayjs): Promise<MomentSummary | null> {
+  async findPreviousMomentSummary(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<MomentSummary | null> {
     // language=PostgreSQL
     const q=`
 select
-  "timestamp", "title", "icon_id"
+  "timestamp", "title", "icon_id", "status"
 from moments
   where
     "timestamp" < $1
+    and ${momentVisibilityCondition(visibility)}
 order by "timestamp" desc
 limit 1;
 `;
@@ -345,14 +370,15 @@ limit 1;
     return null;
   }
 
-  async findNextMomentSummary(timestamp: dayjs.Dayjs): Promise<MomentSummary | null> {
+  async findNextMomentSummary(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<MomentSummary | null> {
     // language=PostgreSQL
     const q=`
 select
-  "timestamp", "title", "icon_id"
+  "timestamp", "title", "icon_id", "status"
 from moments
   where
     "timestamp" > $1
+    and ${momentVisibilityCondition(visibility)}
 order by "timestamp" asc
 limit 1;
 `;
@@ -363,11 +389,13 @@ limit 1;
     return null;
   }
 
+  // 下書きも含めた全件を返す。gc / list-missing / sanity-check がこれで使用中の entity を
+  // 数えるので、ここで下書きを落とすと、下書きが使っているメディアが孤児扱いされて消される。
   async* enumurateAllMoments(): AsyncGenerator<Moment> {
     // language=PostgreSQL
     const q=`
 select
-  "timestamp", "title", "author", "text", "icon_id"
+  "timestamp", "title", "author", "text", "icon_id", "status"
 from moments
 `;
     const rows = await this.pool.query(q, []);
@@ -393,6 +421,7 @@ function decodeMoment(row: ResultRecord): Moment {
     author: row['author'] as string || '',
     text: row['text'] as string || '',
     iconID: row['icon_id'] as (string | null) || undefined,
+    status: parseMomentStatus(row['status']),
   };
 }
 
@@ -401,6 +430,7 @@ function decodeMomentSummary(row: ResultRecord): MomentSummary {
     timestamp: dayjs(row['timestamp'] as Date),
     title: row['title'] as string || '',
     iconID: row['icon_id'] as (string | null) || undefined,
+    status: parseMomentStatus(row['status']),
   };
 }
 

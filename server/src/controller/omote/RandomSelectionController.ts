@@ -23,7 +23,7 @@ export default class RandomSelectionController {
   async handle(_req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const req = _req as FastifyRequest<RandomSelectionControllerInterface>;
     const size = parseInt(req.query.size, 10);
-    const moments: MomentSummary[] = await this.shelf.findMomentSummariesByRandom(size);
+    const moments: MomentSummary[] = await this.shelf.findMomentSummariesByRandom(size, 'published');
     const results: protocol.Moment.Search.Response[] = [];
     const yearStarts: { [n: number]: dayjs.Dayjs } = {};
     const yearLengths: { [n: number]: number } = {};

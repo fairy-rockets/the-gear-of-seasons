@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 
 import MomentRenderer from '../../renderer/MomentRenderer.js';
 import Shelf from '../../shelf/Shelf.js';
-import {parseMomentPath} from '../../shelf/Moment.js';
+import {MomentVisibility, parseMomentPath} from '../../shelf/Moment.js';
 
 export default class MomentBodyController {
   private readonly shelf: Shelf;
@@ -15,17 +15,17 @@ export default class MomentBodyController {
   static async create(shelf: Shelf): Promise<MomentBodyController> {
     return new MomentBodyController(shelf);
   }
-  // omote: 本文＋「まえ/つぎ/歯車にもどる」フッター付き。
+  // omote: 公開済みの本文＋「まえ/つぎ/歯車にもどる」フッター付き。
   async handleOmote(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
-    return this.render(req, reply, true);
+    return this.render(req, reply, 'published', true);
   }
-  // ura: 本文のみ。プレビュー等にフッターを混ぜない。
+  // ura: 下書きも含めた本文のみ。プレビュー等にフッターを混ぜない。
   async handleUra(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
-    return this.render(req, reply, false);
+    return this.render(req, reply, 'all', false);
   }
-  private async render(req: FastifyRequest, reply: FastifyReply, withFooter: boolean): Promise<FastifyReply> {
+  private async render(req: FastifyRequest, reply: FastifyReply, visibility: MomentVisibility, withFooter: boolean): Promise<FastifyReply> {
     const date = parseMomentPath(req.url.slice(7));
-    const moment = await this.shelf.findMoment(date);
+    const moment = await this.shelf.findMoment(date, visibility);
     if (moment === null) {
       return reply
         .type('text/plain;charset=UTF-8')
@@ -35,8 +35,8 @@ export default class MomentBodyController {
     let body = await this.renderer.render(dayjs(), moment);
     if (withFooter) {
       const [prev, next] = await Promise.all([
-        this.shelf.findPreviousMomentSummary(date),
-        this.shelf.findNextMomentSummary(date),
+        this.shelf.findPreviousMomentSummary(date, visibility),
+        this.shelf.findNextMomentSummary(date, visibility),
       ]);
       body += MomentRenderer.renderNavigationFooter(prev, next);
     }

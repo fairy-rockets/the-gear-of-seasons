@@ -41,7 +41,7 @@ export default class SitemapController {
       .send(this.cache.body);
   }
   private async render(): Promise<string> {
-    const moments = await this.shelf.findAllMomentSummaries();
+    const moments = await this.shelf.findAllMomentSummaries('published');
     const entries: SitemapEntry[] = kStaticPaths.map((path) => ({
       loc: absoluteURL(path),
     }));

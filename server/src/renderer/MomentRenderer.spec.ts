@@ -11,11 +11,13 @@ describe("MomentRenderer.renderNavigationFooter", () => {
       timestamp: dayjs('2020-01-01 00:00:00'),
       title: 'まえの絵',
       iconID: 'aaa',
+      status: 'published',
     };
     const next: MomentSummary = {
       timestamp: dayjs('2020-01-03 00:00:00'),
       title: 'つぎの絵',
       iconID: 'bbb',
+      status: 'published',
     };
     const html = MomentRenderer.renderNavigationFooter(prev, next);
     assert.ok(html.includes('<a class="moment-footer-prev" href="/2020/01/01/00:00:00/" title="まえの絵">← まえの絵</a>'));
@@ -38,6 +40,7 @@ describe("MomentRenderer.renderNavigationFooter", () => {
       timestamp: dayjs('2020-01-01 00:00:00'),
       title: '<script>alert(1)</script>',
       iconID: 'aaa',
+      status: 'published',
     };
     const html = MomentRenderer.renderNavigationFooter(prev, null);
     assert.ok(!html.includes('<script>alert(1)</script>'));

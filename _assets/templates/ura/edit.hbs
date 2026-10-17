@@ -7,6 +7,10 @@
         <option value="宵宮ナギ" {{#if (eq author "宵宮ナギ")}}selected{{/if}}>宵宮ナギ</option>
         <option value="甚三紅もみじ" {{#if (eq author "甚三紅もみじ")}}selected{{/if}}>甚三紅もみじ</option>
       </select>
+      <select name="status" id="status">
+        <option value="draft" {{#if (eq status "draft")}}selected{{/if}}>下書き</option>
+        <option value="published" {{#if (eq status "published")}}selected{{/if}}>公開</option>
+      </select>
       <div class="space"></div>
       <button id="upload">&nbsp;⬆&nbsp;</button>
       <div class="space"></div>

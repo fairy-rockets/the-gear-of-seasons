@@ -4,7 +4,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import * as protocol from '../../lib/protocol.js';
 
 import Shelf from '../../shelf/Shelf.js';
-import {Moment, parseMomentTime} from '../../shelf/Moment.js';
+import {Moment, parseMomentStatus, parseMomentTime} from '../../shelf/Moment.js';
 import MomentRenderer from '../../renderer/MomentRenderer.js';
 
 export default class PreviewController {
@@ -26,6 +26,7 @@ export default class PreviewController {
       author: raw.author,
       text: raw.text,
       iconID: undefined,
+      status: parseMomentStatus(raw.status),
     };
     return reply
       .type('text/html;charset=UTF-8')

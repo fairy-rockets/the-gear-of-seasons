@@ -1,5 +1,7 @@
 import Asset from '../../../lib/Asset.js';
 
+import { MomentStatus } from '../../../lib/protocol.js';
+
 import UraTemplate from './UraTemplate.js';
 
 type EditorData = {
@@ -7,6 +9,7 @@ type EditorData = {
   author: string;
   date: string;
   text: string;
+  status: MomentStatus;
 };
 
 class EditorTemplate {

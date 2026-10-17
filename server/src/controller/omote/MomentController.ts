@@ -21,7 +21,7 @@ export default class MomentController {
   }
   async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const date = parseMomentPath(req.url);
-    const moment = await this.shelf.findMoment(date);
+    const moment = await this.shelf.findMoment(date, 'published');
     if (moment === null) {
       return reply
         .type('text/plain;charset=UTF-8')

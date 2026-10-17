@@ -22,6 +22,7 @@ export default class NewController {
         author: '',
         date: '',
         text: '',
+        status: 'draft',
       }));
   }
 }

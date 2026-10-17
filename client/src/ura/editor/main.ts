@@ -6,10 +6,11 @@ function newEditor(): Editor {
   const title = document.getElementById('title') as HTMLInputElement;
   const date = document.getElementById('date') as HTMLInputElement;
   const author = document.getElementById('author') as HTMLSelectElement;
+  const status = document.getElementById('status') as HTMLSelectElement;
   const text = document.getElementById('text') as HTMLTextAreaElement;
   const save = document.getElementById('save') as HTMLButtonElement;
   const del = document.getElementById('delete') as HTMLButtonElement;
-  return new Editor(title, date, author, text, save, del);
+  return new Editor(title, date, author, status, text, save, del);
 }
 
 function newPreview(): Preview {
