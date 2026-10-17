@@ -23,7 +23,7 @@ type MomentSummary = {
 // moment を引くときに、どこまで見せるか。
 // omote（公開側）から引くときは必ず 'published'、ura（編集側）は 'all'。
 // 呼び出し側に選ばせるため、Shelf/Repo の引数にデフォルト値は付けない。
-type Visibility = 'published' | 'all';
+type MomentVisibility = 'published' | 'all';
 
 // 不正な値（欠けている場合も含む）は例外にする。draft や published に読み替えると、
 // 古いクライアントからの保存で公開状態が黙って変わってしまうため。
@@ -56,5 +56,5 @@ export function formatMomentTime(time: dayjs.Dayjs): string {
 export {
   Moment,
   MomentSummary,
-  Visibility,
+  MomentVisibility,
 };

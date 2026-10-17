@@ -5,7 +5,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 
 import Asset from '../lib/Asset.js';
 import Shelf from '../shelf/Shelf.js';
-import { Moment, MomentSummary, Visibility, formatMomentPath } from '../shelf/Moment.js';
+import { Moment, MomentSummary, MomentVisibility, formatMomentPath } from '../shelf/Moment.js';
 
 import MomentController from './omote/MomentController.js';
 import PickupController from './omote/PickupController.js';
@@ -40,37 +40,37 @@ const kPublishedAPath = formatMomentPath(kPublishedA);
 const kPublishedBPath = formatMomentPath(kPublishedB);
 
 class StubShelf {
-  readonly visibilities: Visibility[] = [];
+  readonly visibilities: MomentVisibility[] = [];
   private readonly moments: Moment[] = [
     moment(kPublishedA, 'published'),
     moment(kDraft, 'draft'),
     moment(kPublishedB, 'published'),
   ];
-  private visible(visibility: Visibility): Moment[] {
+  private visible(visibility: MomentVisibility): Moment[] {
     this.visibilities.push(visibility);
     return this.moments.filter((m) => visibility === 'all' || m.status === 'published');
   }
   private static summary(m: Moment): MomentSummary {
     return { timestamp: m.timestamp, title: m.title, iconID: m.iconID, status: m.status };
   }
-  async findMoment(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<Moment | null> {
+  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
     return this.visible(visibility).find((m) => m.timestamp!!.isSame(timestamp)) ?? null;
   }
-  async findPreviousMomentSummary(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<MomentSummary | null> {
+  async findPreviousMomentSummary(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<MomentSummary | null> {
     const found = this.visible(visibility).filter((m) => m.timestamp!!.isBefore(timestamp));
     return found.length > 0 ? StubShelf.summary(found[found.length - 1]) : null;
   }
-  async findNextMomentSummary(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<MomentSummary | null> {
+  async findNextMomentSummary(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<MomentSummary | null> {
     const found = this.visible(visibility).filter((m) => m.timestamp!!.isAfter(timestamp));
     return found.length > 0 ? StubShelf.summary(found[0]) : null;
   }
-  async findMomentSummariesByRandom(_size: number, visibility: Visibility): Promise<MomentSummary[]> {
+  async findMomentSummariesByRandom(_size: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
     return this.visible(visibility).map(StubShelf.summary);
   }
-  async findAllMomentSummaries(visibility: Visibility): Promise<MomentSummary[]> {
+  async findAllMomentSummaries(visibility: MomentVisibility): Promise<MomentSummary[]> {
     return this.visible(visibility).map(StubShelf.summary);
   }
-  async findMomentSummariesInYear(_year: number, visibility: Visibility): Promise<MomentSummary[]> {
+  async findMomentSummariesInYear(_year: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
     return this.visible(visibility).map(StubShelf.summary);
   }
   async findEntity(_id: string): Promise<null> {
@@ -99,7 +99,7 @@ async function call(
   return reply;
 }
 
-function assertOnly(shelf: StubShelf, visibility: Visibility) {
+function assertOnly(shelf: StubShelf, visibility: MomentVisibility) {
   assert.ok(shelf.visibilities.length > 0, 'Shelf から moment を引いていない');
   assert.deepStrictEqual(new Set(shelf.visibilities), new Set([visibility]));
 }

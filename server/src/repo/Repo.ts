@@ -5,14 +5,14 @@ import { ResultRecord } from 'ts-postgres';
 import Pool from './Pool.js';
 import { Entity } from '../shelf/Entity.js';
 import Config from '../Config.js';
-import { Moment, MomentSummary, Visibility, parseMomentStatus } from '../shelf/Moment.js';
+import { Moment, MomentSummary, MomentVisibility, parseMomentStatus } from '../shelf/Moment.js';
 
 /**
  * moments を引くクエリの WHERE に足す条件。
  * 'published' なら公開済みだけ、'all' なら下書きも含めた全件。
- * 引数は Visibility 型の固定値だけなので、文字列に埋め込んでも注入にはならない。
+ * 引数は MomentVisibility 型の固定値だけなので、文字列に埋め込んでも注入にはならない。
  */
-export function momentVisibilityCondition(visibility: Visibility): string {
+export function momentVisibilityCondition(visibility: MomentVisibility): string {
   switch (visibility) {
     case 'published':
       return `"status" = 'published'`;
@@ -276,7 +276,7 @@ where "timestamp" = $7;
     ]);
   }
 
-  async findMomentSummariesInYear(year: number, visibility: Visibility): Promise<MomentSummary[]> {
+  async findMomentSummariesInYear(year: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
     // language=PostgreSQL
     const q=`
 select
@@ -296,7 +296,7 @@ order by timestamp desc;
   }
 
   // sitemap.xml 用。visibility で見える全件を新しい順に返す。
-  async findAllMomentSummaries(visibility: Visibility): Promise<MomentSummary[]> {
+  async findAllMomentSummaries(visibility: MomentVisibility): Promise<MomentSummary[]> {
     // language=PostgreSQL
     const q=`
 select
@@ -315,7 +315,7 @@ order by timestamp desc;
   }
 
   // 抜き出してから visibility で絞るので、返る件数は size を下回ることがある。
-  async findMomentSummariesByRandom(size: number, visibility: Visibility): Promise<MomentSummary[]> {
+  async findMomentSummariesByRandom(size: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
     // https://stackoverflow.com/a/41337788
     // language=PostgreSQL
     const q=`
@@ -334,7 +334,7 @@ from moments
     return moments;
   }
 
-  async findMoment(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<Moment | null> {
+  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
     // language=PostgreSQL
     const q=`
 select
@@ -351,7 +351,7 @@ from moments
     return null;
   }
 
-  async findPreviousMomentSummary(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<MomentSummary | null> {
+  async findPreviousMomentSummary(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<MomentSummary | null> {
     // language=PostgreSQL
     const q=`
 select
@@ -370,7 +370,7 @@ limit 1;
     return null;
   }
 
-  async findNextMomentSummary(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<MomentSummary | null> {
+  async findNextMomentSummary(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<MomentSummary | null> {
     // language=PostgreSQL
     const q=`
 select

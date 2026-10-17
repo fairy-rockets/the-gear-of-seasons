@@ -3,7 +3,7 @@ import assert from 'assert';
 import dayjs from 'dayjs';
 
 import Repo, { momentVisibilityCondition } from './Repo.js';
-import { Moment, Visibility } from '../shelf/Moment.js';
+import { Moment, MomentVisibility } from '../shelf/Moment.js';
 
 // DB には繋がず、Repo が組み立てる SQL と引数だけを見る。
 // （Pool は最初の query までは接続しないので、new Repo() しても DB は要らない）
@@ -36,7 +36,7 @@ const kPublishedOnly = `"status" = 'published'`;
 
 // moment を引くメソッドのうち、visibility を取るもの。
 // omote から使うクエリを足したら、ここにも足す。
-const kVisibilityAware: { [name: string]: (repo: Repo, v: Visibility) => Promise<unknown> } = {
+const kVisibilityAware: { [name: string]: (repo: Repo, v: MomentVisibility) => Promise<unknown> } = {
   findMoment: (repo, v) => repo.findMoment(dayjs(), v),
   findPreviousMomentSummary: (repo, v) => repo.findPreviousMomentSummary(dayjs(), v),
   findNextMomentSummary: (repo, v) => repo.findNextMomentSummary(dayjs(), v),

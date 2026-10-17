@@ -12,7 +12,7 @@ import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from '../lib
 import Repo from '../repo/Repo.js';
 import Storage from '../storage/Storage.js';
 import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity.js';
-import { Moment, MomentSummary, Visibility, formatMomentTime, parseMomentStatus, parseMomentTime } from './Moment.js';
+import { Moment, MomentSummary, MomentVisibility, formatMomentTime, parseMomentStatus, parseMomentTime } from './Moment.js';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -334,27 +334,27 @@ class Shelf {
   }
 
   // 以下、visibility は omote から呼ぶなら 'published'、ura から呼ぶなら 'all'。
-  async findMomentSummariesInYear(year: number, visibility: Visibility): Promise<MomentSummary[]> {
+  async findMomentSummariesInYear(year: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
     return await this.repo.findMomentSummariesInYear(year, visibility);
   }
 
-  async findMoment(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<Moment | null> {
+  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
     return await this.repo.findMoment(timestamp, visibility);
   }
 
-  async findMomentSummariesByRandom(size: number, visibility: Visibility): Promise<MomentSummary[]> {
+  async findMomentSummariesByRandom(size: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
     return await this.repo.findMomentSummariesByRandom(size, visibility);
   }
 
-  async findAllMomentSummaries(visibility: Visibility): Promise<MomentSummary[]> {
+  async findAllMomentSummaries(visibility: MomentVisibility): Promise<MomentSummary[]> {
     return await this.repo.findAllMomentSummaries(visibility);
   }
 
-  async findPreviousMomentSummary(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<MomentSummary | null> {
+  async findPreviousMomentSummary(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<MomentSummary | null> {
     return await this.repo.findPreviousMomentSummary(timestamp, visibility);
   }
 
-  async findNextMomentSummary(timestamp: dayjs.Dayjs, visibility: Visibility): Promise<MomentSummary | null> {
+  async findNextMomentSummary(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<MomentSummary | null> {
     return await this.repo.findNextMomentSummary(timestamp, visibility);
   }
 

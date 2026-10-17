@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 
 import MomentRenderer from '../../renderer/MomentRenderer.js';
 import Shelf from '../../shelf/Shelf.js';
-import {Visibility, parseMomentPath} from '../../shelf/Moment.js';
+import {MomentVisibility, parseMomentPath} from '../../shelf/Moment.js';
 
 export default class MomentBodyController {
   private readonly shelf: Shelf;
@@ -23,7 +23,7 @@ export default class MomentBodyController {
   async handleUra(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     return this.render(req, reply, 'all', false);
   }
-  private async render(req: FastifyRequest, reply: FastifyReply, visibility: Visibility, withFooter: boolean): Promise<FastifyReply> {
+  private async render(req: FastifyRequest, reply: FastifyReply, visibility: MomentVisibility, withFooter: boolean): Promise<FastifyReply> {
     const date = parseMomentPath(req.url.slice(7));
     const moment = await this.shelf.findMoment(date, visibility);
     if (moment === null) {
