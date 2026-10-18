@@ -79,25 +79,35 @@ export default class Editor {
     };
   }
 
-  private onSave_() {
+  private async onSave_() {
     this.changeId_ = null;
     const moment = this.makeMoment_();
-    fetch('/save', {
-      method: 'POST',
-      body: JSON.stringify(moment),
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }}).then(result => result.json())
-      .then((result: protocol.Moment.Save.Response) => {
-        this.save_.disabled = true;
-        this.delete_.disabled = false;
-        this.preview_!.onChange(result.body);
-        this.date_.value = result.date;
-        this.originalDate_ = result.date;
-        this.status_.value = result.status;
-        history.replaceState(null, moment.title, result.path);
-      });
+    let result: protocol.Moment.Save.Response;
+    try {
+      const r = await fetch('/save', {
+        method: 'POST',
+        body: JSON.stringify(moment),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }});
+      if (!r.ok) {
+        throw new Error(`${r.status} ${r.statusText}: ${(await r.text()).slice(0, 500)}`);
+      }
+      result = await r.json() as protocol.Moment.Save.Response;
+    } catch (e) {
+      // 失敗したときは画面の状態（日付・ステータス・SAVEボタンなど）を変えない
+      console.error(e);
+      alert(`保存に失敗しました。\n${e instanceof Error ? e.message : e}`);
+      return;
+    }
+    this.save_.disabled = true;
+    this.delete_.disabled = false;
+    this.preview_!.onChange(result.body);
+    this.date_.value = result.date;
+    this.originalDate_ = result.date;
+    this.status_.value = result.status;
+    history.replaceState(null, moment.title, result.path);
   }
 
   private onDelete_() {
@@ -129,17 +139,28 @@ export default class Editor {
       });
   }
 
-  private executePreviewUpdate_() {
+  private async executePreviewUpdate_() {
     this.changeId_ = null;
     const moment = this.makeMoment_();
-    fetch('/preview', {
-      method: 'POST',
-      body: JSON.stringify(moment),
-      headers: {
-        'Accept': 'text/html',
-        'Content-Type': 'application/json'
-      }}).then(result => result.text())
-      .then(body => this.preview_!.onChange(body));
+    let body: string;
+    try {
+      const r = await fetch('/preview', {
+        method: 'POST',
+        body: JSON.stringify(moment),
+        headers: {
+          'Accept': 'text/html',
+          'Content-Type': 'application/json'
+        }});
+      if (!r.ok) {
+        throw new Error(`${r.status} ${r.statusText}: ${(await r.text()).slice(0, 500)}`);
+      }
+      body = await r.text();
+    } catch (e) {
+      // 入力のたびに走るので alert は出さない。直前の正しいプレビューを残す
+      console.error(e);
+      return;
+    }
+    this.preview_!.onChange(body);
   }
 
   onUpload(embeds: string[]) {
