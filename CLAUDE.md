@@ -35,6 +35,12 @@ For local development against a database: `docker compose -f compose.dev.yml up 
 
 Production database migrations are applied by hand with Flyway; follow "How to migrate the database" in `README.md`, which runs against the production stack. For the local `postgres-dev`, `compose.dev.yml` also defines a `flyway` service (profile `tool`), and `db/flyway_data/conf/flyway.dev.conf` points at `postgres-dev`.
 
+## Screenshots
+
+**omote is WebGL — unit tests show you nothing about it. If you change how it looks, take a screenshot.** `tools/preview/` holds the tooling and the traps (`tools/preview/README.md`): `shot.sh` grabs one frame at a given viewport size, `drive.mjs` is a puppeteer template for scenarios that need interaction (device rotation, dragging the gear) without a reload. Both run Chromium in a **Debian** container — alpine's chromium cannot get a WebGL context, and silently produces a screenshot with no gear in it.
+
+Until a development environment with real data exists (#30), take them against the read-only preview container described in `7io-org/compose`'s [`the-gear-of-seasons/docs/troubleshooting-prod-preview.md`](https://code.ledyba.org/7io-org/compose/src/branch/main/the-gear-of-seasons/docs/troubleshooting-prod-preview.md), under the same invariants, and run `shot.sh` on the same machine as that container — production. That document is for troubleshooting only; screenshots are the one exception. Production has little memory, so make sure no `gears-shot` container is left behind afterwards (`--rm` removes it) and remove the image when cleaning up. Once #30 exists, take screenshots on the development machine instead.
+
 ## Architecture
 
 The server serves **two sites from one Fastify instance, distinguished by Host header** (`server/src/Config.ts`):
@@ -54,4 +60,4 @@ Server layering (entry: `server/src/cmd/main.ts`, listens on port 3000):
 
 Maintenance commands in `server/src/cmd/`: `gc.ts` (remove orphaned storage files), `sanity-check.ts`, `regenerate-cache.ts`, `list-missing.ts` (list lost media; see `tools/README.md`) — run as `node server/dist/cmd/<name>.js` inside the production app container (from `7io-org/compose`'s `the-gear-of-seasons/`, `make gc` / `make sanity-check` wrap the first two).
 
-`tools/` holds the tooling for finding and restoring lost media, described in `tools/README.md`. Among it, `tools/restore.rs/` is a standalone Rust utility for restoring/deduplicating media from backups; it is not part of the build.
+`tools/` holds the tooling for finding and restoring lost media, described in `tools/README.md`, plus the screenshot tooling in `tools/preview/` (see "Screenshots" above). Among the former, `tools/restore.rs/` is a standalone Rust utility for restoring/deduplicating media from backups; it is not part of the build.
