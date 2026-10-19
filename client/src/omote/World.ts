@@ -327,9 +327,12 @@ export default class World {
       }
     }
     if (idx >= 0) {
-      while(idx < layers.length) {
+      // 戻り先のレイヤは作り直さずにそのまま使う(Index なら歯車の回転位置が残る)。
+      // 戻り先まで下ろすと、それがスタックの底のとき popLayer_ が投げる(#39)。
+      while(layers.length > idx+1) {
         this.popLayer_();
       }
+      return;
     }
     this.pushLayer_(this.createLayer_(path));
   }
