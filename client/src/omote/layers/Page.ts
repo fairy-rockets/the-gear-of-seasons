@@ -105,11 +105,7 @@ export default class Page extends Layer {
   }
 
   onClose_() {
-    if(this.world.canPopLayer()) {
-      this.world.popLayer();
-    } else {
-      this.world.openLayer('/');
-    }
+    this.world.openTop();
   }
 
   onError_(err: any) {
