@@ -278,7 +278,7 @@ export default class World {
   private popLayer_() {
     const layers = this.layers_;
     if (layers.length < 2) {
-      throw new Error(`You can't pop layer stack of length=${layers.length}.`);
+      throw new Error(`Cannot pop a layer from a layer stack of length ${layers.length}.`);
     }
     const current = layers.pop()!;
     current.onDetached();
@@ -294,7 +294,7 @@ export default class World {
   private replaceLayer_(next: Layer) {
     const layers = this.layers_;
     if (layers.length <= 1) {
-      throw new Error(`You can't replace layer stack of length=${layers.length}.`);
+      throw new Error(`Cannot replace a layer in a layer stack of length ${layers.length}.`);
     }
     const current = layers.pop()!;
     current.onDetached();
@@ -327,9 +327,13 @@ export default class World {
       }
     }
     if (idx >= 0) {
-      while(idx < layers.length) {
+      // 戻り先のレイヤは作り直さずにそのまま使う(Index なら歯車の回転位置が残る)。
+      // 戻り先まで下ろすと、それがスタックの底のとき popLayer_ が
+      // Error("Cannot pop a layer from a layer stack of length 1.") を投げる(#39)。
+      while(layers.length > idx+1) {
         this.popLayer_();
       }
+      return;
     }
     this.pushLayer_(this.createLayer_(path));
   }
