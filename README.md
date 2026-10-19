@@ -8,6 +8,8 @@
 - ffmpeg
 - ImageMagick 7.0 or higher
 
+Or use the development environment in `compose.dev.yml`, which provides all of them in a container; see "Development environment" in `CLAUDE.md`.
+
 ## How to build
 
 The server and the client are separate npm packages, each built on its own:

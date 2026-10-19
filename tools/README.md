@@ -1,7 +1,8 @@
 # tools
 
-失われた画像を探して戻すための道具立て(`preview/` を除く)。
+失われた画像を探して戻すための道具立て(`preview/` と `sync-from-prod.sh` を除く)。
 `preview/` は見た目を確かめるためのスクリーンショットの道具で、[`preview/README.md`](./preview/README.md) に書いてある。
+`sync-from-prod.sh` は本番の DB と storage を開発環境へ写すスクリプトで、`make sync-from-prod` から呼ばれる(リポジトリ直下の `CLAUDE.md` の "Development environment")。
 
 ## 1. 何がどう失われているのかを一覧にする
 
