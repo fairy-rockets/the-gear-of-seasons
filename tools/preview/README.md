@@ -9,7 +9,7 @@ Issue #6(スマホのレイアウト変更)で実際に効いた: 初回の実�
 
 ## 1. プレビューを起こす
 
-read-only プレビューの立て方は 7io-org/compose の `the-gear-of-seasons/docs/troubleshooting-prod-preview.md` を見ること(開発環境ができるまでの例外。#30)。
+read-only プレビューの立て方は 7io-org/compose の [`the-gear-of-seasons/docs/troubleshooting-prod-preview.md`](https://code.ledyba.org/7io-org/compose/src/branch/main/the-gear-of-seasons/docs/troubleshooting-prod-preview.md) を見ること(開発環境ができるまでの例外。#30)。
 撮影のために足しておくと便利なのは次の 2 つ。
 
 - **`client/dist` を worktree からバインドマウントする。** `-v <worktree>/client/dist:/app/client/dist:ro`
@@ -24,6 +24,10 @@ read-only プレビューの立て方は 7io-org/compose の `the-gear-of-season
 `http://localhost:8889/` で開く(`http://127.0.0.1:8889/` は 404)。
 
 ## 2. 撮る
+
+開発環境(#30)ができるまでは、プレビューのコンテナと同じマシン(本番)で `shot.sh` を動かす。
+#30 ができたら開発マシンで撮る。本番はメモリが小さいので、撮り終えたら `gears-shot` のコンテナが
+残っていないこと(`--rm` で消える)を確かめ、3 の片付けでイメージも消す。
 
 ```sh
 ./shot.sh http://localhost:8889/ out/portrait.png 390x844   # iPhone 相当

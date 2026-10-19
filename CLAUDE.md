@@ -39,7 +39,7 @@ Production database migrations are applied by hand with Flyway; follow "How to m
 
 **omote is WebGL — unit tests show you nothing about it. If you change how it looks, take a screenshot.** `tools/preview/` holds the tooling and the traps (`tools/preview/README.md`): `shot.sh` grabs one frame at a given viewport size, `drive.mjs` is a puppeteer template for scenarios that need interaction (device rotation, dragging the gear) without a reload. Both run Chromium in a **Debian** container — alpine's chromium cannot get a WebGL context, and silently produces a screenshot with no gear in it.
 
-Until a development environment with real data exists (#30), take them against the read-only preview container described in `7io-org/compose`'s `the-gear-of-seasons/docs/troubleshooting-prod-preview.md`, under the same invariants. That document is for troubleshooting only; screenshots are the one exception.
+Until a development environment with real data exists (#30), take them against the read-only preview container described in `7io-org/compose`'s [`the-gear-of-seasons/docs/troubleshooting-prod-preview.md`](https://code.ledyba.org/7io-org/compose/src/branch/main/the-gear-of-seasons/docs/troubleshooting-prod-preview.md), under the same invariants, and run `shot.sh` on the same machine as that container — production. That document is for troubleshooting only; screenshots are the one exception. Production has little memory, so make sure no `gears-shot` container is left behind afterwards (`--rm` removes it) and remove the image when cleaning up. Once #30 exists, take screenshots on the development machine instead.
 
 ## Architecture
 
