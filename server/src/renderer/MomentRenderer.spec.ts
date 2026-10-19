@@ -3,7 +3,9 @@ import assert from 'assert';
 import dayjs from 'dayjs';
 
 import MomentRenderer from './MomentRenderer.js';
-import { MomentSummary } from '../shelf/Moment.js';
+import { Moment, MomentSummary } from '../shelf/Moment.js';
+import { Entity } from '../shelf/Entity.js';
+import Shelf from '../shelf/Shelf.js';
 
 describe("MomentRenderer.renderNavigationFooter", () => {
   it("prev/next 両方ある場合はリンクになる", () => {
@@ -45,5 +47,64 @@ describe("MomentRenderer.renderNavigationFooter", () => {
     const html = MomentRenderer.renderNavigationFooter(prev, null);
     assert.ok(!html.includes('<script>alert(1)</script>'));
     assert.ok(html.includes('&lt;script&gt;'));
+  });
+});
+
+describe("MomentRenderer.render", () => {
+  const entities: Entity[] = [
+    {
+      type: 'image',
+      id: 'img',
+      mediumID: 'img-medium',
+      iconID: 'img-icon',
+      mimeType: 'image/jpeg',
+      timestamp: undefined,
+      width: 4000,
+      height: 3000,
+    },
+    {
+      type: 'video',
+      id: 'vid',
+      iconID: 'vid-icon',
+      mimeType: 'video/mp4',
+      timestamp: undefined,
+      width: 640,
+      height: 480,
+      duration: 10,
+    },
+  ];
+  // render が使うのは findEntity だけなので、DB を立てずに済ませる。
+  const shelf = {
+    findEntity: async (id: string) => entities.find((e) => e.id === id) ?? null,
+  } as unknown as Shelf;
+  const render = (text: string) => {
+    const moment: Moment = {
+      timestamp: dayjs('2020-01-01 00:00:00'),
+      title: 'title',
+      author: 'author',
+      text: text,
+      iconID: undefined,
+      status: 'published',
+    };
+    return new MomentRenderer(shelf).render(dayjs('2020-01-02 00:00:00'), moment);
+  };
+
+  it("画像は medium を表示し、元画像へはリンクしない", async () => {
+    const html = await render('[image entity="img"]');
+    assert.ok(html.includes('src="/entity/img/medium"'));
+    assert.ok(!html.includes('href="/entity/img"'));
+    assert.ok(!html.includes('<a '));
+  });
+
+  it("画像に link= があればそこへリンクする", async () => {
+    const html = await render('[image entity="img" link="https://example.com/"]');
+    assert.ok(html.includes('<a href="https://example.com/"'));
+    assert.ok(html.includes('src="/entity/img/medium"'));
+  });
+
+  it("動画は元ファイルを再生元にするが、元ファイルへのリンクは張らない", async () => {
+    const html = await render('[video entity="vid"]');
+    assert.ok(html.includes('src="/entity/vid"'));
+    assert.ok(!html.includes('href="/entity/vid"'));
   });
 });

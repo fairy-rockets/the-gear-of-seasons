@@ -92,15 +92,14 @@ class MomentRenderer {
       height = Math.min(2048, entity.height);
       width = entity.width * height / entity.height;
     }
-    let url: string;
-    if (!!block.link) {
-      url = block.link;
-    } else {
-      url = `/entity/${escapeAttribute(block.entity)}`;
+    const img = `<img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="an image.">`;
+    // 元画像は表示にもリンクにも使わない。元の解像度を見せたいときは [link] ブロックで明示する。
+    if (!block.link) {
+      return img;
     }
     return `
-<a href="${url}" target="_blank" rel="noopener noreferrer">
-  <img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="an image.">
+<a href="${block.link}" target="_blank" rel="noopener noreferrer">
+  ${img}
 </a>
 `.trim();
   }
@@ -118,7 +117,6 @@ class MomentRenderer {
     return `
 <video class="embed" preload="metadata" loop controls="controls" width="${entity.width}" height="${entity.height}">
   <source type="${escapeAttribute(entity.mimeType)}" src="/entity/${escapeAttribute(entity.id)}">
-  <a href="/entity/${escapeAttribute(entity.id)}">Click to play.</a>
 </video>
 `.trim();
   }
