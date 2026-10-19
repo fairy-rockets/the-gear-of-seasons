@@ -1,4 +1,7 @@
 import Editor from './Editor';
+import { describeError, describeResponseError, showToast } from './Toast';
+
+const SUPPORTED_TYPES = ['image/', 'video/', 'audio/'];
 
 export default class Uploader {
   private readonly target_: HTMLElement;
@@ -56,9 +59,14 @@ export default class Uploader {
   }
 
   private upload_(files_: FileList) {
-    this.target_.appendChild(this.progressDialog_);
-
     const files: File[] = Array.from(files_);
+    const unsupported = files.filter(file => !SUPPORTED_TYPES.some(type => file.type.startsWith(type)));
+    if (unsupported.length > 0) {
+      showToast(`アップロードできない形式です: ${unsupported.map(file => file.name).join(', ')}`);
+      return;
+    }
+
+    this.target_.appendChild(this.progressDialog_);
     this.progressBar_.max = files.length;
 
     const embeds: string[] = [];
@@ -74,7 +82,7 @@ export default class Uploader {
         .then(resp =>
           resp.status === 200 ?
             resp.text() :
-            resp.text().then(reason => Promise.reject(`${resp.status}(${resp.statusText}): ${reason}`)))
+            describeResponseError(resp).then(reason => Promise.reject(new Error(`${file.name}: ${reason}`))))
         .then(resp => {
           embeds.push(resp);
           this.progressBar_.value = i+1;
@@ -97,6 +105,7 @@ export default class Uploader {
     }).catch((err) => {
       console.error(err);
       this.target_.removeChild(this.progressDialog_);
+      showToast(`アップロードに失敗しました: ${describeError(err)}`);
     });
   }
 

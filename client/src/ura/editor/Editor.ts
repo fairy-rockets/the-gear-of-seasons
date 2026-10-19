@@ -1,5 +1,8 @@
 import Preview from './Preview';
 import * as protocol from '../../protocol';
+import { describeError, describeResponseError, dismissToast, showToast } from './Toast';
+
+const PREVIEW_TOAST_KEY = 'preview';
 
 export default class Editor {
   private readonly title_: HTMLInputElement;
@@ -92,13 +95,13 @@ export default class Editor {
           'Content-Type': 'application/json'
         }});
       if (!r.ok) {
-        throw new Error(`${r.status} ${r.statusText}: ${(await r.text()).slice(0, 500)}`);
+        throw new Error(await describeResponseError(r));
       }
       result = await r.json() as protocol.Moment.Save.Response;
     } catch (e) {
       // 失敗したときは画面の状態（日付・ステータス・SAVEボタンなど）を変えない
       console.error(e);
-      alert(`保存に失敗しました。\n${e instanceof Error ? e.message : e}`);
+      showToast(`保存に失敗しました: ${describeError(e)}`);
       return;
     }
     this.save_.disabled = true;
@@ -110,7 +113,7 @@ export default class Editor {
     history.replaceState(null, moment.title, result.path);
   }
 
-  private onDelete_() {
+  private async onDelete_() {
     if (this.date_.value.length === 0) {
       return;
     }
@@ -120,23 +123,25 @@ export default class Editor {
     const req: protocol.Moment.Delete.Request = {
       date: this.date_.value,
     };
-    fetch('/delete', {
-      method: 'POST',
-      body: JSON.stringify(req),
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }})
-      .then(async(r) => {
-        if (r.ok) {
-          return await r.json() as protocol.Moment.Delete.Response;
-        } else {
-          throw new Error(await r.text());
-        }
-      })
-      .then((reply: protocol.Moment.Delete.Response) => {
-        window.location.href = `/moments/${reply.year}`;
-      });
+    let reply: protocol.Moment.Delete.Response;
+    try {
+      const r = await fetch('/delete', {
+        method: 'POST',
+        body: JSON.stringify(req),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }});
+      if (!r.ok) {
+        throw new Error(await describeResponseError(r));
+      }
+      reply = await r.json() as protocol.Moment.Delete.Response;
+    } catch (e) {
+      console.error(e);
+      showToast(`削除に失敗しました: ${describeError(e)}`);
+      return;
+    }
+    window.location.href = `/moments/${reply.year}`;
   }
 
   private async executePreviewUpdate_() {
@@ -152,14 +157,16 @@ export default class Editor {
           'Content-Type': 'application/json'
         }});
       if (!r.ok) {
-        throw new Error(`${r.status} ${r.statusText}: ${(await r.text()).slice(0, 500)}`);
+        throw new Error(await describeResponseError(r));
       }
       body = await r.text();
     } catch (e) {
-      // 入力のたびに走るので alert は出さない。直前の正しいプレビューを残す
+      // 入力のたびに走るので、トーストは 1 つだけ出したままにして本文を差し替える。直前の正しいプレビューを残す
       console.error(e);
+      showToast(`プレビューを更新できません: ${describeError(e)}`, { key: PREVIEW_TOAST_KEY, sticky: true });
       return;
     }
+    dismissToast(PREVIEW_TOAST_KEY);
     this.preview_!.onChange(body);
   }
 
