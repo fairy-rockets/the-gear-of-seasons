@@ -201,6 +201,36 @@ div.uploader-progress > progress {
   flex: 0 0 0;
 }
 
+/* 失敗を知らせる通知。位置と配色は uploader-progress に合わせる */
+div.toast-container {
+  position: fixed;
+  bottom: 1em;
+  right: 1em;
+
+  max-width: 20em;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5em;
+
+  /* ドラッグ中はドロップを受ける uploader-hover(9999)の下に潜らせる */
+  z-index: 9998;
+}
+
+div.toast {
+  padding: 1em;
+
+  background: #fff;
+  color: #080816;
+  opacity: 0.9;
+  border-radius: 1em;
+
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
 #preview {
   padding: 0.5em;
   overflow: scroll;
