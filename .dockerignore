@@ -16,6 +16,7 @@ server/dist
 var
 dev-var
 backup-*
+tools
 README.md
 LICENSE
 Makefile
