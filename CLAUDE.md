@@ -68,6 +68,8 @@ The server serves **two sites from one Fastify instance, distinguished by Host h
 
 `server/src/Server.ts` defines all routes and dispatches via `omote`/`ura`/`both`/`each` helpers that 404 on the wrong hostname. This omote/ura split is mirrored everywhere: `server/src/controller/{omote,ura,both}/`, `client/src/{omote,ura}/`, `_assets/{static,templates}/{omote,ura}/`, and webpack entries `omote/main` + `ura/editor`.
 
+A moment's URL — the one users see and the one to link to — is `/<YYYY>/<MM>/<DD>/<HH:mm:ss>/` (e.g. `https://hexe.net/2016/11/25/05:58:19/`): omote shows it on the gear (`MomentController`), ura opens it in the editor. `/moment/<YYYY>/<MM>/<DD>/<HH:mm:ss>/` is not a page but the body fragment the gear fetches (`client/src/omote/World.ts`). Media is served from `/entity/<id>` (the original as uploaded), `/entity/<id>/medium` (images only) and `/entity/<id>/icon`; which of them each fml block displays or links to is described on its type in `server/src/lib/fml.ts`.
+
 Server layering (entry: `server/src/cmd/main.ts`, listens on port 3000):
 
 - **Repo** (`repo/`): PostgreSQL access via ts-postgres with a connection pool and NodeCache. Two tables (`db/flyway_data/sql/V0__init.sql`, `V1__moment_status.sql`): `moments` (keyed by timestamp; title/author/text; `status` draft/published) and `entities` (media keyed by md5 hash; image/video/audio with medium/icon derivative ids).
