@@ -16,7 +16,7 @@ The default branch is **`main`**.
 
 ## Commands
 
-Server and client are separate npm packages, each built independently (on the development machine, run these inside `make dev-shell`; see "Development environment" below):
+Server and client are separate npm packages, each built independently (on the development machine, run these inside `make dev-shell`; see "Development environment" below — `app-dev` itself already serves on port 3000 there, so `npm run watch` in `server` collides with it):
 
 ```sh
 cd server && npm ci && npm run build    # tsc → dist/
