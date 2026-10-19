@@ -16,7 +16,7 @@ The default branch is **`main`**.
 
 ## Commands
 
-Server and client are separate npm packages, each built independently:
+Server and client are separate npm packages, each built independently (on the development machine, run these inside `make dev-shell`; see "Development environment" below — `app-dev` itself already serves on port 3000 there, so `npm run watch` in `server` collides with it):
 
 ```sh
 cd server && npm ci && npm run build    # tsc → dist/
@@ -31,15 +31,33 @@ To run only some server tests, filter by suite/test title: `cd server && npx moc
 
 Tests require **ffmpeg** and **ImageMagick 7+** (`magick` binary) on PATH — media probing/conversion shells out to them.
 
-For local development against a database: `docker compose -f compose.dev.yml up -d postgres-dev` exposes postgres on 127.0.0.1:5432, then run the server with `DB_HOST=localhost`.
+Production database migrations are applied by hand with Flyway; follow "How to migrate the database" in `README.md`, which runs against the production stack. For the development `postgres-dev`, `compose.dev.yml` also defines a `flyway` service (profile `tool`), and `db/flyway_data/conf/flyway.dev.conf` points at `postgres-dev`.
 
-Production database migrations are applied by hand with Flyway; follow "How to migrate the database" in `README.md`, which runs against the production stack. For the local `postgres-dev`, `compose.dev.yml` also defines a `flyway` service (profile `tool`), and `db/flyway_data/conf/flyway.dev.conf` points at `postgres-dev`.
+## Development environment
+
+Development happens on the development machine **rinn**, not on production. Build, test and run all happen inside containers from `compose.dev.yml`, so the host needs only Docker, `make`, `ssh` and `rsync` — no node, ffmpeg or ImageMagick. The `app-dev` container is the `tools` stage of the `Dockerfile` (the same node / ffmpeg / ImageMagick 7 as production) with this checkout bind-mounted at `/app`; it runs as the host user, so `node_modules/` and `dist/` in the checkout belong to you.
+
+```sh
+make sync-from-prod   # copy production's database and storage into dev-var/ (one way)
+make dev-up           # postgres-dev + app-dev: npm ci + build client/server, then serve on 127.0.0.1:8889
+make dev-log          # follow the logs
+make dev-shell        # bash inside app-dev
+make dev-test         # cd server && npm test, inside a fresh app-dev container (npm ci first if package-lock.json is newer)
+make dev-down
+```
+
+- One development environment per machine: container names and the host ports (`127.0.0.1:5432`, `127.0.0.1:8889`) are fixed, so stop the main checkout's environment (`make dev-down`) before bringing one up in a worktree. `dev-var/` belongs to each checkout, so a fresh worktree needs its own first sync.
+- omote is `http://localhost:8889/`, ura is `http://ura.localhost:8889/` (`OMOTE_HOST=localhost`, `URA_HOST=ura.localhost`). From another machine, forward the port first: `ssh -L 8889:127.0.0.1:8889 rinn`.
+- `app-dev` builds once at startup; after changing code, `docker compose -f compose.dev.yml restart app-dev` (or rebuild inside `make dev-shell`, then restart).
+- `make sync-from-prod` (`tools/sync-from-prod.sh`) reads production over `ssh $(PROD)` (default `nodoca`): it takes a `pg_dump` from the production postgres, and only once the dump is complete drops and recreates the development database from it; then it `rsync -a --delete`s the production storage into `dev-var/storage/`. Against production it only reads — nothing is stopped or written there. Running it again gives the same state.
+- **Every sync overwrites the development database.** `postgres-dev` then holds production's data, including drafts, and production's migration version (`flyway_schema_history` comes with the dump); migrations or data you added in development are gone.
+- The first sync copies the whole storage (about 12G) and takes a while; later runs only transfer the difference. On production rsync runs under `ionice -c3`; to lower the load further, `make sync-from-prod RSYNC_OPTS=--bwlimit=20000`.
 
 ## Screenshots
 
 **omote is WebGL — unit tests show you nothing about it. If you change how it looks, take a screenshot.** `tools/preview/` holds the tooling and the traps (`tools/preview/README.md`): `shot.sh` grabs one frame at a given viewport size, `drive.mjs` is a puppeteer template for scenarios that need interaction (device rotation, dragging the gear) without a reload. Both run Chromium in a **Debian** container — alpine's chromium cannot get a WebGL context, and silently produces a screenshot with no gear in it.
 
-Until a development environment with real data exists (#30), take them against the read-only preview container described in `7io-org/compose`'s [`the-gear-of-seasons/docs/troubleshooting-prod-preview.md`](https://code.ledyba.org/7io-org/compose/src/branch/main/the-gear-of-seasons/docs/troubleshooting-prod-preview.md), under the same invariants, and run `shot.sh` on the same machine as that container — production. That document is for troubleshooting only; screenshots are the one exception. Production has little memory, so make sure no `gears-shot` container is left behind afterwards (`--rm` removes it) and remove the image when cleaning up. Once #30 exists, take screenshots on the development machine instead.
+Take them on the development machine against the development environment (see "Development environment" above): `make dev-up`, then `tools/preview/shot.sh http://localhost:8889/ out/portrait.png 390x844` (`out/` is gitignored).
 
 ## Architecture
 
@@ -60,4 +78,4 @@ Server layering (entry: `server/src/cmd/main.ts`, listens on port 3000):
 
 Maintenance commands in `server/src/cmd/`: `gc.ts` (remove orphaned storage files), `sanity-check.ts`, `regenerate-cache.ts`, `list-missing.ts` (list lost media; see `tools/README.md`) — run as `node server/dist/cmd/<name>.js` inside the production app container (from `7io-org/compose`'s `the-gear-of-seasons/`, `make gc` / `make sanity-check` wrap the first two).
 
-`tools/` holds the tooling for finding and restoring lost media, described in `tools/README.md`, plus the screenshot tooling in `tools/preview/` (see "Screenshots" above). Among the former, `tools/restore.rs/` is a standalone Rust utility for restoring/deduplicating media from backups; it is not part of the build.
+`tools/` holds the tooling for finding and restoring lost media, described in `tools/README.md`, plus the screenshot tooling in `tools/preview/` (see "Screenshots" above) and `tools/sync-from-prod.sh` (see "Development environment" above). Among the former, `tools/restore.rs/` is a standalone Rust utility for restoring/deduplicating media from backups; it is not part of the build.

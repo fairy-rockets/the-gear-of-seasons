@@ -7,27 +7,27 @@ Issue #6(スマホのレイアウト変更)で実際に効いた: 初回の実�
 なっていたが、横長では無症状だったため、撮っていなければスマホだけ壊れた状態で
 出すところだった(原因は循環 import で定数が NaN になっていた)。
 
-## 1. プレビューを起こす
+## 1. 開発環境を起こす
 
-read-only プレビューの立て方は 7io-org/compose の [`the-gear-of-seasons/docs/troubleshooting-prod-preview.md`](https://code.ledyba.org/7io-org/compose/src/branch/main/the-gear-of-seasons/docs/troubleshooting-prod-preview.md) を見ること(開発環境ができるまでの例外。#30)。
-撮影のために足しておくと便利なのは次の 2 つ。
+開発マシン(rinn)で、本番から同期したデータの上に開発環境を起こす(手順はリポジトリ直下の
+`CLAUDE.md` の "Development environment")。
 
-- **`client/dist` を worktree からバインドマウントする。** `-v <worktree>/client/dist:/app/client/dist:ro`
-  を足しておくと、`(cd client && npm run build)` するだけで反映される。定数を振って
-  何度も撮るときにコンテナを作り直さずに済む。
-- **`_assets` はイメージの中**なので、CSS やテンプレートを変えたら
-  `docker cp _assets/static/omote/main.css <container>:/app/_assets/static/omote/main.css`。
-  fastify-static はディスクから読むので、これだけで次のリクエストから反映される。
+```sh
+make sync-from-prod   # 初回、またはデータを新しくしたいとき
+make dev-up
+```
+
+リポジトリがまるごと `/app` にバインドされているので、`client/dist` も `_assets` もそのまま
+コンテナから見える。CSS やテンプレートはディスクから読まれるので保存すれば次のリクエストから
+反映され、client を変えたら `make dev-shell` の中で `(cd client && npm run build)` すればよい。
 
 **ホスト名に注意。** 表示は `req.hostname === OMOTE_HOST` で振り分けられ、Fastify の
-`req.hostname` はポートを含まない。`OMOTE_HOST=localhost` で起こしたなら
+`req.hostname` はポートを含まない。開発環境は `OMOTE_HOST=localhost` なので
 `http://localhost:8889/` で開く(`http://127.0.0.1:8889/` は 404)。
 
 ## 2. 撮る
 
-開発環境(#30)ができるまでは、プレビューのコンテナと同じマシン(本番)で `shot.sh` を動かす。
-#30 ができたら開発マシンで撮る。本番はメモリが小さいので、撮り終えたら `gears-shot` のコンテナが
-残っていないこと(`--rm` で消える)を確かめ、3 の片付けでイメージも消す。
+開発環境と同じマシン(rinn)で `shot.sh` を動かす。
 
 ```sh
 ./shot.sh http://localhost:8889/ out/portrait.png 390x844   # iPhone 相当
@@ -45,7 +45,8 @@ viewport を差し替えられるので、**端末の回転**を再現できる(
 ## 3. 片付け
 
 ```sh
-docker rm -f gears-preview && docker rmi gears-preview:<branch> gears-shot
+make dev-down
+docker rmi gears-shot   # 撮影用のイメージも要らなくなったら
 ```
 
 ## 踏んだ罠
