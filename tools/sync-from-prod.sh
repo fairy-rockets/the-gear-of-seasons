@@ -39,7 +39,15 @@ fi
 "${DEV_COMPOSE[@]}" up -d postgres-dev
 # 初回は initdb のあいだ unix socket だけの一時サーバーが立つので、TCP で待つ。
 echo -n "waiting for postgres-dev ... " >&2
-until "${DEV_COMPOSE[@]}" exec -T postgres-dev pg_isready -q -h 127.0.0.1 -U "$DB_USER"; do
+tries=0
+until "${DEV_COMPOSE[@]}" exec -T postgres-dev pg_isready -q -h 127.0.0.1 -U "$DB_USER" 2>/dev/null; do
+  tries=$((tries + 1))
+  if [ "$tries" -ge 60 ]; then
+    echo "failed" >&2
+    echo "postgres-dev did not become ready in 60s. See: docker compose -f compose.dev.yml logs postgres-dev" >&2
+    echo "If dev-var/psql was created by another PostgreSQL major version, remove it and run this again." >&2
+    exit 1
+  fi
   sleep 1
 done
 echo "ok" >&2

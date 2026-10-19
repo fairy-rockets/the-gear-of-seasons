@@ -26,6 +26,7 @@ if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
   docker build -q -t "$IMAGE" "$HERE" >/dev/null
 fi
 
+mkdir -p "$(dirname "$OUT")"
 OUTDIR="$(cd "$(dirname "$OUT")" && pwd)"
 OUTNAME="$(basename "$OUT")"
 

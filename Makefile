@@ -152,9 +152,11 @@ dev-log:
 dev-shell:
 	$(DEV_COMPOSE) exec app-dev bash
 
+# node_modules は起動中の app-dev と共有しているので、npm ci は lockfile の方が新しいときだけにする
+# (そのときは動いているサーバーの依存も入れ替わるので、app-dev を restart する)。
 .PHONY: dev-test
 dev-test: $(DEV_VARS)
-	$(DEV_COMPOSE) run --rm --no-deps app-dev sh -c 'cd server && { [ -d node_modules ] || npm ci; } && npm test'
+	$(DEV_COMPOSE) run --rm --no-deps app-dev sh -c 'cd server && { { [ -f node_modules/.package-lock.json ] && [ ! package-lock.json -nt node_modules/.package-lock.json ]; } || npm ci; } && npm test'
 
 .PHONY: sync-from-prod
 sync-from-prod: $(DEV_VARS)
