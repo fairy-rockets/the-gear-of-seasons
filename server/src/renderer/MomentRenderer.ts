@@ -93,7 +93,7 @@ class MomentRenderer {
       width = entity.width * height / entity.height;
     }
     const img = `<img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="an image.">`;
-    // 元画像は表示にもリンクにも使わない。元の解像度を見せたいときは [link] ブロックで明示する。
+    // 元画像は表示にもリンクにも使わない。entity の元ファイルへのリンクは [link] ブロックで貼れる。
     if (!block.link) {
       return img;
     }

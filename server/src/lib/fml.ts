@@ -212,6 +212,8 @@ export function makeText(str: string): Text {
   }
 }
 
+// [image entity="<id>" link="<url>"]: 画像を medium で表示する。link= があればそこへリンクし、
+// 無ければリンクしない（元画像へはリンクしない）。
 export type Image = {
   type: 'image';
   entity: string | undefined;
@@ -226,6 +228,8 @@ export function makeImage(entity: string | undefined, link?: string | undefined)
   }
 }
 
+// [video entity="<id>"]: 動画には medium が無いので、元ファイルを再生する。
+// <video> を再生できないブラウザ向けに、元ファイルへのリンクも置く。
 export type Video = {
   type: 'video';
   entity: string | undefined;
@@ -238,6 +242,7 @@ export function makeVideo(entity: string | undefined): Video {
   }
 }
 
+// [audio entity="<id>"]: 音声にも medium が無いので、元ファイルを再生する。
 export type Audio = {
   type: 'audio';
   entity: string | undefined;
@@ -250,6 +255,8 @@ export function makeAudio(entity: string | undefined): Audio {
   }
 }
 
+// [link entity="<id>" text="<文字列>"]: entity の元ファイルへのテキストリンク。種類（画像・動画・音声）を問わない。
+// 画像を元の解像度で見せたいときなどに使う。
 export type Link = {
   type: 'link';
   entity: string | undefined;
