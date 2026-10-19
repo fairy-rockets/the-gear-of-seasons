@@ -121,6 +121,50 @@ db-ip:
 	@docker compose exec -T postgres /bin/hostname -i
 
 ########################################################################################################################
+## development (compose.dev.yml)
+########################################################################################################################
+# app-dev はリポジトリをバインドするので、node_modules や dist をホストのユーザーで作らせる。
+# (bash では UID が読み取り専用なので、env 越しに渡す)
+DEV_UID ?= $(shell id -u)
+DEV_GID ?= $(shell id -g)
+DEV_COMPOSE = env UID=$(DEV_UID) GID=$(DEV_GID) docker compose -f compose.dev.yml
+DEV_VARS = dev-var dev-var/psql dev-var/storage
+
+# 本番
+PROD ?= nodoca
+PROD_DIR ?= /opt/books/the-gear-of-seasons
+PROD_STORAGE ?= /opt/books/@var/the-gear-of-seasons/storage
+RSYNC_OPTS ?=
+
+.PHONY: dev-up
+dev-up: $(DEV_VARS)
+	$(DEV_COMPOSE) up -d --build
+
+.PHONY: dev-down
+dev-down:
+	$(DEV_COMPOSE) down
+
+.PHONY: dev-log
+dev-log:
+	$(DEV_COMPOSE) logs -f --tail 100
+
+.PHONY: dev-shell
+dev-shell:
+	$(DEV_COMPOSE) exec app-dev bash
+
+.PHONY: dev-test
+dev-test: $(DEV_VARS)
+	$(DEV_COMPOSE) run --rm --no-deps app-dev sh -c 'cd server && { [ -d node_modules ] || npm ci; } && npm test'
+
+.PHONY: sync-from-prod
+sync-from-prod: $(DEV_VARS)
+	PROD='$(PROD)' PROD_DIR='$(PROD_DIR)' PROD_STORAGE='$(PROD_STORAGE)' RSYNC_OPTS='$(RSYNC_OPTS)' \
+		./tools/sync-from-prod.sh
+
+$(DEV_VARS):
+	mkdir -p "$@"
+
+########################################################################################################################
 ## vars
 ########################################################################################################################
 

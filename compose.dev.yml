@@ -13,7 +13,7 @@ services:
     profiles: ['tool']
 
   postgres-dev:
-    image: 'postgres:alpine'
+    image: 'postgres:13-alpine'
     container_name: 'the-gear-of-seasons_postgres-dev'
     hostname: 'the-gear-of-seasons_postgres-dev'
     environment:
@@ -34,6 +34,34 @@ services:
       - 'dev-link'
     tty: true
     stdin_open: true
+
+  app-dev:
+    build:
+      context: '.'
+      target: 'tools'
+    container_name: 'the-gear-of-seasons_app-dev'
+    hostname: 'the-gear-of-seasons_app-dev'
+    depends_on:
+      - postgres-dev
+    user: '${UID:-1000}:${GID:-1000}'
+    environment:
+      - 'OMOTE_HOST=localhost'
+      - 'URA_HOST=ura.localhost'
+      - 'OMOTE_ORIGIN=http://localhost:8889'
+      - 'DB_HOST=postgres-dev'
+      - 'TZ=Asia/Tokyo'
+      - 'npm_config_cache=/app/dev-var/npm-cache'
+    command:
+      - 'sh'
+      - '-c'
+      - '(cd client && npm ci && npm run build) && (cd server && npm ci && npm run build) && exec node server/dist/cmd/main.js'
+    ports:
+      - '127.0.0.1:8889:3000'
+    volumes:
+      - '.:/app'
+      - './dev-var/storage:/app/_storage'
+    networks:
+      - 'dev-link'
 
 networks:
   dev-link:

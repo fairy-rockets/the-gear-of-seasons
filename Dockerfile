@@ -1,11 +1,16 @@
-FROM node:22-alpine
+# ツールだけの段。compose.dev.yml の app-dev はこの段でソースをバインドして動かす。
+FROM node:22-alpine AS tools
 
-VOLUME /app/storage
 WORKDIR /app
 
 RUN  apk add --no-cache bash ffmpeg imagemagick tzdata \
   && cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime \
   && apk del --purge tzdata
+
+# 本番用の段。target を指定しないビルドはこの段になる。
+FROM tools
+
+VOLUME /app/storage
 
 COPY . .
 
