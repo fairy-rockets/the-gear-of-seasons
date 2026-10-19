@@ -9,7 +9,7 @@
     "build": "tsc",
     "clean": "rm -Rf ./dist",
     "up": "npm-check-updates -u && npm install && npm dedupe && npm audit fix",
-    "test": "mocha"
+    "test": "mocha 'src/**/*.spec.ts'"
   },
   "exports": {
     ".": {

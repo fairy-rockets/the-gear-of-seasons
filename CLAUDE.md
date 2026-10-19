@@ -27,7 +27,7 @@ cd client && npm ci && npm run build    # webpack → dist/
 cd client && npm run watch
 ```
 
-To run only some server tests, filter by suite/test title: `cd server && npx mocha --grep FML` (mocharc already wires up ts-node/esm). Passing a spec file — positionally or with `--spec` — does not narrow the run: mocha appends it to the `spec` glob in `.mocharc.json`, so every spec file still runs.
+To run one spec file, pass it to mocha directly: `cd server && npx mocha src/repo/Repo.spec.ts` (`.mocharc.json` wires up ts-node/esm; the `src/**/*.spec.ts` glob lives only in the `test` script). To filter by suite/test title instead: `cd server && npm test -- --grep FML`. `npm test -- <file>` does not narrow the run — the file is appended to the glob, so every spec still runs.
 
 Tests require **ffmpeg** and **ImageMagick 7+** (`magick` binary) on PATH — media probing/conversion shells out to them.
 
