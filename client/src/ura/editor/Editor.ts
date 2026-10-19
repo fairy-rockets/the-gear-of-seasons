@@ -106,6 +106,7 @@ export default class Editor {
     }
     this.save_.disabled = true;
     this.delete_.disabled = false;
+    dismissToast(PREVIEW_TOAST_KEY);
     this.preview_!.onChange(result.body);
     this.date_.value = result.date;
     this.originalDate_ = result.date;

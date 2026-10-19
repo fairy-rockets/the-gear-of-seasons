@@ -82,7 +82,9 @@ export default class Uploader {
         .then(resp =>
           resp.status === 200 ?
             resp.text() :
-            describeResponseError(resp).then(reason => Promise.reject(new Error(`${file.name}: ${reason}`))))
+            describeResponseError(resp).then(reason => Promise.reject(new Error(reason))))
+        // 接続の失敗(Failed to fetch)にもファイル名を付ける。次のファイルの失敗に二重に付けないよう、ここで受ける
+        .catch(err => Promise.reject(new Error(`${file.name}: ${describeError(err)}`)))
         .then(resp => {
           embeds.push(resp);
           this.progressBar_.value = i+1;
@@ -96,6 +98,9 @@ export default class Uploader {
         execUpload().then(resolve, reject);
       } else if (file.type.startsWith('audio/')) {
         execUpload().then(resolve, reject);
+      } else {
+        // SUPPORTED_TYPES で弾いているので来ないはずだが、来ても進捗パネルを出したままにしない
+        reject(new Error(`${file.name}: アップロードできない形式です`));
       }
     });
 
