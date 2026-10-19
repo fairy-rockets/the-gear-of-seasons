@@ -98,7 +98,7 @@ class MomentRenderer {
       return img;
     }
     return `
-<a href="${block.link}" target="_blank" rel="noopener noreferrer">
+<a href="${escapeAttribute(block.link)}" target="_blank" rel="noopener noreferrer">
   ${img}
 </a>
 `.trim();
@@ -117,6 +117,7 @@ class MomentRenderer {
     return `
 <video class="embed" preload="metadata" loop controls="controls" width="${entity.width}" height="${entity.height}">
   <source type="${escapeAttribute(entity.mimeType)}" src="/entity/${escapeAttribute(entity.id)}">
+  <a href="/entity/${escapeAttribute(entity.id)}">Click to play.</a>
 </video>
 `.trim();
   }

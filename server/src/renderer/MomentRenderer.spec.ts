@@ -110,10 +110,15 @@ describe("MomentRenderer.render", () => {
     assert.ok(html.includes('src="/entity/img/medium"'));
   });
 
-  it("動画は元ファイルを再生元にするが、元ファイルへのリンクは張らない", async () => {
+  it("画像の link= はエスケープされる", async () => {
+    const html = await render('[image entity="img" link="https://example.com/?a=1&b=2"]');
+    assert.ok(html.includes('<a href="https://example.com/?a=1&amp;b=2"'));
+  });
+
+  it("動画は元ファイルを再生元にし、再生できないブラウザ向けに元ファイルへのリンクを残す", async () => {
     const html = await render('[video entity="vid"]');
     assert.ok(html.includes('src="/entity/vid"'));
-    assert.ok(!html.includes('href="/entity/vid"'));
+    assert.ok(html.includes('<a href="/entity/vid">Click to play.</a>'));
   });
 
   it("音声は元ファイルを再生元にする", async () => {
