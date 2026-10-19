@@ -212,7 +212,7 @@ img.emoji {
   vertical-align: -0.1em;
 }
 
-.back-button {
+.close-button {
   position: absolute;
   top: -0.5em;
   right: -5em;
@@ -367,7 +367,7 @@ img.emoji {
   }
 
   /* 全幅だと枠外(right:-5em)の×が画面外になるので、内側の右上に出す。 */
-  .back-button {
+  .close-button {
     top: 0.4em;
     right: 0.4em;
     width: 3em;

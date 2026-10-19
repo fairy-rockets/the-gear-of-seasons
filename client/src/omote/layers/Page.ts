@@ -8,7 +8,7 @@ export default class Page extends Layer {
 
   private readonly contentWrapper_: HTMLDivElement;
   private readonly content_: HTMLDivElement;
-  private readonly backButton_: HTMLDivElement;
+  private readonly closeButton_: HTMLDivElement;
   private readonly closeListener_: () => void;
   constructor(world: World, path: string, contentPromise: Promise<string>) {
     super(world, path);
@@ -21,15 +21,15 @@ export default class Page extends Layer {
     this.content_.classList.add('content');
     this.contentWrapper_.appendChild(this.content_);
 
-    this.backButton_ = document.createElement('div');
-    this.backButton_.classList.add('back-button');
-    this.backButton_.innerHTML = backButtonSrc;
-    this.contentWrapper_.appendChild(this.backButton_);
+    this.closeButton_ = document.createElement('div');
+    this.closeButton_.classList.add('close-button');
+    this.closeButton_.innerHTML = closeButtonSrc;
+    this.contentWrapper_.appendChild(this.closeButton_);
 
     this.closeListener_ = this.onClose_.bind(this);
 
     // タッチでも確実に閉じられるよう click を使う(合成 click が発火する)。
-    this.backButton_.addEventListener('click', this.closeListener_, false);
+    this.closeButton_.addEventListener('click', this.closeListener_, false);
 
     contentPromise.then(this.onLoad_.bind(this), this.onError_.bind(this));
   }
@@ -105,11 +105,7 @@ export default class Page extends Layer {
   }
 
   onClose_() {
-    if(this.world.canPopLayer()) {
-      this.world.popLayer();
-    } else {
-      this.world.openLayer('/');
-    }
+    this.world.openTop();
   }
 
   onError_(err: any) {
@@ -134,8 +130,8 @@ const htmlSrc = `
 </div>
 `;
 
-// viewBox 基準にして、ボタンの大きさは .back-button の width/height で決める。
-const backButtonSrc = `
+// viewBox 基準にして、ボタンの大きさは .close-button の width/height で決める。
+const closeButtonSrc = `
 <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
   <rect
       x="0" y="0"

@@ -251,13 +251,28 @@ export default class World {
     this.applyHead_();
   }
 
-  canPopLayer(): boolean {
-    return this.layers_.length > 1;
-  }
-
-  public popLayer() {
-    this.popLayer_();
-    history.back();
+  /**
+   * 歯車(トップ)へ移る。
+   *
+   * 前のページに戻るのではなく、`/` へ進む新しい履歴エントリを作る。
+   * 前のページに戻りたいときはブラウザの戻るを使う(#24)。
+   * スタックに Index があれば作り直さずにそこまで下ろす(歯車の回転位置を保つ)。
+   */
+  openTop() {
+    const layers = this.layers_;
+    const idx = layers.map(layer => layer.path).lastIndexOf('/');
+    if (idx < 0) {
+      // モーメントの URL に直接来たときは、スタックに Index が無い。
+      this.openLayer('/');
+      return;
+    }
+    if (idx === layers.length-1) {
+      return;
+    }
+    while (layers.length > idx+1) {
+      this.popLayer_();
+    }
+    history.pushState((history.state ?? 0)+1, '', '/');
   }
 
   private popLayer_() {
