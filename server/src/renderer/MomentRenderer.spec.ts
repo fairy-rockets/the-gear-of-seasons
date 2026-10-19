@@ -72,6 +72,14 @@ describe("MomentRenderer.render", () => {
       height: 480,
       duration: 10,
     },
+    {
+      type: 'audio',
+      id: 'aud',
+      iconID: 'aud-icon',
+      mimeType: 'audio/mpeg',
+      timestamp: undefined,
+      duration: 10,
+    },
   ];
   // render が使うのは findEntity だけなので、DB を立てずに済ませる。
   const shelf = {
@@ -106,5 +114,16 @@ describe("MomentRenderer.render", () => {
     const html = await render('[video entity="vid"]');
     assert.ok(html.includes('src="/entity/vid"'));
     assert.ok(!html.includes('href="/entity/vid"'));
+  });
+
+  it("音声は元ファイルを再生元にする", async () => {
+    const html = await render('[audio entity="aud"]');
+    assert.ok(html.includes('src="/entity/aud"'));
+  });
+
+  it("[link] ブロックは元ファイルへリンクする", async () => {
+    const html = await render('[link entity="img" text="[フルサイズ]"]');
+    assert.ok(html.includes('<a href="/entity/img"'));
+    assert.ok(html.includes('>[フルサイズ]</a>'));
   });
 });
