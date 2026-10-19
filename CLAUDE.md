@@ -27,13 +27,13 @@ cd client && npm ci && npm run build    # webpack → dist/
 cd client && npm run watch
 ```
 
-Run a single server test: `cd server && npx mocha src/lib/fml.spec.ts` (mocharc already wires up ts-node/esm).
+To run only some server tests, filter by suite/test title: `cd server && npx mocha --grep FML` (mocharc already wires up ts-node/esm). Passing a spec file — positionally or with `--spec` — does not narrow the run: mocha appends it to the `spec` glob in `.mocharc.json`, so every spec file still runs.
 
 Tests require **ffmpeg** and **ImageMagick 7+** (`magick` binary) on PATH — media probing/conversion shells out to them.
 
 For local development against a database: `docker compose -f compose.dev.yml up -d postgres-dev` exposes postgres on 127.0.0.1:5432, then run the server with `DB_HOST=localhost`.
 
-Database migrations are applied by hand with Flyway; follow "How to migrate the database" in `README.md`.
+Production database migrations are applied by hand with Flyway; follow "How to migrate the database" in `README.md`, which runs against the production stack. For the local `postgres-dev`, `compose.dev.yml` also defines a `flyway` service (profile `tool`), and `db/flyway_data/conf/flyway.dev.conf` points at `postgres-dev`.
 
 ## Architecture
 
@@ -46,12 +46,12 @@ The server serves **two sites from one Fastify instance, distinguished by Host h
 
 Server layering (entry: `server/src/cmd/main.ts`, listens on port 3000):
 
-- **Repo** (`repo/`): PostgreSQL access via ts-postgres with a connection pool and NodeCache. Two tables (`db/flyway_data/sql/V0__init.sql`): `moments` (keyed by timestamp; title/author/text) and `entities` (media keyed by md5 hash; image/video/audio with medium/icon derivative ids).
+- **Repo** (`repo/`): PostgreSQL access via ts-postgres with a connection pool and NodeCache. Two tables (`db/flyway_data/sql/V0__init.sql`, `V1__moment_status.sql`): `moments` (keyed by timestamp; title/author/text; `status` draft/published) and `entities` (media keyed by md5 hash; image/video/audio with medium/icon derivative ids).
 - **Storage** (`storage/`): content-addressed file store under `_storage/` — three kinds (`original`, `medium`, `icon`), files sharded by md5 as `ab/cd/ef/rest-of-hash`.
 - **Shelf** (`shelf/`): domain layer combining Repo + Storage; handles uploads (probes media, generates medium/icon derivatives via ffmpeg/ImageMagick) and moment CRUD.
 - **fml** (`lib/fml.ts`): custom markup language for moment bodies (text/image/video/audio/markdown blocks), rendered to HTML by `renderer/MomentRenderer.ts`.
 - **protocol** (`lib/protocol.ts`): shared server↔client types; the client imports it via symlink `client/src/protocol.ts`.
 
-Maintenance commands in `server/src/cmd/`: `gc.ts` (remove orphaned storage files), `sanity-check.ts`, `regenerate-cache.ts` — run as `node server/dist/cmd/<name>.js` inside the container.
+Maintenance commands in `server/src/cmd/`: `gc.ts` (remove orphaned storage files), `sanity-check.ts`, `regenerate-cache.ts`, `list-missing.ts` (list lost media; see `tools/README.md`) — run as `node server/dist/cmd/<name>.js` inside the production app container (from `7io-org/compose`'s `the-gear-of-seasons/`, `make gc` / `make sanity-check` wrap the first two).
 
 `tools/` holds the tooling for finding and restoring lost media, described in `tools/README.md`. Among it, `tools/restore.rs/` is a standalone Rust utility for restoring/deduplicating media from backups; it is not part of the build.
