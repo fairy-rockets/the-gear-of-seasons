@@ -3,23 +3,32 @@ import assert from 'assert';
 import dayjs from 'dayjs';
 
 import Repo, { momentVisibilityCondition } from './Repo.js';
+import { EntityAnnotation } from '../shelf/EntityAnnotation.js';
 import { Moment, MomentVisibility } from '../shelf/Moment.js';
 
 // DB には繋がず、Repo が組み立てる SQL と引数だけを見る。
 // （Pool は最初の query までは接続しないので、new Repo() しても DB は要らない）
+// トランザクションは、BEGIN と COMMIT を calls に記録するだけ。
 type Call = { q: string, args: any[] };
 
 function stubPool(repo: Repo, rows: Record<string, unknown>[]): Call[] {
   const calls: Call[] = [];
-  (repo as any).pool = {
+  const pool = {
     query: async (q: string, args: any[]) => {
       calls.push({ q, args });
       return (async function* () {
         yield* rows;
       })();
     },
+    transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
+      calls.push({ q: 'BEGIN', args: [] });
+      const r = await fn(pool);
+      calls.push({ q: 'COMMIT', args: [] });
+      return r;
+    },
     close: async () => {},
   };
+  (repo as any).pool = pool;
   return calls;
 }
 
@@ -30,6 +39,10 @@ const kRow = {
   text: 'x',
   icon_id: null,
   status: 'draft',
+  tier: 'archive',
+  series: [],
+  sensitive: false,
+  sensitive_manual: false,
 };
 
 const kPublishedOnly = `"status" = 'published'`;
@@ -57,6 +70,14 @@ const kWithoutVisibility: { [name: string]: string } = {
   insertMoment: '書き込みだけ',
   updateMoment: '書き込みだけ',
   deleteMoment: '書き込みだけ',
+  transaction: 'moment を引かない',
+  updateMomentCuration: '書き込みだけ',
+  updateMomentSensitive: '書き込みだけ',
+  updateMomentAutoSensitive: '書き込みだけ',
+  findAutoSensitiveMomentCandidates: '注釈の保存で sensitive を計算し直す対象。下書きも含めて全件',
+  findEntityAnnotation: 'moment を引かない',
+  findEntityAnnotations: 'moment を引かない',
+  upsertEntityAnnotation: 'moment を引かない',
 };
 
 describe("Repo のメソッド", () => {
@@ -144,14 +165,217 @@ describe("Repo の moment の可視性", () => {
   };
 
   it("insertMoment は status を明示して渡す", async () => {
-    await repo.insertMoment({ ...kMoment, status: 'draft' });
+    await repo.insertMoment({ ...kMoment, status: 'draft' }, false);
     assert.ok(calls[0].q.includes(`"status"`), calls[0].q);
     assert.ok(calls[0].args.includes('draft'), JSON.stringify(calls[0].args));
   });
 
   it("updateMoment は status も書き換える", async () => {
-    await repo.updateMoment(dayjs('2020-01-02T03:04:05+09:00'), kMoment);
+    await repo.updateMoment(dayjs('2020-01-02T03:04:05+09:00'), kMoment, false);
     assert.ok(calls[0].q.includes(`"status" = $6`), calls[0].q);
     assert.strictEqual(calls[0].args[5], 'published');
+  });
+});
+
+describe("Repo のキュレーションの項目", () => {
+  let repo: Repo;
+  let calls: Call[];
+  beforeEach(() => {
+    repo = new Repo();
+    calls = stubPool(repo, [kRow]);
+  });
+
+  const kTimestamp = dayjs('2020-01-02T03:04:05+09:00');
+  const kMoment: Moment = {
+    timestamp: kTimestamp,
+    title: 't',
+    author: 'a',
+    text: 'x',
+    iconID: undefined,
+    status: 'published',
+  };
+
+  // ura の SAVE は tier・series・sensitive_manual を送ってこないので、書き換えると消える。
+  it("updateMoment（SAVE）は tier・series・sensitive_manual を書き換えない", async () => {
+    await repo.updateMoment(kTimestamp, kMoment, true);
+    const q = calls[0].q;
+    assert.ok(!q.includes(`"tier"`), q);
+    assert.ok(!q.includes(`"series"`), q);
+    assert.ok(!/"sensitive_manual"\s*=/.test(q), q);
+  });
+
+  it("updateMoment（SAVE）は sensitive_manual = false のときだけ sensitive を計算した値にする", async () => {
+    await repo.updateMoment(kTimestamp, kMoment, true);
+    assert.ok(calls[0].q.includes(`"sensitive" = case when "sensitive_manual" then "sensitive" else $8::boolean end`), calls[0].q);
+    assert.strictEqual(calls[0].args[7], true);
+  });
+
+  it("insertMoment は計算した sensitive を書き、キュレーションの項目は既定値に任せる", async () => {
+    await repo.insertMoment(kMoment, true);
+    const q = calls[0].q;
+    assert.ok(q.includes(`"sensitive"`), q);
+    assert.ok(!q.includes(`"tier"`), q);
+    assert.ok(!q.includes(`"sensitive_manual"`), q);
+    assert.strictEqual(calls[0].args[6], true);
+  });
+
+  it("findMoment はキュレーションの項目も読む", async () => {
+    calls = stubPool(repo, [{ ...kRow, tier: 'pickup', series: ['癒し', '季節'], sensitive: true, sensitive_manual: true }]);
+    const m = await repo.findMoment(kTimestamp, 'all');
+    assert.strictEqual(calls.length, 1);
+    assert.strictEqual(m?.tier, 'pickup');
+    assert.deepStrictEqual(m?.series, ['癒し', '季節']);
+    assert.strictEqual(m?.sensitive, true);
+    assert.strictEqual(m?.sensitiveManual, true);
+  });
+
+  // ts-postgres は空の text[] をそのまま読むとプロセスごと落ちる（Repo.ts の冒頭）。
+  it("series は JSON にして読む", async () => {
+    await repo.findMoment(kTimestamp, 'all');
+    for await (const _ of repo.enumurateAllMoments()) {
+      // 読むだけ
+    }
+    await repo.findAutoSensitiveMomentCandidates('0123456789abcdef0123456789abcdef');
+    assert.strictEqual(calls.length, 3);
+    for (const c of calls) {
+      assert.ok(c.q.includes(`array_to_json("series") as "series"`), c.q);
+    }
+  });
+
+  it("DB に知らない tier があれば例外にする", async () => {
+    calls = stubPool(repo, [{ ...kRow, tier: 'featured' }]);
+    await assert.rejects(() => repo.findMoment(kTimestamp, 'all'), /Invalid moment tier/);
+  });
+
+  it("updateMomentCuration は tier と series だけを書く", async () => {
+    await repo.updateMomentCuration(kTimestamp, 'sketch', ['魔女hexe']);
+    const q = calls[0].q;
+    assert.ok(q.includes(`"tier" = $2`), q);
+    assert.ok(q.includes(`"series" = $3::text[]`), q);
+    assert.ok(!q.includes(`"sensitive"`), q);
+    assert.deepStrictEqual(calls[0].args, [kTimestamp.toDate(), 'sketch', ['魔女hexe']]);
+  });
+
+  it("updateMomentSensitive は sensitive と sensitive_manual をそのまま書く", async () => {
+    await repo.updateMomentSensitive(kTimestamp, true, true);
+    assert.ok(calls[0].q.includes(`"sensitive_manual" = $3`), calls[0].q);
+    assert.deepStrictEqual(calls[0].args, [kTimestamp.toDate(), true, true]);
+  });
+
+  it("updateMomentAutoSensitive は手で上書きした moment と、値が変わらない moment には書かない", async () => {
+    await repo.updateMomentAutoSensitive(kTimestamp, true);
+    const q = calls[0].q;
+    assert.ok(q.includes(`not "sensitive_manual"`), q);
+    assert.ok(q.includes(`"sensitive" is distinct from $2`), q);
+    assert.deepStrictEqual(calls[0].args, [kTimestamp.toDate(), true]);
+  });
+
+  it("findAutoSensitiveMomentCandidates は本文に id を含む、自動の moment を下書きも含めて探す", async () => {
+    const got = await repo.findAutoSensitiveMomentCandidates('0123456789abcdef0123456789abcdef');
+    const q = calls[0].q;
+    assert.ok(q.includes(`"text" like '%' || $1::text || '%'`), q);
+    assert.ok(q.includes(`not "sensitive_manual"`), q);
+    assert.ok(!q.includes(kPublishedOnly), q);
+    assert.deepStrictEqual(calls[0].args, ['0123456789abcdef0123456789abcdef']);
+    assert.strictEqual(got.length, 1);
+  });
+
+  it("transaction の中の Repo は、pool のトランザクションにクエリを流す", async () => {
+    await repo.transaction(async (tx) => {
+      await tx.updateMomentAutoSensitive(kTimestamp, true);
+    });
+    assert.deepStrictEqual(calls.map((c) => c.q.trim().split(/\s+/)[0]), ['BEGIN', 'update', 'COMMIT']);
+  });
+});
+
+describe("Repo の entity の注釈", () => {
+  let repo: Repo;
+  let calls: Call[];
+
+  const kID = '0123456789abcdef0123456789abcdef';
+  const kAnnotationRow = {
+    entity_id: kID,
+    medium: 'drawing',
+    alt: null,
+    description: null,
+    tags: [],
+    palette: null,
+    characters: null,
+    looks_nude: 'none',
+    looks_child: 'child',
+    looks_note: null,
+    checked: true,
+    role: null,
+    role_group: null,
+    role_star: null,
+    role_note: null,
+  };
+
+  beforeEach(() => {
+    repo = new Repo();
+    calls = stubPool(repo, [kAnnotationRow]);
+  });
+
+  it("findEntityAnnotations は id の配列を1つの引数で渡す", async () => {
+    await repo.findEntityAnnotations([kID, 'fedcba9876543210fedcba9876543210']);
+    assert.strictEqual(calls.length, 1);
+    assert.ok(calls[0].q.includes(`"entity_id" = any($1::text[])`), calls[0].q);
+    assert.deepStrictEqual(calls[0].args, [[kID, 'fedcba9876543210fedcba9876543210']]);
+  });
+
+  it("findEntityAnnotations は tags と characters を JSON にして読む", async () => {
+    await repo.findEntityAnnotations([kID]);
+    assert.ok(calls[0].q.includes(`array_to_json("tags") as "tags"`), calls[0].q);
+    assert.ok(calls[0].q.includes(`array_to_json("characters") as "characters"`), calls[0].q);
+  });
+
+  it("findEntityAnnotations は id が無ければ DB を引かない", async () => {
+    const got = await repo.findEntityAnnotations([]);
+    assert.strictEqual(calls.length, 0);
+    assert.strictEqual(got.size, 0);
+  });
+
+  // NULL（値なし）と 'none'・空のリストは別の値
+  it("読んだ注釈の null と 'none'・空のリストを区別する", async () => {
+    const a = await repo.findEntityAnnotation(kID);
+    assert.ok(a !== null);
+    assert.strictEqual(a.medium, 'drawing');
+    assert.deepStrictEqual(a.tags, []);
+    assert.strictEqual(a.characters, null);
+    assert.strictEqual(a.looksNude, 'none');
+    assert.strictEqual(a.palette, null);
+    assert.strictEqual(a.checked, true);
+    assert.strictEqual(a.roleStar, null);
+  });
+
+  it("DB に知らない値があれば例外にする", async () => {
+    calls = stubPool(repo, [{ ...kAnnotationRow, looks_nude: 'maybe' }]);
+    await assert.rejects(() => repo.findEntityAnnotation(kID), /Invalid looks_nude/);
+  });
+
+  it("upsertEntityAnnotation はすべての項目を、null も含めてそのまま渡す", async () => {
+    const a: EntityAnnotation = {
+      entityID: kID,
+      medium: 'photo',
+      alt: '海',
+      description: null,
+      tags: ['海', 'a,"b"'],
+      palette: 'color',
+      characters: [],
+      looksNude: 'partial',
+      looksChild: 'adult',
+      looksNote: null,
+      checked: false,
+      role: 'grab',
+      roleGroup: null,
+      roleStar: true,
+      roleNote: null,
+    };
+    await repo.upsertEntityAnnotation(a);
+    const q = calls[0].q;
+    assert.ok(q.includes(`on conflict ("entity_id") do update set`), q);
+    assert.deepStrictEqual(calls[0].args, [
+      kID, 'photo', '海', null, ['海', 'a,"b"'], 'color', [], 'partial', 'adult', null, false, 'grab', null, true, null,
+    ]);
   });
 });

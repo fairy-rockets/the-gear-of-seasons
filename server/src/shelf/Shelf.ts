@@ -12,7 +12,19 @@ import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from '../lib
 import Repo from '../repo/Repo.js';
 import Storage from '../storage/Storage.js';
 import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity.js';
-import { Moment, MomentSummary, MomentVisibility, formatMomentTime, parseMomentStatus, parseMomentTime } from './Moment.js';
+import { EntityAnnotation, validateEntityAnnotation } from './EntityAnnotation.js';
+import {
+  CuratedMoment,
+  Moment,
+  MomentSummary,
+  MomentTier,
+  MomentVisibility,
+  formatMomentTime,
+  parseMomentStatus,
+  parseMomentTier,
+  parseMomentTime,
+} from './Moment.js';
+import { computeSensitive, sensitiveTargetEntityIDs } from './Sensitive.js';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -254,18 +266,20 @@ class Shelf {
     return set;
   }
 
+  // ura の SAVE。キュレーションの項目は Save.Request に無いので書き換えない（sensitive は自動のときだけ計算し直す）。
   async updateMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
     const m = await this.makeMomentFromRequest(req);
+    const autoSensitive = await calcSensitive(this.repo, m.text);
     if (req.originalDate === null) {
       // new
-      await this.repo.insertMoment(m);
+      await this.repo.insertMoment(m, autoSensitive);
     } else {
       // update
       const oldTimestamp = parseMomentTime(req.originalDate);
       if (!oldTimestamp.isValid()) {
         throw new Error(`Invalid old date: ${req.originalDate}`);
       }
-      await this.repo.updateMoment(oldTimestamp, m);
+      await this.repo.updateMoment(oldTimestamp, m, autoSensitive);
     }
     return m;
   }
@@ -329,7 +343,7 @@ class Shelf {
   }
 
   // 下書きも含めた全件。gc などが使用中の entity を数えるのに使うので、絞らない。
-  enumurateAllMoments(): AsyncGenerator<Moment> {
+  enumurateAllMoments(): AsyncGenerator<CuratedMoment> {
     return this.repo.enumurateAllMoments();
   }
 
@@ -338,7 +352,7 @@ class Shelf {
     return await this.repo.findMomentSummariesInYear(year, visibility);
   }
 
-  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
+  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<CuratedMoment | null> {
     return await this.repo.findMoment(timestamp, visibility);
   }
 
@@ -361,6 +375,73 @@ class Shelf {
   async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {
     return await this.repo.deleteMoment(timestamp);
   }
+
+  /* ***********************************************************************************************
+   * Curation
+   ********************************************************************************************** */
+
+  async updateMomentCuration(timestamp: dayjs.Dayjs, tier: MomentTier, series: string[]) {
+    if (!await this.repo.updateMomentCuration(timestamp, parseMomentTier(tier), series)) {
+      throw new Error(`Moment not found: ${formatMomentTime(timestamp)}`);
+    }
+  }
+
+  // sensitive を手で上書きする。以降は自動で書き換えない。
+  async overrideMomentSensitive(timestamp: dayjs.Dayjs, sensitive: boolean) {
+    if (!await this.repo.updateMomentSensitive(timestamp, sensitive, true)) {
+      throw new Error(`Moment not found: ${formatMomentTime(timestamp)}`);
+    }
+  }
+
+  // 手での上書きを外し、本文から計算し直した値に戻す。
+  async resetMomentSensitive(timestamp: dayjs.Dayjs) {
+    await this.repo.transaction(async (tx) => {
+      const moment = await tx.findMoment(timestamp, 'all');
+      if (moment === null) {
+        throw new Error(`Moment not found: ${formatMomentTime(timestamp)}`);
+      }
+      await tx.updateMomentSensitive(timestamp, await calcSensitive(tx, moment.text), false);
+    });
+  }
+
+  // 本文から計算した sensitive の値（sanity-check が、保存されている値と比べるのに使う）。
+  async computeSensitive(text: string): Promise<boolean> {
+    return await calcSensitive(this.repo, text);
+  }
+
+  async findEntityAnnotation(entityID: string): Promise<EntityAnnotation | null> {
+    return await this.repo.findEntityAnnotation(entityID);
+  }
+
+  // 注釈を保存し、同じトランザクションで、その entity を本文の [image]・[video] に含む moment の
+  // sensitive を計算し直す（sensitive_manual = true のものは除く）。
+  async saveEntityAnnotation(annotation: EntityAnnotation) {
+    await this.repo.transaction(async (tx) => {
+      const entity = await tx.findEntity(annotation.entityID);
+      if (entity === null) {
+        throw new Error(`Entity not found: ${annotation.entityID}`);
+      }
+      validateEntityAnnotation(entity, annotation);
+      await tx.upsertEntityAnnotation(annotation);
+      for (const moment of await tx.findAutoSensitiveMomentCandidates(entity.id)) {
+        const doc = fml.parse(moment.text);
+        const ids = sensitiveTargetEntityIDs(doc);
+        if (!ids.includes(entity.id)) {
+          continue;
+        }
+        // 保存したばかりの注釈が見えるよう、tx から読む。
+        const annotations = await tx.findEntityAnnotations(ids);
+        await tx.updateMomentAutoSensitive(moment.timestamp!!, computeSensitive(doc, annotations));
+      }
+    });
+  }
+}
+
+// 本文（FML）と、repo から読んだ注釈から sensitive を計算する。トランザクションの中では repo に tx を渡す。
+async function calcSensitive(repo: Repo, text: string): Promise<boolean> {
+  const doc = fml.parse(text);
+  const annotations = await repo.findEntityAnnotations(sensitiveTargetEntityIDs(doc));
+  return computeSensitive(doc, annotations);
 }
 
 export default Shelf;
