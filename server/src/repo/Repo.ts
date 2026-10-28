@@ -311,6 +311,10 @@ where "timestamp" = $7;
     ]);
   }
 
+  // TODO: updateMomentCuration と updateMomentSensitive は、今の編集画面がキュレーションの項目を送ってこないので
+  // updateMoment（SAVE）と分けてある。どれも人間が起こす1つの保存なので、編集画面から全部送るようになったら
+  // updateMoment にまとめる。同じ値で UPDATE することがあっても、外に見せるメソッドを少なくする方を取る（#46）。
+
   // キュレーションの項目のうち tier と series を書く。moment が無ければ false。
   async updateMomentCuration(timestamp: dayjs.Dayjs, tier: MomentTier, series: string[]): Promise<boolean> {
     // language=PostgreSQL

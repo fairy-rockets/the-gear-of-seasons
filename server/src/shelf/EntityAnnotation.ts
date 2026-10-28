@@ -65,11 +65,19 @@ export function parseAnnotationRole(v: unknown): AnnotationRole | null {
   return parseNullable('role', kRoles, v);
 }
 
-// 音声が持たない項目。音声には alt・description・tags だけがある。
-const kNotForAudio: (keyof EntityAnnotation)[] = [
-  'medium', 'palette', 'characters', 'looksNude', 'looksChild', 'looksNote',
-  'role', 'roleGroup', 'roleStar', 'roleNote',
+type AnnotationField = Exclude<keyof EntityAnnotation, 'entityID'>;
+
+const kAllFields: readonly AnnotationField[] = [
+  'medium', 'alt', 'description', 'tags', 'palette', 'characters', 'looksNude', 'looksChild', 'looksNote',
+  'checked', 'role', 'roleGroup', 'roleStar', 'roleNote',
 ];
+
+// 種類ごとに持つ項目。Record にしてあるので、entity の種類を足すと、ここに足すまでコンパイルが通らない。
+const kFieldsByType: Record<Entity['type'], readonly AnnotationField[]> = {
+  image: kAllFields,
+  video: kAllFields,
+  audio: ['alt', 'description', 'tags'],
+};
 
 // 書き込む前に、値が定義にあるか、その種類の entity が持つ項目だけかを確かめる。合わなければ例外にする。
 // DB を触らないので、書き込まずに確かめるだけのとき（#43 の変更内容だけを出すモードなど）にも使える。
@@ -82,15 +90,15 @@ export function validateEntityAnnotation(entity: Entity, annotation: EntityAnnot
   parseLooksNude(annotation.looksNude);
   parseLooksChild(annotation.looksChild);
   parseAnnotationRole(annotation.role);
-  if (entity.type === 'audio') {
-    for (const key of kNotForAudio) {
-      if (annotation[key] !== null) {
-        throw new Error(`Audio entity ${entity.id} cannot have ${key}`);
-      }
+  const fields = kFieldsByType[entity.type];
+  for (const key of kAllFields) {
+    if (fields.includes(key)) {
+      continue;
     }
-    // checked も音声には無い項目だが、列が NOT NULL なので null にはできない。false（既定値）だけを通す。
-    if (annotation.checked) {
-      throw new Error(`Audio entity ${entity.id} cannot have checked`);
+    // checked は列が NOT NULL なので null にはできない。持たない種類では false（既定値）だけを通す。
+    const absent = key === 'checked' ? annotation[key] === false : annotation[key] === null;
+    if (!absent) {
+      throw new Error(`${entity.type} entity ${entity.id} cannot have ${key}`);
     }
   }
 }

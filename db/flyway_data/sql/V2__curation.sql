@@ -2,8 +2,7 @@
 -- https://github.com/malthe/ts-postgres/issues/43
 
 -- moment ごとのキュレーションの項目。既存の moment は archive・series なし・sensitive でないとして埋める
-ALTER TABLE "moments" ADD COLUMN "tier" varchar(16) NOT NULL DEFAULT 'archive';
-ALTER TABLE "moments" ADD CONSTRAINT "moments_tier_check" CHECK ("tier" IN ('pickup', 'archive', 'sketch', 'hidden'));
+ALTER TABLE "moments" ADD COLUMN "tier" varchar(16) NOT NULL DEFAULT 'archive' CHECK ("tier" IN ('pickup', 'archive', 'sketch', 'hidden'));
 ALTER TABLE "moments" ADD COLUMN "series" text[] NOT NULL DEFAULT '{}';
 -- sensitive_manual = false の間は、アプリが書き込むたびに本文と entity_annotations から計算し直して保つ
 ALTER TABLE "moments" ADD COLUMN "sensitive" boolean NOT NULL DEFAULT false;

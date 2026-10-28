@@ -105,6 +105,9 @@ function curated(text: string, sensitiveManual: boolean, sensitive = false): Cur
 class FakeRepo {
   readonly log: string[] = [];
   private inTransaction = false;
+  // トランザクションの最中か。最中に tx ではなく外の repo を使ったら失敗させる。
+  // 実物はプールの接続が1本なので、外の repo を使うとエラーにならずに止まる（Pool.transaction）。
+  private busy = false;
   readonly annotations = new Map<string, EntityAnnotation>();
   readonly autoSensitive: [string, boolean][] = [];
   readonly saved: unknown[][] = [];
@@ -112,49 +115,70 @@ class FakeRepo {
   private mustBeInTransaction(name: string) {
     assert.ok(this.inTransaction, `${name} がトランザクションの外で呼ばれた`);
   }
+  private mustNotBeBusy(name: string) {
+    assert.ok(!this.busy, `${name} がトランザクションの最中に、tx ではなく外の repo で呼ばれた`);
+  }
   async transaction<T>(fn: (tx: Repo) => Promise<T>): Promise<T> {
+    // 入れ子は外のトランザクションに加わる（実物と同じ）。
+    if (this.inTransaction) {
+      return await fn(this as unknown as Repo);
+    }
+    this.mustNotBeBusy('transaction');
+    // tx は this を prototype にした別のオブジェクト。配列や Map は this と共有する。
+    const tx: FakeRepo = Object.create(this);
+    tx.inTransaction = true;
+    tx.busy = false;
+    this.busy = true;
     this.log.push('BEGIN');
-    this.inTransaction = true;
     try {
-      const r = await fn(this as unknown as Repo);
+      const r = await fn(tx as unknown as Repo);
       this.log.push('COMMIT');
       return r;
     } catch (err) {
       this.log.push('ROLLBACK');
       throw err;
     } finally {
-      this.inTransaction = false;
+      this.busy = false;
     }
   }
   async findEntity(id: string) {
+    this.mustNotBeBusy('findEntity');
     return this.entities.find((e) => e.id === id) ?? null;
   }
   async findMoment(timestamp: dayjs.Dayjs, _v: MomentVisibility) {
+    this.mustNotBeBusy('findMoment');
     return this.moments.find((m) => m.timestamp!!.isSame(timestamp)) ?? null;
   }
   async findEntityAnnotations(ids: string[]) {
+    this.mustNotBeBusy('findEntityAnnotations');
     return new Map([...this.annotations].filter(([id]) => ids.includes(id)));
   }
   async upsertEntityAnnotation(a: EntityAnnotation) {
+    this.mustNotBeBusy('upsertEntityAnnotation');
     this.mustBeInTransaction('upsertEntityAnnotation');
     this.annotations.set(a.entityID, a);
   }
   async findAutoSensitiveMomentCandidates(id: string) {
+    this.mustNotBeBusy('findAutoSensitiveMomentCandidates');
     this.mustBeInTransaction('findAutoSensitiveMomentCandidates');
     return this.moments.filter((m) => !m.sensitiveManual && m.text.includes(id));
   }
   async updateMomentAutoSensitive(timestamp: dayjs.Dayjs, v: boolean) {
+    this.mustNotBeBusy('updateMomentAutoSensitive');
     this.mustBeInTransaction('updateMomentAutoSensitive');
     this.autoSensitive.push([timestamp.toISOString(), v]);
   }
   async updateMomentSensitive(timestamp: dayjs.Dayjs, v: boolean, manual: boolean) {
+    this.mustNotBeBusy('updateMomentSensitive');
     this.saved.push(['updateMomentSensitive', timestamp.toISOString(), v, manual]);
     return true;
   }
   async insertMoment(m: Moment, autoSensitive: boolean) {
+    this.mustNotBeBusy('insertMoment');
     this.saved.push(['insertMoment', m, autoSensitive]);
   }
   async updateMoment(old: dayjs.Dayjs, m: Moment, autoSensitive: boolean) {
+    this.mustNotBeBusy('updateMoment');
     this.saved.push(['updateMoment', old.toISOString(), m, autoSensitive]);
   }
 }

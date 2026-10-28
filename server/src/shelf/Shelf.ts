@@ -380,6 +380,9 @@ class Shelf {
    * Curation
    ********************************************************************************************** */
 
+  // TODO: updateMomentCuration・overrideMomentSensitive・resetMomentSensitive は、編集画面から
+  // キュレーションの項目も送るようになったら、updateMoment（SAVE）の引数で表してなくす（#46）。
+
   async updateMomentCuration(timestamp: dayjs.Dayjs, tier: MomentTier, series: string[]) {
     if (!await this.repo.updateMomentCuration(timestamp, parseMomentTier(tier), series)) {
       throw new Error(`Moment not found: ${formatMomentTime(timestamp)}`);

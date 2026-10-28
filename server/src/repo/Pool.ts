@@ -54,6 +54,8 @@ export default class Pool implements Queryable {
 
   // query は呼ぶたびに別の接続を借りうるので、トランザクションの中のクエリは fn に渡す tx から流す。
   // tx はすべて同じ接続で流れる。fn が投げたら ROLLBACK して投げ直す。
+  // プールの接続は1本だけ（generic-pool の max の既定値）。fn の中で tx ではなく外の Pool（やそれを持つ Repo）を
+  // 使うと、トランザクションが握っている接続の空きを待ち続け、エラーにならずに止まる。
   async transaction<T>(fn: (tx: Queryable) => Promise<T>): Promise<T> {
     const cl = await this.pool.acquire();
     const tx = new TransactionClient(cl);

@@ -15,6 +15,7 @@ type Moment = {
 
 // キュレーションの項目。ura の SAVE は送ってこないので、Moment（本文の側）とは分けて持ち、
 // SAVE では書き換えない。書くのは専用のメソッド（Shelf.updateMomentCuration など）だけ。
+// TODO: 編集画面がこれらの項目も送るようになったら、Moment にまとめ、SAVE で全部書く（#46）。
 type MomentTier = 'pickup' | 'archive' | 'sketch' | 'hidden';
 
 type MomentCuration = {
