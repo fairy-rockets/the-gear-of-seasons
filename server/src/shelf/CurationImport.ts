@@ -1,5 +1,7 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc.js';
 import { parseDocument } from 'yaml';
+dayjs.extend(utc);
 
 import * as fml from '../lib/fml.js';
 import Repo from '../repo/Repo.js';
@@ -79,6 +81,22 @@ const kMomentKeys = ['moment', 'tier', 'series', 'sensitive', 'media'];
 
 // エクスポートの moment と同じ、オフセット付きの ISO 8601。オフセットの無い時刻は、どの時間帯かが決まらないので通さない。
 const kMomentFormat = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/;
+
+// 形だけでなく、存在する日時か。dayjs は 2017-02-30 を 03-01 に繰り越して読むので、
+// 読んだ時刻を同じオフセットで書き直し、元の文字列に戻ることを確かめる。
+function isMomentLabel(label: string): boolean {
+  const m = kMomentFormat.exec(label);
+  if (m === null) {
+    return false;
+  }
+  const offset = m[1] === 'Z' ? '+00:00' : m[1];
+  const t = dayjs(label);
+  if (!t.isValid()) {
+    return false;
+  }
+  const minutes = (offset[0] === '-' ? -1 : 1) * (Number(offset.slice(1, 3)) * 60 + Number(offset.slice(4, 6)));
+  return t.utcOffset(minutes).format('YYYY-MM-DDTHH:mm:ssZ') === label.slice(0, 19) + offset;
+}
 const kEntityFormat = /^[0-9a-f]{32}$/;
 
 export type CurationFileField = {
@@ -143,8 +161,8 @@ export function parseCurationFile(src: string): { file: CurationFile, errors: st
       return;
     }
     const label = item['moment'];
-    if (typeof label !== 'string' || !kMomentFormat.test(label) || !dayjs(label).isValid()) {
-      errors.push(`${where}: moment がオフセット付きの時刻（2017-07-26T02:46:00+09:00 の形）ではありません: ${JSON.stringify(label)}`);
+    if (typeof label !== 'string' || !isMomentLabel(label)) {
+      errors.push(`${where}: moment がオフセット付きの、存在する時刻（2017-07-26T02:46:00+09:00 の形）ではありません: ${JSON.stringify(label)}`);
       return;
     }
     where = `moment ${label}`;
