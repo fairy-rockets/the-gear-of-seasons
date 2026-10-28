@@ -13,6 +13,21 @@ type Moment = {
   status: MomentStatus;
 };
 
+// キュレーションの項目。ura の SAVE は送ってこないので、Moment（本文の側）とは分けて持ち、
+// SAVE では書き換えない。書くのは専用のメソッド（Shelf.updateMomentCuration など）だけ。
+// TODO: 編集画面がこれらの項目も送るようになったら、Moment にまとめ、SAVE で全部書く（#46）。
+type MomentTier = 'pickup' | 'archive' | 'sketch' | 'hidden';
+
+type MomentCuration = {
+  tier: MomentTier;
+  series: string[];
+  // sensitiveManual が false の間は、本文と entity_annotations から計算した値（Sensitive.ts）を書き込むたびに保つ。
+  sensitive: boolean;
+  sensitiveManual: boolean;
+};
+
+type CuratedMoment = Moment & MomentCuration;
+
 type MomentSummary = {
   timestamp: dayjs.Dayjs | undefined;
   title: string;
@@ -32,6 +47,13 @@ export function parseMomentStatus(str: unknown): MomentStatus {
     return str;
   }
   throw new Error(`Invalid moment status: ${str}`);
+}
+
+export function parseMomentTier(str: unknown): MomentTier {
+  if (str === 'pickup' || str === 'archive' || str === 'sketch' || str === 'hidden') {
+    return str;
+  }
+  throw new Error(`Invalid moment tier: ${str}`);
 }
 
 const kMomentTimeFormat = 'YYYY/MM/DD HH:mm:ss';
@@ -55,6 +77,9 @@ export function formatMomentTime(time: dayjs.Dayjs): string {
 
 export {
   Moment,
+  MomentTier,
+  MomentCuration,
+  CuratedMoment,
   MomentSummary,
   MomentVisibility,
 };

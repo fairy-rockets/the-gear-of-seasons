@@ -2,10 +2,26 @@ import dayjs from 'dayjs';
 import NodeCache from 'node-cache';
 import { ResultRecord } from 'ts-postgres';
 
-import Pool from './Pool.js';
+import Pool, { Queryable } from './Pool.js';
 import { Entity } from '../shelf/Entity.js';
+import {
+  EntityAnnotation,
+  parseAnnotationMedium,
+  parseAnnotationPalette,
+  parseAnnotationRole,
+  parseLooksChild,
+  parseLooksNude,
+} from '../shelf/EntityAnnotation.js';
 import Config from '../Config.js';
-import { Moment, MomentSummary, MomentVisibility, parseMomentStatus } from '../shelf/Moment.js';
+import {
+  CuratedMoment,
+  Moment,
+  MomentSummary,
+  MomentTier,
+  MomentVisibility,
+  parseMomentStatus,
+  parseMomentTier,
+} from '../shelf/Moment.js';
 
 /**
  * moments を引くクエリの WHERE に足す条件。
@@ -21,14 +37,21 @@ export function momentVisibilityCondition(visibility: MomentVisibility): string 
   }
 }
 
+// text[] の列は array_to_json で JSON にして読む。JSON なら空の配列は []、NULL は null になる。
+// FIXME: ts-postgres 2.0.4 は空の配列（'{}'。次元が 0）をそのまま読むと RangeError でクエリが失敗し、
+// その接続も使えなくなる（client.closed が false のままなので、Pool の validate を通ってプールに戻り、
+// 以降のクエリがすべて "Stream not writable" で失敗する）。上流で直ったら、array_to_json をやめて直接読む。
+// https://github.com/malthe/ts-postgres/issues/129
+
 export default class Repo {
-  private readonly pool: Pool;
+  private readonly pool: Queryable;
   private readonly cache: {
     entity: NodeCache,
   };
-  constructor() {
-    this.pool = new Pool(Config.dbHostname);
-    this.cache = {
+  // 引数はトランザクション用（transaction() が渡す）。ふだんは引数なしで作る。
+  constructor(pool?: Queryable, cache?: { entity: NodeCache }) {
+    this.pool = pool ?? new Pool(Config.dbHostname);
+    this.cache = cache ?? {
       entity: new NodeCache({
         maxKeys: 8192,
       }),
@@ -38,6 +61,12 @@ export default class Repo {
 
   async close(): Promise<void> {
     await this.pool.close();
+  }
+
+  // fn の中で tx に対して行う読み書きを、1つの接続の上の1つのトランザクションにまとめる。
+  // fn が投げたら ROLLBACK する。トランザクションの中の Repo（tx）で呼んだときは、外のトランザクションに加わる。
+  async transaction<T>(fn: (tx: Repo) => Promise<T>): Promise<T> {
+    return await this.pool.transaction((q) => fn(new Repo(q, this.cache)));
   }
 
  async* enumurateAllEntities(): AsyncGenerator<Entity> {
@@ -229,16 +258,21 @@ where
     this.cache.entity.set(entity.id, entity);
   }
 
-  async insertMoment(moment: Moment) {
+  // TODO: insertMoment・updateMoment の autoSensitive 引数と、updateMoment の case when は、今の SAVE が
+  // sensitive の上書き状態を送ってこないためにある。編集画面から全部送るようになったら、sensitive の値は Shelf が
+  // 決めて Moment に入れ、ここでは Moment の値をそのまま書くだけにする（#46）。
+
+  // autoSensitive は本文から計算した sensitive の値。tier・series は DB の既定値（archive・空）になる。
+  async insertMoment(moment: Moment, autoSensitive: boolean) {
     if (moment.timestamp === undefined) {
       throw new Error('[FIXME] No timestamp!')
     }
     // language=PostgreSQL
     const q = `
 insert into moments(
-  "timestamp", "title", "author", "text", "icon_id", "status"
+  "timestamp", "title", "author", "text", "icon_id", "status", "sensitive"
 ) values (
-  $1, $2, $3, $4, $5, $6
+  $1, $2, $3, $4, $5, $6, $7
 );`;
     await this.pool.query(q, [
       moment.timestamp.toDate(),
@@ -247,10 +281,13 @@ insert into moments(
       moment.text,
       moment.iconID === undefined ? null : moment.iconID,
       moment.status,
+      autoSensitive,
     ]);
   }
 
-  async updateMoment(oldTimestamp: dayjs.Dayjs, moment: Moment) {
+  // ura の SAVE が使う。キュレーションの項目（tier・series・sensitive_manual）は書き換えない。
+  // sensitive は、sensitive_manual = false のときだけ autoSensitive（本文から計算した値）にする。
+  async updateMoment(oldTimestamp: dayjs.Dayjs, moment: Moment, autoSensitive: boolean) {
     if (moment.timestamp === undefined) {
       throw new Error('[FIXME] No timestamp!')
     }
@@ -262,7 +299,8 @@ update moments set
   "author" = $3,
   "text" = $4,
   "icon_id" = $5,
-  "status" = $6
+  "status" = $6,
+  "sensitive" = case when "sensitive_manual" then "sensitive" else $8::boolean end
 where "timestamp" = $7;
 `;
     await this.pool.query(q, [
@@ -273,7 +311,53 @@ where "timestamp" = $7;
       moment.iconID === undefined ? null : moment.iconID,
       moment.status,
       oldTimestamp.toDate(),
+      autoSensitive,
     ]);
+  }
+
+  // TODO: updateMomentCuration と updateMomentSensitive は、今の編集画面がキュレーションの項目を送ってこないので
+  // updateMoment（SAVE）と分けてある。どれも人間が起こす1つの保存なので、編集画面から全部送るようになったら
+  // updateMoment にまとめる。同じ値で UPDATE することがあっても、外に見せるメソッドを少なくする方を取る（#46）。
+
+  // キュレーションの項目のうち tier と series を書く。moment が無ければ false。
+  async updateMomentCuration(timestamp: dayjs.Dayjs, tier: MomentTier, series: string[]): Promise<boolean> {
+    // language=PostgreSQL
+    const q = `
+update moments set
+  "tier" = $2,
+  "series" = $3::text[]
+where "timestamp" = $1;
+`;
+    const r = await this.pool.query(q, [timestamp.toDate(), tier, series]);
+    return r.status?.trim() === 'UPDATE 1';
+  }
+
+  // sensitive と sensitive_manual をそのまま書く（手での上書きと、その解除）。moment が無ければ false。
+  async updateMomentSensitive(timestamp: dayjs.Dayjs, sensitive: boolean, sensitiveManual: boolean): Promise<boolean> {
+    // language=PostgreSQL
+    const q = `
+update moments set
+  "sensitive" = $2,
+  "sensitive_manual" = $3
+where "timestamp" = $1;
+`;
+    const r = await this.pool.query(q, [timestamp.toDate(), sensitive, sensitiveManual]);
+    return r.status?.trim() === 'UPDATE 1';
+  }
+
+  // 計算し直した sensitive を書く。sensitive_manual = true の moment と、値が変わらない moment には書かない
+  // （書くと updated が動くので）。
+  async updateMomentAutoSensitive(timestamp: dayjs.Dayjs, autoSensitive: boolean) {
+    // language=PostgreSQL
+    const q = `
+update moments set
+  "sensitive" = $2
+where
+  "timestamp" = $1
+  and not "sensitive_manual"
+  and "sensitive" is distinct from $2;
+`;
+    await this.pool.query(q, [timestamp.toDate(), autoSensitive]);
   }
 
   async findMomentSummariesInYear(year: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
@@ -334,11 +418,12 @@ from moments
     return moments;
   }
 
-  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
+  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<CuratedMoment | null> {
     // language=PostgreSQL
     const q=`
 select
-  "timestamp", "title", "author", "text", "icon_id", "status"
+  "timestamp", "title", "author", "text", "icon_id", "status",
+  "tier", array_to_json("series") as "series", "sensitive", "sensitive_manual"
 from moments
   where
     "timestamp" = $1
@@ -346,7 +431,7 @@ from moments
 `;
     const rows = await this.pool.query(q, [timestamp.toDate()]);
     for await (const row of rows) {
-      return decodeMoment(row);
+      return decodeCuratedMoment(row);
     }
     return null;
   }
@@ -391,17 +476,40 @@ limit 1;
 
   // 下書きも含めた全件を返す。gc / list-missing / sanity-check がこれで使用中の entity を
   // 数えるので、ここで下書きを落とすと、下書きが使っているメディアが孤児扱いされて消される。
-  async* enumurateAllMoments(): AsyncGenerator<Moment> {
+  async* enumurateAllMoments(): AsyncGenerator<CuratedMoment> {
     // language=PostgreSQL
     const q=`
 select
-  "timestamp", "title", "author", "text", "icon_id", "status"
+  "timestamp", "title", "author", "text", "icon_id", "status",
+  "tier", array_to_json("series") as "series", "sensitive", "sensitive_manual"
 from moments
 `;
     const rows = await this.pool.query(q, []);
     for await (const row of rows) {
-      yield decodeMoment(row);
+      yield decodeCuratedMoment(row);
     }
+  }
+
+  // 本文に entityID を含みうる moment のうち、sensitive_manual = false のもの（注釈を保存したあとに sensitive を計算し直す対象）。
+  // 本文を文字列として探すだけなので、返ったものが本当にその entity を使っているかは fml.parse で確かめること。
+  // 下書きも計算し直すので、visibility では絞らない。
+  async findAutoSensitiveMomentCandidates(entityID: string): Promise<CuratedMoment[]> {
+    // language=PostgreSQL
+    const q=`
+select
+  "timestamp", "title", "author", "text", "icon_id", "status",
+  "tier", array_to_json("series") as "series", "sensitive", "sensitive_manual"
+from moments
+  where
+    "text" like '%' || $1::text || '%'
+    and not "sensitive_manual";
+`;
+    const moments: CuratedMoment[] = [];
+    const rows = await this.pool.query(q, [entityID]);
+    for await (const row of rows) {
+      moments.push(decodeCuratedMoment(row));
+    }
+    return moments;
   }
 
   async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {
@@ -411,6 +519,80 @@ delete from moments where "timestamp" = $1;
 `;
     const r = await this.pool.query(q, [timestamp.toDate()]);
     return r.status?.trim() === 'DELETE 1';
+  }
+
+  async findEntityAnnotation(entityID: string): Promise<EntityAnnotation | null> {
+    const found = await this.findEntityAnnotations([entityID]);
+    return found.get(entityID) ?? null;
+  }
+
+  // 注釈の行が無い entity は、返す Map に入らない。
+  async findEntityAnnotations(entityIDs: string[]): Promise<Map<string, EntityAnnotation>> {
+    const found = new Map<string, EntityAnnotation>();
+    if (entityIDs.length === 0) {
+      return found;
+    }
+    // language=PostgreSQL
+    const q = `
+select
+  "entity_id", "medium", "alt", "description", array_to_json("tags") as "tags", "palette",
+  array_to_json("characters") as "characters",
+  "looks_nude", "looks_child", "looks_note", "checked",
+  "role", "role_group", "role_star", "role_note"
+from entity_annotations
+  where "entity_id" = any($1::text[]);
+`;
+    const rows = await this.pool.query(q, [entityIDs]);
+    for await (const row of rows) {
+      const a = decodeEntityAnnotation(row);
+      found.set(a.entityID, a);
+    }
+    return found;
+  }
+
+  // すべての項目を annotation の値で置き換える（行が無ければ作る）。
+  async upsertEntityAnnotation(a: EntityAnnotation) {
+    // language=PostgreSQL
+    const q = `
+insert into entity_annotations (
+  "entity_id", "medium", "alt", "description", "tags", "palette", "characters",
+  "looks_nude", "looks_child", "looks_note", "checked",
+  "role", "role_group", "role_star", "role_note"
+) values (
+  $1, $2, $3, $4, $5::text[], $6, $7::text[], $8, $9, $10, $11, $12, $13, $14, $15
+) on conflict ("entity_id") do update set
+  "medium" = excluded."medium",
+  "alt" = excluded."alt",
+  "description" = excluded."description",
+  "tags" = excluded."tags",
+  "palette" = excluded."palette",
+  "characters" = excluded."characters",
+  "looks_nude" = excluded."looks_nude",
+  "looks_child" = excluded."looks_child",
+  "looks_note" = excluded."looks_note",
+  "checked" = excluded."checked",
+  "role" = excluded."role",
+  "role_group" = excluded."role_group",
+  "role_star" = excluded."role_star",
+  "role_note" = excluded."role_note";
+`;
+    await this.pool.query(q, [
+      a.entityID,
+      a.medium,
+      a.alt,
+      a.description,
+      a.tags,
+      a.palette,
+      a.characters,
+      a.looksNude,
+      a.looksChild,
+      a.looksNote,
+      a.checked,
+      a.role,
+      a.roleGroup,
+      a.roleStar,
+      a.roleNote,
+    ]);
   }
 }
 
@@ -422,6 +604,36 @@ function decodeMoment(row: ResultRecord): Moment {
     text: row['text'] as string || '',
     iconID: row['icon_id'] as (string | null) || undefined,
     status: parseMomentStatus(row['status']),
+  };
+}
+
+function decodeCuratedMoment(row: ResultRecord): CuratedMoment {
+  return {
+    ...decodeMoment(row),
+    tier: parseMomentTier(row['tier']),
+    series: row['series'] as string[],
+    sensitive: row['sensitive'] as boolean,
+    sensitiveManual: row['sensitive_manual'] as boolean,
+  };
+}
+
+function decodeEntityAnnotation(row: ResultRecord): EntityAnnotation {
+  return {
+    entityID: row['entity_id'] as string,
+    medium: parseAnnotationMedium(row['medium']),
+    alt: row['alt'] as (string | null),
+    description: row['description'] as (string | null),
+    tags: row['tags'] as (string[] | null),
+    palette: parseAnnotationPalette(row['palette']),
+    characters: row['characters'] as (string[] | null),
+    looksNude: parseLooksNude(row['looks_nude']),
+    looksChild: parseLooksChild(row['looks_child']),
+    looksNote: row['looks_note'] as (string | null),
+    checked: row['checked'] as boolean,
+    role: parseAnnotationRole(row['role']),
+    roleGroup: row['role_group'] as (string | null),
+    roleStar: row['role_star'] as (boolean | null),
+    roleNote: row['role_note'] as (string | null),
   };
 }
 

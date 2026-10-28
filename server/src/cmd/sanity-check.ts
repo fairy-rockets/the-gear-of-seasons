@@ -65,6 +65,23 @@ async function main() {
       }
     }
     console.log();
+    console.log('Checking sensitive...');
+    // sensitive_manual = false の moment は、保存されている sensitive が本文と注釈から計算した値と合っているはず。
+    const mismatched: string[] = [];
+    for await(const moment of shelf.enumurateAllMoments()) {
+      if (moment.sensitiveManual || moment.timestamp === undefined) {
+        continue;
+      }
+      const expected = await shelf.computeSensitive(moment.text);
+      if (moment.sensitive !== expected) {
+        mismatched.push(`https://ura.hexe.net${formatMomentPath(moment.timestamp)} (stored: ${moment.sensitive}, computed: ${expected})`);
+      }
+    }
+    console.log(`Mismatched sensitive in ${mismatched.length} moments.`);
+    for (const line of mismatched.sort()) {
+      console.log(line);
+    }
+    console.log();
     console.log('All done!');
   } finally {
     await repo.close();
