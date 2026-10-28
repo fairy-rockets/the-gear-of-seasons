@@ -73,7 +73,7 @@ const kAllFields: readonly AnnotationField[] = [
 ];
 
 // 種類ごとに持つ項目。Record にしてあるので、entity の種類を足すと、ここに足すまでコンパイルが通らない。
-const kFieldsByType: Record<Entity['type'], readonly AnnotationField[]> = {
+export const kFieldsByType: Record<Entity['type'], readonly AnnotationField[]> = {
   image: kAllFields,
   video: kAllFields,
   audio: ['alt', 'description', 'tags'],

@@ -73,6 +73,15 @@ export const kMomentKeys = ['moment', 'tier', 'series', 'sensitive', 'media'];
 // moment の時刻の形。オフセット付きの ISO 8601。オフセットの無い時刻は、どの時間帯かが決まらないので通さない。
 export const kMomentFormat = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/;
 
+// エクスポートが書く moment。時刻はサーバの時間帯によらず JST で書く（2017-07-26T02:46:00+09:00）。
+export function formatMomentLabel(timestamp: dayjs.Dayjs): string {
+  return toJST(timestamp).format('YYYY-MM-DDTHH:mm:ssZ');
+}
+
+export function toJST(timestamp: dayjs.Dayjs): dayjs.Dayjs {
+  return timestamp.utcOffset(9 * 60);
+}
+
 // 形だけでなく、存在する日時か。dayjs は 2017-02-30 を 03-01 に繰り越して読むので、
 // 読んだ時刻を同じオフセットで書き直し、元の文字列に戻ることを確かめる。
 export function isMomentLabel(label: string): boolean {
