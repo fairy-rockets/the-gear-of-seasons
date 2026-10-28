@@ -229,7 +229,7 @@ describe("Repo のキュレーションの項目", () => {
     assert.strictEqual(m?.sensitiveManual, true);
   });
 
-  // ts-postgres は空の text[] をそのまま読むとプロセスごと落ちる（Repo.ts の冒頭）。
+  // ts-postgres は空の text[] をそのまま読むと失敗し、その接続も使えなくなる（Repo.ts の冒頭）。
   it("series は JSON にして読む", async () => {
     await repo.findMoment(kTimestamp, 'all');
     for await (const _ of repo.enumurateAllMoments()) {

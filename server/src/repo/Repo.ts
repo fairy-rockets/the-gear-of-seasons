@@ -37,8 +37,11 @@ export function momentVisibilityCondition(visibility: MomentVisibility): string 
   }
 }
 
-// text[] の列は array_to_json で JSON にして読む。ts-postgres 2.0.4 は空の配列（'{}'。次元が 0）を
-// そのまま読むと、例外がクエリの外で投げられてプロセスごと落ちる。JSON なら空の配列は []、NULL は null になる。
+// text[] の列は array_to_json で JSON にして読む。JSON なら空の配列は []、NULL は null になる。
+// FIXME: ts-postgres 2.0.4 は空の配列（'{}'。次元が 0）をそのまま読むと RangeError でクエリが失敗し、
+// その接続も使えなくなる（client.closed が false のままなので、Pool の validate を通ってプールに戻り、
+// 以降のクエリがすべて "Stream not writable" で失敗する）。上流で直ったら、array_to_json をやめて直接読む。
+// https://github.com/malthe/ts-postgres/issues/129
 
 export default class Repo {
   private readonly pool: Queryable;
