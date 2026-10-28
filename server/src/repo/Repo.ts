@@ -258,6 +258,10 @@ where
     this.cache.entity.set(entity.id, entity);
   }
 
+  // TODO: insertMoment・updateMoment の autoSensitive 引数と、updateMoment の case when は、今の SAVE が
+  // sensitive の上書き状態を送ってこないためにある。編集画面から全部送るようになったら、sensitive の値は Shelf が
+  // 決めて Moment に入れ、ここでは Moment の値をそのまま書くだけにする（#46）。
+
   // autoSensitive は本文から計算した sensitive の値。tier・series は DB の既定値（archive・空）になる。
   async insertMoment(moment: Moment, autoSensitive: boolean) {
     if (moment.timestamp === undefined) {
