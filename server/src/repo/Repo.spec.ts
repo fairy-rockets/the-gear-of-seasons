@@ -329,6 +329,13 @@ describe("Repo の entity の注釈", () => {
     assert.ok(calls[0].q.includes(`array_to_json("characters") as "characters"`), calls[0].q);
   });
 
+  it("findEntityAnnotations は文字列の項目を JSON にして読む（空の文字列を null と区別する）", async () => {
+    await repo.findEntityAnnotations([kID]);
+    for (const col of ['alt', 'description', 'looks_note', 'role_group', 'role_note']) {
+      assert.ok(calls[0].q.includes(`to_json("${col}") as "${col}"`), calls[0].q);
+    }
+  });
+
   it("findEntityAnnotations は id が無ければ DB を引かない", async () => {
     const got = await repo.findEntityAnnotations([]);
     assert.strictEqual(calls.length, 0);

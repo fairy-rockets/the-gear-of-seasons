@@ -42,6 +42,10 @@ export function momentVisibilityCondition(visibility: MomentVisibility): string 
 // その接続も使えなくなる（client.closed が false のままなので、Pool の validate を通ってプールに戻り、
 // 以降のクエリがすべて "Stream not writable" で失敗する）。上流で直ったら、array_to_json をやめて直接読む。
 // https://github.com/malthe/ts-postgres/issues/129
+//
+// 文字列の列も、空の文字列と NULL を区別したいもの（entity_annotations の alt など）は to_json で JSON にして読む。
+// FIXME: ts-postgres 2.0.4 は長さ 0 の値をすべて null として読む（protocol.js の `start === end` の分岐）ので、
+// '' をそのまま読むと null になる。上流で直ったら、to_json をやめて直接読む。
 
 export default class Repo {
   private readonly pool: Queryable;
@@ -535,10 +539,10 @@ delete from moments where "timestamp" = $1;
     // language=PostgreSQL
     const q = `
 select
-  "entity_id", "medium", "alt", "description", array_to_json("tags") as "tags", "palette",
-  array_to_json("characters") as "characters",
-  "looks_nude", "looks_child", "looks_note", "checked",
-  "role", "role_group", "role_star", "role_note"
+  "entity_id", "medium", to_json("alt") as "alt", to_json("description") as "description",
+  array_to_json("tags") as "tags", "palette", array_to_json("characters") as "characters",
+  "looks_nude", "looks_child", to_json("looks_note") as "looks_note", "checked",
+  "role", to_json("role_group") as "role_group", "role_star", to_json("role_note") as "role_note"
 from entity_annotations
   where "entity_id" = any($1::text[]);
 `;
