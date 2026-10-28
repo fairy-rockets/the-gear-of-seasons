@@ -40,12 +40,12 @@ export function momentVisibilityCondition(visibility: MomentVisibility): string 
 // text[] の列は array_to_json で JSON にして読む。JSON なら空の配列は []、NULL は null になる。
 // FIXME: ts-postgres 2.0.4 は空の配列（'{}'。次元が 0）をそのまま読むと RangeError でクエリが失敗し、
 // その接続も使えなくなる（client.closed が false のままなので、Pool の validate を通ってプールに戻り、
-// 以降のクエリがすべて "Stream not writable" で失敗する）。上流で直ったら、array_to_json をやめて直接読む。
-// https://github.com/malthe/ts-postgres/issues/129
+// 以降のクエリがすべて "Stream not writable" で失敗する。https://github.com/malthe/ts-postgres/issues/129）。
+// pg に乗り換えたら、array_to_json をやめて直接読む（#48）。
 //
 // 文字列の列も、空の文字列と NULL を区別したいもの（entity_annotations の alt など）は to_json で JSON にして読む。
 // FIXME: ts-postgres 2.0.4 は長さ 0 の値をすべて null として読む（protocol.js の `start === end` の分岐）ので、
-// '' をそのまま読むと null になる。上流で直ったら、to_json をやめて直接読む。
+// '' をそのまま読むと null になる。pg に乗り換えたら、to_json をやめて直接読む（#48）。
 
 export default class Repo {
   private readonly pool: Queryable;
