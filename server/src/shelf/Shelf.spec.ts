@@ -106,7 +106,7 @@ class FakeRepo {
   readonly log: string[] = [];
   private inTransaction = false;
   // トランザクションの最中か。最中に tx ではなく外の repo を使ったら失敗させる。
-  // 実物はプールの接続が1本なので、外の repo を使うとエラーにならずに止まる（Pool.transaction）。
+  // 実物では、外の repo のクエリはエラーにならずにトランザクションの外で流れてしまう（Pool.transaction）。
   private busy = false;
   readonly annotations = new Map<string, EntityAnnotation>();
   readonly autoSensitive: [string, boolean][] = [];

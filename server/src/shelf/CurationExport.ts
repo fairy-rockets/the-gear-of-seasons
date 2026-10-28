@@ -95,21 +95,6 @@ export function markdownURLs(doc: fml.Document): string[] {
   return [...urls];
 }
 
-// entities.duration は real（float4）で、ts-postgres は float4 の値をそのまま double にして返す（29.866667 が 29.866666793823242 になる）。
-// float4 として同じ値に戻る、いちばん短い10進数にして出す。float4 で表せない値はそのまま。
-export function shortestFloat4(v: number): number {
-  if (Math.fround(v) !== v) {
-    return v;
-  }
-  for (let digits = 1; digits <= 9; digits++) {
-    const n = Number(v.toPrecision(digits));
-    if (Math.fround(n) === v) {
-      return n;
-    }
-  }
-  return v;
-}
-
 // メディア1つ分。entities に行が無い entity（失われたメディア）は entity だけを出す。
 // 注釈は、その種類が持たない項目と、値の無い項目（null）を出さない。空の文字列や空のリストは出す。
 // 注釈の行が無い entity は、すべて未入力（checked は列の既定値の false）として扱う。
@@ -125,7 +110,9 @@ function mediaItem(id: string, entities: ReadonlyMap<string, Entity>, annotation
     item['height'] = entity.height;
   }
   if (entity.type === 'video' || entity.type === 'audio') {
-    item['duration'] = shortestFloat4(entity.duration);
+    // duration は real（float4）。pg は postgres が文字列にした値を読む。postgres（12 以降、extra_float_digits が
+    // 既定の 1）は float4 を、float4 として同じ値に戻るいちばん短い10進数（29.866667 など）にするので、そのまま書く。
+    item['duration'] = entity.duration;
   }
   const annotation = annotations.get(id);
   const fields = kFieldsByType[entity.type];

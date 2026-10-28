@@ -3,8 +3,8 @@ import assert from 'assert';
 
 import Pool from './Pool.js';
 
-// DB には繋がず、generic-pool と接続をスタブにして、どの接続に何を流したかを見る。
-// （Pool は最初の acquire までは接続しないので、new Pool() しても DB は要らない）
+// DB には繋がず、pg.Pool と接続をスタブにして、どの接続に何を流したかを見る。
+// （pg.Pool は最初の connect までは接続しないので、new Pool() しても DB は要らない）
 type Client = { name: string, queries: string[], failOn?: string };
 
 function stubClients(pool: Pool): { clients: Client[], released: string[], destroyed: string[] } {
@@ -12,7 +12,7 @@ function stubClients(pool: Pool): { clients: Client[], released: string[], destr
   const released: string[] = [];
   const destroyed: string[] = [];
   (pool as any).pool = {
-    acquire: async () => {
+    connect: async () => {
       const name = `cl${clients.length}`;
       const cl: Client = { name, queries: [] };
       clients.push(cl);
@@ -22,15 +22,13 @@ function stubClients(pool: Pool): { clients: Client[], released: string[], destr
           if (cl.failOn === q) {
             throw new Error(`failed: ${q}`);
           }
-          return [];
+          return { rows: [], rowCount: null };
+        },
+        // pg.PoolClient.release は、引数が真ならその接続をプールに戻さずに閉じる。
+        release: (err?: Error | boolean) => {
+          (err ? destroyed : released).push(name);
         },
       };
-    },
-    release: async (_: unknown) => {
-      released.push(clients[clients.length - 1].name);
-    },
-    destroy: async (_: unknown) => {
-      destroyed.push(clients[clients.length - 1].name);
     },
   };
   return { clients, released, destroyed };
