@@ -1,102 +1,31 @@
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc.js';
 import { parseDocument } from 'yaml';
-dayjs.extend(utc);
 
 import * as fml from '../lib/fml.js';
 import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { Entity } from './Entity.js';
-import {
-  EntityAnnotation,
-  parseAnnotationMedium,
-  parseAnnotationPalette,
-  parseAnnotationRole,
-  parseLooksChild,
-  parseLooksNude,
-  validateEntityAnnotation,
-} from './EntityAnnotation.js';
+import { AnnotationField, EntityAnnotation, validateEntityAnnotation } from './EntityAnnotation.js';
 import { CuratedMoment, MomentTier, parseMomentTier } from './Moment.js';
 import { computeSensitive, sensitiveTargetEntityIDs } from './Sensitive.js';
+import {
+  AnnotationValue,
+  isMomentLabel,
+  kMediaKeys,
+  kMomentKeys,
+  parseBoolean,
+  parseEnum,
+  parseStrings,
+} from './CurationFormat.js';
 
+// DB が正本なので、普段は使わない。値をまとめて書き換えたいときには便利。
+// 保守が重くなったら消してよい（cmd/import-curation.ts のほかに、これに依存するものはない）。
+//
 // studio が書き出した投入用ファイル（#43）を DB に入れる。cmd/import-curation.ts から使う。
 // 「読んで検査する」（parseCurationFile）→「DB の今の値と比べて計画を作る」（makeCurationPlan。DB を触らない）
 // →「計画を書く」（applyCurationPlan）の3段に分けてある。
-// 項目の名前と値は #2 のコメント（issuecomment-3603）の「1. DB に足すもの」、つまりエクスポートの hexe.yaml と同じ。
+// 項目の名前と値は #2 のコメント（issuecomment-3603）の「1. DB に足すもの」、つまりエクスポートの hexe.yaml と同じ（CurationFormat.ts）。
 
-type AnnotationField = Exclude<keyof EntityAnnotation, 'entityID'>;
-type AnnotationValue = EntityAnnotation[AnnotationField];
-
-function parseString(v: unknown): string {
-  if (typeof v !== 'string') {
-    throw new Error(`文字列ではありません: ${JSON.stringify(v)}`);
-  }
-  return v;
-}
-
-function parseStrings(v: unknown): string[] {
-  if (!Array.isArray(v) || !v.every((s) => typeof s === 'string')) {
-    throw new Error(`文字列のリストではありません: ${JSON.stringify(v)}`);
-  }
-  return v;
-}
-
-function parseBoolean(v: unknown): boolean {
-  if (typeof v !== 'boolean') {
-    throw new Error(`true か false ではありません: ${JSON.stringify(v)}`);
-  }
-  return v;
-}
-
-// 定義に無い値は、EntityAnnotation.ts の parse* が投げる例外の代わりに、ファイルの書き手に分かる文で返す。
-function parseEnum<T>(parse: (v: unknown) => T): (v: unknown) => T {
-  return (v) => {
-    try {
-      return parse(v);
-    } catch (_err) {
-      throw new Error(`定義に無い値です: ${JSON.stringify(v)}`);
-    }
-  };
-}
-
-// メディアごとの項目。キーはファイル（hexe.yaml）の名前。
-const kMediaKeys: Record<string, [AnnotationField, (v: unknown) => AnnotationValue]> = {
-  medium: ['medium', parseEnum(parseAnnotationMedium)],
-  alt: ['alt', parseString],
-  description: ['description', parseString],
-  tags: ['tags', parseStrings],
-  palette: ['palette', parseEnum(parseAnnotationPalette)],
-  characters: ['characters', parseStrings],
-  looks_nude: ['looksNude', parseEnum(parseLooksNude)],
-  looks_child: ['looksChild', parseEnum(parseLooksChild)],
-  looks_note: ['looksNote', parseString],
-  checked: ['checked', parseBoolean],
-  role: ['role', parseEnum(parseAnnotationRole)],
-  role_group: ['roleGroup', parseString],
-  role_star: ['roleStar', parseBoolean],
-  role_note: ['roleNote', parseString],
-};
-
-const kMomentKeys = ['moment', 'tier', 'series', 'sensitive', 'media'];
-
-// エクスポートの moment と同じ、オフセット付きの ISO 8601。オフセットの無い時刻は、どの時間帯かが決まらないので通さない。
-const kMomentFormat = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/;
-
-// 形だけでなく、存在する日時か。dayjs は 2017-02-30 を 03-01 に繰り越して読むので、
-// 読んだ時刻を同じオフセットで書き直し、元の文字列に戻ることを確かめる。
-function isMomentLabel(label: string): boolean {
-  const m = kMomentFormat.exec(label);
-  if (m === null) {
-    return false;
-  }
-  const offset = m[1] === 'Z' ? '+00:00' : m[1];
-  const t = dayjs(label);
-  if (!t.isValid()) {
-    return false;
-  }
-  const minutes = (offset[0] === '-' ? -1 : 1) * (Number(offset.slice(1, 3)) * 60 + Number(offset.slice(4, 6)));
-  return t.utcOffset(minutes).format('YYYY-MM-DDTHH:mm:ssZ') === label.slice(0, 19) + offset;
-}
 const kEntityFormat = /^[0-9a-f]{32}$/;
 
 export type CurationFileField = {
