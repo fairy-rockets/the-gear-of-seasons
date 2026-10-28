@@ -48,6 +48,13 @@ export default class Pool implements Queryable {
   // トランザクションの外で流れる。エラーにはならない。
   async transaction<T>(fn: (tx: Queryable) => Promise<T>): Promise<T> {
     const cl = await this.pool.connect();
+    // 借りている間、pg-pool はこの接続に 'error' のリスナーを付けない。pg の Client はソケットのエラーや切断で、
+    // 走っているクエリを reject したうえで 'error' を出すので、リスナーが無いとプロセスが落ちる。
+    // クエリが reject されれば ROLLBACK も失敗するので、この接続は下で捨てられる。
+    const onError = (err: Error) => {
+      console.error('Connection in a transaction failed: ', err);
+    };
+    cl.on('error', onError);
     const tx = new TransactionClient(cl);
     // BEGIN や ROLLBACK に失敗した接続は、トランザクションの途中のまま残っているかもしれないので、プールに戻さず捨てる。
     let broken = true;
@@ -69,6 +76,8 @@ export default class Pool implements Queryable {
         throw err;
       }
     } finally {
+      // プールに戻って使い回される接続に、リスナーを溜めない。
+      cl.removeListener('error', onError);
       // release に true を渡すと、接続はプールに戻らずに閉じられる。
       cl.release(broken);
     }
