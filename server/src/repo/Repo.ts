@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import NodeCache from 'node-cache';
-import { ResultRecord } from 'ts-postgres';
+import pg from 'pg';
 
 import Pool, { Queryable } from './Pool.js';
 import { Entity } from '../shelf/Entity.js';
@@ -36,16 +36,6 @@ export function momentVisibilityCondition(visibility: MomentVisibility): string 
       return 'true';
   }
 }
-
-// text[] の列は array_to_json で JSON にして読む。JSON なら空の配列は []、NULL は null になる。
-// FIXME: ts-postgres 2.0.4 は空の配列（'{}'。次元が 0）をそのまま読むと RangeError でクエリが失敗し、
-// その接続も使えなくなる（client.closed が false のままなので、Pool の validate を通ってプールに戻り、
-// 以降のクエリがすべて "Stream not writable" で失敗する。https://github.com/malthe/ts-postgres/issues/129）。
-// pg に乗り換えたら、array_to_json をやめて直接読む（#48）。
-//
-// 文字列の列も、空の文字列と NULL を区別したいもの（entity_annotations の alt など）は to_json で JSON にして読む。
-// FIXME: ts-postgres 2.0.4 は長さ 0 の値をすべて null として読む（protocol.js の `start === end` の分岐）ので、
-// '' をそのまま読むと null になる。pg に乗り換えたら、to_json をやめて直接読む（#48）。
 
 export default class Repo {
   private readonly pool: Queryable;
@@ -88,8 +78,8 @@ select
   "duration"
 from entities
 `;
-    const rows = await this.pool.query(q1, []);
-    for await (const row of rows) {
+    const { rows } = await this.pool.query(q1, []);
+    for (const row of rows) {
       yield decodeEntity(row);
     }
  }
@@ -116,17 +106,9 @@ select
 from entities
   where id = $1
 `;
-    const rows = await this.pool.query(q1, [id]);
-    if (rows === undefined) {
-      return null;
-    }
-    const row = await (async () => {
-      for await (const r of rows) {
-        return r;
-      }
-      return null;
-    })();
-    if (row === null) {
+    const { rows } = await this.pool.query(q1, [id]);
+    const row = rows[0];
+    if (row === undefined) {
       return null;
     }
     const entity = decodeEntity(row);
@@ -333,7 +315,7 @@ update moments set
 where "timestamp" = $1;
 `;
     const r = await this.pool.query(q, [timestamp.toDate(), tier, series]);
-    return r.status?.trim() === 'UPDATE 1';
+    return r.rowCount === 1;
   }
 
   // sensitive と sensitive_manual をそのまま書く（手での上書きと、その解除）。moment が無ければ false。
@@ -346,7 +328,7 @@ update moments set
 where "timestamp" = $1;
 `;
     const r = await this.pool.query(q, [timestamp.toDate(), sensitive, sensitiveManual]);
-    return r.status?.trim() === 'UPDATE 1';
+    return r.rowCount === 1;
   }
 
   // 計算し直した sensitive を書く。sensitive_manual = true の moment と、値が変わらない moment には書かない
@@ -376,8 +358,8 @@ from moments
 order by timestamp desc;
 `;
     const moments: MomentSummary[] = [];
-    const rows = await this.pool.query(q, []);
-    for await (const row of rows) {
+    const { rows } = await this.pool.query(q, []);
+    for (const row of rows) {
       moments.push(decodeMomentSummary(row));
     }
     return moments;
@@ -395,8 +377,8 @@ from moments
 order by timestamp desc;
 `;
     const moments: MomentSummary[] = [];
-    const rows = await this.pool.query(q, []);
-    for await (const row of rows) {
+    const { rows } = await this.pool.query(q, []);
+    for (const row of rows) {
       moments.push(decodeMomentSummary(row));
     }
     return moments;
@@ -415,8 +397,8 @@ from moments
     ${momentVisibilityCondition(visibility)};
 `;
     const moments: MomentSummary[] = [];
-    const rows = await this.pool.query(q, [size]);
-    for await (const row of rows) {
+    const { rows } = await this.pool.query(q, [size]);
+    for (const row of rows) {
       moments.push(decodeMomentSummary(row));
     }
     return moments;
@@ -427,14 +409,14 @@ from moments
     const q=`
 select
   "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", array_to_json("series") as "series", "sensitive", "sensitive_manual"
+  "tier", "series", "sensitive", "sensitive_manual"
 from moments
   where
     "timestamp" = $1
     and ${momentVisibilityCondition(visibility)};
 `;
-    const rows = await this.pool.query(q, [timestamp.toDate()]);
-    for await (const row of rows) {
+    const { rows } = await this.pool.query(q, [timestamp.toDate()]);
+    for (const row of rows) {
       return decodeCuratedMoment(row);
     }
     return null;
@@ -452,8 +434,8 @@ from moments
 order by "timestamp" desc
 limit 1;
 `;
-    const rows = await this.pool.query(q, [timestamp.toDate()]);
-    for await (const row of rows) {
+    const { rows } = await this.pool.query(q, [timestamp.toDate()]);
+    for (const row of rows) {
       return decodeMomentSummary(row);
     }
     return null;
@@ -471,8 +453,8 @@ from moments
 order by "timestamp" asc
 limit 1;
 `;
-    const rows = await this.pool.query(q, [timestamp.toDate()]);
-    for await (const row of rows) {
+    const { rows } = await this.pool.query(q, [timestamp.toDate()]);
+    for (const row of rows) {
       return decodeMomentSummary(row);
     }
     return null;
@@ -485,11 +467,11 @@ limit 1;
     const q=`
 select
   "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", array_to_json("series") as "series", "sensitive", "sensitive_manual"
+  "tier", "series", "sensitive", "sensitive_manual"
 from moments
 `;
-    const rows = await this.pool.query(q, []);
-    for await (const row of rows) {
+    const { rows } = await this.pool.query(q, []);
+    for (const row of rows) {
       yield decodeCuratedMoment(row);
     }
   }
@@ -502,15 +484,15 @@ from moments
     const q=`
 select
   "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", array_to_json("series") as "series", "sensitive", "sensitive_manual"
+  "tier", "series", "sensitive", "sensitive_manual"
 from moments
   where
     "text" like '%' || $1::text || '%'
     and not "sensitive_manual";
 `;
     const moments: CuratedMoment[] = [];
-    const rows = await this.pool.query(q, [entityID]);
-    for await (const row of rows) {
+    const { rows } = await this.pool.query(q, [entityID]);
+    for (const row of rows) {
       moments.push(decodeCuratedMoment(row));
     }
     return moments;
@@ -522,7 +504,7 @@ from moments
 delete from moments where "timestamp" = $1;
 `;
     const r = await this.pool.query(q, [timestamp.toDate()]);
-    return r.status?.trim() === 'DELETE 1';
+    return r.rowCount === 1;
   }
 
   async findEntityAnnotation(entityID: string): Promise<EntityAnnotation | null> {
@@ -539,15 +521,14 @@ delete from moments where "timestamp" = $1;
     // language=PostgreSQL
     const q = `
 select
-  "entity_id", "medium", to_json("alt") as "alt", to_json("description") as "description",
-  array_to_json("tags") as "tags", "palette", array_to_json("characters") as "characters",
-  "looks_nude", "looks_child", to_json("looks_note") as "looks_note", "checked",
-  "role", to_json("role_group") as "role_group", "role_star", to_json("role_note") as "role_note"
+  "entity_id", "medium", "alt", "description", "tags", "palette", "characters",
+  "looks_nude", "looks_child", "looks_note", "checked",
+  "role", "role_group", "role_star", "role_note"
 from entity_annotations
   where "entity_id" = any($1::text[]);
 `;
-    const rows = await this.pool.query(q, [entityIDs]);
-    for await (const row of rows) {
+    const { rows } = await this.pool.query(q, [entityIDs]);
+    for (const row of rows) {
       const a = decodeEntityAnnotation(row);
       found.set(a.entityID, a);
     }
@@ -600,7 +581,7 @@ insert into entity_annotations (
   }
 }
 
-function decodeMoment(row: ResultRecord): Moment {
+function decodeMoment(row: pg.QueryResultRow): Moment {
   return {
     timestamp: dayjs(row['timestamp'] as Date),
     title: row['title'] as string || '',
@@ -611,7 +592,7 @@ function decodeMoment(row: ResultRecord): Moment {
   };
 }
 
-function decodeCuratedMoment(row: ResultRecord): CuratedMoment {
+function decodeCuratedMoment(row: pg.QueryResultRow): CuratedMoment {
   return {
     ...decodeMoment(row),
     tier: parseMomentTier(row['tier']),
@@ -621,7 +602,7 @@ function decodeCuratedMoment(row: ResultRecord): CuratedMoment {
   };
 }
 
-function decodeEntityAnnotation(row: ResultRecord): EntityAnnotation {
+function decodeEntityAnnotation(row: pg.QueryResultRow): EntityAnnotation {
   return {
     entityID: row['entity_id'] as string,
     medium: parseAnnotationMedium(row['medium']),
@@ -641,7 +622,7 @@ function decodeEntityAnnotation(row: ResultRecord): EntityAnnotation {
   };
 }
 
-function decodeMomentSummary(row: ResultRecord): MomentSummary {
+function decodeMomentSummary(row: pg.QueryResultRow): MomentSummary {
   return {
     timestamp: dayjs(row['timestamp'] as Date),
     title: row['title'] as string || '',
@@ -650,7 +631,7 @@ function decodeMomentSummary(row: ResultRecord): MomentSummary {
   };
 }
 
-function decodeEntity(row: ResultRecord): Entity {
+function decodeEntity(row: pg.QueryResultRow): Entity {
   const type = row['type'] as string;
   const timestamp = (() => {
     const d = row['timestamp'];

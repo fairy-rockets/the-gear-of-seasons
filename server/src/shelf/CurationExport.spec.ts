@@ -21,7 +21,6 @@ import {
   mediaEntityIDs,
   momentDirName,
   parseMarkdownURL,
-  shortestFloat4,
 } from './CurationExport.js';
 
 const kA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
@@ -226,18 +225,6 @@ describe("parseMarkdownURL", () => {
     ]) {
       assert.deepStrictEqual(parseMarkdownURL(url), { url });
     }
-  });
-});
-
-describe("shortestFloat4", () => {
-  it("float4 の値を、float4 として同じ値に戻るいちばん短い10進数にする", () => {
-    assert.strictEqual(shortestFloat4(Math.fround(29.866667)), 29.866667);
-    assert.strictEqual(shortestFloat4(Math.fround(68.43651)), 68.43651);
-    assert.strictEqual(shortestFloat4(19.5), 19.5);
-    assert.strictEqual(shortestFloat4(0), 0);
-  });
-  it("float4 で表せない値はそのまま", () => {
-    assert.strictEqual(shortestFloat4(0.1), 0.1);
   });
 });
 

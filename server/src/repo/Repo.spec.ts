@@ -16,9 +16,7 @@ function stubPool(repo: Repo, rows: Record<string, unknown>[]): Call[] {
   const pool = {
     query: async (q: string, args: any[]) => {
       calls.push({ q, args });
-      return (async function* () {
-        yield* rows;
-      })();
+      return { rows, rowCount: rows.length };
     },
     transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
       calls.push({ q: 'BEGIN', args: [] });
@@ -229,19 +227,6 @@ describe("Repo のキュレーションの項目", () => {
     assert.strictEqual(m?.sensitiveManual, true);
   });
 
-  // ts-postgres は空の text[] をそのまま読むと失敗し、その接続も使えなくなる（Repo.ts の冒頭）。
-  it("series は JSON にして読む", async () => {
-    await repo.findMoment(kTimestamp, 'all');
-    for await (const _ of repo.enumurateAllMoments()) {
-      // 読むだけ
-    }
-    await repo.findAutoSensitiveMomentCandidates('0123456789abcdef0123456789abcdef');
-    assert.strictEqual(calls.length, 3);
-    for (const c of calls) {
-      assert.ok(c.q.includes(`array_to_json("series") as "series"`), c.q);
-    }
-  });
-
   it("DB に知らない tier があれば例外にする", async () => {
     calls = stubPool(repo, [{ ...kRow, tier: 'featured' }]);
     await assert.rejects(() => repo.findMoment(kTimestamp, 'all'), /Invalid moment tier/);
@@ -321,19 +306,6 @@ describe("Repo の entity の注釈", () => {
     assert.strictEqual(calls.length, 1);
     assert.ok(calls[0].q.includes(`"entity_id" = any($1::text[])`), calls[0].q);
     assert.deepStrictEqual(calls[0].args, [[kID, 'fedcba9876543210fedcba9876543210']]);
-  });
-
-  it("findEntityAnnotations は tags と characters を JSON にして読む", async () => {
-    await repo.findEntityAnnotations([kID]);
-    assert.ok(calls[0].q.includes(`array_to_json("tags") as "tags"`), calls[0].q);
-    assert.ok(calls[0].q.includes(`array_to_json("characters") as "characters"`), calls[0].q);
-  });
-
-  it("findEntityAnnotations は文字列の項目を JSON にして読む（空の文字列を null と区別する）", async () => {
-    await repo.findEntityAnnotations([kID]);
-    for (const col of ['alt', 'description', 'looks_note', 'role_group', 'role_note']) {
-      assert.ok(calls[0].q.includes(`to_json("${col}") as "${col}"`), calls[0].q);
-    }
   });
 
   it("findEntityAnnotations は id が無ければ DB を引かない", async () => {
