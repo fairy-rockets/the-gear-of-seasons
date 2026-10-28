@@ -65,7 +65,7 @@ export function parseAnnotationRole(v: unknown): AnnotationRole | null {
   return parseNullable('role', kRoles, v);
 }
 
-type AnnotationField = Exclude<keyof EntityAnnotation, 'entityID'>;
+export type AnnotationField = Exclude<keyof EntityAnnotation, 'entityID'>;
 
 const kAllFields: readonly AnnotationField[] = [
   'medium', 'alt', 'description', 'tags', 'palette', 'characters', 'looksNude', 'looksChild', 'looksNote',

@@ -1,3 +1,6 @@
+// DB が正本なので、普段は使わない。値をまとめて書き換えたいときには便利。
+// 保守が重くなったら、shelf/CurationImport.ts と一緒に消してよい（ほかに依存するものはない）。
+//
 // studio が書き出した投入用ファイル（#43）のキュレーションの項目を DB に入れる。
 //
 //   node server/dist/cmd/import-curation.js <投入用ファイル | -> [--apply] [--overwrite]
