@@ -76,8 +76,8 @@ export function parseMarkdownURL(url: string): MarkdownRef {
     const [owner, repo, ref, ...path] = segments;
     return { url, repo: `github.com/${owner}/${repo}`, ref, path: path.join('/') };
   }
-  // Forgejo: https://code.ledyba.org/<owner>/<repo>/raw/branch/<ref>/<path...>
-  if (u.host === 'code.ledyba.org' && segments.length >= 6 && segments[2] === 'raw' && segments[3] === 'branch') {
+  // Forgejo: https://code.ledyba.org/<owner>/<repo>/raw/{branch,tag,commit}/<ref>/<path...>
+  if (u.host === 'code.ledyba.org' && segments.length >= 6 && segments[2] === 'raw' && ['branch', 'tag', 'commit'].includes(segments[3])) {
     const [owner, repo, , , ref, ...path] = segments;
     return { url, repo: `${u.host}/${owner}/${repo}`, ref, path: path.join('/') };
   }

@@ -205,14 +205,23 @@ describe("parseMarkdownURL", () => {
       url: 'https://raw.githubusercontent.com/o/r/main/docs/a.md', repo: 'github.com/o/r', ref: 'main', path: 'docs/a.md',
     });
   });
+  it("code.ledyba.org の raw/tag と raw/commit も、ref の次の1段までを ref にする", () => {
+    assert.deepStrictEqual(parseMarkdownURL('https://code.ledyba.org/o/r/raw/tag/v1.0/docs/a.md'), {
+      url: 'https://code.ledyba.org/o/r/raw/tag/v1.0/docs/a.md', repo: 'code.ledyba.org/o/r', ref: 'v1.0', path: 'docs/a.md',
+    });
+    assert.deepStrictEqual(parseMarkdownURL('https://code.ledyba.org/o/r/raw/commit/0123abcd/a.md'), {
+      url: 'https://code.ledyba.org/o/r/raw/commit/0123abcd/a.md', repo: 'code.ledyba.org/o/r', ref: '0123abcd', path: 'a.md',
+    });
+  });
   it("分解できない URL は url だけ", () => {
     for (const url of [
       'https://example.com/o/r/main/a.md',
       'https://raw.githubusercontent.com/o/r/main',
       'https://raw.githubusercontent.com/o/r/main/a.md?token=x',
       'http://raw.githubusercontent.com/o/r/main/a.md',
-      'https://code.ledyba.org/o/r/raw/commit/0123abcd/a.md',
+      'https://code.ledyba.org/o/r/raw/other/main/a.md',
       'https://code.ledyba.org/o/r/src/branch/main/a.md',
+      'https://code.ledyba.org/o/r/src/tag/v1.0/a.md',
       'not a url',
     ]) {
       assert.deepStrictEqual(parseMarkdownURL(url), { url });
@@ -246,6 +255,11 @@ function source(moments: CuratedMoment[], entities: Entity[] = [], annotations: 
 }
 
 describe("exportEntries", () => {
+  it("秒より細かい違いしかない2つの moment は、ディレクトリ名がぶつかるので例外にする", () => {
+    const m1 = moment('2016-11-25T05:58:19.100+09:00', '本文1');
+    const m2 = moment('2016-11-25T05:58:19.900+09:00', '本文2');
+    assert.throws(() => exportEntries(source([m1, m2])), /Duplicate entry: 20161125-055819\/hexe\.(fml|yaml)/);
+  });
   it("moment ごとの hexe.yaml・hexe.fml と index.yaml を、名前の順に出す", () => {
     const m1 = moment('2017-07-26T02:46:00+09:00', '本文1\n', { title: '一' });
     const m2 = moment('2016-11-25T05:58:19+09:00', '本文2', { title: '二' });
