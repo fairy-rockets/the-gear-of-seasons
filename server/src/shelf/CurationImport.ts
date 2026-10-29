@@ -6,7 +6,7 @@ import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { Entity } from './Entity.js';
 import { AnnotationField, EntityAnnotation, validateEntityAnnotation } from './EntityAnnotation.js';
-import { Moment, MomentTier, formatMomentTime, parseMomentTier } from './Moment.js';
+import { Moment, MomentTier, formatMomentTime, momentIconID, parseMomentTier } from './Moment.js';
 import { computeSensitive, sensitiveTargetEntityIDs } from './Sensitive.js';
 import {
   AnnotationValue,
@@ -191,7 +191,7 @@ export type CurationState = {
   moments: Map<number, Moment>;
   // ファイルの entity のうち、entities に行があったもの。
   entities: Map<string, Entity>;
-  // ファイルの entity と、autoSensitiveMoments の [image]・[video] の entity の注釈（行があるものだけ）。
+  // ファイルの entity と、ファイルの moment・autoSensitiveMoments の [image]・[video] の entity の注釈（行があるものだけ）。
   annotations: Map<string, EntityAnnotation>;
   // ファイルの entity を本文に含みうる、sensitive_manual = false の moment（ファイルに無い moment も含む）。
   // 注釈を書くと saveEntityAnnotation がこれらの sensitive を計算し直すので、計画にもそれを出す。
@@ -222,7 +222,8 @@ export async function loadCurationState(repo: Repo, file: CurationFile): Promise
   }
   state.autoSensitiveMoments = [...candidates.values()];
   const annotationIDs = new Set(entityIDs);
-  for (const m of state.autoSensitiveMoments) {
+  // ファイルの moment は SAVE と同じ口で書くので、自動なら sensitive が計算し直される。その計算にも要る。
+  for (const m of [...state.moments.values(), ...state.autoSensitiveMoments]) {
     for (const id of sensitiveTargetEntityIDs(fml.parse(m.text))) {
       annotationIDs.add(id);
     }
@@ -280,7 +281,7 @@ export type CurationPlan = {
   // 変更のあるものだけ。
   moments: MomentPlan[];
   entities: EntityPlan[];
-  // 注釈を書いたあとに計算し直されて変わる sensitive。
+  // 注釈を書いたあとや、moment を書くときに計算し直されて変わる sensitive（手で上書きしない moment のもの）。
   autoSensitive: AutoSensitivePlan[];
   conflicts: Conflict[];
 };
@@ -375,6 +376,11 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
       }
     }
     if (mp.changes.length > 0) {
+      // SAVE と同じ口で書くので、icon_id は本文から求め直される。変わるなら計画に出す。
+      const iconID = momentIconID(fml.parse(current.text));
+      if (iconID !== current.iconID) {
+        mp.changes.push({ key: 'icon_id', from: current.iconID ?? null, to: iconID ?? null, overwrite: false, note: '本文から求め直す' });
+      }
       plan.moments.push(mp);
     }
 
@@ -436,22 +442,33 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
     }
   }
 
-  // 注釈を書くと、その entity を [image]・[video] に含む自動の moment の sensitive が計算し直される（saveEntityAnnotation）。
+  // 自動の moment の sensitive が計算し直されるのは、次の2つ。
+  // - 注釈を書くと、その entity を [image]・[video] に含む moment（saveEntityAnnotation）。
+  // - 書く moment（plan.moments）のうち、手で上書きしないもの（SAVE と同じ口で書くので）。
+  //   保存されている値が今の計算と食い違っていれば（Sensitive.ts の規則を変えたあとなど）、注釈を書かなくても変わる。
   // 手で上書きする moment は、そのあとで上書きの値になるので除く。
   const written = new Map(state.annotations);
   for (const e of plan.entities) {
     written.set(e.entity.id, e.annotation);
   }
   const overridden = new Set(plan.moments.filter((m) => m.sensitive !== null).map((m) => m.timestamp.valueOf()));
+  const recomputed = new Map<number, Moment>();
   for (const m of state.autoSensitiveMoments) {
-    if (overridden.has(m.timestamp!!.valueOf())) {
+    if (sensitiveTargetEntityIDs(fml.parse(m.text)).some((id) => plan.entities.some((e) => e.entity.id === id))) {
+      recomputed.set(m.timestamp!!.valueOf(), m);
+    }
+  }
+  for (const mp of plan.moments) {
+    const m = state.moments.get(mp.timestamp.valueOf())!!;
+    if (!m.sensitiveManual) {
+      recomputed.set(m.timestamp!!.valueOf(), m);
+    }
+  }
+  for (const [key, m] of recomputed) {
+    if (overridden.has(key)) {
       continue;
     }
-    const doc = fml.parse(m.text);
-    if (!sensitiveTargetEntityIDs(doc).some((id) => plan.entities.some((e) => e.entity.id === id))) {
-      continue;
-    }
-    const to = computeSensitive(doc, written);
+    const to = computeSensitive(fml.parse(m.text), written);
     if (to !== m.sensitive) {
       plan.autoSensitive.push({ timestamp: m.timestamp!!, from: m.sensitive, to });
     }

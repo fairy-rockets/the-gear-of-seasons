@@ -75,7 +75,7 @@ function printPlan(file: CurationFile, plan: CurationPlan) {
   }
   console.log();
 
-  console.log('[注釈を書いたあとに計算し直されて変わる sensitive]');
+  console.log('[計算し直されて変わる sensitive]（自動の moment。注釈を書いたあとと、moment を書くときに計算し直す）');
   if (plan.autoSensitive.length === 0) {
     console.log('(なし)');
   }

@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 dayjs.extend(customParseFormat);
 
+import * as fml from '../lib/fml.js';
 import { MomentStatus, MomentTier } from '../lib/protocol.js';
 
 type Moment = {
@@ -60,6 +61,33 @@ export function parseSensitiveOverride(v: unknown): boolean | null {
     return v;
   }
   throw new Error(`Invalid sensitive override: ${v}`);
+}
+
+// moment のアイコンにする entity。本文の最初の [image]、無ければ最初の [video]・[audio]。
+// SAVE（Shelf.updateMoment）は書くたびにこれで求め直す。
+export function momentIconID(doc: fml.Document): string | undefined {
+  let iconID: string | undefined = undefined;
+  for (const block of doc.blocks) {
+    let found = false;
+    switch (block.type) {
+      case 'image':
+        if (block.entity !== undefined) {
+          iconID = block.entity;
+          found = true;
+        }
+        break;
+      case 'video':
+      case 'audio':
+        if (block.entity !== undefined && iconID === undefined) {
+          iconID = block.entity;
+        }
+        break;
+    }
+    if (found) {
+      break;
+    }
+  }
+  return iconID;
 }
 
 const kMomentTimeFormat = 'YYYY/MM/DD HH:mm:ss';

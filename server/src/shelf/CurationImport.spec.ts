@@ -2,11 +2,12 @@ import { describe, it } from 'mocha';
 import assert from 'assert';
 import dayjs from 'dayjs';
 
+import * as fml from '../lib/fml.js';
 import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { Entity } from './Entity.js';
 import { EntityAnnotation } from './EntityAnnotation.js';
-import { Moment, formatMomentTime } from './Moment.js';
+import { Moment, formatMomentTime, momentIconID } from './Moment.js';
 import {
   CurationPlan,
   CurationState,
@@ -22,6 +23,7 @@ const kC = 'cccccccccccccccccccccccccccccccc';
 const kT1 = '2017-07-26T02:46:00+09:00';
 const kT2 = '2018-01-02T03:04:05+09:00';
 const kT3 = '2019-05-06T07:08:09+09:00';
+const kT4 = '2021-01-01T00:00:00+09:00';
 
 const kImageA: Entity = {
   type: 'image', id: kA, mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1, height: 1,
@@ -41,9 +43,10 @@ function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): E
   };
 }
 
+// icon_id は、指定しなければ本文から求めた値（SAVE で書いたときと同じ）にする。
 function moment(t: string, text: string, values: Partial<Moment> = {}): Moment {
   return {
-    timestamp: dayjs(t), title: 't', author: 'a', text, iconID: undefined, status: 'published',
+    timestamp: dayjs(t), title: 't', author: 'a', text, iconID: momentIconID(fml.parse(text)), status: 'published',
     tier: 'archive', series: [], sensitive: false, sensitiveManual: false,
     ...values,
   };
@@ -342,6 +345,30 @@ moments:
     assert.deepStrictEqual(p2.moments, []);
     assert.deepStrictEqual(p2.conflicts.map((c) => c.key), ['tier', 'series']);
   });
+  it("書く moment の、本文から求め直される sensitive（自動のとき）と icon_id の変化を計画に出す", () => {
+    const s = state([
+      // 自動。保存されている sensitive と icon_id が、本文から求めた値と食い違っている。
+      moment(kT1, `[video entity="${kB}"][image entity="${kA}"]`, { sensitive: true, iconID: kB }),
+      // 手で上書き済み。sensitive は書いても変わらない。
+      moment(kT2, '', { sensitive: true, sensitiveManual: true }),
+      // 食い違っているが、書かない moment は計算し直されない。
+      moment(kT3, '', { sensitive: true }),
+    ], [kImageA, kVideoB]);
+    const p = plan(`
+moments:
+  - moment: ${kT1}
+    tier: pickup
+  - moment: ${kT2}
+    tier: pickup
+  - moment: ${kT3}
+    tier: archive
+`, s);
+    assert.deepStrictEqual(p.moments.map((m) => [m.label, m.changes.map((c) => [c.key, c.from, c.to])]), [
+      [kT1, [['tier', 'archive', 'pickup'], ['icon_id', kB, kA]]],
+      [kT2, [['tier', 'archive', 'pickup']]],
+    ]);
+    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.from, a.to]), [[dayjs(kT1).format(), true, false]]);
+  });
   it("tier だけ変わるときも、series は今の値で書く", () => {
     const p = plan(`
 moments:
@@ -478,6 +505,8 @@ moments:
         }
       },
     }) as Shelf;
+    // kT3 は自動で、保存されている sensitive（true）が本文から求めた値（false）と食い違っている。SAVE と同じ口で書くと変わるので、計画に出る。
+    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.from, a.to]), [[dayjs(kT3).format(), true, false]]);
     await applyCurationPlan(shelf, p);
     const date = (t: string) => formatMomentTime(dayjs(t));
     assert.deepStrictEqual(calls, [
@@ -601,6 +630,9 @@ describe("applyCurationPlan で書いた結果", () => {
       moment(kT3, `[image entity="${kD}"]`),
       // 手で上書きする moment。A を含むが、計算し直されたあとに上書きの値になる。
       moment('2020-01-01T00:00:00+09:00', `[image entity="${kA}"]`),
+      // 保存されている sensitive（true）と icon_id（なし）が、本文から求めた値（false・C）と食い違っている自動の moment。
+      // 注釈は書かないが、tier を書くと SAVE と同じ口を通るので、どちらも求め直される。
+      moment(kT4, `[audio entity="${kC}"]`, { sensitive: true, iconID: undefined }),
     ], [annotation(kD, { looksChild: 'child' })]);
     const src = `
 moments:
@@ -614,24 +646,46 @@ moments:
       - { entity: ${kD}, looks_nude: nude }
   - moment: 2020-01-01T00:00:00+09:00
     sensitive: false
+  - moment: ${kT4}
+    tier: sketch
 `;
     const file = parse(src);
     const p = makeCurationPlan(file, await loadCurationState(repo as unknown as Repo, file), { overwrite: false });
     assert.deepStrictEqual(p.errors, []);
+    const before = new Map(repo.moments.map((m) => [m.timestamp!!.format(), { ...m }]));
     await applyCurationPlan(new Shelf(repo as unknown as Repo), p);
 
-    // 上書きする moment は、計算し直しで一度 true になってから上書きされうるので、最後の値で比べる。
-    const written = new Map(repo.autoSensitiveWrites);
-    written.delete(dayjs('2020-01-01T00:00:00+09:00').format());
-    assert.deepStrictEqual(written, new Map(p.autoSensitive.map((a) => [a.timestamp.format(), a.to])));
-    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.to]), [
-      [dayjs(kT1).format(), true],
-      [dayjs(kT2).format(), true],
-      [dayjs(kT3).format(), true],
-    ]);
-    for (const a of p.autoSensitive) {
-      assert.strictEqual((await repo.findMoment(a.timestamp))!!.sensitive, a.to);
+    // 書いたあとに sensitive が変わった moment が、計画の autoSensitive（手で上書きする moment を除く）とちょうど一致する。
+    const changedSensitive = new Map<string, boolean>();
+    for (const m of repo.moments) {
+      const t = m.timestamp!!.format();
+      if (m.sensitive !== before.get(t)!!.sensitive && !m.sensitiveManual) {
+        changedSensitive.set(t, m.sensitive);
+      }
     }
+    assert.deepStrictEqual(changedSensitive, new Map(p.autoSensitive.map((a) => [a.timestamp.format(), a.to])));
+    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.from, a.to]), [
+      [dayjs(kT1).format(), false, true],
+      [dayjs(kT2).format(), false, true],
+      [dayjs(kT3).format(), false, true],
+      [dayjs(kT4).format(), true, false],
+    ]);
+    // icon_id が変わった moment も、計画の icon_id の変更とちょうど一致する。
+    const changedIcon = new Map<string, unknown>();
+    for (const m of repo.moments) {
+      const t = m.timestamp!!.format();
+      if (m.iconID !== before.get(t)!!.iconID) {
+        changedIcon.set(t, m.iconID ?? null);
+      }
+    }
+    const plannedIcon = new Map<string, unknown>();
+    for (const m of p.moments) {
+      for (const c of m.changes.filter((c) => c.key === 'icon_id')) {
+        plannedIcon.set(m.timestamp.format(), c.to);
+      }
+    }
+    assert.deepStrictEqual(changedIcon, plannedIcon);
+    assert.deepStrictEqual([...plannedIcon.keys()], [dayjs(kT4).format()]);
     const overridden = (await repo.findMoment(dayjs('2020-01-01T00:00:00+09:00')))!!;
     assert.deepStrictEqual([overridden.sensitive, overridden.sensitiveManual], [false, true]);
     assert.strictEqual((await repo.findMoment(dayjs(kT1)))!!.tier, 'pickup');

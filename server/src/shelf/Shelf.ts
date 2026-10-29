@@ -18,6 +18,7 @@ import {
   MomentSummary,
   MomentVisibility,
   formatMomentTime,
+  momentIconID,
   parseMomentSeries,
   parseMomentStatus,
   parseMomentTier,
@@ -308,7 +309,6 @@ class Shelf {
     const tier = parseMomentTier(req.tier);
     const series = parseMomentSeries(req.series);
     let date = req.date;
-    let iconID: string | undefined = undefined;
     const doc = fml.parse(req.text);
     if (date === null || date.length === 0) {
       for (const block of doc.blocks) {
@@ -325,26 +325,6 @@ class Shelf {
         date = formatMomentTime(dayjs());
       }
     }
-    for (const block of doc.blocks) {
-      let found = false;
-      switch (block.type) {
-        case 'image':
-          if (block.entity !== undefined) {
-            iconID = block.entity;
-            found = true;
-          }
-          break;
-        case 'video':
-        case 'audio':
-          if (block.entity !== undefined && iconID === undefined) {
-            iconID = block.entity;
-          }
-          break;
-      }
-      if (found) {
-        break;
-      }
-    }
     const timestamp = parseMomentTime(date);
     if (!timestamp.isValid()) {
       throw new Error(`Invalid timestamp: ${date}`);
@@ -354,7 +334,7 @@ class Shelf {
       title: req.title,
       author: req.author,
       text: req.text,
-      iconID: iconID,
+      iconID: momentIconID(doc),
       status: status,
       tier: tier,
       series: series,

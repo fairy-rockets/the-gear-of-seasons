@@ -38,8 +38,9 @@ export default class EditController {
         tier: moment.tier,
         series: moment.series.join(', '),
         sensitive: !moment.sensitiveManual ? 'auto' : moment.sensitive ? 'true' : 'false',
-        // 手で上書きしている間は、DB に自動の値が無いので計算する。
-        autoSensitive: moment.sensitiveManual ? await this.shelf.computeSensitive(moment.text) : moment.sensitive,
+        // 保存されている値ではなく、SAVE で書かれる値（本文と今の注釈から計算した値）を出す。
+        // 手で上書きしている間は DB に自動の値が無く、自動のときも保存値が今の計算と食い違っていることがある。
+        autoSensitive: await this.shelf.computeSensitive(moment.text),
       }));
   }
 }
