@@ -1,3 +1,4 @@
+import AnnotationDrawer from './AnnotationDrawer';
 import Preview from './Preview';
 import * as protocol from '../../protocol';
 import { describeError, describeResponseError, dismissToast, showToast } from './Toast';
@@ -18,6 +19,7 @@ export default class Editor {
   private originalDate_: string;
   private readonly onChangeEventListener_: () => void;
   private preview_: Preview | null;
+  private drawer_: AnnotationDrawer | null;
   private changeId_: number | null;
   executePreviewUpdater_: () => void;
   onSaveEventListener_: () => void;
@@ -36,14 +38,16 @@ export default class Editor {
     this.originalDate_ = date.value;
     this.onChangeEventListener_ = this.onChange_.bind(this);
     this.preview_ = null;
+    this.drawer_ = null;
     this.changeId_ = null;
     this.executePreviewUpdater_ = this.executePreviewUpdate_.bind(this);
     this.onSaveEventListener_ = this.onSave_.bind(this);
     this.onDeleteEventListener_ = this.onDelete_.bind(this);
   }
 
-  init(preview: Preview) {
+  init(preview: Preview, drawer: AnnotationDrawer) {
     this.preview_ = preview;
+    this.drawer_ = drawer;
     this.text_.addEventListener('input', this.onChangeEventListener_);
     this.title_.addEventListener('input', this.onChangeEventListener_);
     this.date_.addEventListener('input', this.onChangeEventListener_);
@@ -58,7 +62,12 @@ export default class Editor {
       const macMeta = (event.metaKey && !event.ctrlKey);
       const winMeta = (!event.metaKey && event.ctrlKey);
       if (event.key === 's' && (macMeta || winMeta)) { // Ctrl + S / Cmd + S
-        window.setTimeout(this.onSaveEventListener_, 0);
+        // 注釈の引き出しの中にフォーカスがあれば、注釈を保存する。
+        if (this.drawer_!.hasFocus()) {
+          window.setTimeout(() => this.drawer_!.save(), 0);
+        } else {
+          window.setTimeout(this.onSaveEventListener_, 0);
+        }
         event.preventDefault();
         return false;
       }
@@ -80,10 +89,25 @@ export default class Editor {
     this.changeId_ = window.setTimeout(this.executePreviewUpdater_, 500);
   }
 
+  // 開いている moment の、保存されている日時。新規なら null。
+  originalDate(): string | null {
+    return this.originalDate_.length > 0 ? this.originalDate_ : null;
+  }
+
+  // 保存のあとの sensitive を「自動（今は…）」に出す。
+  // 手で上書きしている間は、sensitive は上書きの値なので、「自動（今は…）」は前の表示のまま
+  showAutoSensitive(sensitive: boolean, sensitiveManual: boolean) {
+    if (sensitiveManual) {
+      return;
+    }
+    const auto = this.sensitive_.querySelector('option[value="auto"]') as HTMLOptionElement;
+    auto.textContent = `自動（今は ${sensitive ? 'はい' : 'いいえ'}）`;
+  }
+
   private makeMoment_(): protocol.Moment.Save.Request {
     return {
       title: this.title_.value,
-      originalDate: this.originalDate_.length > 0 ? this.originalDate_ : null,
+      originalDate: this.originalDate(),
       date: this.date_.value.length > 0 ? this.date_.value : null,
       author: this.author_.value,
       text: this.text_.value,
@@ -124,11 +148,7 @@ export default class Editor {
     this.date_.value = result.date;
     this.originalDate_ = result.date;
     this.status_.value = result.status;
-    // 手で上書きしている間は、応答の sensitive は上書きの値なので、「自動（今は…）」は前の表示のまま
-    if (!result.sensitiveManual) {
-      const auto = this.sensitive_.querySelector('option[value="auto"]') as HTMLOptionElement;
-      auto.textContent = `自動（今は ${result.sensitive ? 'はい' : 'いいえ'}）`;
-    }
+    this.showAutoSensitive(result.sensitive, result.sensitiveManual);
     history.replaceState(null, moment.title, result.path);
   }
 

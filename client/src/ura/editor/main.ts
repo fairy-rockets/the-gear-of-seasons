@@ -1,3 +1,4 @@
+import AnnotationDrawer from './AnnotationDrawer';
 import Editor from './Editor';
 import Preview from './Preview';
 import Uploader from './Uploader';
@@ -20,6 +21,13 @@ function newPreview(): Preview {
   return new Preview(document.getElementById('preview') as HTMLDivElement);
 }
 
+// 注釈の引き出しは、本文の入力欄（左の列）の上にかぶせる。
+function newAnnotationDrawer(): AnnotationDrawer {
+  return new AnnotationDrawer(
+    document.querySelector('.editor-wrapper') as HTMLElement,
+    document.getElementById('preview') as HTMLDivElement);
+}
+
 function newUploader(): Uploader {
   return new Uploader(document.body, document.getElementById('upload') as HTMLInputElement);
 }
@@ -27,12 +35,15 @@ function newUploader(): Uploader {
 let editor: Editor | null = null;
 let preview: Preview | null = null;
 let uploader: Uploader | null = null;
+let drawer: AnnotationDrawer | null = null;
 
 export default function main() {
   editor = newEditor();
   preview = newPreview();
   uploader = newUploader();
-  editor.init(preview);
-  preview.init(editor);
+  drawer = newAnnotationDrawer();
+  editor.init(preview, drawer);
+  preview.init(editor, drawer);
   uploader.init(editor);
+  drawer.init(editor);
 }

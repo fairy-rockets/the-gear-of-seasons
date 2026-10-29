@@ -152,6 +152,189 @@ img.emoji {
   flex: 1 1 0;
 }
 
+/* 注釈の引き出し。本文の入力欄（左の列）の上にかぶせ、プレビューは隠さない */
+.editor-container .editor-wrapper {
+  position: relative;
+}
+
+.annotation-drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 1em 0.5em 0.5em 0.5em;
+
+  background: #080816;
+  border-right: 2px solid #f0c040;
+}
+
+.annotation-drawer[hidden] {
+  display: none;
+}
+
+.annotation-header {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.annotation-icon {
+  width: 4em;
+  height: 4em;
+  object-fit: cover;
+  border: 1px solid #333;
+  flex: 0 0 auto;
+}
+
+.annotation-title {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: smaller;
+  font-family: monospace;
+}
+
+.annotation-close,
+.annotation-save {
+  font-size: 22px;
+  color: #ddd;
+  background: #111;
+  border: 1px solid white;
+}
+
+.annotation-form {
+  flex: 1 1 0;
+  overflow-y: auto;
+  margin-top: 0.5em;
+}
+
+.annotation-field {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+  gap: 0.5em;
+  margin: 0.4em 0;
+}
+
+.annotation-label {
+  flex: 0 0 8em;
+  font-family: monospace;
+  color: #9ab;
+}
+
+.annotation-field select,
+.annotation-field input[type="text"],
+.annotation-field textarea {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+  font-size: 16px;
+  color: #ddd;
+  background: #111;
+  border: 1px solid #889;
+}
+
+.annotation-field input[type="text"]:disabled {
+  color: #444;
+  border-color: #333;
+}
+
+.annotation-list {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+  gap: 0.5em;
+}
+
+.annotation-empty {
+  flex: 0 0 auto;
+  font-size: smaller;
+}
+
+.annotation-checked {
+  margin: 0.2em 0 0.8em 0;
+  padding: 0.4em;
+  border: 1px solid #f0c040;
+  font-size: 120%;
+  font-weight: 800;
+}
+
+.annotation-checked input[type="checkbox"] {
+  width: 1.4em;
+  height: 1.4em;
+}
+
+.annotation-checked .annotation-label {
+  flex: 1 1 auto;
+  color: #f0c040;
+}
+
+.annotation-footer {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5em;
+  margin-top: 0.5em;
+}
+
+.annotation-status {
+  flex: 1 1 0;
+  font-size: smaller;
+  color: #9ab;
+}
+
+.annotation-status.annotation-status-dirty {
+  color: #f0c040;
+}
+
+/* プレビューのメディアの直前に差し込む印 */
+#preview .annotation-mark {
+  display: block;
+  margin: 0 auto 0.2em auto;
+  padding: 0.1em 0.6em;
+  font-size: small;
+  color: #e3e8ef;
+  background: #111;
+  border: 1px solid #556;
+  border-radius: 0.3em;
+  cursor: pointer;
+}
+
+#preview .annotation-mark[data-state="unentered"] {
+  background: #5a1f1f;
+  border-color: #d06060;
+}
+
+#preview .annotation-mark[data-state="unchecked"] {
+  background: #4a3a0a;
+  border-color: #f0c040;
+}
+
+#preview .annotation-mark[data-state="checked"],
+#preview .annotation-mark[data-state="entered"] {
+  background: #0f3a1f;
+  border-color: #50b070;
+}
+
+#preview img[data-entity] {
+  cursor: pointer;
+}
+
+#preview .annotation-selected {
+  outline: 3px solid #f0c040;
+  outline-offset: 2px;
+}
+
 .uploader-hover {
   position: fixed;
   top: 0;
