@@ -2,11 +2,12 @@ import { describe, it } from 'mocha';
 import assert from 'assert';
 import dayjs from 'dayjs';
 
+import * as fml from '../lib/fml.js';
 import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { Entity } from './Entity.js';
 import { EntityAnnotation } from './EntityAnnotation.js';
-import { CuratedMoment } from './Moment.js';
+import { Moment, formatMomentTime, momentIconID } from './Moment.js';
 import {
   CurationPlan,
   CurationState,
@@ -22,6 +23,7 @@ const kC = 'cccccccccccccccccccccccccccccccc';
 const kT1 = '2017-07-26T02:46:00+09:00';
 const kT2 = '2018-01-02T03:04:05+09:00';
 const kT3 = '2019-05-06T07:08:09+09:00';
+const kT4 = '2021-01-01T00:00:00+09:00';
 
 const kImageA: Entity = {
   type: 'image', id: kA, mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1, height: 1,
@@ -41,9 +43,10 @@ function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): E
   };
 }
 
-function moment(t: string, text: string, values: Partial<CuratedMoment> = {}): CuratedMoment {
+// icon_id は、指定しなければ本文から求めた値（SAVE で書いたときと同じ）にする。
+function moment(t: string, text: string, values: Partial<Moment> = {}): Moment {
   return {
-    timestamp: dayjs(t), title: 't', author: 'a', text, iconID: undefined, status: 'published',
+    timestamp: dayjs(t), title: 't', author: 'a', text, iconID: momentIconID(fml.parse(text)), status: 'published',
     tier: 'archive', series: [], sensitive: false, sensitiveManual: false,
     ...values,
   };
@@ -51,7 +54,7 @@ function moment(t: string, text: string, values: Partial<CuratedMoment> = {}): C
 
 // loadCurationState の代わり。autoSensitiveMoments は sensitive_manual = false のもの全部にする
 // （本文に entity を含むかどうかは makeCurationPlan が確かめる）。
-function state(moments: CuratedMoment[], entities: Entity[], annotations: EntityAnnotation[] = []): CurationState {
+function state(moments: Moment[], entities: Entity[], annotations: EntityAnnotation[] = []): CurationState {
   return {
     moments: new Map(moments.map((m) => [m.timestamp!!.valueOf(), m])),
     entities: new Map(entities.map((e) => [e.id, e])),
@@ -332,7 +335,6 @@ moments:
     assert.deepStrictEqual(p1.moments[0].changes.map((c) => c.key), ['tier', 'series']);
     assert.strictEqual(p1.moments[0].tier, 'pickup');
     assert.deepStrictEqual(p1.moments[0].series, ['夏']);
-    assert.strictEqual(p1.moments[0].tierOrSeriesChanged, true);
 
     const p2 = plan(`
 moments:
@@ -342,6 +344,30 @@ moments:
 `, state([moment(kT1, '', { tier: 'pickup', series: ['夏'] })], []));
     assert.deepStrictEqual(p2.moments, []);
     assert.deepStrictEqual(p2.conflicts.map((c) => c.key), ['tier', 'series']);
+  });
+  it("書く moment の、本文から求め直される sensitive（自動のとき）と icon_id の変化を計画に出す", () => {
+    const s = state([
+      // 自動。保存されている sensitive と icon_id が、本文から求めた値と食い違っている。
+      moment(kT1, `[video entity="${kB}"][image entity="${kA}"]`, { sensitive: true, iconID: kB }),
+      // 手で上書き済み。sensitive は書いても変わらない。
+      moment(kT2, '', { sensitive: true, sensitiveManual: true }),
+      // 食い違っているが、書かない moment は計算し直されない。
+      moment(kT3, '', { sensitive: true }),
+    ], [kImageA, kVideoB]);
+    const p = plan(`
+moments:
+  - moment: ${kT1}
+    tier: pickup
+  - moment: ${kT2}
+    tier: pickup
+  - moment: ${kT3}
+    tier: archive
+`, s);
+    assert.deepStrictEqual(p.moments.map((m) => [m.label, m.changes.map((c) => [c.key, c.from, c.to])]), [
+      [kT1, [['tier', 'archive', 'pickup'], ['icon_id', kB, kA]]],
+      [kT2, [['tier', 'archive', 'pickup']]],
+    ]);
+    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.from, a.to]), [[dayjs(kT1).format(), true, false]]);
   });
   it("tier だけ変わるときも、series は今の値で書く", () => {
     const p = plan(`
@@ -385,7 +411,7 @@ moments:
     sensitive: false
 `;
     const p = plan(src, s);
-    assert.deepStrictEqual(p.moments.map((m) => [m.label, m.sensitive, m.tierOrSeriesChanged]), [[kT1, false, false]]);
+    assert.deepStrictEqual(p.moments.map((m) => [m.label, m.sensitive, m.changes.map((c) => c.key)]), [[kT1, false, ['sensitive']]]);
     assert.deepStrictEqual(p.conflicts, [{ momentLabel: kT3, entityID: null, key: 'sensitive', current: true, file: false }]);
     const o = plan(src, s, true);
     assert.deepStrictEqual(o.moments.map((m) => [m.label, m.sensitive]), [[kT1, false], [kT3, false]]);
@@ -452,31 +478,64 @@ moments:
 });
 
 describe("applyCurationPlan", () => {
-  it("注釈を書いてから、tier・series と sensitive の上書きを書く。変わらないものは呼ばない", async () => {
-    const s = state([
-      moment(kT1, `[image entity="${kA}"]`),
-      moment(kT2, ''),
-    ], [kImageA]);
+  it("注釈を書いてから、moment ごとに今の値を読み、計画で変わる項目だけを差し替えて updateMoment（SAVE と同じ口）で書く", async () => {
+    const moments = [
+      moment(kT1, `[image entity="${kA}"]`, { title: '海', tier: 'pickup', series: ['夏'] }),
+      // 手で上書き済み。計画に sensitive が無ければ、上書きの値のまま書く。
+      moment(kT2, '', { status: 'draft', sensitive: true, sensitiveManual: true }),
+      // 自動。計画に sensitive が無ければ、自動のまま書く。
+      moment(kT3, '', { sensitive: true }),
+    ];
     const p = plan(`
 moments:
   - moment: ${kT1}
     sensitive: true
     media: [{ entity: ${kA}, alt: 海 }]
   - moment: ${kT2}
-    series: [夏]
-`, s);
+    series: [冬]
+  - moment: ${kT3}
+    tier: sketch
+`, state(moments, [kImageA]));
     const calls: unknown[][] = [];
     const shelf = new Proxy({}, {
       get: (_target, name) => async (...args: unknown[]) => {
         calls.push([name, ...args.map((a) => dayjs.isDayjs(a) ? a.format() : a)]);
+        if (name === 'findMoment') {
+          return moments.find((m) => m.timestamp!!.isSame(args[0] as dayjs.Dayjs)) ?? null;
+        }
       },
     }) as Shelf;
+    // kT3 は自動で、保存されている sensitive（true）が本文から求めた値（false）と食い違っている。SAVE と同じ口で書くと変わるので、計画に出る。
+    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.from, a.to]), [[dayjs(kT3).format(), true, false]]);
     await applyCurationPlan(shelf, p);
+    const date = (t: string) => formatMomentTime(dayjs(t));
     assert.deepStrictEqual(calls, [
       ['saveEntityAnnotation', annotation(kA, { alt: '海' })],
-      ['overrideMomentSensitive', dayjs(kT1).format(), true],
-      ['updateMomentCuration', dayjs(kT2).format(), 'archive', ['夏']],
+      ['findMoment', dayjs(kT1).format(), 'all'],
+      ['updateMoment', {
+        title: '海', originalDate: date(kT1), date: date(kT1), author: 'a', text: `[image entity="${kA}"]`, status: 'published',
+        tier: 'pickup', series: ['夏'], sensitiveOverride: true,
+      }],
+      ['findMoment', dayjs(kT2).format(), 'all'],
+      ['updateMoment', {
+        title: 't', originalDate: date(kT2), date: date(kT2), author: 'a', text: '', status: 'draft',
+        tier: 'archive', series: ['冬'], sensitiveOverride: true,
+      }],
+      ['findMoment', dayjs(kT3).format(), 'all'],
+      ['updateMoment', {
+        title: 't', originalDate: date(kT3), date: date(kT3), author: 'a', text: '', status: 'published',
+        tier: 'sketch', series: [], sensitiveOverride: null,
+      }],
     ]);
+  });
+  it("書く moment が読めなければ例外にする", async () => {
+    const p = plan(`
+moments:
+  - moment: ${kT1}
+    tier: pickup
+`, state([moment(kT1, '')], []));
+    const shelf = new Proxy({}, { get: () => async () => null }) as Shelf;
+    await assert.rejects(applyCurationPlan(shelf, p), /Moment not found/);
   });
   it("エラーのある計画は書かない", async () => {
     const p = plan(`
@@ -493,10 +552,10 @@ moments:
 class StateRepo {
   readonly annotations: Map<string, EntityAnnotation>;
   readonly autoSensitiveWrites: [string, boolean][] = [];
-  constructor(readonly entities: Entity[], readonly moments: CuratedMoment[], annotations: EntityAnnotation[] = []) {
+  constructor(readonly entities: Entity[], readonly moments: Moment[], annotations: EntityAnnotation[] = []) {
     this.annotations = new Map(annotations.map((a) => [a.entityID, a]));
   }
-  private moment(timestamp: dayjs.Dayjs): CuratedMoment {
+  private moment(timestamp: dayjs.Dayjs): Moment {
     return this.moments.find((m) => m.timestamp!!.isSame(timestamp))!!;
   }
   async transaction<T>(fn: (tx: Repo) => Promise<T>): Promise<T> {
@@ -525,12 +584,9 @@ class StateRepo {
       this.autoSensitiveWrites.push([m.timestamp!!.format(), v]);
     }
   }
-  async updateMomentCuration(timestamp: dayjs.Dayjs, tier: CuratedMoment['tier'], series: string[]) {
-    Object.assign(this.moment(timestamp), { tier, series });
-    return true;
-  }
-  async updateMomentSensitive(timestamp: dayjs.Dayjs, sensitive: boolean, sensitiveManual: boolean) {
-    Object.assign(this.moment(timestamp), { sensitive, sensitiveManual });
+  // 読み直したときに書いた値が見えるよう、置き換えずに今のオブジェクトに重ねる。
+  async updateMoment(old: dayjs.Dayjs, m: Moment) {
+    Object.assign(this.moment(old), m);
     return true;
   }
 }
@@ -574,6 +630,9 @@ describe("applyCurationPlan で書いた結果", () => {
       moment(kT3, `[image entity="${kD}"]`),
       // 手で上書きする moment。A を含むが、計算し直されたあとに上書きの値になる。
       moment('2020-01-01T00:00:00+09:00', `[image entity="${kA}"]`),
+      // 保存されている sensitive（true）と icon_id（なし）が、本文から求めた値（false・C）と食い違っている自動の moment。
+      // 注釈は書かないが、tier を書くと SAVE と同じ口を通るので、どちらも求め直される。
+      moment(kT4, `[audio entity="${kC}"]`, { sensitive: true, iconID: undefined }),
     ], [annotation(kD, { looksChild: 'child' })]);
     const src = `
 moments:
@@ -587,24 +646,46 @@ moments:
       - { entity: ${kD}, looks_nude: nude }
   - moment: 2020-01-01T00:00:00+09:00
     sensitive: false
+  - moment: ${kT4}
+    tier: sketch
 `;
     const file = parse(src);
     const p = makeCurationPlan(file, await loadCurationState(repo as unknown as Repo, file), { overwrite: false });
     assert.deepStrictEqual(p.errors, []);
+    const before = new Map(repo.moments.map((m) => [m.timestamp!!.format(), { ...m }]));
     await applyCurationPlan(new Shelf(repo as unknown as Repo), p);
 
-    // 上書きする moment は、計算し直しで一度 true になってから上書きされうるので、最後の値で比べる。
-    const written = new Map(repo.autoSensitiveWrites);
-    written.delete(dayjs('2020-01-01T00:00:00+09:00').format());
-    assert.deepStrictEqual(written, new Map(p.autoSensitive.map((a) => [a.timestamp.format(), a.to])));
-    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.to]), [
-      [dayjs(kT1).format(), true],
-      [dayjs(kT2).format(), true],
-      [dayjs(kT3).format(), true],
-    ]);
-    for (const a of p.autoSensitive) {
-      assert.strictEqual((await repo.findMoment(a.timestamp))!!.sensitive, a.to);
+    // 書いたあとに sensitive が変わった moment が、計画の autoSensitive（手で上書きする moment を除く）とちょうど一致する。
+    const changedSensitive = new Map<string, boolean>();
+    for (const m of repo.moments) {
+      const t = m.timestamp!!.format();
+      if (m.sensitive !== before.get(t)!!.sensitive && !m.sensitiveManual) {
+        changedSensitive.set(t, m.sensitive);
+      }
     }
+    assert.deepStrictEqual(changedSensitive, new Map(p.autoSensitive.map((a) => [a.timestamp.format(), a.to])));
+    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.from, a.to]), [
+      [dayjs(kT1).format(), false, true],
+      [dayjs(kT2).format(), false, true],
+      [dayjs(kT3).format(), false, true],
+      [dayjs(kT4).format(), true, false],
+    ]);
+    // icon_id が変わった moment も、計画の icon_id の変更とちょうど一致する。
+    const changedIcon = new Map<string, unknown>();
+    for (const m of repo.moments) {
+      const t = m.timestamp!!.format();
+      if (m.iconID !== before.get(t)!!.iconID) {
+        changedIcon.set(t, m.iconID ?? null);
+      }
+    }
+    const plannedIcon = new Map<string, unknown>();
+    for (const m of p.moments) {
+      for (const c of m.changes.filter((c) => c.key === 'icon_id')) {
+        plannedIcon.set(m.timestamp.format(), c.to);
+      }
+    }
+    assert.deepStrictEqual(changedIcon, plannedIcon);
+    assert.deepStrictEqual([...plannedIcon.keys()], [dayjs(kT4).format()]);
     const overridden = (await repo.findMoment(dayjs('2020-01-01T00:00:00+09:00')))!!;
     assert.deepStrictEqual([overridden.sensitive, overridden.sensitiveManual], [false, true]);
     assert.strictEqual((await repo.findMoment(dayjs(kT1)))!!.tier, 'pickup');

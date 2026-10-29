@@ -30,6 +30,8 @@ export default class SaveController {
       path: formatMomentPath(moment.timestamp),
       date: formatMomentTime(moment.timestamp),
       status: moment.status,
+      sensitive: moment.sensitive,
+      sensitiveManual: moment.sensitiveManual,
       body: await this.renderer.render(now, moment),
     };
     return reply

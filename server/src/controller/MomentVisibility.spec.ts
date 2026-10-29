@@ -32,6 +32,10 @@ function moment(timestamp: dayjs.Dayjs, status: Moment['status']): Moment {
     text: 'ほんぶん',
     iconID: `icon-${timestamp.date()}`,
     status,
+    tier: 'archive',
+    series: [],
+    sensitive: false,
+    sensitiveManual: false,
   };
 }
 
@@ -55,6 +59,10 @@ class StubShelf {
   }
   async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
     return this.visible(visibility).find((m) => m.timestamp!!.isSame(timestamp)) ?? null;
+  }
+  // ura の編集画面が「自動（今は…）」に出す値。moment を引かないので visibility は関係ない。
+  async computeSensitive(_text: string): Promise<boolean> {
+    return false;
   }
   async findPreviousMomentSummary(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<MomentSummary | null> {
     const found = this.visible(visibility).filter((m) => m.timestamp!!.isBefore(timestamp));

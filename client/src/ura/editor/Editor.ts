@@ -9,6 +9,9 @@ export default class Editor {
   private readonly date_: HTMLInputElement;
   private readonly author_: HTMLSelectElement;
   private readonly status_: HTMLSelectElement;
+  private readonly tier_: HTMLSelectElement;
+  private readonly series_: HTMLInputElement;
+  private readonly sensitive_: HTMLSelectElement;
   private readonly text_: HTMLTextAreaElement;
   private readonly save_: HTMLButtonElement;
   private readonly delete_: HTMLButtonElement;
@@ -19,11 +22,14 @@ export default class Editor {
   executePreviewUpdater_: () => void;
   onSaveEventListener_: () => void;
   onDeleteEventListener_: () => void;
-  constructor(title: HTMLInputElement, date: HTMLInputElement, author: HTMLSelectElement, status: HTMLSelectElement, text: HTMLTextAreaElement, save: HTMLButtonElement, del: HTMLButtonElement) {
+  constructor(title: HTMLInputElement, date: HTMLInputElement, author: HTMLSelectElement, status: HTMLSelectElement, tier: HTMLSelectElement, series: HTMLInputElement, sensitive: HTMLSelectElement, text: HTMLTextAreaElement, save: HTMLButtonElement, del: HTMLButtonElement) {
     this.title_ = title;
     this.date_ = date;
     this.author_ = author;
     this.status_ = status;
+    this.tier_ = tier;
+    this.series_ = series;
+    this.sensitive_ = sensitive;
     this.text_ = text;
     this.save_ = save;
     this.delete_ = del;
@@ -43,6 +49,9 @@ export default class Editor {
     this.date_.addEventListener('input', this.onChangeEventListener_);
     this.author_.addEventListener('change', this.onChangeEventListener_);
     this.status_.addEventListener('change', this.onChangeEventListener_);
+    this.tier_.addEventListener('change', this.onChangeEventListener_);
+    this.series_.addEventListener('input', this.onChangeEventListener_);
+    this.sensitive_.addEventListener('change', this.onChangeEventListener_);
     this.save_.addEventListener('click', this.onSaveEventListener_);
     this.delete_.addEventListener('click', this.onDeleteEventListener_);
     window.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -79,6 +88,10 @@ export default class Editor {
       author: this.author_.value,
       text: this.text_.value,
       status: this.status_.value as protocol.MomentStatus,
+      tier: this.tier_.value as protocol.MomentTier,
+      // カンマ区切り。前後の空白と、空の要素は落とす。
+      series: this.series_.value.split(',').map((s) => s.trim()).filter((s) => s.length > 0),
+      sensitiveOverride: this.sensitive_.value === 'auto' ? null : this.sensitive_.value === 'true',
     };
   }
 
@@ -111,6 +124,11 @@ export default class Editor {
     this.date_.value = result.date;
     this.originalDate_ = result.date;
     this.status_.value = result.status;
+    // 手で上書きしている間は、応答の sensitive は上書きの値なので、「自動（今は…）」は前の表示のまま
+    if (!result.sensitiveManual) {
+      const auto = this.sensitive_.querySelector('option[value="auto"]') as HTMLOptionElement;
+      auto.textContent = `自動（今は ${result.sensitive ? 'はい' : 'いいえ'}）`;
+    }
     history.replaceState(null, moment.title, result.path);
   }
 

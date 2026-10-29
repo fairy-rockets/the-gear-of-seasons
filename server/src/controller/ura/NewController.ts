@@ -23,6 +23,10 @@ export default class NewController {
         date: '',
         text: '',
         status: 'draft',
+        tier: 'archive',
+        series: '',
+        sensitive: 'auto',
+        autoSensitive: false,
       }));
   }
 }

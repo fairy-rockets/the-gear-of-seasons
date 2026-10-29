@@ -2,7 +2,8 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 dayjs.extend(customParseFormat);
 
-import { MomentStatus } from '../lib/protocol.js';
+import * as fml from '../lib/fml.js';
+import { MomentStatus, MomentTier } from '../lib/protocol.js';
 
 type Moment = {
   timestamp: dayjs.Dayjs | undefined;
@@ -11,22 +12,13 @@ type Moment = {
   text: string;
   iconID: string | undefined;
   status: MomentStatus;
-};
-
-// キュレーションの項目。ura の SAVE は送ってこないので、Moment（本文の側）とは分けて持ち、
-// SAVE では書き換えない。書くのは専用のメソッド（Shelf.updateMomentCuration など）だけ。
-// TODO: 編集画面がこれらの項目も送るようになったら、Moment にまとめ、SAVE で全部書く（#46）。
-type MomentTier = 'pickup' | 'archive' | 'sketch' | 'hidden';
-
-type MomentCuration = {
+  // 以下、キュレーションの項目。
   tier: MomentTier;
   series: string[];
   // sensitiveManual が false の間は、本文と entity_annotations から計算した値（Sensitive.ts）を書き込むたびに保つ。
   sensitive: boolean;
   sensitiveManual: boolean;
 };
-
-type CuratedMoment = Moment & MomentCuration;
 
 type MomentSummary = {
   timestamp: dayjs.Dayjs | undefined;
@@ -56,6 +48,48 @@ export function parseMomentTier(str: unknown): MomentTier {
   throw new Error(`Invalid moment tier: ${str}`);
 }
 
+export function parseMomentSeries(v: unknown): string[] {
+  if (Array.isArray(v) && v.every((s) => typeof s === 'string')) {
+    return v;
+  }
+  throw new Error(`Invalid moment series: ${JSON.stringify(v)}`);
+}
+
+// sensitive の手での上書き。null は自動。欠けている（undefined）ときも例外にする（自動に読み替えない）。
+export function parseSensitiveOverride(v: unknown): boolean | null {
+  if (v === null || v === true || v === false) {
+    return v;
+  }
+  throw new Error(`Invalid sensitive override: ${v}`);
+}
+
+// moment のアイコンにする entity。本文の最初の [image]、無ければ最初の [video]・[audio]。
+// SAVE（Shelf.updateMoment）は書くたびにこれで求め直す。
+export function momentIconID(doc: fml.Document): string | undefined {
+  let iconID: string | undefined = undefined;
+  for (const block of doc.blocks) {
+    let found = false;
+    switch (block.type) {
+      case 'image':
+        if (block.entity !== undefined) {
+          iconID = block.entity;
+          found = true;
+        }
+        break;
+      case 'video':
+      case 'audio':
+        if (block.entity !== undefined && iconID === undefined) {
+          iconID = block.entity;
+        }
+        break;
+    }
+    if (found) {
+      break;
+    }
+  }
+  return iconID;
+}
+
 const kMomentTimeFormat = 'YYYY/MM/DD HH:mm:ss';
 const kMomentPathFormat = '/YYYY/MM/DD/HH:mm:ss/';
 
@@ -78,8 +112,6 @@ export function formatMomentTime(time: dayjs.Dayjs): string {
 export {
   Moment,
   MomentTier,
-  MomentCuration,
-  CuratedMoment,
   MomentSummary,
   MomentVisibility,
 };

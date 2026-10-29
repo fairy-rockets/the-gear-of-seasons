@@ -110,6 +110,12 @@ img.emoji {
   justify-content: flex-end;
 }
 
+.editor-container .editor-wrapper .editor-curation .editor-series {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0 0.5em;
+}
+
 .editor-container .editor-wrapper input,
 .editor-container .editor-wrapper .editor-bar option,
 .editor-container .editor-wrapper .editor-bar select,

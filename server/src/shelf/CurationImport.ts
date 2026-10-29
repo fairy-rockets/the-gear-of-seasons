@@ -6,7 +6,7 @@ import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { Entity } from './Entity.js';
 import { AnnotationField, EntityAnnotation, validateEntityAnnotation } from './EntityAnnotation.js';
-import { CuratedMoment, MomentTier, parseMomentTier } from './Moment.js';
+import { Moment, MomentTier, formatMomentTime, momentIconID, parseMomentTier } from './Moment.js';
 import { computeSensitive, sensitiveTargetEntityIDs } from './Sensitive.js';
 import {
   AnnotationValue,
@@ -188,14 +188,14 @@ export function parseCurationFile(src: string): { file: CurationFile, errors: st
 // 2段目に渡す、DB の今の値。loadCurationState が読む。
 export type CurationState = {
   // ファイルの moment のうち DB にあったもの。キーはファイルの timestamp の valueOf()。
-  moments: Map<number, CuratedMoment>;
+  moments: Map<number, Moment>;
   // ファイルの entity のうち、entities に行があったもの。
   entities: Map<string, Entity>;
-  // ファイルの entity と、autoSensitiveMoments の [image]・[video] の entity の注釈（行があるものだけ）。
+  // ファイルの entity と、ファイルの moment・autoSensitiveMoments の [image]・[video] の entity の注釈（行があるものだけ）。
   annotations: Map<string, EntityAnnotation>;
   // ファイルの entity を本文に含みうる、sensitive_manual = false の moment（ファイルに無い moment も含む）。
   // 注釈を書くと saveEntityAnnotation がこれらの sensitive を計算し直すので、計画にもそれを出す。
-  autoSensitiveMoments: CuratedMoment[];
+  autoSensitiveMoments: Moment[];
 };
 
 export async function loadCurationState(repo: Repo, file: CurationFile): Promise<CurationState> {
@@ -210,7 +210,7 @@ export async function loadCurationState(repo: Repo, file: CurationFile): Promise
       entityIDs.add(media.entityID);
     }
   }
-  const candidates = new Map<number, CuratedMoment>();
+  const candidates = new Map<number, Moment>();
   for (const id of entityIDs) {
     const entity = await repo.findEntity(id);
     if (entity !== null) {
@@ -222,7 +222,8 @@ export async function loadCurationState(repo: Repo, file: CurationFile): Promise
   }
   state.autoSensitiveMoments = [...candidates.values()];
   const annotationIDs = new Set(entityIDs);
-  for (const m of state.autoSensitiveMoments) {
+  // ファイルの moment は SAVE と同じ口で書くので、自動なら sensitive が計算し直される。その計算にも要る。
+  for (const m of [...state.moments.values(), ...state.autoSensitiveMoments]) {
     for (const id of sensitiveTargetEntityIDs(fml.parse(m.text))) {
       annotationIDs.add(id);
     }
@@ -254,10 +255,9 @@ export type MomentPlan = {
   label: string;
   timestamp: dayjs.Dayjs;
   changes: FieldChange[];
-  // 書いたあとの tier と series。tierOrSeriesChanged のときだけ書く。
+  // 書いたあとの tier と series。
   tier: MomentTier;
   series: string[];
-  tierOrSeriesChanged: boolean;
   // 手で上書きする sensitive の値。書かないなら null。
   sensitive: boolean | null;
 };
@@ -281,7 +281,7 @@ export type CurationPlan = {
   // 変更のあるものだけ。
   moments: MomentPlan[];
   entities: EntityPlan[];
-  // 注釈を書いたあとに計算し直されて変わる sensitive。
+  // 注釈を書いたあとや、moment を書くときに計算し直されて変わる sensitive（手で上書きしない moment のもの）。
   autoSensitive: AutoSensitivePlan[];
   conflicts: Conflict[];
 };
@@ -340,7 +340,7 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
     // moment の項目
     const mp: MomentPlan = {
       label: fm.label, timestamp: current.timestamp!!, changes: [],
-      tier: current.tier, series: current.series, tierOrSeriesChanged: false, sensitive: null,
+      tier: current.tier, series: current.series, sensitive: null,
     };
     if (fm.tier !== undefined) {
       const d = decide('tier', current.tier, fm.tier, opts.overwrite);
@@ -349,7 +349,6 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
       } else if (d !== 'same') {
         mp.changes.push({ key: 'tier', from: current.tier, to: fm.tier, overwrite: d === 'overwrite' });
         mp.tier = fm.tier;
-        mp.tierOrSeriesChanged = true;
       }
     }
     if (fm.series !== undefined) {
@@ -359,7 +358,6 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
       } else if (d !== 'same') {
         mp.changes.push({ key: 'series', from: current.series, to: fm.series, overwrite: d === 'overwrite' });
         mp.series = fm.series;
-        mp.tierOrSeriesChanged = true;
       }
     }
     // sensitive は、手で上書きされていない（sensitive_manual = false）なら未入力とみなす。
@@ -378,6 +376,11 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
       }
     }
     if (mp.changes.length > 0) {
+      // SAVE と同じ口で書くので、icon_id は本文から求め直される。変わるなら計画に出す。
+      const iconID = momentIconID(fml.parse(current.text));
+      if (iconID !== current.iconID) {
+        mp.changes.push({ key: 'icon_id', from: current.iconID ?? null, to: iconID ?? null, overwrite: false, note: '本文から求め直す' });
+      }
       plan.moments.push(mp);
     }
 
@@ -439,22 +442,33 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
     }
   }
 
-  // 注釈を書くと、その entity を [image]・[video] に含む自動の moment の sensitive が計算し直される（saveEntityAnnotation）。
+  // 自動の moment の sensitive が計算し直されるのは、次の2つ。
+  // - 注釈を書くと、その entity を [image]・[video] に含む moment（saveEntityAnnotation）。
+  // - 書く moment（plan.moments）のうち、手で上書きしないもの（SAVE と同じ口で書くので）。
+  //   保存されている値が今の計算と食い違っていれば（Sensitive.ts の規則を変えたあとなど）、注釈を書かなくても変わる。
   // 手で上書きする moment は、そのあとで上書きの値になるので除く。
   const written = new Map(state.annotations);
   for (const e of plan.entities) {
     written.set(e.entity.id, e.annotation);
   }
   const overridden = new Set(plan.moments.filter((m) => m.sensitive !== null).map((m) => m.timestamp.valueOf()));
+  const recomputed = new Map<number, Moment>();
   for (const m of state.autoSensitiveMoments) {
-    if (overridden.has(m.timestamp!!.valueOf())) {
+    if (sensitiveTargetEntityIDs(fml.parse(m.text)).some((id) => plan.entities.some((e) => e.entity.id === id))) {
+      recomputed.set(m.timestamp!!.valueOf(), m);
+    }
+  }
+  for (const mp of plan.moments) {
+    const m = state.moments.get(mp.timestamp.valueOf())!!;
+    if (!m.sensitiveManual) {
+      recomputed.set(m.timestamp!!.valueOf(), m);
+    }
+  }
+  for (const [key, m] of recomputed) {
+    if (overridden.has(key)) {
       continue;
     }
-    const doc = fml.parse(m.text);
-    if (!sensitiveTargetEntityIDs(doc).some((id) => plan.entities.some((e) => e.entity.id === id))) {
-      continue;
-    }
-    const to = computeSensitive(doc, written);
+    const to = computeSensitive(fml.parse(m.text), written);
     if (to !== m.sensitive) {
       plan.autoSensitive.push({ timestamp: m.timestamp!!, from: m.sensitive, to });
     }
@@ -464,7 +478,8 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
 }
 
 // 3段目: 計画を書く。1つのトランザクションにするため、shelf は tx で作ったもの（new Shelf(tx)）を渡す。
-// 注釈を先に書き（sensitive が計算し直される）、そのあとで手での上書きを書く。
+// 注釈を先に書き（sensitive が計算し直される）、そのあとで moment を書く。
+// moment は ura の SAVE と同じ Shelf.updateMoment で書く。今の値を読み直し、計画で変わる項目だけを差し替えて渡す。
 export async function applyCurationPlan(shelf: Shelf, plan: CurationPlan) {
   if (plan.errors.length > 0) {
     throw new Error('[FIXME] Cannot apply a plan with errors');
@@ -473,11 +488,24 @@ export async function applyCurationPlan(shelf: Shelf, plan: CurationPlan) {
     await shelf.saveEntityAnnotation(e.annotation);
   }
   for (const m of plan.moments) {
-    if (m.tierOrSeriesChanged) {
-      await shelf.updateMomentCuration(m.timestamp, m.tier, m.series);
+    const current = await shelf.findMoment(m.timestamp, 'all');
+    if (current === null) {
+      throw new Error(`Moment not found: ${m.label}`);
     }
-    if (m.sensitive !== null) {
-      await shelf.overrideMomentSensitive(m.timestamp, m.sensitive);
-    }
+    const date = formatMomentTime(current.timestamp!!);
+    const changed = (key: string) => m.changes.some((c) => c.key === key);
+    // 計画に sensitive が無ければ、今の状態を保つ（手で上書きしてあればその値、そうでなければ自動のまま）。
+    const keep = current.sensitiveManual ? current.sensitive : null;
+    await shelf.updateMoment({
+      title: current.title,
+      originalDate: date,
+      date: date,
+      author: current.author,
+      text: current.text,
+      status: current.status,
+      tier: changed('tier') ? m.tier : current.tier,
+      series: changed('series') ? m.series : current.series,
+      sensitiveOverride: m.sensitive ?? keep,
+    });
   }
 }

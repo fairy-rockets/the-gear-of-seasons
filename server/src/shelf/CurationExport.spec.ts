@@ -8,7 +8,7 @@ import Repo from '../repo/Repo.js';
 import * as fml from '../lib/fml.js';
 import { Entity } from './Entity.js';
 import { EntityAnnotation } from './EntityAnnotation.js';
-import { CuratedMoment } from './Moment.js';
+import { Moment } from './Moment.js';
 import { isMomentLabel } from './CurationFormat.js';
 import {
   ExportSource,
@@ -46,7 +46,7 @@ function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): E
   };
 }
 
-function moment(t: string, text: string, values: Partial<CuratedMoment> = {}): CuratedMoment {
+function moment(t: string, text: string, values: Partial<Moment> = {}): Moment {
   return {
     timestamp: dayjs(t), title: '常夏の世界一周', author: '宵宮ナギ', text, iconID: kA, status: 'published',
     tier: 'archive', series: [], sensitive: false, sensitiveManual: false,
@@ -236,7 +236,7 @@ describe("mediaEntityIDs・markdownURLs", () => {
   });
 });
 
-function source(moments: CuratedMoment[], entities: Entity[] = [], annotations: EntityAnnotation[] = []): ExportSource {
+function source(moments: Moment[], entities: Entity[] = [], annotations: EntityAnnotation[] = []): ExportSource {
   const [e, a] = maps(entities, annotations);
   return { moments, entities: e, annotations: a, missingEntityIDs: [] };
 }
