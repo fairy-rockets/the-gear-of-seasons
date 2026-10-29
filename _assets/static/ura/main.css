@@ -209,6 +209,13 @@ img.emoji {
   border: 1px solid white;
 }
 
+/* 保存の通信中は押せない。見た目は帯のボタンの :disabled に合わせる */
+.annotation-close:disabled,
+.annotation-save:disabled {
+  color: #444;
+  border: 1px solid #333;
+}
+
 .annotation-form {
   flex: 1 1 0;
   overflow-y: auto;

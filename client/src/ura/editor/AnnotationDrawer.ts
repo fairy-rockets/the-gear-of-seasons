@@ -64,6 +64,9 @@ const kTypeLabels: Record<protocol.EntityType, string> = {
 // GET /annotations の1度に読む数の上限（サーバーと同じ）。
 const kMaxFindIDs = 256;
 
+// entity の id の形（サーバーと同じ、md5）。合わない id には印を付けず、読みにも行かない。
+const kEntityID = /^[0-9a-f]{32}$/;
+
 const LOAD_TOAST_KEY = 'annotation-load';
 
 // 1つの項目の入力欄。触っていない項目は、読んだ値のまま送る（import で入った '' などを黙って null にしない）。
@@ -102,12 +105,29 @@ function markOf(entry: Entry | undefined): Mark {
     : { state: 'unchecked', label: '注釈：未確認' };
 }
 
+async function fetchAnnotations(ids: string[]): Promise<protocol.Annotation.Find.Response['entities']> {
+  const entities: protocol.Annotation.Find.Response['entities'] = [];
+  for (let i = 0; i < ids.length; i += kMaxFindIDs) {
+    const chunk = ids.slice(i, i + kMaxFindIDs);
+    const r = await fetch(`/annotations?ids=${chunk.map(encodeURIComponent).join(',')}`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!r.ok) {
+      throw new Error(await describeResponseError(r));
+    }
+    const result = await r.json() as protocol.Annotation.Find.Response;
+    entities.push(...result.entities);
+  }
+  return entities;
+}
+
 function splitList(text: string): string[] {
   return text.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
 }
 
 // プレビューのメディアから開く、注釈の引き出し。本文の入力欄（左の列）の上にかぶせて出す。
 export default class AnnotationDrawer {
+  private readonly column_: HTMLElement;
   private readonly preview_: HTMLElement;
   private readonly drawer_: HTMLDivElement;
   private readonly icon_: HTMLImageElement;
@@ -115,18 +135,23 @@ export default class AnnotationDrawer {
   private readonly form_: HTMLDivElement;
   private readonly status_: HTMLSpanElement;
   private readonly save_: HTMLButtonElement;
+  private readonly close_: HTMLButtonElement;
   private editor_: Editor | null;
   private readonly annotations_: Map<string, Entry>;
   private readonly loading_: Set<string>;
   private opened_: Opened | null;
+  // 開こうとして、注釈を読み直している entity。読み直しの間に別のメディアを選んだら、後の方だけを開く。
+  private opening_: string | null;
   private saving_: boolean;
 
   constructor(column: HTMLElement, preview: HTMLElement) {
+    this.column_ = column;
     this.preview_ = preview;
     this.editor_ = null;
     this.annotations_ = new Map();
     this.loading_ = new Set();
     this.opened_ = null;
+    this.opening_ = null;
     this.saving_ = false;
 
     this.drawer_ = document.createElement('div');
@@ -142,13 +167,13 @@ export default class AnnotationDrawer {
     this.title_ = document.createElement('div');
     this.title_.classList.add('annotation-title');
     header.appendChild(this.title_);
-    const close = document.createElement('button');
-    close.type = 'button';
-    close.classList.add('annotation-close');
-    close.title = '閉じる';
-    close.textContent = '×';
-    close.addEventListener('click', () => this.close());
-    header.appendChild(close);
+    this.close_ = document.createElement('button');
+    this.close_.type = 'button';
+    this.close_.classList.add('annotation-close');
+    this.close_.title = '閉じる';
+    this.close_.textContent = '×';
+    this.close_.addEventListener('click', () => this.close());
+    header.appendChild(this.close_);
     this.drawer_.appendChild(header);
 
     this.form_ = document.createElement('div');
@@ -179,8 +204,8 @@ export default class AnnotationDrawer {
     this.editor_ = editor;
   }
 
-  hasFocus(): boolean {
-    return !this.drawer_.hidden && this.drawer_.contains(document.activeElement);
+  isOpen(): boolean {
+    return this.opened_ !== null;
   }
 
   // プレビューを描き直すたびに呼ぶ。各メディアの直前に印を差し込み、まだ読んでいない注釈を読む。
@@ -188,6 +213,9 @@ export default class AnnotationDrawer {
     const unread = new Set<string>();
     for (const media of Array.from(this.preview_.querySelectorAll<HTMLElement>('[data-entity]'))) {
       const id = media.dataset.entity!;
+      if (!kEntityID.test(id)) {
+        continue;
+      }
       const mark = document.createElement('button');
       mark.type = 'button';
       mark.classList.add('annotation-mark');
@@ -210,18 +238,36 @@ export default class AnnotationDrawer {
   }
 
   // 保存していない入力があれば、確かめてから閉じる。閉じたら true。
+  // 保存の通信中は閉じない。
   close(): boolean {
     if (this.opened_ === null) {
       return true;
     }
-    if (!this.confirmDiscard_()) {
+    if (this.saving_ || !this.confirmDiscard_()) {
       return false;
     }
     this.opened_ = null;
-    this.drawer_.hidden = true;
+    this.show_(false);
     this.form_.replaceChildren();
     this.select_(null);
     return true;
+  }
+
+  // 引き出しは本文の入力欄の列を覆うので、開いている間は覆った要素に inert を付け、Tab でフォーカスが移らないようにする。
+  private show_(visible: boolean) {
+    this.drawer_.hidden = !visible;
+    for (const child of Array.from(this.column_.children)) {
+      if (child !== this.drawer_) {
+        child.toggleAttribute('inert', visible);
+      }
+    }
+  }
+
+  // 保存の通信中は、閉じる・保存のボタンを押せなくする。
+  private setSaving_(saving: boolean) {
+    this.saving_ = saving;
+    this.save_.disabled = saving;
+    this.close_.disabled = saving;
   }
 
   async save() {
@@ -236,8 +282,7 @@ export default class AnnotationDrawer {
       annotation: values,
     };
     let result: protocol.Annotation.Save.Response;
-    this.saving_ = true;
-    this.save_.disabled = true;
+    this.setSaving_(true);
     try {
       const r = await fetch('/annotation', {
         method: 'POST',
@@ -256,8 +301,7 @@ export default class AnnotationDrawer {
       showToast(`注釈を保存できませんでした: ${describeError(e)}`);
       return;
     } finally {
-      this.saving_ = false;
-      this.save_.disabled = false;
+      this.setSaving_(false);
     }
     opened.entry.annotation = values;
     opened.original = values;
@@ -280,7 +324,9 @@ export default class AnnotationDrawer {
     const image = target.closest<HTMLElement>('img[data-entity]');
     if (image !== null) {
       event.preventDefault();
-      this.open_(image.dataset.entity!);
+      if (kEntityID.test(image.dataset.entity!)) {
+        this.open_(image.dataset.entity!);
+      }
       return;
     }
     // プレビューの中では、画像を包むリンクでページを移らない。
@@ -290,22 +336,45 @@ export default class AnnotationDrawer {
     }
   }
 
-  private open_(id: string) {
-    if (this.opened_ !== null && this.opened_.id === id) {
-      this.select_(id);
+  // 開くたびに、その entity の注釈を読み直して欄を組む。ほかのタブや import で変わった値を、
+  // 前に読んだ値のまま保存して黙って戻さないため。読み直せなければ開かない。
+  private async open_(id: string) {
+    // 保存の通信中は、別のメディアを開かない。
+    if (this.saving_) {
       return;
     }
-    const entry = this.annotations_.get(id);
-    if (entry === undefined) {
-      showToast('注釈をまだ読めていません。少し待ってから開いてください');
-      if (!this.loading_.has(id)) {
-        this.load_([id]);
-      }
+    if (this.opened_ !== null && this.opened_.id === id) {
+      this.select_(id);
       return;
     }
     if (!this.close()) {
       return;
     }
+    this.opening_ = id;
+    let found: protocol.Annotation.Find.Response['entities'];
+    try {
+      found = await fetchAnnotations([id]);
+    } catch (e) {
+      console.error(e);
+      if (this.opening_ === id) {
+        this.opening_ = null;
+        showToast(`注釈を読めないので、引き出しを開けません: ${describeError(e)}`);
+      }
+      return;
+    }
+    // 読み直している間に、別のメディアを選んだ・もう開いた。
+    if (this.opening_ !== id || this.opened_ !== null) {
+      return;
+    }
+    this.opening_ = null;
+    const e = found.find((it) => it.entityID === id);
+    if (e === undefined) {
+      showToast(`entity が見つからないので、引き出しを開けません: ${id}`);
+      return;
+    }
+    const entry: Entry = { type: e.type, annotation: e.annotation };
+    this.annotations_.set(id, entry);
+    this.refreshMarks_();
     const inputs = new Map<AnnotationField, Input>();
     for (const field of protocol.kAnnotationFieldsByType[entry.type]) {
       const input = makeInput(field, entry.annotation[field]);
@@ -315,7 +384,7 @@ export default class AnnotationDrawer {
     this.opened_ = { id, entry, original: entry.annotation, inputs };
     this.icon_.src = `/entity/${encodeURIComponent(id)}/icon`;
     this.title_.textContent = `${kTypeLabels[entry.type]}  ${id}`;
-    this.drawer_.hidden = false;
+    this.show_(true);
     this.drawer_.scrollTop = 0;
     this.updateStatus_();
     this.select_(id);
@@ -386,18 +455,12 @@ export default class AnnotationDrawer {
       this.loading_.add(id);
     }
     try {
-      for (let i = 0; i < ids.length; i += kMaxFindIDs) {
-        const chunk = ids.slice(i, i + kMaxFindIDs);
-        const r = await fetch(`/annotations?ids=${chunk.map(encodeURIComponent).join(',')}`, {
-          headers: { 'Accept': 'application/json' },
-        });
-        if (!r.ok) {
-          throw new Error(await describeResponseError(r));
+      for (const e of await fetchAnnotations(ids)) {
+        // 開いている entity の値は、開いたときに読み直したものを保つ（保存で印と揃える）。
+        if (this.opened_ !== null && this.opened_.id === e.entityID) {
+          continue;
         }
-        const result = await r.json() as protocol.Annotation.Find.Response;
-        for (const e of result.entities) {
-          this.annotations_.set(e.entityID, { type: e.type, annotation: e.annotation });
-        }
+        this.annotations_.set(e.entityID, { type: e.type, annotation: e.annotation });
       }
     } catch (e) {
       // 読めなかった id は Map に入らないので、次にプレビューを描き直したときに読み直す

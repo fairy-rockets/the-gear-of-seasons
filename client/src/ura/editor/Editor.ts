@@ -62,8 +62,9 @@ export default class Editor {
       const macMeta = (event.metaKey && !event.ctrlKey);
       const winMeta = (!event.metaKey && event.ctrlKey);
       if (event.key === 's' && (macMeta || winMeta)) { // Ctrl + S / Cmd + S
-        // 注釈の引き出しの中にフォーカスがあれば、注釈を保存する。
-        if (this.drawer_!.hasFocus()) {
+        // 注釈の引き出しが開いていれば、注釈を保存する。引き出しは SAVE ボタンのある列を覆うので、
+        // いま押せる保存ボタンを押すのと同じにする。
+        if (this.drawer_!.isOpen()) {
           window.setTimeout(() => this.drawer_!.save(), 0);
         } else {
           window.setTimeout(this.onSaveEventListener_, 0);
