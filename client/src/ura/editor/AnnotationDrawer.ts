@@ -55,6 +55,12 @@ const kLabels: Record<AnnotationField, string> = {
   roleNote: 'role_note',
 };
 
+// 引き出しの先頭にまとめる、Ollama が下書きする項目と、それをすべて確かめたかの checked（#2）。checked は最後。
+// ほかの項目は、このまとまりの後に protocol.ts の kAnnotationFields の順で並べる。
+const kDraftFields: readonly AnnotationField[] = [
+  'medium', 'alt', 'description', 'tags', 'palette', 'looksNude', 'looksChild', 'looksNote', 'checked',
+];
+
 const kTypeLabels: Record<protocol.EntityType, string> = {
   image: '画像',
   video: '動画',
@@ -350,7 +356,10 @@ export default class AnnotationDrawer {
     if (!this.close()) {
       return;
     }
+    // 読み直している間は、その印を読み込み中の表示にする（refreshMarks_）。
+    // 別のメディアに乗り換えたときは、乗り換えた先の refreshMarks_ で元の表示に戻る。
     this.opening_ = id;
+    this.refreshMarks_();
     let found: protocol.Annotation.Find.Response['entities'];
     try {
       found = await fetchAnnotations([id]);
@@ -358,28 +367,45 @@ export default class AnnotationDrawer {
       console.error(e);
       if (this.opening_ === id) {
         this.opening_ = null;
+        this.refreshMarks_();
         showToast(`注釈を読めないので、引き出しを開けません: ${describeError(e)}`);
       }
       return;
     }
-    // 読み直している間に、別のメディアを選んだ・もう開いた。
-    if (this.opening_ !== id || this.opened_ !== null) {
+    // 読み直している間に、別のメディアを選んだ。
+    if (this.opening_ !== id) {
       return;
     }
     this.opening_ = null;
     const e = found.find((it) => it.entityID === id);
     if (e === undefined) {
+      this.refreshMarks_();
       showToast(`entity が見つからないので、引き出しを開けません: ${id}`);
       return;
     }
     const entry: Entry = { type: e.type, annotation: e.annotation };
     this.annotations_.set(id, entry);
     this.refreshMarks_();
+    const fields = protocol.kAnnotationFieldsByType[entry.type];
     const inputs = new Map<AnnotationField, Input>();
-    for (const field of protocol.kAnnotationFieldsByType[entry.type]) {
+    // 下書きの範囲のまとまり。checked が false の間だけ枠で囲む（checked を持たない種類には出さない）。
+    const draft = document.createElement('div');
+    draft.classList.add('annotation-draft');
+    this.form_.appendChild(draft);
+    for (const field of [...kDraftFields, ...protocol.kAnnotationFields.filter((f) => !kDraftFields.includes(f))]) {
+      if (!fields.includes(field)) {
+        continue;
+      }
       const input = makeInput(field, entry.annotation[field]);
       inputs.set(field, input);
-      this.form_.appendChild(input.elem);
+      (kDraftFields.includes(field) ? draft : this.form_).appendChild(input.elem);
+    }
+    const checked = inputs.get('checked');
+    if (checked !== undefined) {
+      // 付けた・外した時点で、保存の前でも枠を切り替える。
+      const update = () => draft.classList.toggle('annotation-unchecked', checked.read() === false);
+      checked.elem.addEventListener('change', update);
+      update();
     }
     this.opened_ = { id, entry, original: entry.annotation, inputs };
     this.icon_.src = `/entity/${encodeURIComponent(id)}/icon`;
@@ -444,7 +470,8 @@ export default class AnnotationDrawer {
 
   private refreshMarks_() {
     for (const mark of Array.from(this.preview_.querySelectorAll<HTMLElement>('.annotation-mark'))) {
-      const m = markOf(this.annotations_.get(mark.dataset.annotation!));
+      const id = mark.dataset.annotation!;
+      const m = markOf(id === this.opening_ ? undefined : this.annotations_.get(id));
       mark.textContent = m.label;
       mark.dataset.state = m.state;
     }
@@ -565,14 +592,12 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
       break;
     }
     case 'checked': {
-      row.classList.add('annotation-checked');
       const check = document.createElement('input');
       check.type = 'checkbox';
       check.checked = value === true;
       check.addEventListener('change', touch);
       input.read = () => check.checked;
-      // チェックボックスを見出しの前に置く。
-      row.insertBefore(check, name);
+      row.appendChild(check);
       break;
     }
   }

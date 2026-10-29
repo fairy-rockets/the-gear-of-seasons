@@ -270,22 +270,14 @@ img.emoji {
   font-size: smaller;
 }
 
-.annotation-checked {
-  margin: 0.2em 0 0.8em 0;
-  padding: 0.4em;
-  border: 1px solid #f0c040;
-  font-size: 120%;
-  font-weight: 800;
+/* 下書きの範囲のまとまり。checked が false の間だけ枠を出す（枠の有無で欄が動かないよう、幅は常にとる） */
+.annotation-draft {
+  padding: 0 0.4em;
+  border: 1px solid transparent;
 }
 
-.annotation-checked input[type="checkbox"] {
-  width: 1.4em;
-  height: 1.4em;
-}
-
-.annotation-checked .annotation-label {
-  flex: 1 1 auto;
-  color: #f0c040;
+.annotation-draft.annotation-unchecked {
+  border-color: #f0c040;
 }
 
 .annotation-footer {
