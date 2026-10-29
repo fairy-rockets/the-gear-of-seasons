@@ -31,6 +31,7 @@ import EditController from './controller/ura/EditController.js';
 import SaveController from './controller/ura/SaveController.js';
 import DeleteController from './controller/ura/DeleteController.js';
 import PreviewController from './controller/ura/PreviewController.js';
+import AnnotationController from './controller/ura/AnnotationController.js';
 // Both Controllers
 import EntityController, {EntityControllerInterface} from './controller/both/EntityController.js';
 import MomentBodyController from './controller/both/MomentBodyController.js';
@@ -181,6 +182,11 @@ class Server {
     { // (ura)/preview
       const ura = await PreviewController.create(this.shelf);
       this.ura.post('/preview', ura.handle.bind(ura));
+    }
+    { // (ura)/annotations, (ura)/annotation
+      const ura = await AnnotationController.create(this.shelf);
+      this.ura.get('/annotations', ura.handleFind.bind(ura));
+      this.ura.post('/annotation', ura.handleSave.bind(ura));
     }
     { // (ura)/upload
       const ura = await UploadController.create(this.shelf);

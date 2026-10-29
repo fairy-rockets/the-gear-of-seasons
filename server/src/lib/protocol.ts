@@ -95,3 +95,33 @@ export namespace Moment {
     };
   }
 }
+
+export namespace Annotation {
+  export namespace Find {
+    // GET /annotations?ids=<id>,<id>,… の応答。entity が無い id は entities に入らない。
+    // 注釈の行が無い entity は、未入力の値（checked は false、ほかは null）で返す。
+    export type Response = {
+      entities: {
+        entityID: string;
+        type: EntityType;
+        annotation: AnnotationValues;
+      }[];
+    };
+  }
+  export namespace Save {
+    // POST /annotation。annotation の項目はすべて送る（その種類が持たない項目は null、checked は false）。
+    export type Request = {
+      entityID: string;
+      // 開いている moment の日時（Moment.Save.Request の originalDate と同じ形）。新規の moment なら null。
+      originalDate?: string | null;
+      annotation: AnnotationValues;
+    };
+    export type Response = {
+      // originalDate の moment の、保存のあとの値。moment が無ければ入らない。
+      moment?: {
+        sensitive: boolean;
+        sensitiveManual: boolean;
+      };
+    };
+  }
+}
