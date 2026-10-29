@@ -18,6 +18,20 @@
       <div style="width: 1em;"></div>
       <button id="delete">DEL</button>
     </div>
+    <div class="editor-bar editor-curation">
+      <select name="tier" id="tier" title="tier">
+        <option value="pickup" {{#if (eq tier "pickup")}}selected{{/if}}>pickup</option>
+        <option value="archive" {{#if (eq tier "archive")}}selected{{/if}}>archive</option>
+        <option value="sketch" {{#if (eq tier "sketch")}}selected{{/if}}>sketch</option>
+        <option value="hidden" {{#if (eq tier "hidden")}}selected{{/if}}>hidden</option>
+      </select>
+      <input class="editor-series" type="text" name="series" id="series" title="series" placeholder="series（カンマ区切り）" {{#if series}}value="{{series}}"{{/if}} />
+      <select name="sensitive" id="sensitive" title="sensitive">
+        <option value="auto" {{#if (eq sensitive "auto")}}selected{{/if}}>自動（今は {{#if autoSensitive}}はい{{else}}いいえ{{/if}}）</option>
+        <option value="true" {{#if (eq sensitive "true")}}selected{{/if}}>上書き：はい</option>
+        <option value="false" {{#if (eq sensitive "false")}}selected{{/if}}>上書き：いいえ</option>
+      </select>
+    </div>
     <textarea id="text">{{text}}</textarea>
   </div>
   <div id="preview"></div>

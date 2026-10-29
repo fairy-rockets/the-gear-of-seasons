@@ -1,6 +1,6 @@
 import Asset from '../../../lib/Asset.js';
 
-import { MomentStatus } from '../../../lib/protocol.js';
+import { MomentStatus, MomentTier } from '../../../lib/protocol.js';
 
 import UraTemplate from './UraTemplate.js';
 
@@ -10,6 +10,13 @@ type EditorData = {
   date: string;
   text: string;
   status: MomentStatus;
+  tier: MomentTier;
+  // カンマ区切りで1つの文字列にしたもの。
+  series: string;
+  // 'auto' は自動、'true' / 'false' は手での上書き。
+  sensitive: 'auto' | 'true' | 'false';
+  // 本文と注釈から計算した sensitive の値。「自動（今は…）」に出す。
+  autoSensitive: boolean;
 };
 
 class EditorTemplate {

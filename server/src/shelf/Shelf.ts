@@ -14,15 +14,15 @@ import Storage from '../storage/Storage.js';
 import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity.js';
 import { EntityAnnotation, validateEntityAnnotation } from './EntityAnnotation.js';
 import {
-  CuratedMoment,
   Moment,
   MomentSummary,
-  MomentTier,
   MomentVisibility,
   formatMomentTime,
+  parseMomentSeries,
   parseMomentStatus,
   parseMomentTier,
   parseMomentTime,
+  parseSensitiveOverride,
 } from './Moment.js';
 import { computeSensitive, sensitiveTargetEntityIDs } from './Sensitive.js';
 
@@ -266,30 +266,47 @@ class Shelf {
     return set;
   }
 
-  // ura の SAVE。キュレーションの項目は Save.Request に無いので書き換えない（sensitive は自動のときだけ計算し直す）。
+  // ura の SAVE。import-curation もこれで書く。Save.Request のすべての項目を書く。
+  // sensitive は、sensitiveOverride が true / false ならその値（手での上書き）、null なら本文と注釈から計算した値（自動）にする。
   async updateMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
-    const m = await this.makeMomentFromRequest(req);
-    const autoSensitive = await calcSensitive(this.repo, m.text);
-    if (req.originalDate === null) {
-      // new
-      await this.repo.insertMoment(m, autoSensitive);
-    } else {
-      // update
-      const oldTimestamp = parseMomentTime(req.originalDate);
+    const fields = await this.makeMomentFromRequest(req);
+    const override = parseSensitiveOverride(req.sensitiveOverride);
+    let oldTimestamp: dayjs.Dayjs | null = null;
+    if (req.originalDate !== null) {
+      oldTimestamp = parseMomentTime(req.originalDate);
       if (!oldTimestamp.isValid()) {
         throw new Error(`Invalid old date: ${req.originalDate}`);
       }
-      await this.repo.updateMoment(oldTimestamp, m, autoSensitive);
     }
-    return m;
+    // 計算に使う注釈と書き込みを、同じトランザクションにする。
+    return await this.repo.transaction(async (tx) => {
+      const m: Moment = {
+        ...fields,
+        sensitive: override ?? await calcSensitive(tx, fields.text),
+        sensitiveManual: override !== null,
+      };
+      if (oldTimestamp === null) {
+        // new
+        await tx.insertMoment(m);
+      } else {
+        // update
+        if (!await tx.updateMoment(oldTimestamp, m)) {
+          throw new Error(`Moment not found: ${req.originalDate}`);
+        }
+      }
+      return m;
+    });
   }
 
   /* ***********************************************************************************************
    * Moment
    ********************************************************************************************** */
 
-  private async makeMomentFromRequest(req: protocol.Moment.Save.Request): Promise<Moment> {
+  // sensitive 以外の項目。sensitive は updateMoment がトランザクションの中で決める。
+  private async makeMomentFromRequest(req: protocol.Moment.Save.Request): Promise<Omit<Moment, 'sensitive' | 'sensitiveManual'>> {
     const status = parseMomentStatus(req.status);
+    const tier = parseMomentTier(req.tier);
+    const series = parseMomentSeries(req.series);
     let date = req.date;
     let iconID: string | undefined = undefined;
     const doc = fml.parse(req.text);
@@ -339,11 +356,13 @@ class Shelf {
       text: req.text,
       iconID: iconID,
       status: status,
+      tier: tier,
+      series: series,
     };
   }
 
   // 下書きも含めた全件。gc などが使用中の entity を数えるのに使うので、絞らない。
-  enumurateAllMoments(): AsyncGenerator<CuratedMoment> {
+  enumurateAllMoments(): AsyncGenerator<Moment> {
     return this.repo.enumurateAllMoments();
   }
 
@@ -352,7 +371,7 @@ class Shelf {
     return await this.repo.findMomentSummariesInYear(year, visibility);
   }
 
-  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<CuratedMoment | null> {
+  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
     return await this.repo.findMoment(timestamp, visibility);
   }
 
@@ -380,34 +399,7 @@ class Shelf {
    * Curation
    ********************************************************************************************** */
 
-  // TODO: updateMomentCuration・overrideMomentSensitive・resetMomentSensitive は、編集画面から
-  // キュレーションの項目も送るようになったら、updateMoment（SAVE）の引数で表してなくす（#46）。
-
-  async updateMomentCuration(timestamp: dayjs.Dayjs, tier: MomentTier, series: string[]) {
-    if (!await this.repo.updateMomentCuration(timestamp, parseMomentTier(tier), series)) {
-      throw new Error(`Moment not found: ${formatMomentTime(timestamp)}`);
-    }
-  }
-
-  // sensitive を手で上書きする。以降は自動で書き換えない。
-  async overrideMomentSensitive(timestamp: dayjs.Dayjs, sensitive: boolean) {
-    if (!await this.repo.updateMomentSensitive(timestamp, sensitive, true)) {
-      throw new Error(`Moment not found: ${formatMomentTime(timestamp)}`);
-    }
-  }
-
-  // 手での上書きを外し、本文から計算し直した値に戻す。
-  async resetMomentSensitive(timestamp: dayjs.Dayjs) {
-    await this.repo.transaction(async (tx) => {
-      const moment = await tx.findMoment(timestamp, 'all');
-      if (moment === null) {
-        throw new Error(`Moment not found: ${formatMomentTime(timestamp)}`);
-      }
-      await tx.updateMomentSensitive(timestamp, await calcSensitive(tx, moment.text), false);
-    });
-  }
-
-  // 本文から計算した sensitive の値（sanity-check が、保存されている値と比べるのに使う）。
+  // 本文から計算した sensitive の値（sanity-check が保存されている値と比べるのと、ura の編集画面が自動の値を見せるのに使う）。
   async computeSensitive(text: string): Promise<boolean> {
     return await calcSensitive(this.repo, text);
   }

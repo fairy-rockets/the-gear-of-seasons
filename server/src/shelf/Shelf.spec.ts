@@ -2,11 +2,12 @@ import { describe, it } from 'mocha';
 import assert from 'assert';
 import dayjs from 'dayjs';
 
+import * as protocol from '../lib/protocol.js';
 import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { Entity } from './Entity.js';
 import { EntityAnnotation } from './EntityAnnotation.js';
-import { CuratedMoment, Moment, MomentVisibility } from './Moment.js';
+import { Moment, MomentVisibility, parseMomentTime } from './Moment.js';
 
 // Shelf は Repo への受け渡しだけなので、Repo をスタブにして
 // 受け取った MomentVisibility がそのまま Repo に渡ることを見る。
@@ -34,9 +35,6 @@ const kWithoutVisibility: { [name: string]: string } = {
   makeMomentFromRequest: '書き込みのための組み立て。moment は引かない',
   enumurateAllMoments: 'gc などが使用中の entity を数える。下書きも含めて全件',
   deleteMoment: '書き込みだけ',
-  updateMomentCuration: '書き込みだけ',
-  overrideMomentSensitive: '書き込みだけ',
-  resetMomentSensitive: '書き込みのために引く。ura（編集側）からだけ使うので下書きも含める',
   computeSensitive: 'moment を引かない',
   findEntityAnnotation: 'moment を引かない',
   saveEntityAnnotation: '書き込みのために引く。下書きも含めて計算し直す',
@@ -93,7 +91,7 @@ function annotation(entityID: string, looksNude: EntityAnnotation['looksNude'], 
 }
 
 let numCurated = 0;
-function curated(text: string, sensitiveManual: boolean, sensitive = false): CuratedMoment {
+function curated(text: string, sensitiveManual: boolean, sensitive = false): Moment {
   numCurated++;
   return {
     timestamp: dayjs('2020-01-02T03:04:05+09:00').add(numCurated, 'day'),
@@ -111,7 +109,7 @@ class FakeRepo {
   readonly annotations = new Map<string, EntityAnnotation>();
   readonly autoSensitive: [string, boolean][] = [];
   readonly saved: unknown[][] = [];
-  constructor(readonly entities: Entity[], readonly moments: CuratedMoment[]) {}
+  constructor(readonly entities: Entity[], readonly moments: Moment[]) {}
   private mustBeInTransaction(name: string) {
     assert.ok(this.inTransaction, `${name} がトランザクションの外で呼ばれた`);
   }
@@ -168,18 +166,20 @@ class FakeRepo {
     this.mustBeInTransaction('updateMomentAutoSensitive');
     this.autoSensitive.push([timestamp.toISOString(), v]);
   }
-  async updateMomentSensitive(timestamp: dayjs.Dayjs, v: boolean, manual: boolean) {
-    this.mustNotBeBusy('updateMomentSensitive');
-    this.saved.push(['updateMomentSensitive', timestamp.toISOString(), v, manual]);
-    return true;
-  }
-  async insertMoment(m: Moment, autoSensitive: boolean) {
+  async insertMoment(m: Moment) {
     this.mustNotBeBusy('insertMoment');
-    this.saved.push(['insertMoment', m, autoSensitive]);
+    this.mustBeInTransaction('insertMoment');
+    this.saved.push(['insertMoment', m]);
   }
-  async updateMoment(old: dayjs.Dayjs, m: Moment, autoSensitive: boolean) {
+  // 実物と同じく、old の moment が無ければ false。
+  async updateMoment(old: dayjs.Dayjs, m: Moment) {
     this.mustNotBeBusy('updateMoment');
-    this.saved.push(['updateMoment', old.toISOString(), m, autoSensitive]);
+    this.mustBeInTransaction('updateMoment');
+    if (!this.moments.some((e) => e.timestamp!!.isSame(old))) {
+      return false;
+    }
+    this.saved.push(['updateMoment', old.toISOString(), m]);
+    return true;
   }
 }
 
@@ -234,42 +234,104 @@ describe("Shelf.saveEntityAnnotation", () => {
 });
 
 describe("Shelf.updateMoment（SAVE）", () => {
-  const kReq = {
+  const kOld = parseMomentTime('2020/01/02 03:04:05');
+  const kReq: protocol.Moment.Save.Request = {
     title: 't',
     originalDate: '2020/01/02 03:04:05',
-    date: '2020/01/02 03:04:05',
+    date: '2020/01/02 03:04:06',
     author: 'a',
     text: `[image entity="${kA}"]`,
-    status: 'published' as const,
+    status: 'published',
+    tier: 'sketch',
+    series: ['魔女hexe', '癒し'],
+    sensitiveOverride: null,
   };
-
-  it("キュレーションの項目を Repo に渡さず、本文から計算した sensitive を渡す", async () => {
-    const repo = new FakeRepo([kImageA], []);
+  // kOld にある moment を持ち、kA に nude・child の注釈がある（自動なら sensitive = true）。
+  function repoWithMoment(): FakeRepo {
+    const repo = new FakeRepo([kImageA], [{ ...curated('', false), timestamp: kOld }]);
     repo.annotations.set(kA, annotation(kA, 'nude', 'child'));
+    return repo;
+  }
+
+  it("Save.Request のすべての項目を、1つのトランザクションで Repo に渡す", async () => {
+    const repo = repoWithMoment();
     await new Shelf(repo as unknown as Repo).updateMoment(kReq);
-    assert.strictEqual(repo.saved.length, 1);
-    const [name, , m, autoSensitive] = repo.saved[0];
-    assert.strictEqual(name, 'updateMoment');
-    for (const key of ['tier', 'series', 'sensitive', 'sensitiveManual']) {
-      assert.ok(!(key in (m as object)), key);
-    }
-    assert.strictEqual(autoSensitive, true);
-  });
-
-  it("新しい moment にも計算した sensitive を渡す", async () => {
-    const repo = new FakeRepo([kImageA], []);
-    await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, originalDate: null });
-    assert.deepStrictEqual(repo.saved.map((s) => [s[0], s[2]]), [['insertMoment', false]]);
-  });
-});
-
-describe("Shelf.resetMomentSensitive", () => {
-  it("手での上書きを外し、計算し直した値を書く", async () => {
-    const m = curated(`[image entity="${kA}"]`, true, false);
-    const repo = new FakeRepo([kImageA], [m]);
-    repo.annotations.set(kA, annotation(kA, 'nude', 'child'));
-    await new Shelf(repo as unknown as Repo).resetMomentSensitive(m.timestamp!!);
     assert.deepStrictEqual(repo.log, ['BEGIN', 'COMMIT']);
-    assert.deepStrictEqual(repo.saved, [['updateMomentSensitive', m.timestamp!!.toISOString(), true, false]]);
+    assert.deepStrictEqual(repo.saved, [['updateMoment', kOld.toISOString(), {
+      timestamp: parseMomentTime('2020/01/02 03:04:06'),
+      title: 't',
+      author: 'a',
+      text: `[image entity="${kA}"]`,
+      iconID: kA,
+      status: 'published',
+      tier: 'sketch',
+      series: ['魔女hexe', '癒し'],
+      sensitive: true,
+      sensitiveManual: false,
+    }]]);
   });
+
+  it("sensitiveOverride が true / false なら、その値を手での上書きとして書く", async () => {
+    for (const v of [true, false]) {
+      const repo = repoWithMoment();
+      const m = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, sensitiveOverride: v });
+      assert.deepStrictEqual([m.sensitive, m.sensitiveManual], [v, true]);
+      const saved = repo.saved[0][2] as Moment;
+      assert.deepStrictEqual([saved.sensitive, saved.sensitiveManual], [v, true]);
+    }
+  });
+
+  it("sensitiveOverride が null なら、上書きを外して本文と注釈から計算した値に戻す", async () => {
+    const repo = repoWithMoment();
+    repo.moments[0].sensitive = false;
+    repo.moments[0].sensitiveManual = true;
+    const m = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, sensitiveOverride: null });
+    assert.deepStrictEqual([m.sensitive, m.sensitiveManual], [true, false]);
+  });
+
+  it("新しい moment は insertMoment で書く。新規の画面の既定値（archive・空・自動）もそのまま書く", async () => {
+    const repo = new FakeRepo([kImageA], []);
+    await new Shelf(repo as unknown as Repo).updateMoment({
+      ...kReq, originalDate: null, tier: 'archive', series: [], sensitiveOverride: null,
+    });
+    assert.deepStrictEqual(repo.log, ['BEGIN', 'COMMIT']);
+    assert.strictEqual(repo.saved.length, 1);
+    const [name, m] = repo.saved[0] as [string, Moment];
+    assert.strictEqual(name, 'insertMoment');
+    assert.deepStrictEqual([m.tier, m.series, m.sensitive, m.sensitiveManual], ['archive', [], false, false]);
+  });
+
+  it("日時が空なら、トランザクションの外で画像の撮影日時を引いて使う", async () => {
+    const t = dayjs('2019-05-06T07:08:09+09:00');
+    const repo = new FakeRepo([{ ...kImageA, timestamp: t }], []);
+    const m = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, originalDate: null, date: null });
+    assert.ok(m.timestamp!!.isSame(t));
+    assert.deepStrictEqual(repo.saved.map((s) => s[0]), ['insertMoment']);
+  });
+
+  it("書き換える moment が無ければ例外にする", async () => {
+    const repo = new FakeRepo([kImageA], []);
+    await assert.rejects(() => new Shelf(repo as unknown as Repo).updateMoment(kReq), /Moment not found/);
+    assert.deepStrictEqual(repo.log, ['BEGIN', 'ROLLBACK']);
+  });
+
+  // 古いクライアントからの保存で、キュレーションの項目が黙って変わらないように。
+  for (const key of ['status', 'tier', 'series', 'sensitiveOverride']) {
+    it(`${key} が欠けていれば、何も書かずに例外にする`, async () => {
+      const repo = repoWithMoment();
+      const req: Record<string, unknown> = { ...kReq };
+      delete req[key];
+      await assert.rejects(() => new Shelf(repo as unknown as Repo).updateMoment(req as protocol.Moment.Save.Request), /Invalid/);
+      assert.deepStrictEqual(repo.saved, []);
+    });
+  }
+
+  for (const [key, value] of [['tier', 'featured'], ['series', '魔女hexe, 癒し'], ['series', [1]], ['sensitiveOverride', 'auto']] as [string, unknown][]) {
+    it(`${key} が ${JSON.stringify(value)} なら、何も書かずに例外にする`, async () => {
+      const repo = repoWithMoment();
+      const req = { ...kReq, [key]: value } as protocol.Moment.Save.Request;
+      await assert.rejects(() => new Shelf(repo as unknown as Repo).updateMoment(req), /Invalid/);
+      assert.deepStrictEqual(repo.saved, []);
+    });
+  }
 });

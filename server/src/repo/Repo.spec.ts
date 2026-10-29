@@ -69,8 +69,6 @@ const kWithoutVisibility: { [name: string]: string } = {
   updateMoment: '書き込みだけ',
   deleteMoment: '書き込みだけ',
   transaction: 'moment を引かない',
-  updateMomentCuration: '書き込みだけ',
-  updateMomentSensitive: '書き込みだけ',
   updateMomentAutoSensitive: '書き込みだけ',
   findAutoSensitiveMomentCandidates: '注釈の保存で sensitive を計算し直す対象。下書きも含めて全件',
   findEntityAnnotation: 'moment を引かない',
@@ -160,16 +158,20 @@ describe("Repo の moment の可視性", () => {
     text: 'x',
     iconID: undefined,
     status: 'published',
+    tier: 'archive',
+    series: [],
+    sensitive: false,
+    sensitiveManual: false,
   };
 
   it("insertMoment は status を明示して渡す", async () => {
-    await repo.insertMoment({ ...kMoment, status: 'draft' }, false);
+    await repo.insertMoment({ ...kMoment, status: 'draft' });
     assert.ok(calls[0].q.includes(`"status"`), calls[0].q);
     assert.ok(calls[0].args.includes('draft'), JSON.stringify(calls[0].args));
   });
 
   it("updateMoment は status も書き換える", async () => {
-    await repo.updateMoment(dayjs('2020-01-02T03:04:05+09:00'), kMoment, false);
+    await repo.updateMoment(dayjs('2020-01-02T03:04:05+09:00'), kMoment);
     assert.ok(calls[0].q.includes(`"status" = $6`), calls[0].q);
     assert.strictEqual(calls[0].args[5], 'published');
   });
@@ -191,30 +193,36 @@ describe("Repo のキュレーションの項目", () => {
     text: 'x',
     iconID: undefined,
     status: 'published',
+    tier: 'archive',
+    series: [],
+    sensitive: false,
+    sensitiveManual: false,
   };
 
-  // ura の SAVE は tier・series・sensitive_manual を送ってこないので、書き換えると消える。
-  it("updateMoment（SAVE）は tier・series・sensitive_manual を書き換えない", async () => {
-    await repo.updateMoment(kTimestamp, kMoment, true);
+  const kCurated: Moment = { ...kMoment, tier: 'sketch', series: ['魔女hexe'], sensitive: true, sensitiveManual: true };
+
+  it("updateMoment（SAVE）はキュレーションの項目も Moment の値をそのまま書く", async () => {
+    await repo.updateMoment(kTimestamp, kCurated);
     const q = calls[0].q;
-    assert.ok(!q.includes(`"tier"`), q);
-    assert.ok(!q.includes(`"series"`), q);
-    assert.ok(!/"sensitive_manual"\s*=/.test(q), q);
+    assert.ok(q.includes(`"tier" = $8`), q);
+    assert.ok(q.includes(`"series" = $9::text[]`), q);
+    assert.ok(q.includes(`"sensitive" = $10`), q);
+    assert.ok(q.includes(`"sensitive_manual" = $11`), q);
+    assert.ok(!q.includes('case'), q);
+    assert.deepStrictEqual(calls[0].args.slice(6), [kTimestamp.toDate(), 'sketch', ['魔女hexe'], true, true]);
   });
 
-  it("updateMoment（SAVE）は sensitive_manual = false のときだけ sensitive を計算した値にする", async () => {
-    await repo.updateMoment(kTimestamp, kMoment, true);
-    assert.ok(calls[0].q.includes(`"sensitive" = case when "sensitive_manual" then "sensitive" else $8::boolean end`), calls[0].q);
-    assert.strictEqual(calls[0].args[7], true);
+  it("updateMoment は moment が無ければ false を返す", async () => {
+    calls = stubPool(repo, []);
+    assert.strictEqual(await repo.updateMoment(kTimestamp, kCurated), false);
   });
 
-  it("insertMoment は計算した sensitive を書き、キュレーションの項目は既定値に任せる", async () => {
-    await repo.insertMoment(kMoment, true);
+  it("insertMoment はキュレーションの項目も Moment の値をそのまま書く", async () => {
+    await repo.insertMoment(kCurated);
     const q = calls[0].q;
-    assert.ok(q.includes(`"sensitive"`), q);
-    assert.ok(!q.includes(`"tier"`), q);
-    assert.ok(!q.includes(`"sensitive_manual"`), q);
-    assert.strictEqual(calls[0].args[6], true);
+    assert.ok(q.includes(`"tier", "series", "sensitive", "sensitive_manual"`), q);
+    assert.ok(q.includes(`$8::text[]`), q);
+    assert.deepStrictEqual(calls[0].args.slice(6), ['sketch', ['魔女hexe'], true, true]);
   });
 
   it("findMoment はキュレーションの項目も読む", async () => {
@@ -230,21 +238,6 @@ describe("Repo のキュレーションの項目", () => {
   it("DB に知らない tier があれば例外にする", async () => {
     calls = stubPool(repo, [{ ...kRow, tier: 'featured' }]);
     await assert.rejects(() => repo.findMoment(kTimestamp, 'all'), /Invalid moment tier/);
-  });
-
-  it("updateMomentCuration は tier と series だけを書く", async () => {
-    await repo.updateMomentCuration(kTimestamp, 'sketch', ['魔女hexe']);
-    const q = calls[0].q;
-    assert.ok(q.includes(`"tier" = $2`), q);
-    assert.ok(q.includes(`"series" = $3::text[]`), q);
-    assert.ok(!q.includes(`"sensitive"`), q);
-    assert.deepStrictEqual(calls[0].args, [kTimestamp.toDate(), 'sketch', ['魔女hexe']]);
-  });
-
-  it("updateMomentSensitive は sensitive と sensitive_manual をそのまま書く", async () => {
-    await repo.updateMomentSensitive(kTimestamp, true, true);
-    assert.ok(calls[0].q.includes(`"sensitive_manual" = $3`), calls[0].q);
-    assert.deepStrictEqual(calls[0].args, [kTimestamp.toDate(), true, true]);
   });
 
   it("updateMomentAutoSensitive は手で上書きした moment と、値が変わらない moment には書かない", async () => {

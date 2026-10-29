@@ -32,6 +32,10 @@ function moment(timestamp: dayjs.Dayjs, status: Moment['status']): Moment {
     text: 'ほんぶん',
     iconID: `icon-${timestamp.date()}`,
     status,
+    tier: 'archive',
+    series: [],
+    sensitive: false,
+    sensitiveManual: false,
   };
 }
 

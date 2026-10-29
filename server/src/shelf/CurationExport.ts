@@ -6,7 +6,7 @@ import * as fml from '../lib/fml.js';
 import Repo from '../repo/Repo.js';
 import { Entity } from './Entity.js';
 import { EntityAnnotation, kFieldsByType } from './EntityAnnotation.js';
-import { CuratedMoment, formatMomentPath } from './Moment.js';
+import { Moment, formatMomentPath } from './Moment.js';
 import { formatMomentLabel, kMediaKeys, toJST } from './CurationFormat.js';
 
 // studio に渡すエクスポート（#49）を作る。cmd/export-curation.ts から使う。
@@ -130,7 +130,7 @@ function mediaItem(id: string, entities: ReadonlyMap<string, Entity>, annotation
 
 // moment 1つ分の hexe.yaml の中身。キーはこの順に出す。
 export function hexeYamlObject(
-  m: CuratedMoment,
+  m: Moment,
   entities: ReadonlyMap<string, Entity>,
   annotations: ReadonlyMap<string, EntityAnnotation>,
 ): Record<string, unknown> {
@@ -161,7 +161,7 @@ export function hexeYamlObject(
 
 export type ExportSource = {
   // 公開済みの moment を timestamp の順に。
-  moments: CuratedMoment[];
+  moments: Moment[];
   // moments の本文の [image]・[video]・[audio] の entity のうち、entities に行があるもの。
   entities: Map<string, Entity>;
   annotations: Map<string, EntityAnnotation>;
@@ -171,7 +171,7 @@ export type ExportSource = {
 
 // 読むだけなので、トランザクションにはしない（READ COMMITTED では、トランザクションにしても文をまたいだ一貫性は無い）。
 export async function loadExportSource(repo: Repo): Promise<ExportSource> {
-  const moments: CuratedMoment[] = [];
+  const moments: Moment[] = [];
   for await (const m of repo.enumurateAllMoments()) {
     if (m.status === 'published') {
       moments.push(m);

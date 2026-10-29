@@ -14,10 +14,8 @@ import {
 } from '../shelf/EntityAnnotation.js';
 import Config from '../Config.js';
 import {
-  CuratedMoment,
   Moment,
   MomentSummary,
-  MomentTier,
   MomentVisibility,
   parseMomentStatus,
   parseMomentTier,
@@ -244,21 +242,18 @@ where
     this.cache.entity.set(entity.id, entity);
   }
 
-  // TODO: insertMoment・updateMoment の autoSensitive 引数と、updateMoment の case when は、今の SAVE が
-  // sensitive の上書き状態を送ってこないためにある。編集画面から全部送るようになったら、sensitive の値は Shelf が
-  // 決めて Moment に入れ、ここでは Moment の値をそのまま書くだけにする（#46）。
-
-  // autoSensitive は本文から計算した sensitive の値。tier・series は DB の既定値（archive・空）になる。
-  async insertMoment(moment: Moment, autoSensitive: boolean) {
+  // Moment の値をそのまま書く。sensitive は Shelf が決めて入れる。
+  async insertMoment(moment: Moment) {
     if (moment.timestamp === undefined) {
       throw new Error('[FIXME] No timestamp!')
     }
     // language=PostgreSQL
     const q = `
 insert into moments(
-  "timestamp", "title", "author", "text", "icon_id", "status", "sensitive"
+  "timestamp", "title", "author", "text", "icon_id", "status",
+  "tier", "series", "sensitive", "sensitive_manual"
 ) values (
-  $1, $2, $3, $4, $5, $6, $7
+  $1, $2, $3, $4, $5, $6, $7, $8::text[], $9, $10
 );`;
     await this.pool.query(q, [
       moment.timestamp.toDate(),
@@ -267,13 +262,15 @@ insert into moments(
       moment.text,
       moment.iconID === undefined ? null : moment.iconID,
       moment.status,
-      autoSensitive,
+      moment.tier,
+      moment.series,
+      moment.sensitive,
+      moment.sensitiveManual,
     ]);
   }
 
-  // ura の SAVE が使う。キュレーションの項目（tier・series・sensitive_manual）は書き換えない。
-  // sensitive は、sensitive_manual = false のときだけ autoSensitive（本文から計算した値）にする。
-  async updateMoment(oldTimestamp: dayjs.Dayjs, moment: Moment, autoSensitive: boolean) {
+  // Moment の値をそのまま書く。oldTimestamp の moment が無ければ false。
+  async updateMoment(oldTimestamp: dayjs.Dayjs, moment: Moment): Promise<boolean> {
     if (moment.timestamp === undefined) {
       throw new Error('[FIXME] No timestamp!')
     }
@@ -286,10 +283,13 @@ update moments set
   "text" = $4,
   "icon_id" = $5,
   "status" = $6,
-  "sensitive" = case when "sensitive_manual" then "sensitive" else $8::boolean end
+  "tier" = $8,
+  "series" = $9::text[],
+  "sensitive" = $10,
+  "sensitive_manual" = $11
 where "timestamp" = $7;
 `;
-    await this.pool.query(q, [
+    const r = await this.pool.query(q, [
       moment.timestamp.toDate(),
       moment.title,
       moment.author,
@@ -297,37 +297,11 @@ where "timestamp" = $7;
       moment.iconID === undefined ? null : moment.iconID,
       moment.status,
       oldTimestamp.toDate(),
-      autoSensitive,
+      moment.tier,
+      moment.series,
+      moment.sensitive,
+      moment.sensitiveManual,
     ]);
-  }
-
-  // TODO: updateMomentCuration と updateMomentSensitive は、今の編集画面がキュレーションの項目を送ってこないので
-  // updateMoment（SAVE）と分けてある。どれも人間が起こす1つの保存なので、編集画面から全部送るようになったら
-  // updateMoment にまとめる。同じ値で UPDATE することがあっても、外に見せるメソッドを少なくする方を取る（#46）。
-
-  // キュレーションの項目のうち tier と series を書く。moment が無ければ false。
-  async updateMomentCuration(timestamp: dayjs.Dayjs, tier: MomentTier, series: string[]): Promise<boolean> {
-    // language=PostgreSQL
-    const q = `
-update moments set
-  "tier" = $2,
-  "series" = $3::text[]
-where "timestamp" = $1;
-`;
-    const r = await this.pool.query(q, [timestamp.toDate(), tier, series]);
-    return r.rowCount === 1;
-  }
-
-  // sensitive と sensitive_manual をそのまま書く（手での上書きと、その解除）。moment が無ければ false。
-  async updateMomentSensitive(timestamp: dayjs.Dayjs, sensitive: boolean, sensitiveManual: boolean): Promise<boolean> {
-    // language=PostgreSQL
-    const q = `
-update moments set
-  "sensitive" = $2,
-  "sensitive_manual" = $3
-where "timestamp" = $1;
-`;
-    const r = await this.pool.query(q, [timestamp.toDate(), sensitive, sensitiveManual]);
     return r.rowCount === 1;
   }
 
@@ -404,7 +378,7 @@ from moments
     return moments;
   }
 
-  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<CuratedMoment | null> {
+  async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
     // language=PostgreSQL
     const q=`
 select
@@ -417,7 +391,7 @@ from moments
 `;
     const { rows } = await this.pool.query(q, [timestamp.toDate()]);
     for (const row of rows) {
-      return decodeCuratedMoment(row);
+      return decodeMoment(row);
     }
     return null;
   }
@@ -462,7 +436,7 @@ limit 1;
 
   // 下書きも含めた全件を返す。gc / list-missing / sanity-check がこれで使用中の entity を
   // 数えるので、ここで下書きを落とすと、下書きが使っているメディアが孤児扱いされて消される。
-  async* enumurateAllMoments(): AsyncGenerator<CuratedMoment> {
+  async* enumurateAllMoments(): AsyncGenerator<Moment> {
     // language=PostgreSQL
     const q=`
 select
@@ -472,14 +446,14 @@ from moments
 `;
     const { rows } = await this.pool.query(q, []);
     for (const row of rows) {
-      yield decodeCuratedMoment(row);
+      yield decodeMoment(row);
     }
   }
 
   // 本文に entityID を含みうる moment のうち、sensitive_manual = false のもの（注釈を保存したあとに sensitive を計算し直す対象）。
   // 本文を文字列として探すだけなので、返ったものが本当にその entity を使っているかは fml.parse で確かめること。
   // 下書きも計算し直すので、visibility では絞らない。
-  async findAutoSensitiveMomentCandidates(entityID: string): Promise<CuratedMoment[]> {
+  async findAutoSensitiveMomentCandidates(entityID: string): Promise<Moment[]> {
     // language=PostgreSQL
     const q=`
 select
@@ -490,10 +464,10 @@ from moments
     "text" like '%' || $1::text || '%'
     and not "sensitive_manual";
 `;
-    const moments: CuratedMoment[] = [];
+    const moments: Moment[] = [];
     const { rows } = await this.pool.query(q, [entityID]);
     for (const row of rows) {
-      moments.push(decodeCuratedMoment(row));
+      moments.push(decodeMoment(row));
     }
     return moments;
   }
@@ -589,12 +563,6 @@ function decodeMoment(row: pg.QueryResultRow): Moment {
     text: row['text'] as string || '',
     iconID: row['icon_id'] as (string | null) || undefined,
     status: parseMomentStatus(row['status']),
-  };
-}
-
-function decodeCuratedMoment(row: pg.QueryResultRow): CuratedMoment {
-  return {
-    ...decodeMoment(row),
     tier: parseMomentTier(row['tier']),
     series: row['series'] as string[],
     sensitive: row['sensitive'] as boolean,

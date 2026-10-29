@@ -35,6 +35,11 @@ export default class EditController {
         date: formatMomentTime(moment.timestamp!!),
         text: moment.text,
         status: moment.status,
+        tier: moment.tier,
+        series: moment.series.join(', '),
+        sensitive: !moment.sensitiveManual ? 'auto' : moment.sensitive ? 'true' : 'false',
+        // 手で上書きしている間は、DB に自動の値が無いので計算する。
+        autoSensitive: moment.sensitiveManual ? await this.shelf.computeSensitive(moment.text) : moment.sensitive,
       }));
   }
 }

@@ -6,7 +6,7 @@ import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { Entity } from './Entity.js';
 import { EntityAnnotation } from './EntityAnnotation.js';
-import { CuratedMoment } from './Moment.js';
+import { Moment, formatMomentTime } from './Moment.js';
 import {
   CurationPlan,
   CurationState,
@@ -41,7 +41,7 @@ function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): E
   };
 }
 
-function moment(t: string, text: string, values: Partial<CuratedMoment> = {}): CuratedMoment {
+function moment(t: string, text: string, values: Partial<Moment> = {}): Moment {
   return {
     timestamp: dayjs(t), title: 't', author: 'a', text, iconID: undefined, status: 'published',
     tier: 'archive', series: [], sensitive: false, sensitiveManual: false,
@@ -51,7 +51,7 @@ function moment(t: string, text: string, values: Partial<CuratedMoment> = {}): C
 
 // loadCurationState の代わり。autoSensitiveMoments は sensitive_manual = false のもの全部にする
 // （本文に entity を含むかどうかは makeCurationPlan が確かめる）。
-function state(moments: CuratedMoment[], entities: Entity[], annotations: EntityAnnotation[] = []): CurationState {
+function state(moments: Moment[], entities: Entity[], annotations: EntityAnnotation[] = []): CurationState {
   return {
     moments: new Map(moments.map((m) => [m.timestamp!!.valueOf(), m])),
     entities: new Map(entities.map((e) => [e.id, e])),
@@ -332,7 +332,6 @@ moments:
     assert.deepStrictEqual(p1.moments[0].changes.map((c) => c.key), ['tier', 'series']);
     assert.strictEqual(p1.moments[0].tier, 'pickup');
     assert.deepStrictEqual(p1.moments[0].series, ['夏']);
-    assert.strictEqual(p1.moments[0].tierOrSeriesChanged, true);
 
     const p2 = plan(`
 moments:
@@ -385,7 +384,7 @@ moments:
     sensitive: false
 `;
     const p = plan(src, s);
-    assert.deepStrictEqual(p.moments.map((m) => [m.label, m.sensitive, m.tierOrSeriesChanged]), [[kT1, false, false]]);
+    assert.deepStrictEqual(p.moments.map((m) => [m.label, m.sensitive, m.changes.map((c) => c.key)]), [[kT1, false, ['sensitive']]]);
     assert.deepStrictEqual(p.conflicts, [{ momentLabel: kT3, entityID: null, key: 'sensitive', current: true, file: false }]);
     const o = plan(src, s, true);
     assert.deepStrictEqual(o.moments.map((m) => [m.label, m.sensitive]), [[kT1, false], [kT3, false]]);
@@ -452,31 +451,62 @@ moments:
 });
 
 describe("applyCurationPlan", () => {
-  it("注釈を書いてから、tier・series と sensitive の上書きを書く。変わらないものは呼ばない", async () => {
-    const s = state([
-      moment(kT1, `[image entity="${kA}"]`),
-      moment(kT2, ''),
-    ], [kImageA]);
+  it("注釈を書いてから、moment ごとに今の値を読み、計画で変わる項目だけを差し替えて updateMoment（SAVE と同じ口）で書く", async () => {
+    const moments = [
+      moment(kT1, `[image entity="${kA}"]`, { title: '海', tier: 'pickup', series: ['夏'] }),
+      // 手で上書き済み。計画に sensitive が無ければ、上書きの値のまま書く。
+      moment(kT2, '', { status: 'draft', sensitive: true, sensitiveManual: true }),
+      // 自動。計画に sensitive が無ければ、自動のまま書く。
+      moment(kT3, '', { sensitive: true }),
+    ];
     const p = plan(`
 moments:
   - moment: ${kT1}
     sensitive: true
     media: [{ entity: ${kA}, alt: 海 }]
   - moment: ${kT2}
-    series: [夏]
-`, s);
+    series: [冬]
+  - moment: ${kT3}
+    tier: sketch
+`, state(moments, [kImageA]));
     const calls: unknown[][] = [];
     const shelf = new Proxy({}, {
       get: (_target, name) => async (...args: unknown[]) => {
         calls.push([name, ...args.map((a) => dayjs.isDayjs(a) ? a.format() : a)]);
+        if (name === 'findMoment') {
+          return moments.find((m) => m.timestamp!!.isSame(args[0] as dayjs.Dayjs)) ?? null;
+        }
       },
     }) as Shelf;
     await applyCurationPlan(shelf, p);
+    const date = (t: string) => formatMomentTime(dayjs(t));
     assert.deepStrictEqual(calls, [
       ['saveEntityAnnotation', annotation(kA, { alt: '海' })],
-      ['overrideMomentSensitive', dayjs(kT1).format(), true],
-      ['updateMomentCuration', dayjs(kT2).format(), 'archive', ['夏']],
+      ['findMoment', dayjs(kT1).format(), 'all'],
+      ['updateMoment', {
+        title: '海', originalDate: date(kT1), date: date(kT1), author: 'a', text: `[image entity="${kA}"]`, status: 'published',
+        tier: 'pickup', series: ['夏'], sensitiveOverride: true,
+      }],
+      ['findMoment', dayjs(kT2).format(), 'all'],
+      ['updateMoment', {
+        title: 't', originalDate: date(kT2), date: date(kT2), author: 'a', text: '', status: 'draft',
+        tier: 'archive', series: ['冬'], sensitiveOverride: true,
+      }],
+      ['findMoment', dayjs(kT3).format(), 'all'],
+      ['updateMoment', {
+        title: 't', originalDate: date(kT3), date: date(kT3), author: 'a', text: '', status: 'published',
+        tier: 'sketch', series: [], sensitiveOverride: null,
+      }],
     ]);
+  });
+  it("書く moment が読めなければ例外にする", async () => {
+    const p = plan(`
+moments:
+  - moment: ${kT1}
+    tier: pickup
+`, state([moment(kT1, '')], []));
+    const shelf = new Proxy({}, { get: () => async () => null }) as Shelf;
+    await assert.rejects(applyCurationPlan(shelf, p), /Moment not found/);
   });
   it("エラーのある計画は書かない", async () => {
     const p = plan(`
@@ -493,10 +523,10 @@ moments:
 class StateRepo {
   readonly annotations: Map<string, EntityAnnotation>;
   readonly autoSensitiveWrites: [string, boolean][] = [];
-  constructor(readonly entities: Entity[], readonly moments: CuratedMoment[], annotations: EntityAnnotation[] = []) {
+  constructor(readonly entities: Entity[], readonly moments: Moment[], annotations: EntityAnnotation[] = []) {
     this.annotations = new Map(annotations.map((a) => [a.entityID, a]));
   }
-  private moment(timestamp: dayjs.Dayjs): CuratedMoment {
+  private moment(timestamp: dayjs.Dayjs): Moment {
     return this.moments.find((m) => m.timestamp!!.isSame(timestamp))!!;
   }
   async transaction<T>(fn: (tx: Repo) => Promise<T>): Promise<T> {
@@ -525,12 +555,9 @@ class StateRepo {
       this.autoSensitiveWrites.push([m.timestamp!!.format(), v]);
     }
   }
-  async updateMomentCuration(timestamp: dayjs.Dayjs, tier: CuratedMoment['tier'], series: string[]) {
-    Object.assign(this.moment(timestamp), { tier, series });
-    return true;
-  }
-  async updateMomentSensitive(timestamp: dayjs.Dayjs, sensitive: boolean, sensitiveManual: boolean) {
-    Object.assign(this.moment(timestamp), { sensitive, sensitiveManual });
+  // 読み直したときに書いた値が見えるよう、置き換えずに今のオブジェクトに重ねる。
+  async updateMoment(old: dayjs.Dayjs, m: Moment) {
+    Object.assign(this.moment(old), m);
     return true;
   }
 }

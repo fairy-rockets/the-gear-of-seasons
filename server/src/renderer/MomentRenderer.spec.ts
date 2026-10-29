@@ -93,6 +93,10 @@ describe("MomentRenderer.render", () => {
       text: text,
       iconID: undefined,
       status: 'published',
+      tier: 'archive',
+      series: [],
+      sensitive: false,
+      sensitiveManual: false,
     };
     return new MomentRenderer(shelf).render(dayjs('2020-01-02 00:00:00'), moment);
   };
