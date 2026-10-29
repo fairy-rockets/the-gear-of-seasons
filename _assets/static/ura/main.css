@@ -241,9 +241,12 @@ img.emoji {
   border: 1px solid #889;
 }
 
+/* .editor-wrapper input:disabled（22px）より後に置き、同じ詳細度で大きさを戻す */
 .annotation-field input[type="text"]:disabled {
+  font-size: 16px;
   color: #444;
-  border-color: #333;
+  background: #111;
+  border: 1px solid #333;
 }
 
 .annotation-list {
