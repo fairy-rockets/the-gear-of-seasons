@@ -72,6 +72,8 @@ class MomentRenderer {
     }
     return buff.join('');
   }
+  // メディアの要素には data-entity（entity の id）と data-type（種類）を付ける。ura の編集画面が、
+  // プレビューのメディアから注釈の引き出しを開くのに使う。
   private async renderImage(block: fml.Image): Promise<string> {
     if (block.entity === undefined) {
       return `<p>!!Image not set!!</p>`
@@ -92,7 +94,7 @@ class MomentRenderer {
       height = Math.min(2048, entity.height);
       width = entity.width * height / entity.height;
     }
-    const img = `<img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="an image.">`;
+    const img = `<img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="an image." data-entity="${escapeAttribute(entity.id)}" data-type="image">`;
     // 元画像は表示にもリンクにも使わない。entity の元ファイルへのリンクは [link] ブロックで貼れる。
     if (!block.link) {
       return img;
@@ -115,7 +117,7 @@ class MomentRenderer {
       return `<p>!!id=${escapeHTML(block.entity)} is not a video!!</p>`
     }
     return `
-<video class="embed" preload="metadata" loop controls="controls" width="${entity.width}" height="${entity.height}">
+<video class="embed" preload="metadata" loop controls="controls" width="${entity.width}" height="${entity.height}" data-entity="${escapeAttribute(entity.id)}" data-type="video">
   <source type="${escapeAttribute(entity.mimeType)}" src="/entity/${escapeAttribute(entity.id)}">
   <a href="/entity/${escapeAttribute(entity.id)}">Click to play.</a>
 </video>
@@ -133,7 +135,7 @@ class MomentRenderer {
       return `<p>!!id=${escapeHTML(block.entity)} is not an audio!!</p>`
     }
     return `
-<audio class="embed" class="" src="/entity/${escapeAttribute(entity.id)}" title="" controls="controls"></audio>
+<audio class="embed" class="" src="/entity/${escapeAttribute(entity.id)}" title="" controls="controls" data-entity="${escapeAttribute(entity.id)}" data-type="audio"></audio>
 `.trim();
   }
   private static renderLink(block: fml.Link): string {

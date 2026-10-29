@@ -130,6 +130,15 @@ describe("MomentRenderer.render", () => {
     assert.ok(html.includes('src="/entity/aud"'));
   });
 
+  it("画像・動画・音声の要素に、entity の id と種類を data 属性で付ける", async () => {
+    const html = await render('[image entity="img" link="https://example.com/"][video entity="vid"][audio entity="aud"]');
+    assert.ok(/<img [^>]*data-entity="img" data-type="image"/.test(html), html);
+    assert.ok(/<video [^>]*data-entity="vid" data-type="video"/.test(html), html);
+    assert.ok(/<audio [^>]*data-entity="aud" data-type="audio"/.test(html), html);
+    // 画像を包むリンクやほかの要素には付けない。
+    assert.strictEqual(html.split('data-entity=').length - 1, 3, html);
+  });
+
   it("[link] ブロックは元ファイルへリンクする", async () => {
     const html = await render('[link entity="img" text="[フルサイズ]"]');
     assert.ok(html.includes('<a href="/entity/img"'));
