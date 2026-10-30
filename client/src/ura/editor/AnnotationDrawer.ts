@@ -48,7 +48,7 @@ const kLabels: Record<AnnotationField, string> = {
   looksNude: 'looks_nude',
   looksChild: 'looks_child',
   looksNote: 'looks_note',
-  humanVerified: 'human_verified（下書きを確認した）',
+  humanVerified: 'human_verified',
   role: 'role',
   roleGroup: 'role_group',
   roleStar: 'role_star',
