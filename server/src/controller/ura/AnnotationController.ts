@@ -35,7 +35,7 @@ const kParsers: Record<AnnotationField, (v: unknown) => AnnotationValue> = {
   looksNude: parseLooksNude,
   looksChild: parseLooksChild,
   looksNote: nullable(parseString),
-  checked: parseBoolean,
+  humanVerified: parseBoolean,
   role: parseAnnotationRole,
   roleGroup: nullable(parseString),
   roleStar: nullable(parseBoolean),
@@ -72,7 +72,7 @@ export function parseAnnotationValues(v: unknown): AnnotationValues {
 function emptyAnnotationValues(): AnnotationValues {
   return {
     medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude: null, looksChild: null, looksNote: null, checked: false,
+    looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
     role: null, roleGroup: null, roleStar: null, roleNote: null,
   };
 }

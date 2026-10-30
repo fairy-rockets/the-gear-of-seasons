@@ -25,7 +25,7 @@ const kEntities: Entity[] = [
 
 const kEmpty: protocol.AnnotationValues = {
   medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
-  looksNude: null, looksChild: null, looksNote: null, checked: false,
+  looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
   role: null, roleGroup: null, roleStar: null, roleNote: null,
 };
 
@@ -130,12 +130,12 @@ function setup() {
 describe("GET /annotations", () => {
   it("entity ごとに種類と注釈を返す。行が無ければ未入力の値、entity が無い id は入れない", async () => {
     const { repo, find } = setup();
-    repo.annotations.set(kImage, { entityID: kImage, ...kEmpty, alt: '', checked: true });
+    repo.annotations.set(kImage, { entityID: kImage, ...kEmpty, alt: '', humanVerified: true });
     const r = await find({ ids: `${kImage},${kAudio},${kMissing},${kImage}` });
     assert.strictEqual(r.statusCode, 200);
     assert.deepStrictEqual(r.body as protocol.Annotation.Find.Response, {
       entities: [
-        { entityID: kImage, type: 'image', annotation: { ...kEmpty, alt: '', checked: true } },
+        { entityID: kImage, type: 'image', annotation: { ...kEmpty, alt: '', humanVerified: true } },
         { entityID: kAudio, type: 'audio', annotation: kEmpty },
       ],
     });
@@ -198,7 +198,7 @@ describe("POST /annotation", () => {
   const invalid: [string, unknown][] = [
     ['alt が数', request({ alt: 1 as any })],
     ['tags が文字列', request({ tags: 'a,b' as any })],
-    ['checked が null', request({ checked: null as any })],
+    ['humanVerified が null', request({ humanVerified: null as any })],
     ['roleStar が文字列', request({ roleStar: 'true' as any })],
     ['medium が定義に無い', request({ medium: 'oil' as any })],
     ['項目が欠けている', { ...request({}), annotation: (({ alt: _, ...rest }) => rest)(kEmpty) }],

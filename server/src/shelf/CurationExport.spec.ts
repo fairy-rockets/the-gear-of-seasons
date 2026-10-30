@@ -41,7 +41,7 @@ const kAudioC: Entity = {
 function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): EntityAnnotation {
   return {
     entityID, medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude: null, looksChild: null, looksNote: null, checked: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
+    looksNude: null, looksChild: null, looksNote: null, humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
     ...values,
   };
 }
@@ -120,8 +120,8 @@ describe("hexeYamlObject", () => {
     const text = `[image entity="${kA}"][video entity="${kB}"][audio entity="${kC}"]`;
     const media = hexeYamlObject(moment('2017-07-26T02:46:00+09:00', text), ...maps([kImageA, kVideoB, kAudioC]))['media'];
     assert.deepStrictEqual(media, [
-      { entity: kA, type: 'image', width: 1200, height: 1600, checked: false },
-      { entity: kB, type: 'video', width: 1920, height: 1080, duration: 19.5, checked: false },
+      { entity: kA, type: 'image', width: 1200, height: 1600, human_verified: false },
+      { entity: kB, type: 'video', width: 1920, height: 1080, duration: 19.5, human_verified: false },
       { entity: kC, type: 'audio', duration: 61.25 },
     ]);
   });
@@ -129,30 +129,30 @@ describe("hexeYamlObject", () => {
   it("注釈は種類が持つ項目だけを #2 の順に出し、null は出さず、空の文字列・空のリスト・false は出す", () => {
     const full: Partial<EntityAnnotation> = {
       medium: 'drawing', alt: '海', description: '一行目\n二行目\n', tags: ['海', '船'], palette: 'color', characters: [],
-      looksNude: 'none', looksChild: 'child', looksNote: '', checked: true,
+      looksNude: 'none', looksChild: 'child', looksNote: '', humanVerified: true,
       role: 'grab', roleGroup: '空の青', roleStar: false, roleNote: '',
     };
     const text = `[image entity="${kA}"][audio entity="${kC}"][video entity="${kB}"]`;
     const media = hexeYamlObject(moment('2017-07-26T02:46:00+09:00', text), ...maps([kImageA, kVideoB, kAudioC], [
       annotation(kA, full),
-      // 音声の注釈の行には checked = false が入っているが、音声は checked を持たないので出さない。
+      // 音声の注釈の行には humanVerified = false が入っているが、音声は humanVerified を持たないので出さない。
       annotation(kC, { alt: '', tags: [] }),
       annotation(kB, { alt: '波', looksNude: 'partial' }),
     ]))['media'] as Record<string, unknown>[];
     assert.deepStrictEqual(Object.keys(media[0]), [
       'entity', 'type', 'width', 'height',
-      'medium', 'alt', 'description', 'tags', 'palette', 'characters', 'looks_nude', 'looks_child', 'looks_note', 'checked',
+      'medium', 'alt', 'description', 'tags', 'palette', 'characters', 'looks_nude', 'looks_child', 'looks_note', 'human_verified',
       'role', 'role_group', 'role_star', 'role_note',
     ]);
     assert.deepStrictEqual(media[0], {
       entity: kA, type: 'image', width: 1200, height: 1600,
       medium: 'drawing', alt: '海', description: '一行目\n二行目\n', tags: ['海', '船'], palette: 'color', characters: [],
-      looks_nude: 'none', looks_child: 'child', looks_note: '', checked: true,
+      looks_nude: 'none', looks_child: 'child', looks_note: '', human_verified: true,
       role: 'grab', role_group: '空の青', role_star: false, role_note: '',
     });
     assert.deepStrictEqual(media[1], { entity: kC, type: 'audio', duration: 61.25, alt: '', tags: [] });
     assert.deepStrictEqual(media[2], {
-      entity: kB, type: 'video', width: 1920, height: 1080, duration: 19.5, alt: '波', looks_nude: 'partial', checked: false,
+      entity: kB, type: 'video', width: 1920, height: 1080, duration: 19.5, alt: '波', looks_nude: 'partial', human_verified: false,
     });
   });
 

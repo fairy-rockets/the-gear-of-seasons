@@ -60,7 +60,7 @@ export const kMediaKeys: Record<string, [AnnotationField, (v: unknown) => Annota
   looks_nude: ['looksNude', parseEnum(parseLooksNude)],
   looks_child: ['looksChild', parseEnum(parseLooksChild)],
   looks_note: ['looksNote', parseString],
-  checked: ['checked', parseBoolean],
+  human_verified: ['humanVerified', parseBoolean],
   role: ['role', parseEnum(parseAnnotationRole)],
   role_group: ['roleGroup', parseString],
   role_star: ['roleStar', parseBoolean],

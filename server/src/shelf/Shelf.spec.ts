@@ -87,7 +87,7 @@ const kB = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 function annotation(entityID: string, looksNude: EntityAnnotation['looksNude'], looksChild: EntityAnnotation['looksChild']): EntityAnnotation {
   return {
     entityID, medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude, looksChild, looksNote: null, checked: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
+    looksNude, looksChild, looksNote: null, humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
   };
 }
 

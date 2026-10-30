@@ -274,13 +274,13 @@ img.emoji {
   font-size: smaller;
 }
 
-/* 下書きの範囲のまとまり。checked が false の間だけ枠を出す（枠の有無で欄が動かないよう、幅は常にとる） */
+/* 下書きの範囲のまとまり。human_verified が false の間だけ枠を出す（枠の有無で欄が動かないよう、幅は常にとる） */
 .annotation-draft {
   padding: 0 0.4em;
   border: 1px solid transparent;
 }
 
-.annotation-draft.annotation-unchecked {
+.annotation-draft.annotation-unverified {
   border-color: #f0c040;
 }
 
@@ -314,12 +314,12 @@ img.emoji {
   border-color: #d06060;
 }
 
-#preview .annotation-mark[data-state="unchecked"] {
+#preview .annotation-mark[data-state="unverified"] {
   background: #4a3a0a;
   border-color: #f0c040;
 }
 
-#preview .annotation-mark[data-state="checked"],
+#preview .annotation-mark[data-state="verified"],
 #preview .annotation-mark[data-state="entered"] {
   background: #0f3a1f;
   border-color: #50b070;

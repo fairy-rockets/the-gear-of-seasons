@@ -38,7 +38,7 @@ const kAudioC: Entity = {
 function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): EntityAnnotation {
   return {
     entityID, medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude: null, looksChild: null, looksNote: null, checked: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
+    looksNude: null, looksChild: null, looksNote: null, humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
     ...values,
   };
 }
@@ -105,7 +105,7 @@ moments:
       - entity: ${kA}
         looks_nude: none
         looks_note: ""
-        checked: true
+        human_verified: true
         tags: []
 `);
     assert.deepStrictEqual(errors, []);
@@ -121,7 +121,7 @@ moments:
       fields: [
         { key: 'looks_nude', field: 'looksNude', value: 'none' },
         { key: 'looks_note', field: 'looksNote', value: '' },
-        { key: 'checked', field: 'checked', value: true },
+        { key: 'human_verified', field: 'humanVerified', value: true },
         { key: 'tags', field: 'tags', value: [] },
       ],
     }]);
@@ -146,10 +146,11 @@ moments:
     media:
       - entity: ${kA}
         looks_nude: naked
-        checked: yes
+        human_verified: yes
         role_star: null
         colour: red
         toString: x
+        checked: true
 `);
     assert.deepStrictEqual(errors, [
       '知らないキーです: version',
@@ -157,10 +158,12 @@ moments:
       `moment ${kT1}: series: 文字列のリストではありません: "夏"`,
       `moment ${kT1}: 知らないキーです: sensitive_manual`,
       `moment ${kT1} entity ${kA}: looks_nude: 定義に無い値です: "naked"`,
-      `moment ${kT1} entity ${kA}: checked: true か false ではありません: "yes"`,
+      `moment ${kT1} entity ${kA}: human_verified: true か false ではありません: "yes"`,
       `moment ${kT1} entity ${kA}: role_star が null です`,
       `moment ${kT1} entity ${kA}: 知らないキーです: colour`,
       `moment ${kT1} entity ${kA}: 知らないキーです: toString`,
+      // human_verified の古い名前（#58）も、読み替えずに弾く。
+      `moment ${kT1} entity ${kA}: 知らないキーです: checked`,
     ]);
     // エラーのあった項目は落とす。
     assert.deepStrictEqual(file.moments[0].media[0].fields, []);
@@ -226,9 +229,9 @@ moments:
     const same = parseCurationFile(`
 moments:
   - moment: ${kT1}
-    media: [{ entity: ${kA}, alt: 海, checked: true }]
+    media: [{ entity: ${kA}, alt: 海, human_verified: true }]
   - moment: ${kT2}
-    media: [{ entity: ${kA}, checked: true, alt: 海 }]
+    media: [{ entity: ${kA}, human_verified: true, alt: 海 }]
 `);
     assert.deepStrictEqual(same.errors, []);
     const differ = parseCurationFile(`
@@ -254,7 +257,7 @@ moments:
   - moment: ${kT1}
     media:
       - { entity: ${kB}, alt: 動画 }
-      - { entity: ${kC}, alt: 音, looks_nude: none, checked: true }
+      - { entity: ${kC}, alt: 音, looks_nude: none, human_verified: true }
   - moment: ${kT2}
     media:
       - { entity: ${kB}, alt: 動画 }
@@ -262,16 +265,16 @@ moments:
     assert.deepStrictEqual(p.errors, [
       `moment ${kT3}: DB にありません`,
       `moment ${kT1} entity ${kB}: その moment の本文の [image]・[video]・[audio] にありません`,
-      `moment ${kT1} entity ${kC}: audio の entity が持たない項目です: looks_nude, checked`,
+      `moment ${kT1} entity ${kC}: audio の entity が持たない項目です: looks_nude, human_verified`,
       `moment ${kT2} entity ${kB}: entities にありません`,
     ]);
   });
-  it("音声の alt・description・tags と、checked: false は通す", () => {
+  it("音声の alt・description・tags と、human_verified: false は通す", () => {
     const s = state([moment(kT1, `[audio entity="${kC}"]`)], [kAudioC]);
     const p = plan(`
 moments:
   - moment: ${kT1}
-    media: [{ entity: ${kC}, alt: 波の音, description: 浜辺, tags: [海], checked: false }]
+    media: [{ entity: ${kC}, alt: 波の音, description: 浜辺, tags: [海], human_verified: false }]
 `, s);
     assert.deepStrictEqual(p.errors, []);
     assert.deepStrictEqual(p.entities[0].changes.map((c) => c.key), ['alt', 'description', 'tags']);
@@ -281,7 +284,7 @@ moments:
 describe("makeCurationPlan の計画", () => {
   it("書いていない項目は今の値のまま残す", () => {
     const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [
-      annotation(kA, { alt: '海', role: 'grab', checked: true }),
+      annotation(kA, { alt: '海', role: 'grab', humanVerified: true }),
     ]);
     const p = plan(`
 moments:
@@ -293,7 +296,7 @@ moments:
       { key: 'medium', from: null, to: 'drawing', overwrite: false },
       { key: 'looks_note', from: null, to: '', overwrite: false },
     ]);
-    assert.deepStrictEqual(p.entities[0].annotation, annotation(kA, { alt: '海', role: 'grab', checked: true, medium: 'drawing', looksNote: '' }));
+    assert.deepStrictEqual(p.entities[0].annotation, annotation(kA, { alt: '海', role: 'grab', humanVerified: true, medium: 'drawing', looksNote: '' }));
   });
   it("値があって違うものは衝突にして書かず、ほかの項目は書く", () => {
     const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [
@@ -378,22 +381,22 @@ moments:
     assert.strictEqual(p.moments[0].tier, 'pickup');
     assert.deepStrictEqual(p.moments[0].series, ['夏']);
   });
-  it("checked は false を未入力とみなし、true → false だけを衝突にする", () => {
+  it("human_verified は false を未入力とみなし、true → false だけを衝突にする", () => {
     const s = state([moment(kT1, `[image entity="${kA}"][video entity="${kB}"]`)], [kImageA, kVideoB], [
-      annotation(kA, { checked: false }),
-      annotation(kB, { checked: true }),
+      annotation(kA, { humanVerified: false }),
+      annotation(kB, { humanVerified: true }),
     ]);
     const p = plan(`
 moments:
   - moment: ${kT1}
     media:
-      - { entity: ${kA}, checked: true }
-      - { entity: ${kB}, checked: false }
+      - { entity: ${kA}, human_verified: true }
+      - { entity: ${kB}, human_verified: false }
 `, s);
     assert.deepStrictEqual(p.entities.map((e) => [e.entity.id, e.changes]), [
-      [kA, [{ key: 'checked', from: false, to: true, overwrite: false }]],
+      [kA, [{ key: 'human_verified', from: false, to: true, overwrite: false }]],
     ]);
-    assert.deepStrictEqual(p.conflicts, [{ momentLabel: kT1, entityID: kB, key: 'checked', current: true, file: false }]);
+    assert.deepStrictEqual(p.conflicts, [{ momentLabel: kT1, entityID: kB, key: 'human_verified', current: true, file: false }]);
   });
   it("sensitive は、自動の moment なら値が同じでも手での上書きにし、手で上書き済みなら違うときだけ衝突にする", () => {
     const s = state([
@@ -457,7 +460,7 @@ moments:
     tier: pickup
     series: [夏, 海]
     media:
-      - { entity: ${kA}, medium: drawing, tags: [海], looks_nude: nude, looks_child: child, checked: true, role_star: false }
+      - { entity: ${kA}, medium: drawing, tags: [海], looks_nude: nude, looks_child: child, human_verified: true, role_star: false }
       - { entity: ${kB}, role: deep, alt: 波 }
   - moment: ${kT2}
     tier: sketch
