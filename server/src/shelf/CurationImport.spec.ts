@@ -208,8 +208,16 @@ moments:
   - moment: 2016-02-29T00:00:00+09:00
   - moment: 2017-07-25T17:46:00Z
   - moment: 2017-07-25T13:17:00-04:30
+  - moment: 2017-02-29T00:00:00+09:00
+  - moment: 2017-13-01T00:00:00+09:00
+  - moment: 2017-07-26T25:00:00+09:00
+  - moment: 2017-07-25T17:41:00+00:05
+  - moment: 2017-07-25T18:02:00-00:16
+  - moment: 2017-07-25T17:45:00-00:00
 `);
-    assert.deepStrictEqual(errors.map((e) => e.split(':')[0]), ['moments[0]', 'moments[1]', 'moments[2]', 'moments[3]']);
+    assert.deepStrictEqual(errors.map((e) => e.split(':')[0]), [
+      'moments[0]', 'moments[1]', 'moments[2]', 'moments[3]', 'moments[7]', 'moments[8]', 'moments[9]',
+    ]);
   });
   it("同じ moment（書き方が違っても同じ時刻）や、同じ moment の下の同じ entity はエラー", () => {
     const { errors } = parseCurationFile(`
