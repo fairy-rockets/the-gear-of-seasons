@@ -21,6 +21,8 @@ export default class Editor {
   private preview_: Preview | null;
   private drawer_: AnnotationDrawer | null;
   private changeId_: number | null;
+  // moment の SAVE・削除の通信中か。その間、注釈の引き出しは開かず、保存もしない。
+  private busy_: boolean;
   executePreviewUpdater_: () => void;
   onSaveEventListener_: () => void;
   onDeleteEventListener_: () => void;
@@ -40,6 +42,7 @@ export default class Editor {
     this.preview_ = null;
     this.drawer_ = null;
     this.changeId_ = null;
+    this.busy_ = false;
     this.executePreviewUpdater_ = this.executePreviewUpdate_.bind(this);
     this.onSaveEventListener_ = this.onSave_.bind(this);
     this.onDeleteEventListener_ = this.onDelete_.bind(this);
@@ -90,6 +93,15 @@ export default class Editor {
     this.changeId_ = window.setTimeout(this.executePreviewUpdater_, 500);
   }
 
+  isBusy(): boolean {
+    return this.busy_;
+  }
+
+  private setBusy_(busy: boolean) {
+    this.busy_ = busy;
+    this.drawer_!.onEditorBusyChanged();
+  }
+
   // 開いている moment の、保存されている日時。新規なら null。
   originalDate(): string | null {
     return this.originalDate_.length > 0 ? this.originalDate_ : null;
@@ -124,6 +136,7 @@ export default class Editor {
     this.changeId_ = null;
     const moment = this.makeMoment_();
     let result: protocol.Moment.Save.Response;
+    this.setBusy_(true);
     try {
       const r = await fetch('/save', {
         method: 'POST',
@@ -141,6 +154,8 @@ export default class Editor {
       console.error(e);
       showToast(`保存に失敗しました: ${describeError(e)}`);
       return;
+    } finally {
+      this.setBusy_(false);
     }
     this.save_.disabled = true;
     this.delete_.disabled = false;
@@ -164,6 +179,7 @@ export default class Editor {
       date: this.date_.value,
     };
     let reply: protocol.Moment.Delete.Response;
+    this.setBusy_(true);
     try {
       const r = await fetch('/delete', {
         method: 'POST',
@@ -179,8 +195,10 @@ export default class Editor {
     } catch (e) {
       console.error(e);
       showToast(`削除に失敗しました: ${describeError(e)}`);
+      this.setBusy_(false);
       return;
     }
+    // 成功したら一覧へ移るので、通信中のまま（引き出しを開かせない）にする。
     window.location.href = `/moments/${reply.year}`;
   }
 

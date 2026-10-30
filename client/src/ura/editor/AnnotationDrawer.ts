@@ -148,6 +148,9 @@ export default class AnnotationDrawer {
   private opened_: Opened | null;
   // 開こうとして、注釈を読み直している entity。読み直しの間に別のメディアを選んだら、後の方だけを開く。
   private opening_: string | null;
+  // 開くたびに1つ増やす番号。読み直しの応答は、最新の番号のものだけを扱う。
+  // 同じ entity を開き直したとき、前の読み直しの古い応答で欄を組まないため（opening_ の id では見分けられない）。
+  private openSeq_: number;
   private saving_: boolean;
 
   constructor(column: HTMLElement, preview: HTMLElement) {
@@ -158,6 +161,7 @@ export default class AnnotationDrawer {
     this.loading_ = new Set();
     this.opened_ = null;
     this.opening_ = null;
+    this.openSeq_ = 0;
     this.saving_ = false;
 
     this.drawer_ = document.createElement('div');
@@ -270,13 +274,22 @@ export default class AnnotationDrawer {
   // 保存の通信中は、閉じる・保存のボタンを押せなくする。
   private setSaving_(saving: boolean) {
     this.saving_ = saving;
-    this.save_.disabled = saving;
-    this.close_.disabled = saving;
+    this.updateButtons_();
+  }
+
+  // moment の SAVE・削除の通信中は、注釈を保存しない（Editor が通信の始めと終わりに呼ぶ）。
+  onEditorBusyChanged() {
+    this.updateButtons_();
+  }
+
+  private updateButtons_() {
+    this.save_.disabled = this.saving_ || this.editor_!.isBusy();
+    this.close_.disabled = this.saving_;
   }
 
   async save() {
     const opened = this.opened_;
-    if (opened === null || this.saving_) {
+    if (opened === null || this.saving_ || this.editor_!.isBusy()) {
       return;
     }
     const values = this.values_(opened);
@@ -343,8 +356,8 @@ export default class AnnotationDrawer {
   // 開くたびに、その entity の注釈を読み直して欄を組む。ほかのタブや import で変わった値を、
   // 前に読んだ値のまま保存して黙って戻さないため。読み直せなければ開かない。
   private async open_(id: string) {
-    // 保存の通信中は、別のメディアを開かない。
-    if (this.saving_) {
+    // 注釈の保存、moment の SAVE・削除の通信中は、別のメディアを開かない。
+    if (this.saving_ || this.editor_!.isBusy()) {
       return;
     }
     // 開いているメディアをもう一度選んだら、閉じるボタンと同じく閉じる。
@@ -357,6 +370,7 @@ export default class AnnotationDrawer {
     }
     // 読み直している間は、その印を読み込み中の表示にする（refreshMarks_）。
     // 別のメディアに乗り換えたときは、乗り換えた先の refreshMarks_ で元の表示に戻る。
+    const seq = ++this.openSeq_;
     this.opening_ = id;
     this.refreshMarks_();
     let found: protocol.Annotation.Find.Response['entities'];
@@ -364,7 +378,7 @@ export default class AnnotationDrawer {
       found = await fetchAnnotations([id]);
     } catch (e) {
       console.error(e);
-      if (this.opening_ === id) {
+      if (seq === this.openSeq_) {
         this.opening_ = null;
         this.refreshMarks_();
         showToast(`注釈を読めないので、引き出しを開けません: ${describeError(e)}`);
@@ -372,7 +386,7 @@ export default class AnnotationDrawer {
       return;
     }
     // 読み直している間に、別のメディアを選んだ。
-    if (this.opening_ !== id) {
+    if (seq !== this.openSeq_) {
       return;
     }
     this.opening_ = null;
