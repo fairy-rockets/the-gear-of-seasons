@@ -17,7 +17,7 @@ type Kind =
   { kind: 'string', multiline: boolean } |
   { kind: 'list' } |
   { kind: 'tristate' } |
-  { kind: 'checked' };
+  { kind: 'checkbox' };
 
 // Record にしてあるので、protocol.ts に項目を足すと、ここに足すまでコンパイルが通らない。
 const kKinds: Record<AnnotationField, Kind> = {
@@ -30,7 +30,7 @@ const kKinds: Record<AnnotationField, Kind> = {
   looksNude: { kind: 'enum', values: protocol.kLooksNude },
   looksChild: { kind: 'enum', values: protocol.kLooksChild },
   looksNote: { kind: 'string', multiline: false },
-  checked: { kind: 'checked' },
+  humanVerified: { kind: 'checkbox' },
   role: { kind: 'enum', values: protocol.kAnnotationRoles },
   roleGroup: { kind: 'string', multiline: false },
   roleStar: { kind: 'tristate' },
@@ -48,17 +48,17 @@ const kLabels: Record<AnnotationField, string> = {
   looksNude: 'looks_nude',
   looksChild: 'looks_child',
   looksNote: 'looks_note',
-  checked: 'checked（下書きを確認した）',
+  humanVerified: 'human_verified（下書きを確認した）',
   role: 'role',
   roleGroup: 'role_group',
   roleStar: 'role_star',
   roleNote: 'role_note',
 };
 
-// 引き出しの先頭にまとめる、Ollama が下書きする項目と、それをすべて確かめたかの checked（#2）。checked は最後。
+// 引き出しの先頭にまとめる、Ollama が下書きする項目と、それをすべて確かめたかの human_verified（#2）。human_verified は最後。
 // ほかの項目は、このまとまりの後に protocol.ts の kAnnotationFields の順で並べる。
 const kDraftFields: readonly AnnotationField[] = [
-  'medium', 'alt', 'description', 'tags', 'palette', 'looksNude', 'looksChild', 'looksNote', 'checked',
+  'medium', 'alt', 'description', 'tags', 'palette', 'looksNude', 'looksChild', 'looksNote', 'humanVerified',
 ];
 
 const kTypeLabels: Record<protocol.EntityType, string> = {
@@ -90,7 +90,7 @@ type Opened = {
   inputs: Map<AnnotationField, Input>;
 };
 
-type Mark = { state: 'loading' | 'unentered' | 'unchecked' | 'checked' | 'entered', label: string };
+type Mark = { state: 'loading' | 'unentered' | 'unverified' | 'verified' | 'entered', label: string };
 
 function markOf(entry: Entry | undefined): Mark {
   if (entry === undefined) {
@@ -98,17 +98,17 @@ function markOf(entry: Entry | undefined): Mark {
   }
   const fields = protocol.kAnnotationFieldsByType[entry.type];
   const a = entry.annotation;
-  const unentered = fields.every((f) => f === 'checked' ? !a.checked : a[f] === null);
+  const unentered = fields.every((f) => f === 'humanVerified' ? !a.humanVerified : a[f] === null);
   if (unentered) {
     return { state: 'unentered', label: '注釈：未入力' };
   }
-  // 音声は checked を持たないので、入力の有無だけを出す。
-  if (!fields.includes('checked')) {
+  // 音声は human_verified を持たないので、入力の有無だけを出す。
+  if (!fields.includes('humanVerified')) {
     return { state: 'entered', label: '注釈：入力済み' };
   }
-  return a.checked
-    ? { state: 'checked', label: '注釈：確認済み' }
-    : { state: 'unchecked', label: '注釈：未確認' };
+  return a.humanVerified
+    ? { state: 'verified', label: '注釈：確認済み' }
+    : { state: 'unverified', label: '注釈：未確認' };
 }
 
 async function fetchAnnotations(ids: string[]): Promise<protocol.Annotation.Find.Response['entities']> {
@@ -401,7 +401,7 @@ export default class AnnotationDrawer {
     this.refreshMarks_();
     const fields = protocol.kAnnotationFieldsByType[entry.type];
     const inputs = new Map<AnnotationField, Input>();
-    // 下書きの範囲のまとまり。checked が false の間だけ枠で囲む（checked を持たない種類には出さない）。
+    // 下書きの範囲のまとまり。human_verified が false の間だけ枠で囲む（human_verified を持たない種類には出さない）。
     const draft = document.createElement('div');
     draft.classList.add('annotation-draft');
     this.form_.appendChild(draft);
@@ -413,11 +413,11 @@ export default class AnnotationDrawer {
       inputs.set(field, input);
       (kDraftFields.includes(field) ? draft : this.form_).appendChild(input.elem);
     }
-    const checked = inputs.get('checked');
-    if (checked !== undefined) {
+    const verified = inputs.get('humanVerified');
+    if (verified !== undefined) {
       // 付けた・外した時点で、保存の前でも枠を切り替える。
-      const update = () => draft.classList.toggle('annotation-unchecked', checked.read() === false);
-      checked.elem.addEventListener('change', update);
+      const update = () => draft.classList.toggle('annotation-unverified', verified.read() === false);
+      verified.elem.addEventListener('change', update);
       update();
     }
     this.opened_ = { id, entry, original: entry.annotation, inputs };
@@ -605,7 +605,7 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
       row.appendChild(select);
       break;
     }
-    case 'checked': {
+    case 'checkbox': {
       const check = document.createElement('input');
       check.type = 'checkbox';
       check.checked = value === true;

@@ -97,7 +97,7 @@ export function markdownURLs(doc: fml.Document): string[] {
 
 // メディア1つ分。entities に行が無い entity（失われたメディア）は entity だけを出す。
 // 注釈は、その種類が持たない項目と、値の無い項目（null）を出さない。空の文字列や空のリストは出す。
-// 注釈の行が無い entity は、すべて未入力（checked は列の既定値の false）として扱う。
+// 注釈の行が無い entity は、すべて未入力（humanVerified は列の既定値の false）として扱う。
 function mediaItem(id: string, entities: ReadonlyMap<string, Entity>, annotations: ReadonlyMap<string, EntityAnnotation>): Record<string, unknown> {
   const item: Record<string, unknown> = { entity: id };
   const entity = entities.get(id);
@@ -120,7 +120,7 @@ function mediaItem(id: string, entities: ReadonlyMap<string, Entity>, annotation
     if (!fields.includes(field)) {
       continue;
     }
-    const v = annotation !== undefined ? annotation[field] : (field === 'checked' ? false : null);
+    const v = annotation !== undefined ? annotation[field] : (field === 'humanVerified' ? false : null);
     if (v !== null) {
       item[key] = v;
     }

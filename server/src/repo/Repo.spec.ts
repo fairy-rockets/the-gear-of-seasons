@@ -282,7 +282,7 @@ describe("Repo の entity の注釈", () => {
     looks_nude: 'none',
     looks_child: 'child',
     looks_note: null,
-    checked: true,
+    human_verified: true,
     role: null,
     role_group: null,
     role_star: null,
@@ -316,7 +316,7 @@ describe("Repo の entity の注釈", () => {
     assert.strictEqual(a.characters, null);
     assert.strictEqual(a.looksNude, 'none');
     assert.strictEqual(a.palette, null);
-    assert.strictEqual(a.checked, true);
+    assert.strictEqual(a.humanVerified, true);
     assert.strictEqual(a.roleStar, null);
   });
 
@@ -337,7 +337,7 @@ describe("Repo の entity の注釈", () => {
       looksNude: 'partial',
       looksChild: 'adult',
       looksNote: null,
-      checked: false,
+      humanVerified: false,
       role: 'grab',
       roleGroup: null,
       roleStar: true,

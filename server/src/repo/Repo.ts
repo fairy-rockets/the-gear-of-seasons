@@ -496,7 +496,7 @@ delete from moments where "timestamp" = $1;
     const q = `
 select
   "entity_id", "medium", "alt", "description", "tags", "palette", "characters",
-  "looks_nude", "looks_child", "looks_note", "checked",
+  "looks_nude", "looks_child", "looks_note", "human_verified",
   "role", "role_group", "role_star", "role_note"
 from entity_annotations
   where "entity_id" = any($1::text[]);
@@ -515,7 +515,7 @@ from entity_annotations
     const q = `
 insert into entity_annotations (
   "entity_id", "medium", "alt", "description", "tags", "palette", "characters",
-  "looks_nude", "looks_child", "looks_note", "checked",
+  "looks_nude", "looks_child", "looks_note", "human_verified",
   "role", "role_group", "role_star", "role_note"
 ) values (
   $1, $2, $3, $4, $5::text[], $6, $7::text[], $8, $9, $10, $11, $12, $13, $14, $15
@@ -529,7 +529,7 @@ insert into entity_annotations (
   "looks_nude" = excluded."looks_nude",
   "looks_child" = excluded."looks_child",
   "looks_note" = excluded."looks_note",
-  "checked" = excluded."checked",
+  "human_verified" = excluded."human_verified",
   "role" = excluded."role",
   "role_group" = excluded."role_group",
   "role_star" = excluded."role_star",
@@ -546,7 +546,7 @@ insert into entity_annotations (
       a.looksNude,
       a.looksChild,
       a.looksNote,
-      a.checked,
+      a.humanVerified,
       a.role,
       a.roleGroup,
       a.roleStar,
@@ -582,7 +582,7 @@ function decodeEntityAnnotation(row: pg.QueryResultRow): EntityAnnotation {
     looksNude: parseLooksNude(row['looks_nude']),
     looksChild: parseLooksChild(row['looks_child']),
     looksNote: row['looks_note'] as (string | null),
-    checked: row['checked'] as boolean,
+    humanVerified: row['human_verified'] as boolean,
     role: parseAnnotationRole(row['role']),
     roleGroup: row['role_group'] as (string | null),
     roleStar: row['role_star'] as (boolean | null),

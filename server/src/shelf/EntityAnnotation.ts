@@ -82,8 +82,8 @@ export function validateEntityAnnotation(entity: Entity, annotation: EntityAnnot
     if (fields.includes(key)) {
       continue;
     }
-    // checked は列が NOT NULL なので null にはできない。持たない種類では false（既定値）だけを通す。
-    const absent = key === 'checked' ? annotation[key] === false : annotation[key] === null;
+    // humanVerified は列が NOT NULL なので null にはできない。持たない種類では false（既定値）だけを通す。
+    const absent = key === 'humanVerified' ? annotation[key] === false : annotation[key] === null;
     if (!absent) {
       throw new Error(`${entity.type} entity ${entity.id} cannot have ${key}`);
     }

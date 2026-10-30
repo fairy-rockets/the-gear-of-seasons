@@ -286,14 +286,14 @@ export type CurationPlan = {
   conflicts: Conflict[];
 };
 
-// 今の値が「未入力」か。既定値（tier = archive・series = []・checked = false）も未入力とみなし、衝突にしない。
+// 今の値が「未入力」か。既定値（tier = archive・series = []・human_verified = false）も未入力とみなし、衝突にしない。
 function isUnset(key: string, v: unknown): boolean {
   switch (key) {
     case 'tier':
       return v === 'archive';
     case 'series':
       return Array.isArray(v) && v.length === 0;
-    case 'checked':
+    case 'human_verified':
       return v === false;
     default:
       return v === null;
@@ -316,7 +316,7 @@ function decide(key: string, current: unknown, next: unknown, overwrite: boolean
 function emptyAnnotation(entityID: string): EntityAnnotation {
   return {
     entityID, medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude: null, looksChild: null, looksNote: null, checked: false,
+    looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
     role: null, roleGroup: null, roleStar: null, roleNote: null,
   };
 }

@@ -32,7 +32,7 @@ export type AnnotationValues = {
   looksNude: LooksNude | null;
   looksChild: LooksChild | null;
   looksNote: string | null;
-  checked: boolean;
+  humanVerified: boolean;
   role: AnnotationRole | null;
   roleGroup: string | null;
   roleStar: boolean | null;
@@ -43,7 +43,7 @@ export type AnnotationField = keyof AnnotationValues;
 
 export const kAnnotationFields: readonly AnnotationField[] = [
   'medium', 'alt', 'description', 'tags', 'palette', 'characters', 'looksNude', 'looksChild', 'looksNote',
-  'checked', 'role', 'roleGroup', 'roleStar', 'roleNote',
+  'humanVerified', 'role', 'roleGroup', 'roleStar', 'roleNote',
 ];
 
 // 種類ごとに持つ項目。
@@ -99,7 +99,7 @@ export namespace Moment {
 export namespace Annotation {
   export namespace Find {
     // GET /annotations?ids=<id>,<id>,… の応答。entity が無い id は entities に入らない。
-    // 注釈の行が無い entity は、未入力の値（checked は false、ほかは null）で返す。
+    // 注釈の行が無い entity は、未入力の値（humanVerified は false、ほかは null）で返す。
     export type Response = {
       entities: {
         entityID: string;
@@ -109,7 +109,7 @@ export namespace Annotation {
     };
   }
   export namespace Save {
-    // POST /annotation。annotation の項目はすべて送る（その種類が持たない項目は null、checked は false）。
+    // POST /annotation。annotation の項目はすべて送る（その種類が持たない項目は null、humanVerified は false）。
     export type Request = {
       entityID: string;
       // 開いている moment の日時（Moment.Save.Request の originalDate と同じ形）。新規の moment なら null。

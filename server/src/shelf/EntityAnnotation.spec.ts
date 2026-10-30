@@ -24,7 +24,7 @@ const kEmpty: EntityAnnotation = {
   looksNude: null,
   looksChild: null,
   looksNote: null,
-  checked: false,
+  humanVerified: false,
   role: null,
   roleGroup: null,
   roleStar: null,
@@ -36,7 +36,7 @@ describe("validateEntityAnnotation", () => {
     validateEntityAnnotation(kImage, {
       ...kEmpty,
       medium: 'drawing', alt: 'a', description: 'd', tags: ['t'], palette: 'color', characters: ['c'],
-      looksNude: 'none', looksChild: 'child', looksNote: 'n', checked: true,
+      looksNude: 'none', looksChild: 'child', looksNote: 'n', humanVerified: true,
       role: 'grab', roleGroup: 'g', roleStar: false, roleNote: 'r',
     });
   });
@@ -48,7 +48,7 @@ describe("validateEntityAnnotation", () => {
       { medium: 'photo' }, { palette: 'monochrome' }, { characters: [] },
       { looksNude: 'none' }, { looksChild: 'none' }, { looksNote: '' },
       { role: 'none' }, { roleGroup: '' }, { roleStar: false }, { roleNote: '' },
-      { checked: true },
+      { humanVerified: true },
     ];
     for (const c of cases) {
       assert.throws(() => validateEntityAnnotation(kAudio, { ...kEmpty, ...c }), /cannot have/, JSON.stringify(c));

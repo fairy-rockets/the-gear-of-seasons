@@ -20,7 +20,7 @@ function annotation(entityID: string, looksNude: LooksNude | null, looksChild: L
     looksNude,
     looksChild,
     looksNote: null,
-    checked: false,
+    humanVerified: false,
     role: null,
     roleGroup: null,
     roleStar: null,
