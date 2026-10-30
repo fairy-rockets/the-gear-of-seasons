@@ -37,6 +37,7 @@ const kWithoutVisibility: { [name: string]: string } = {
   deleteMoment: '書き込みだけ',
   computeSensitive: 'moment を引かない',
   findEntityAnnotation: 'moment を引かない',
+  findEntityAnnotations: 'moment を引かない',
   saveEntityAnnotation: '書き込みのために引く。下書きも含めて計算し直す',
 };
 

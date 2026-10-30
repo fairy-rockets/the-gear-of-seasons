@@ -152,6 +152,188 @@ img.emoji {
   flex: 1 1 0;
 }
 
+/* 注釈の引き出し。本文の入力欄（左の列）の上にかぶせ、プレビューは隠さない */
+.editor-container .editor-wrapper {
+  position: relative;
+}
+
+.annotation-drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 1em 0.5em 0.5em 0.5em;
+
+  background: #080816;
+  border-right: 2px solid #f0c040;
+}
+
+.annotation-drawer[hidden] {
+  display: none;
+}
+
+.annotation-header {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.annotation-icon {
+  width: 4em;
+  height: 4em;
+  object-fit: cover;
+  border: 1px solid #333;
+  flex: 0 0 auto;
+}
+
+.annotation-title {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: smaller;
+  font-family: monospace;
+}
+
+/* line-height を決めておく。normal のままだと、× と日本語で使われるフォントが違い、ボタンの高さが揃わない */
+.annotation-close,
+.annotation-save {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: 22px;
+  line-height: 1.4;
+  color: #ddd;
+  background: #111;
+  border: 1px solid white;
+}
+
+/* 保存の通信中は押せない。見た目は帯のボタンの :disabled に合わせる */
+.annotation-close:disabled,
+.annotation-save:disabled {
+  color: #444;
+  border: 1px solid #333;
+}
+
+.annotation-form {
+  flex: 1 1 0;
+  overflow-y: auto;
+  margin-top: 0.5em;
+}
+
+.annotation-field {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+  gap: 0.5em;
+  margin: 0.4em 0;
+}
+
+.annotation-label {
+  flex: 0 0 8em;
+  font-family: monospace;
+  color: #9ab;
+}
+
+.annotation-field select,
+.annotation-field input[type="text"],
+.annotation-field textarea {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+  font-size: 16px;
+  color: #ddd;
+  background: #111;
+  border: 1px solid #889;
+}
+
+/* .editor-wrapper input:disabled（22px）より後に置き、同じ詳細度で大きさを戻す */
+.annotation-field input[type="text"]:disabled {
+  font-size: 16px;
+  color: #444;
+  background: #111;
+  border: 1px solid #333;
+}
+
+.annotation-list {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+  gap: 0.5em;
+}
+
+.annotation-empty {
+  flex: 0 0 auto;
+  font-size: smaller;
+}
+
+/* 下書きの範囲のまとまり。checked が false の間だけ枠を出す（枠の有無で欄が動かないよう、幅は常にとる） */
+.annotation-draft {
+  padding: 0 0.4em;
+  border: 1px solid transparent;
+}
+
+.annotation-draft.annotation-unchecked {
+  border-color: #f0c040;
+}
+
+/* 上の帯の下に出す、保存の状態の1行。空のときも高さを取り、欄の位置を動かさない */
+.annotation-status {
+  min-height: 1.4em;
+  margin-top: 0.3em;
+  font-size: smaller;
+  color: #9ab;
+}
+
+.annotation-status.annotation-status-dirty {
+  color: #f0c040;
+}
+
+/* プレビューのメディアの直前に差し込む印 */
+#preview .annotation-mark {
+  display: block;
+  margin: 0 auto 0.2em auto;
+  padding: 0.1em 0.6em;
+  font-size: small;
+  color: #e3e8ef;
+  background: #111;
+  border: 1px solid #556;
+  border-radius: 0.3em;
+  cursor: pointer;
+}
+
+#preview .annotation-mark[data-state="unentered"] {
+  background: #5a1f1f;
+  border-color: #d06060;
+}
+
+#preview .annotation-mark[data-state="unchecked"] {
+  background: #4a3a0a;
+  border-color: #f0c040;
+}
+
+#preview .annotation-mark[data-state="checked"],
+#preview .annotation-mark[data-state="entered"] {
+  background: #0f3a1f;
+  border-color: #50b070;
+}
+
+#preview img[data-entity] {
+  cursor: pointer;
+}
+
+#preview .annotation-selected {
+  outline: 3px solid #f0c040;
+  outline-offset: 2px;
+}
+
 .uploader-hover {
   position: fixed;
   top: 0;

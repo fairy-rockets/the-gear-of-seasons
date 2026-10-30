@@ -1,37 +1,34 @@
 import { Entity } from './Entity.js';
+import {
+  AnnotationField,
+  AnnotationMedium,
+  AnnotationPalette,
+  AnnotationRole,
+  AnnotationValues,
+  LooksChild,
+  LooksNude,
+  kAnnotationFields,
+  kAnnotationFieldsByType,
+  kAnnotationMedia,
+  kAnnotationPalettes,
+  kAnnotationRoles,
+  kLooksChild,
+  kLooksNude,
+} from '../lib/protocol.js';
 
 // メディア（entity）ごとの注釈。entity_annotations の1行で、entities と1対1。
+// 選べる値と項目は、ura の編集画面と共有するので protocol.ts にある。
 // null は「値なし」（未入力）で、'none' や空のリストとは別の値として扱う。
-// 項目の意味は #2 のコメント（issuecomment-3603）の「1. DB に足すもの」の表。
 
-const kMedia = ['drawing', 'photo', '3d', 'generated', 'graphic'] as const;
-const kPalettes = ['color', 'monochrome'] as const;
-const kLooksNude = ['nude', 'partial', 'unclear', 'none'] as const;
-const kLooksChild = ['child', 'ambiguous', 'adult', 'none'] as const;
-const kRoles = ['grab', 'both', 'deep', 'none'] as const;
+export type EntityAnnotation = { entityID: string } & AnnotationValues;
 
-export type AnnotationMedium = typeof kMedia[number];
-export type AnnotationPalette = typeof kPalettes[number];
-export type LooksNude = typeof kLooksNude[number];
-export type LooksChild = typeof kLooksChild[number];
-export type AnnotationRole = typeof kRoles[number];
-
-export type EntityAnnotation = {
-  entityID: string;
-  medium: AnnotationMedium | null;
-  alt: string | null;
-  description: string | null;
-  tags: string[] | null;
-  palette: AnnotationPalette | null;
-  characters: string[] | null;
-  looksNude: LooksNude | null;
-  looksChild: LooksChild | null;
-  looksNote: string | null;
-  checked: boolean;
-  role: AnnotationRole | null;
-  roleGroup: string | null;
-  roleStar: boolean | null;
-  roleNote: string | null;
+export {
+  AnnotationField,
+  AnnotationMedium,
+  AnnotationPalette,
+  AnnotationRole,
+  LooksChild,
+  LooksNude,
 };
 
 // 不正な値は例外にする（parseMomentStatus と同じ）。null は「値なし」としてそのまま通す。
@@ -46,11 +43,11 @@ function parseNullable<T extends string>(name: string, values: readonly T[], v: 
 }
 
 export function parseAnnotationMedium(v: unknown): AnnotationMedium | null {
-  return parseNullable('medium', kMedia, v);
+  return parseNullable('medium', kAnnotationMedia, v);
 }
 
 export function parseAnnotationPalette(v: unknown): AnnotationPalette | null {
-  return parseNullable('palette', kPalettes, v);
+  return parseNullable('palette', kAnnotationPalettes, v);
 }
 
 export function parseLooksNude(v: unknown): LooksNude | null {
@@ -62,22 +59,12 @@ export function parseLooksChild(v: unknown): LooksChild | null {
 }
 
 export function parseAnnotationRole(v: unknown): AnnotationRole | null {
-  return parseNullable('role', kRoles, v);
+  return parseNullable('role', kAnnotationRoles, v);
 }
 
-export type AnnotationField = Exclude<keyof EntityAnnotation, 'entityID'>;
-
-const kAllFields: readonly AnnotationField[] = [
-  'medium', 'alt', 'description', 'tags', 'palette', 'characters', 'looksNude', 'looksChild', 'looksNote',
-  'checked', 'role', 'roleGroup', 'roleStar', 'roleNote',
-];
-
-// 種類ごとに持つ項目。Record にしてあるので、entity の種類を足すと、ここに足すまでコンパイルが通らない。
-export const kFieldsByType: Record<Entity['type'], readonly AnnotationField[]> = {
-  image: kAllFields,
-  video: kAllFields,
-  audio: ['alt', 'description', 'tags'],
-};
+// 種類ごとに持つ項目。Record にしてあるので、entity の種類を足すと、protocol.ts の kAnnotationFieldsByType に
+// 足すまでコンパイルが通らない。
+export const kFieldsByType: Record<Entity['type'], readonly AnnotationField[]> = kAnnotationFieldsByType;
 
 // 書き込む前に、値が定義にあるか、その種類の entity が持つ項目だけかを確かめる。合わなければ例外にする。
 // DB を触らないので、書き込まずに確かめるだけのとき（#43 の変更内容だけを出すモードなど）にも使える。
@@ -91,7 +78,7 @@ export function validateEntityAnnotation(entity: Entity, annotation: EntityAnnot
   parseLooksChild(annotation.looksChild);
   parseAnnotationRole(annotation.role);
   const fields = kFieldsByType[entity.type];
-  for (const key of kAllFields) {
+  for (const key of kAnnotationFields) {
     if (fields.includes(key)) {
       continue;
     }

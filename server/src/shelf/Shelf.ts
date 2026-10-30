@@ -388,6 +388,11 @@ class Shelf {
     return await this.repo.findEntityAnnotation(entityID);
   }
 
+  // 注釈の行が無い entity は、返す Map に入らない。
+  async findEntityAnnotations(entityIDs: string[]): Promise<Map<string, EntityAnnotation>> {
+    return await this.repo.findEntityAnnotations(entityIDs);
+  }
+
   // 注釈を保存し、同じトランザクションで、その entity を本文の [image]・[video] に含む moment の
   // sensitive を計算し直す（sensitive_manual = true のものは除く）。
   async saveEntityAnnotation(annotation: EntityAnnotation) {
