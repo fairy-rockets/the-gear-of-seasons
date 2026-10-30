@@ -496,8 +496,9 @@ export default class AnnotationDrawer {
     }
     try {
       for (const e of await fetchAnnotations(ids)) {
-        // 開いている entity の値は、開いたときに読み直したものを保つ（保存で印と揃える）。
-        if (this.opened_ !== null && this.opened_.id === e.entityID) {
+        // 読みに行くのは Map に無い entity だけなので、応答までに Map に入ったものは、引き出しで開いたときに
+        // 読み直した値か、その後に保存した値で、こちらより新しい。古い応答で上書きしない。
+        if (this.annotations_.has(e.entityID)) {
           continue;
         }
         this.annotations_.set(e.entityID, { type: e.type, annotation: e.annotation });
