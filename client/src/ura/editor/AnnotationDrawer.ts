@@ -349,8 +349,9 @@ export default class AnnotationDrawer {
     if (this.saving_) {
       return;
     }
+    // 開いているメディアをもう一度選んだら、閉じるボタンと同じく閉じる。
     if (this.opened_ !== null && this.opened_.id === id) {
-      this.select_(id);
+      this.close();
       return;
     }
     if (!this.close()) {
