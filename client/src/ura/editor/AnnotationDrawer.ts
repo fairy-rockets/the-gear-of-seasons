@@ -139,7 +139,7 @@ export default class AnnotationDrawer {
   private readonly icon_: HTMLImageElement;
   private readonly title_: HTMLDivElement;
   private readonly form_: HTMLDivElement;
-  private readonly status_: HTMLSpanElement;
+  private readonly status_: HTMLDivElement;
   private readonly save_: HTMLButtonElement;
   private readonly close_: HTMLButtonElement;
   private editor_: Editor | null;
@@ -179,27 +179,25 @@ export default class AnnotationDrawer {
     this.close_.title = '閉じる';
     this.close_.textContent = '×';
     this.close_.addEventListener('click', () => this.close());
+    // 保存ボタンは、moment の SAVE と同じく上の帯に置き、閉じるボタンの左に並べる。
+    this.save_ = document.createElement('button');
+    this.save_.type = 'button';
+    this.save_.classList.add('annotation-save');
+    this.save_.textContent = '注釈を保存';
+    this.save_.addEventListener('click', () => this.save());
+    header.appendChild(this.save_);
     header.appendChild(this.close_);
     this.drawer_.appendChild(header);
+
+    this.status_ = document.createElement('div');
+    this.status_.classList.add('annotation-status');
+    this.drawer_.appendChild(this.status_);
 
     this.form_ = document.createElement('div');
     this.form_.classList.add('annotation-form');
     this.form_.addEventListener('input', () => this.updateStatus_());
     this.form_.addEventListener('change', () => this.updateStatus_());
     this.drawer_.appendChild(this.form_);
-
-    const footer = document.createElement('div');
-    footer.classList.add('annotation-footer');
-    this.status_ = document.createElement('span');
-    this.status_.classList.add('annotation-status');
-    footer.appendChild(this.status_);
-    this.save_ = document.createElement('button');
-    this.save_.type = 'button';
-    this.save_.classList.add('annotation-save');
-    this.save_.textContent = '注釈を保存';
-    this.save_.addEventListener('click', () => this.save());
-    footer.appendChild(this.save_);
-    this.drawer_.appendChild(footer);
 
     column.appendChild(this.drawer_);
 

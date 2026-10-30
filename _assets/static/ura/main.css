@@ -203,6 +203,8 @@ img.emoji {
 
 .annotation-close,
 .annotation-save {
+  flex: 0 0 auto;
+  white-space: nowrap;
   font-size: 22px;
   color: #ddd;
   background: #111;
@@ -280,17 +282,10 @@ img.emoji {
   border-color: #f0c040;
 }
 
-.annotation-footer {
-  display: flex;
-  flex-flow: row nowrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5em;
-  margin-top: 0.5em;
-}
-
+/* 上の帯の下に出す、保存の状態の1行。空のときも高さを取り、欄の位置を動かさない */
 .annotation-status {
-  flex: 1 1 0;
+  min-height: 1.4em;
+  margin-top: 0.3em;
   font-size: smaller;
   color: #9ab;
 }
