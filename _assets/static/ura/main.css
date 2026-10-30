@@ -201,11 +201,13 @@ img.emoji {
   font-family: monospace;
 }
 
+/* line-height を決めておく。normal のままだと、× と日本語で使われるフォントが違い、ボタンの高さが揃わない */
 .annotation-close,
 .annotation-save {
   flex: 0 0 auto;
   white-space: nowrap;
   font-size: 22px;
+  line-height: 1.4;
   color: #ddd;
   background: #111;
   border: 1px solid white;
