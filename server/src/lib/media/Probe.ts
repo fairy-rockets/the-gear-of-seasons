@@ -2,7 +2,6 @@ import * as fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
-import exifr from 'exifr';
 import dayjs from 'dayjs';
 import {fileTypeFromFile} from 'file-type';
 
@@ -34,28 +33,6 @@ export async function probe(srcFilePath: string): Promise<ProbeResult> {
   try {
     const filePath = path.join(tempDir, `probe.${fileType.ext}`);
     await fs.copyFile(srcFilePath, filePath);
-    const timestamp = await (async () => {
-      // exifr が読めるのは画像だけ。パスを渡すと exifr は FileHandle.stat に options としてパスを渡し、
-      // Node 26 ではそれが例外になる（開いた FileHandle も閉じられない）ので、読んだ中身を渡す。
-      // FIXME: exifr はメンテナンスされていないので替える（#63）。
-      if (!fileType.mime.startsWith('image/')) {
-        return undefined;
-      }
-      try {
-        const exif = await exifr.parse(await fs.readFile(filePath));
-        if (exif === undefined || exif === null) {
-          return undefined;
-        }
-        const timestamp: Date | undefined = exif['CreateDate'] || exif['DateTimeOriginal'];
-        if (timestamp === undefined) {
-          return undefined;
-        } else {
-          return dayjs(timestamp);
-        }
-      } catch (e) {
-        return undefined;
-      }
-    })();
     const type: MediaType = (() => {
       if (fileType.mime.startsWith('video/')) {
         return 'video';
@@ -74,7 +51,7 @@ export async function probe(srcFilePath: string): Promise<ProbeResult> {
           type: 'image',
           ext: fileType.ext,
           md5sum: hash,
-          timestamp: timestamp,
+          timestamp: probeResult.timestamp,
           mimeType: fileType.mime,
           width: probeResult.width,
           height: probeResult.height,
@@ -86,7 +63,7 @@ export async function probe(srcFilePath: string): Promise<ProbeResult> {
           type: 'video',
           ext: fileType.ext,
           md5sum: hash,
-          timestamp: timestamp,
+          timestamp: probeResult.timestamp,
           mimeType: fileType.mime,
           width: probeResult.width,
           height: probeResult.height,
@@ -99,7 +76,7 @@ export async function probe(srcFilePath: string): Promise<ProbeResult> {
           type: 'audio',
           ext: fileType.ext,
           md5sum: hash,
-          timestamp: timestamp,
+          timestamp: undefined,
           mimeType: fileType.mime,
           duration: probeResult.duration,
         };

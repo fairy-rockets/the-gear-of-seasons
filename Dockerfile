@@ -3,7 +3,7 @@ FROM node:26-alpine AS tools
 
 WORKDIR /app
 
-RUN  apk add --no-cache bash ffmpeg imagemagick tzdata \
+RUN  apk add --no-cache bash ffmpeg imagemagick imagemagick-heic libheif-libde265 tzdata \
   && cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime \
   && apk del --purge tzdata
 
