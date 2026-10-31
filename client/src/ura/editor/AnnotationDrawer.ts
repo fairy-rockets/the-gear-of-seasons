@@ -326,6 +326,7 @@ export default class AnnotationDrawer {
     opened.entry.annotation = values;
     opened.original = values;
     for (const [field, input] of opened.inputs) {
+      // string[] は === だと参照比較になるため、JSON.stringify で要素の順番を含めて比較する。
       if (JSON.stringify(input.read()) === JSON.stringify(values[field])) {
         input.touched = false;
       }
