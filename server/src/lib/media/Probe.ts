@@ -35,6 +35,7 @@ export async function probe(srcFilePath: string): Promise<ProbeResult> {
     const filePath = path.join(tempDir, `probe.${fileType.ext}`);
     await fs.copyFile(srcFilePath, filePath);
     const timestamp = await (async () => {
+      // ExifReader は画像用のリーダー。動画・音声の撮影日時は取得しない。
       if (!fileType.mime.startsWith('image/')) {
         return undefined;
       }
