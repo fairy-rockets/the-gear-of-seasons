@@ -4,7 +4,9 @@ import dayjs from 'dayjs';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 import Asset from '../lib/Asset.js';
+import * as protocol from '../lib/protocol.js';
 import Shelf from '../shelf/Shelf.js';
+import { momentListItem } from '../shelf/MomentList.js';
 import { Moment, MomentSummary, MomentVisibility, formatMomentPath } from '../shelf/Moment.js';
 
 import MomentController from './omote/MomentController.js';
@@ -78,8 +80,8 @@ class StubShelf {
   async findAllMomentSummaries(visibility: MomentVisibility): Promise<MomentSummary[]> {
     return this.visible(visibility).map(StubShelf.summary);
   }
-  async findMomentSummariesInYear(_year: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
-    return this.visible(visibility).map(StubShelf.summary);
+  async findMomentListItems(visibility: MomentVisibility): Promise<protocol.Moment.List.Item[]> {
+    return this.visible(visibility).map((m) => momentListItem(m, [], new Map()));
   }
   async findEntity(_id: string): Promise<null> {
     return null;
@@ -181,14 +183,19 @@ describe("ura は下書きも扱う", () => {
     assertOnly(shelf, 'all');
   });
 
-  it("一覧に下書きが出て、下書きにだけバッジが付く", async () => {
+  it("一覧に埋め込む要約に下書きが入り、status が付いている", async () => {
     const shelf = new StubShelf();
     const c = await MomentListController.create(asset, shelf.asShelf());
-    const r = await call(c.handle.bind(c), { params: { year: '2024' } });
+    const r = await call(c.handle.bind(c), {});
     const body = r.body as string;
-    assert.ok(body.includes(`href="${kDraftPath}"`), body);
-    assert.ok(body.includes(`href="${kPublishedAPath}"`), body);
-    assert.strictEqual(body.split('moment-badge-draft').length - 1, 1, body);
+    const m = /<script id="moments-data" type="application\/json">(.*?)<\/script>/s.exec(body);
+    assert.ok(m !== null, body);
+    const items = JSON.parse(m[1]) as protocol.Moment.List.Item[];
+    assert.deepStrictEqual(items.map((it) => [it.path, it.status]), [
+      [kPublishedAPath, 'published'],
+      [kDraftPath, 'draft'],
+      [kPublishedBPath, 'published'],
+    ]);
     assertOnly(shelf, 'all');
   });
 

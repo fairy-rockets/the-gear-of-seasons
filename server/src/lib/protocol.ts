@@ -53,6 +53,23 @@ export const kAnnotationFieldsByType: Record<EntityType, readonly AnnotationFiel
   audio: ['alt', 'description', 'tags'],
 };
 
+// 注釈がどこまで入ったか。ura の編集画面の注釈の印と、一覧の絞り込みで同じ判定を使う。
+// unentered: その種類が持つ項目がすべて null（human_verified は false）。注釈の行が無い entity もこれ。
+// unverified / verified: 何か入っていて、human_verified が false / true。human_verified を持つ種類（画像・動画）だけ。
+// entered: 何か入っている。human_verified を持たない種類（音声）だけ。
+export type AnnotationState = 'unentered' | 'unverified' | 'verified' | 'entered';
+
+export function annotationState(type: EntityType, a: AnnotationValues): AnnotationState {
+  const fields = kAnnotationFieldsByType[type];
+  if (fields.every((f) => f === 'humanVerified' ? !a.humanVerified : a[f] === null)) {
+    return 'unentered';
+  }
+  if (!fields.includes('humanVerified')) {
+    return 'entered';
+  }
+  return a.humanVerified ? 'verified' : 'unverified';
+}
+
 export namespace Moment {
   export namespace Save {
     export type Request = {
@@ -84,6 +101,27 @@ export namespace Moment {
       path: string;
       imageURL: string;
       bodyURL: string;
+    };
+  }
+  export namespace List {
+    // ura の一覧（/moments/）に埋め込む、moment 1つ分の要約。下書きも含めた全件を新しい順に渡し、ブラウザで絞り込む。
+    // media は本文の [image]・[video]・[audio] の entity の数（同じ entity は1回）。
+    // unentered・unverified はそのうち annotationState が 'unentered'・'unverified' のものの数。
+    export type Item = {
+      path: string;
+      date: string;
+      title: string;
+      author: string;
+      text: string;
+      iconID: string | null;
+      status: MomentStatus;
+      tier: MomentTier;
+      series: string[];
+      sensitive: boolean;
+      sensitiveManual: boolean;
+      media: number;
+      unentered: number;
+      unverified: number;
     };
   }
   export namespace Delete {

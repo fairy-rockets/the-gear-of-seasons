@@ -7,6 +7,7 @@ import Repo from '../repo/Repo.js';
 import { Entity } from './Entity.js';
 import { EntityAnnotation, kFieldsByType } from './EntityAnnotation.js';
 import { Moment, formatMomentPath } from './Moment.js';
+import { momentMedia } from './MomentList.js';
 import { formatMomentLabel, kMediaKeys, toJST } from './CurationFormat.js';
 
 // studio に渡すエクスポート（#49）を作る。cmd/export-curation.ts から使う。
@@ -38,13 +39,7 @@ export function momentURL(timestamp: dayjs.Dayjs): string {
 
 // 本文の [image]・[video]・[audio] の entity。出てくる順に、同じ entity は1回だけ。
 export function mediaEntityIDs(doc: fml.Document): string[] {
-  const ids = new Set<string>();
-  for (const block of doc.blocks) {
-    if ((block.type === 'image' || block.type === 'video' || block.type === 'audio') && block.entity !== undefined) {
-      ids.add(block.entity);
-    }
-  }
-  return [...ids];
+  return momentMedia(doc).map((m) => m.entity);
 }
 
 export type MarkdownRef = {

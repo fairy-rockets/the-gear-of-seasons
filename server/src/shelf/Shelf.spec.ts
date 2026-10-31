@@ -19,7 +19,7 @@ const kVisibilityAware: { [name: string]: (shelf: Shelf, v: MomentVisibility) =>
   findNextMomentSummary: (shelf, v) => shelf.findNextMomentSummary(dayjs(), v),
   findMomentSummariesByRandom: (shelf, v) => shelf.findMomentSummariesByRandom(10, v),
   findAllMomentSummaries: (shelf, v) => shelf.findAllMomentSummaries(v),
-  findMomentSummariesInYear: (shelf, v) => shelf.findMomentSummariesInYear(2020, v),
+  findMomentListItems: (shelf, v) => shelf.findMomentListItems(v),
 };
 
 // MomentVisibility を取らないことが決まっているもの。理由もここに書く。
@@ -46,7 +46,8 @@ function stubRepo(): { repo: Repo, received: unknown[][] } {
   const repo = new Proxy({}, {
     get: (_target, _name) => async (...args: unknown[]) => {
       received.push(args);
-      return null;
+      // 一覧のように、引いた配列をたどってから次を引くメソッドもあるので、空の配列を返す。
+      return [];
     },
   });
   return { repo: repo as Repo, received };
@@ -72,9 +73,13 @@ describe("Shelf のメソッド", () => {
       it(`${name}('${v}') は Repo にそのまま渡す`, async () => {
         const { repo, received } = stubRepo();
         await call(new Shelf(repo), v);
-        assert.strictEqual(received.length, 1);
+        // moment を引く呼び出し（最初の1回）が v を受け取り、ほかの呼び出しは MomentVisibility を受け取らない。
+        assert.ok(received.length >= 1);
         const args = received[0];
         assert.strictEqual(args[args.length - 1], v);
+        for (const rest of received.slice(1)) {
+          assert.ok(!rest.some((a) => a === 'published' || a === 'all'), JSON.stringify(rest));
+        }
       });
     }
   }

@@ -199,7 +199,7 @@ export default class Editor {
       return;
     }
     // 成功したら一覧へ移るので、通信中のまま（引き出しを開かせない）にする。
-    window.location.href = `/moments/${reply.year}`;
+    window.location.href = `/moments/?year=${reply.year}`;
   }
 
   private async executePreviewUpdate_() {

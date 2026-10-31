@@ -1,7 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import dayjs from 'dayjs';
 import fastify, {
   FastifyInstance,
   FastifyReply,
@@ -159,13 +158,7 @@ class Server {
     }
     { // (ura)/moments
       const ura = await MomentListController.create(this.asset, this.shelf);
-      this.ura.get(
-        '/moments/',
-        async (_req, reply) => {
-          const year = dayjs().year();
-          return reply.redirect(`/moments/${year}`, 303);
-        });
-      this.ura.get('/moments/:year', ura.handle.bind(ura));
+      this.ura.get('/moments/', ura.handle.bind(ura));
     }
     { // (ura)/new
       const ura = await NewController.create(this.asset);

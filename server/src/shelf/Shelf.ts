@@ -26,6 +26,7 @@ import {
   parseSensitiveOverride,
 } from './Moment.js';
 import { computeSensitive, sensitiveTargetEntityIDs } from './Sensitive.js';
+import { momentListItem, momentMedia } from './MomentList.js';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -347,8 +348,13 @@ class Shelf {
   }
 
   // 以下、visibility は omote から呼ぶなら 'published'、ura から呼ぶなら 'all'。
-  async findMomentSummariesInYear(year: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
-    return await this.repo.findMomentSummariesInYear(year, visibility);
+  // ura の一覧（/moments/）の要約。新しい順。注釈は1度にまとめて引く。
+  async findMomentListItems(visibility: MomentVisibility): Promise<protocol.Moment.List.Item[]> {
+    const moments = await this.repo.findAllMoments(visibility);
+    const media = moments.map((m) => momentMedia(fml.parse(m.text)));
+    const ids = [...new Set(media.flat().map((it) => it.entity))];
+    const annotations = await this.repo.findEntityAnnotations(ids);
+    return moments.map((m, i) => momentListItem(m, media[i], annotations));
   }
 
   async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
