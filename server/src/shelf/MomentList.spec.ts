@@ -102,13 +102,22 @@ describe("momentListItem", () => {
   it("メディアが無ければすべて 0", () => {
     const it = item('ほんぶん', new Map());
     assert.deepStrictEqual([it.media, it.unentered, it.unverified], [0, 0, 0]);
+    assert.deepStrictEqual(it.mediaByType, { image: 0, video: 0, audio: 0 });
+  });
+  it("型ごとの数は、同じ entity を1回だけ、最初のブロックの型で数える", () => {
+    const it = item(
+      `[image entity="${kImage}"]\n[image entity="${kImage2}"]\n[image entity="${kImage}"]\n` +
+      `[audio entity="${kAudio}"]\n[video entity="${kAudio}"]\n[link entity="${kVideo}" text="動画"]`,
+      new Map());
+    assert.deepStrictEqual(it.mediaByType, { image: 2, video: 0, audio: 1 });
+    assert.strictEqual(it.media, 3);
   });
   it("moment の項目をそのまま写す", () => {
     const it = item('ほんぶん', new Map());
-    assert.deepStrictEqual({ ...it, media: undefined, unentered: undefined, unverified: undefined }, {
+    assert.deepStrictEqual({ ...it, media: undefined, mediaByType: undefined, unentered: undefined, unverified: undefined }, {
       path: '/2024/11/14/13:18:23/', date: '2024/11/14 13:18:23', title: '題', author: '宵宮ナギ', bodyText: 'ほんぶん',
       iconID: kImage, status: 'published', tier: 'pickup', series: ['癒し'], sensitive: true, sensitiveManual: false,
-      media: undefined, unentered: undefined, unverified: undefined,
+      media: undefined, mediaByType: undefined, unentered: undefined, unverified: undefined,
     });
   });
 });
