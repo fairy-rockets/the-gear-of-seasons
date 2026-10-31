@@ -17,6 +17,13 @@ export default class Editor {
   private readonly save_: HTMLButtonElement;
   private readonly delete_: HTMLButtonElement;
   private originalDate_: string;
+  private readonly fields_: (HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement)[];
+  private savedValues_: string[];
+  private guarding_: boolean;
+  private readonly beforeUnload_ = (event: BeforeUnloadEvent) => {
+    event.preventDefault();
+    event.returnValue = '';
+  };
   private readonly onChangeEventListener_: () => void;
   private preview_: Preview | null;
   private drawer_: AnnotationDrawer | null;
@@ -38,6 +45,9 @@ export default class Editor {
     this.save_ = save;
     this.delete_ = del;
     this.originalDate_ = date.value;
+    this.fields_ = [title, date, author, status, tier, series, sensitive, text];
+    this.savedValues_ = this.formValues_();
+    this.guarding_ = false;
     this.onChangeEventListener_ = this.onChange_.bind(this);
     this.preview_ = null;
     this.drawer_ = null;
@@ -86,7 +96,7 @@ export default class Editor {
   }
 
   private onChange_() {
-    this.save_.disabled = false;
+    this.updateUnsavedChanges();
     if(!!this.changeId_) {
       return;
     }
@@ -100,6 +110,32 @@ export default class Editor {
   private setBusy_(busy: boolean) {
     this.busy_ = busy;
     this.drawer_!.onEditorBusyChanged();
+    this.updateUnsavedChanges();
+  }
+
+  private formValues_(): string[] {
+    return this.fields_.map((field) => field.value);
+  }
+
+  private hasUnsavedMoment_(): boolean {
+    return this.formValues_().some((value, i) => value !== this.savedValues_[i]);
+  }
+
+  // moment と注釈は別々に保存する。どちらかの未保存入力か、書き込みの通信がある間だけ守る。
+  updateUnsavedChanges() {
+    const guard = this.hasUnsavedMoment_() || this.busy_ ||
+      (this.drawer_ !== null && (this.drawer_.hasUnsavedChanges() || this.drawer_.isSaving()));
+    if (guard !== this.guarding_) {
+      if (guard) {
+        window.addEventListener('beforeunload', this.beforeUnload_);
+      } else {
+        window.removeEventListener('beforeunload', this.beforeUnload_);
+      }
+      this.guarding_ = guard;
+    }
+    const busy = this.busy_ || (this.drawer_ !== null && this.drawer_.isSaving());
+    this.save_.disabled = busy || !this.hasUnsavedMoment_();
+    this.delete_.disabled = busy || this.originalDate() === null;
   }
 
   // 開いている moment の、保存されている日時。新規なら null。
@@ -133,6 +169,10 @@ export default class Editor {
   }
 
   private async onSave_() {
+    if (this.busy_ || this.drawer_!.isSaving()) {
+      return;
+    }
+    const submitted = this.formValues_();
     this.changeId_ = null;
     const moment = this.makeMoment_();
     let result: protocol.Moment.Save.Response;
@@ -157,26 +197,40 @@ export default class Editor {
     } finally {
       this.setBusy_(false);
     }
-    this.save_.disabled = true;
-    this.delete_.disabled = false;
-    dismissToast(PREVIEW_TOAST_KEY);
-    this.preview_!.onChange(result.body);
-    this.date_.value = result.date;
+    const unchanged = this.formValues_().every((value, i) => value === submitted[i]);
+    // 応答の日時・ステータスは、送信後にその欄を編集していなければ反映する。
+    if (this.date_.value === submitted[1]) {
+      this.date_.value = result.date;
+    }
+    if (this.status_.value === submitted[3]) {
+      this.status_.value = result.status;
+    }
+    submitted[1] = result.date;
+    submitted[3] = result.status;
+    this.savedValues_ = submitted;
     this.originalDate_ = result.date;
-    this.status_.value = result.status;
+    this.updateUnsavedChanges();
+    if (unchanged) {
+      dismissToast(PREVIEW_TOAST_KEY);
+      this.preview_!.onChange(result.body);
+    } else {
+      this.executePreviewUpdate_();
+    }
     this.showAutoSensitive(result.sensitive, result.sensitiveManual);
     history.replaceState(null, moment.title, result.path);
   }
 
   private async onDelete_() {
-    if (this.date_.value.length === 0) {
+    if (this.busy_ || this.drawer_!.isSaving() || this.originalDate() === null) {
       return;
     }
-    if (!confirm('本当に削除する？')) {
+    const message = this.hasUnsavedMoment_() || this.drawer_!.hasUnsavedChanges()
+      ? '保存していない入力を捨てて、本当に削除する？' : '本当に削除する？';
+    if (!confirm(message)) {
       return;
     }
     const req: protocol.Moment.Delete.Request = {
-      date: this.date_.value,
+      date: this.originalDate()!,
     };
     let reply: protocol.Moment.Delete.Response;
     this.setBusy_(true);
@@ -199,6 +253,7 @@ export default class Editor {
       return;
     }
     // 成功したら一覧へ移るので、通信中のまま（引き出しを開かせない）にする。
+    window.removeEventListener('beforeunload', this.beforeUnload_);
     window.location.href = `/moments/?year=${reply.year}`;
   }
 
@@ -240,7 +295,7 @@ export default class Editor {
     } else {
       this.text_.value += '\n' + embedsString;
     }
-    this.save_.disabled = false;
+    this.updateUnsavedChanges();
     this.executePreviewUpdate_();
   }
 }
