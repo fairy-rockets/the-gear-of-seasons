@@ -320,23 +320,20 @@ where
     await this.pool.query(q, [timestamp.toDate(), autoSensitive]);
   }
 
-  async findMomentSummariesInYear(year: number, visibility: MomentVisibility): Promise<MomentSummary[]> {
+  // ura の一覧用。visibility で見える全件を、本文も含めて新しい順に返す。
+  async findAllMoments(visibility: MomentVisibility): Promise<Moment[]> {
     // language=PostgreSQL
     const q=`
 select
-  "timestamp", "title", "icon_id", "status"
+  "timestamp", "title", "author", "text", "icon_id", "status",
+  "tier", "series", "sensitive", "sensitive_manual"
 from moments
   where
-    '${year}-01-01' <= "timestamp" and "timestamp" < '${year+1}-01-01'
-    and ${momentVisibilityCondition(visibility)}
+    ${momentVisibilityCondition(visibility)}
 order by timestamp desc;
 `;
-    const moments: MomentSummary[] = [];
     const { rows } = await this.pool.query(q, []);
-    for (const row of rows) {
-      moments.push(decodeMomentSummary(row));
-    }
-    return moments;
+    return rows.map(decodeMoment);
   }
 
   // sitemap.xml 用。visibility で見える全件を新しい順に返す。

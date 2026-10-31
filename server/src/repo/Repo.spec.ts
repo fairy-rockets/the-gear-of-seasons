@@ -53,7 +53,7 @@ const kVisibilityAware: { [name: string]: (repo: Repo, v: MomentVisibility) => P
   findNextMomentSummary: (repo, v) => repo.findNextMomentSummary(dayjs(), v),
   findMomentSummariesByRandom: (repo, v) => repo.findMomentSummariesByRandom(10, v),
   findAllMomentSummaries: (repo, v) => repo.findAllMomentSummaries(v),
-  findMomentSummariesInYear: (repo, v) => repo.findMomentSummariesInYear(2020, v),
+  findAllMoments: (repo, v) => repo.findAllMoments(v),
 };
 
 // MomentVisibility を取らないことが決まっているもの。理由もここに書く。

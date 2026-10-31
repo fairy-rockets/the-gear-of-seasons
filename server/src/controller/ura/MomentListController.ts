@@ -1,18 +1,11 @@
-import {FastifyReply, FastifyRequest, RequestGenericInterface} from 'fastify';
-import dayjs from 'dayjs';
+import {FastifyReply, FastifyRequest} from 'fastify';
 
 import Asset from '../../lib/Asset.js';
 
 import UraTemplate from './lib/UraTemplate.js';
 import Shelf from '../../shelf/Shelf.js';
-import {formatMomentPath} from '../../shelf/Moment.js';
 
-export interface MomentListControllerInterface extends RequestGenericInterface {
-  Params: {
-    year: string,
-  }
-}
-
+// /moments/。下書きも含めた全件の要約を JSON でページに埋め込み、絞り込みはブラウザ（client/src/ura/moments/）でする。
 export default class MomentListController {
   private readonly shelf: Shelf;
   private readonly template: UraTemplate;
@@ -25,25 +18,17 @@ export default class MomentListController {
     return new MomentListController(shelf, template);
   }
   async handle(_req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
-    const req = _req as FastifyRequest<MomentListControllerInterface>;
-    const year = parseInt(req.params.year, 10) || dayjs().year();
-    const moments = (await this.shelf.findMomentSummariesInYear(year, 'all')).map((it) => {
-      return {
-        iconID: it.iconID || '',
-        path: formatMomentPath(it.timestamp!!),
-        title: it.title,
-        status: it.status,
-      };
-    });
+    const items = await this.shelf.findMomentListItems('all');
     return reply
       .type('text/html;charset=UTF-8')
       .code(200)
       .send(this.template.render({
-        year: year,
-        lastYear: year-1,
-        nextYear: year+1,
-        numMoments: moments.length,
-        moments: moments,
+        items: embedJSON(items),
       }));
   }
+}
+
+// <script type="application/json"> の中に書く JSON。本文に </script> や <!-- があっても要素が閉じないよう、< をエスケープする。
+export function embedJSON(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
 }

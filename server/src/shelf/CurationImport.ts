@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import { parseDocument } from 'yaml';
 
 import * as fml from '../lib/fml.js';
+import { emptyAnnotationValues } from '../lib/protocol.js';
 import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { Entity } from './Entity.js';
@@ -314,11 +315,7 @@ function decide(key: string, current: unknown, next: unknown, overwrite: boolean
 }
 
 function emptyAnnotation(entityID: string): EntityAnnotation {
-  return {
-    entityID, medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
-    role: null, roleGroup: null, roleStar: null, roleNote: null,
-  };
+  return { entityID, ...emptyAnnotationValues() };
 }
 
 // 2段目: ファイルと DB の今の値を比べて、書くもの・衝突・エラーを決める。DB は触らない。

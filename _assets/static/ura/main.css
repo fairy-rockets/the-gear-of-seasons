@@ -491,26 +491,134 @@ a.moment {
   position: relative;
 }
 
-.moment-list .moment-image img{
+.moment-list .moment-image img,
+.moment-list .moment-noimage {
+  display: block;
   width: 15em;
   height: 15em;
 }
 
-.moment-list .moment-badge-draft {
+.moment-list .moment-badges {
   position: absolute;
   top: 0.5em;
   left: 0.5em;
-  padding: 0.2em 0.6em;
-  background: #d9822b;
+  right: 0.5em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+}
+
+.moment-list .moment-badge {
+  padding: 0.1em 0.5em;
+  background: #2a3a55;
   color: #ffffff;
+  font-size: smaller;
   font-weight: 800;
   border-radius: 0.3em;
   box-shadow: 0 0 0.3em rgba(0, 0, 0, 0.6);
 }
 
-.moment-list .moment-date{
+.moment-list .moment-badge-draft {
+  background: #d9822b;
+}
+
+.moment-list .moment-badge-tier-pickup {
+  background: #3a8a50;
+}
+
+.moment-list .moment-badge-tier-sketch {
+  background: #5a6aa0;
+}
+
+.moment-list .moment-badge-tier-hidden {
+  background: #555555;
+}
+
+.moment-list .moment-badge-sensitive {
+  background: #b03050;
+}
+
+.moment-list .moment-badge-unverified {
+  background: #f0c040;
+  color: #080816;
+}
+
+.moment-list .moment-badge-unentered {
+  background: #d06060;
+}
+
+.moment-list .moment-title {
+  padding: 0.2em 0.4em 0;
+}
+
+.moment-list .moment-date {
+  padding: 0 0.4em 0.2em;
   text-align: right;
   font-size: smaller;
+}
+
+#moments-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.moments-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.moments-filter-label {
+  flex: 0 0 6em;
+  color: #9ab;
+}
+
+.moments-filter .seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid #456;
+  border-radius: 0.5em;
+  overflow: hidden;
+}
+
+.moments-filter .seg button {
+  border: 0;
+  background: #111;
+  color: #ddd;
+  padding: 0.2em 0.7em;
+  font: inherit;
+  font-size: smaller;
+  cursor: pointer;
+}
+
+.moments-filter .seg button + button {
+  border-left: 1px solid #456;
+}
+
+.moments-filter .seg button[aria-pressed="true"] {
+  background: #e3e8ef;
+  color: #080816;
+}
+
+.moments-filter .seg button small {
+  opacity: 0.6;
+  margin-left: 0.3em;
+}
+
+.moments-filter input[type="search"] {
+  width: 20em;
+  color: #ddd;
+  background: #111;
+  border: 1px solid #456;
+  padding: 0.2em 0.4em;
+}
+
+.moments-filter #moments-reset {
+  color: #ddd;
+  background: #111;
+  border: 1px solid #456;
+  cursor: pointer;
 }
 
 /*****************************************************************************

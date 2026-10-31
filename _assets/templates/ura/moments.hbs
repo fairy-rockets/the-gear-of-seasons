@@ -1,28 +1,11 @@
 <div id="moments-container">
 <div id="moments">
-  <h2>{{year}}年のモーメント&nbsp;({{numMoments}})</h2>
-  <a href="/moments/{{lastYear}}">前年</a>
-  <a href="/moments/{{nextYear}}">翌年</a>
+  <h2>モーメント&nbsp;<span id="moments-count"></span></h2>
+  <div id="moments-filters"></div>
   <hr>
-<div class="moment-list">
-
-{{#each moments}}
-<a href="{{path}}" class="moment">
-  <div class="moment-date">{{date}}</div>
-  <div class="moment-image">
-{{#if iconID}}
-    <img src="/entity/{{iconID}}/icon" alt="icon">
-{{else}}
-    <img src="" alt="icon">
-{{/if}}
-{{#if (eq status "draft")}}
-    <div class="moment-badge-draft">下書き</div>
-{{/if}}
-  </div>
-  <div class="moment-title">{{title}}</div>
-</a>
-{{/each}}
-
+  <div class="moment-list" id="moments-list"></div>
+  <p id="moments-empty" hidden>条件に合うモーメントはありません。</p>
 </div>
 </div>
-</div>
+<script id="moments-data" type="application/json">{{{items}}}</script>
+<script src="/js/moments.js"></script>

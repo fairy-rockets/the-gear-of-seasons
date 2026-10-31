@@ -7,6 +7,7 @@ const config: webpack.Configuration = {
   entry: {
     'omote/main': path.join(__dirname, '/src/omote/main.ts'),
     'ura/editor': path.join(__dirname, '/src/ura/editor.ts'),
+    'ura/moments': path.join(__dirname, '/src/ura/moments.ts'),
   },
   mode: 'development',
   output: {

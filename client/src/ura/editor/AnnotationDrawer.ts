@@ -90,25 +90,22 @@ type Opened = {
   inputs: Map<AnnotationField, Input>;
 };
 
-type Mark = { state: 'loading' | 'unentered' | 'unverified' | 'verified' | 'entered', label: string };
+type Mark = { state: 'loading' | protocol.AnnotationState, label: string };
+
+// 音声は human_verified を持たないので、入力の有無だけを出す（entered）。
+const kMarkLabels: Record<protocol.AnnotationState, string> = {
+  unentered: '注釈：未入力',
+  unverified: '注釈：未確認',
+  verified: '注釈：確認済み',
+  entered: '注釈：入力済み',
+};
 
 function markOf(entry: Entry | undefined): Mark {
   if (entry === undefined) {
     return { state: 'loading', label: '注釈：…' };
   }
-  const fields = protocol.kAnnotationFieldsByType[entry.type];
-  const a = entry.annotation;
-  const unentered = fields.every((f) => f === 'humanVerified' ? !a.humanVerified : a[f] === null);
-  if (unentered) {
-    return { state: 'unentered', label: '注釈：未入力' };
-  }
-  // 音声は human_verified を持たないので、入力の有無だけを出す。
-  if (!fields.includes('humanVerified')) {
-    return { state: 'entered', label: '注釈：入力済み' };
-  }
-  return a.humanVerified
-    ? { state: 'verified', label: '注釈：確認済み' }
-    : { state: 'unverified', label: '注釈：未確認' };
+  const state = protocol.annotationState(entry.type, entry.annotation);
+  return { state, label: kMarkLabels[state] };
 }
 
 async function fetchAnnotations(ids: string[]): Promise<protocol.Annotation.Find.Response['entities']> {
