@@ -386,7 +386,8 @@ div.uploader-progress > progress {
   width: 90%;
   margin: 0 auto;
   display: block;
-  flex: 0 0 0;
+  /* 縦並びの flex で基準の高さを 0 にすると、Chromium では高さ 0 になって消える */
+  flex: 0 0 auto;
 }
 
 /* 失敗を知らせる通知。位置と配色は uploader-progress に合わせる */
