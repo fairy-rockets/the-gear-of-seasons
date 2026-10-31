@@ -64,7 +64,7 @@ Take them on the development machine against the development environment (see "D
 The server serves **two sites from one Fastify instance, distinguished by Host header** (`server/src/Config.ts`):
 
 - **omote** (表, `OMOTE_HOST`, default `hexe.net`): the public site — WebGL front-end showing moments arranged on a seasonal gear.
-- **ura** (裏, `URA_HOST`, default `ura.hexe.net`): the private admin/editor UI — upload, edit, preview, save, delete moments, and enter the per-media annotations from the editor's preview (see the Repo item below). There is no auth in the app; access control is expected to happen upstream (reverse proxy).
+- **ura** (裏, `URA_HOST`, default `ura.hexe.net`): the private admin/editor UI — upload, edit, preview, save, delete moments, and enter the per-media annotations from the editor's preview (see "ura editor and saving" below). There is no auth in the app; access control is expected to happen upstream (reverse proxy).
 
 `server/src/Server.ts` defines all routes and dispatches via `omote`/`ura`/`both`/`each` helpers that 404 on the wrong hostname. This omote/ura split is mirrored everywhere: `server/src/controller/{omote,ura,both}/`, `client/src/{omote,ura}/`, `_assets/{static,templates}/{omote,ura}/`, and webpack entries `omote/main` + `ura/editor` + `ura/moments`.
 
@@ -72,16 +72,73 @@ A moment's URL — the one users see and the one to link to — is `/<YYYY>/<MM>
 
 Server layering (entry: `server/src/cmd/main.ts`, listens on port 3000):
 
-- **Repo** (`repo/`): PostgreSQL access via `pg` (node-postgres) with a `pg.Pool` of up to 10 connections and NodeCache; `Repo.transaction` runs its callback's queries on one connection between `BEGIN` and `COMMIT`, and queries made through the outer repo inside the callback run on other connections, outside the transaction. Three tables (`db/flyway_data/sql/V0__init.sql`, `V1__moment_status.sql`, `V2__curation.sql`): `moments` (keyed by timestamp; title/author/text; `status` draft/published; curation `tier`/`series`/`sensitive`/`sensitive_manual`), `entities` (media keyed by md5 hash; image/video/audio with medium/icon derivative ids) and `entity_annotations` (one row per entity: alt, `looks_*`, role and the other per-media curation fields; NULL means "not entered"). ura's moment list (`/moments/`, `MomentListController`) embeds a summary of every moment, drafts included, as JSON in the page (`Shelf.findMomentListItems`: the curation fields, plus per moment the number of `[image]`/`[video]`/`[audio]` entities, that number per type, and how many of them are unentered or unverified by the same `annotationState`), and `client/src/ura/moments/` filters it in the browser (the メディア row's buttons toggle independently and keep the moments that have every type pressed; in the query they read `media=video,audio`); the filter is kept in the URL query and in localStorage, and a query in the URL wins, so links such as the sidebar's 確認待ち (`?annotation=unverified`) pick their own filter; a page opened with a query writes localStorage only once its filter is changed there, so going back to `/moments/` restores the filter chosen before. The search looks at the title and the body's text (text blocks and `[link]` text), not the fml markup. The ura SAVE (`Shelf.updateMoment`) writes every column of the moment, the curation ones included, and `import-curation` writes moments through it as well. The editor attaches a browser leave confirmation only while moment inputs differ from their last successful SAVE, annotation values differ from those read or saved, or a SAVE/annotation save/DELETE request is pending. Initial inputs are clean; failed saves and edits made while saving remain protected, and each save clears only its own saved values. DELETE confirms discarding unsaved inputs before sending the request and leaves for the list without a second confirmation after success. Annotations are not part of the SAVE: in the editor, each medium in the preview (`<img>`/`<video>`/`<audio>` carry `data-entity` and `data-type`) gets a mark showing its `annotationState` (`lib/protocol.ts`: unentered / unverified / verified, or entered for audio, which has no `human_verified`), and clicking it (or an image) opens a drawer over the text column (`client/src/ura/editor/AnnotationDrawer.ts`) that reads annotations with `GET /annotations?ids=<id>,…` and saves one entity's with `POST /annotation` (`Shelf.saveEntityAnnotation`); the selectable values and the fields each entity type has live in `lib/protocol.ts`, shared with the client. The drawer reads the entity's annotation again each time it opens and saves every field, so a value changed elsewhere (another tab, `import-curation`) while the drawer is open is put back when it saves. `sensitive` is either set by hand — in the editor, or by `import-curation` from studio's file — (`sensitive_manual = true`) or, while `sensitive_manual` is false, recomputed from the body and the annotations (`shelf/Sensitive.ts`) whenever the moment or one of its annotations is saved.
+- **Repo** (`repo/`): PostgreSQL access via `pg` (node-postgres), with a `pg.Pool` of up to 10 connections and NodeCache. See "Database" below for tables and transaction boundaries.
 - **Storage** (`storage/`): content-addressed file store under `_storage/` — three kinds (`original`, `medium`, `icon`), files sharded by md5 as `ab/cd/ef/rest-of-hash`.
 - **Shelf** (`shelf/`): domain layer combining Repo + Storage; handles uploads (probes media, generates medium/icon derivatives via ffmpeg/ImageMagick) and moment CRUD.
 - **fml** (`lib/fml.ts`): custom markup language for moment bodies (text/image/video/audio/markdown blocks), rendered to HTML by `renderer/MomentRenderer.ts`.
 - **protocol** (`lib/protocol.ts`): shared server↔client types; the client imports it via symlink `client/src/protocol.ts`.
 
+### Database
+
+`Repo.transaction` runs its callback's queries on one connection between `BEGIN` and `COMMIT`. Use the repo passed to the callback: queries made through the outer repo use other connections, outside the transaction.
+
+The schema is defined in `db/flyway_data/sql/V0__init.sql`, `V1__moment_status.sql` and `V2__curation.sql`:
+
+| Table | Contents |
+| --- | --- |
+| `moments` | Keyed by timestamp; title, author and body text; `status` (draft/published); curation fields `tier`, `series`, `sensitive` and `sensitive_manual`. |
+| `entities` | Media keyed by md5 hash; image/video/audio type and medium/icon derivative ids. |
+| `entity_annotations` | One row per entity: alt, `looks_*`, role and the other per-media curation fields. NULL means "not entered". |
+
+### ura moment list
+
+`/moments/` (`MomentListController`) embeds a summary of every moment, including drafts, as JSON in the page. `Shelf.findMomentListItems` provides the curation fields, the total number of `[image]`/`[video]`/`[audio]` entities, counts per media type, and counts of unentered or unverified entities using `annotationState`.
+
+`client/src/ura/moments/` filters this data in the browser:
+
+- The メディア buttons toggle independently. A moment must contain every selected type; the URL query represents this as, for example, `media=video,audio`.
+- Search matches the title and body text (text blocks and `[link]` text), not the fml markup.
+- Filters are kept in the URL query and localStorage. A URL query takes precedence, so links such as the sidebar's 確認待ち (`?annotation=unverified`) select their own filter.
+- A page opened with a query writes localStorage only after its filter is changed there. Returning to `/moments/` therefore restores the previously chosen filter.
+
+### ura editor and saving
+
+The moment SAVE (`Shelf.updateMoment`) writes every moment column, including the curation fields. `import-curation` uses this same save path. Annotations are saved separately from the moment.
+
+Each medium in the editor preview (`<img>`/`<video>`/`<audio>` with `data-entity` and `data-type`) has a mark showing its `annotationState`: unentered, unverified or verified; audio uses entered because it has no `human_verified` field. The states, selectable values and fields available for each entity type are defined in `lib/protocol.ts`, shared with the client.
+
+Clicking a mark or an image opens a drawer over the text column (`client/src/ura/editor/AnnotationDrawer.ts`). It reads annotations with `GET /annotations?ids=<id>,…` and saves one entity with `POST /annotation` (`Shelf.saveEntityAnnotation`). The drawer rereads the annotation each time it opens and saves every field. A value changed elsewhere (another tab or `import-curation`) while the drawer is open can therefore be overwritten when it saves.
+
+The editor attaches `beforeunload` only while the moment or annotation has unsaved input, or a SAVE, annotation save or DELETE is in flight. The moment is compared with its initial or last successfully saved raw input values; annotations compare touched field values with the loaded or saved annotation. Initial inputs are clean; failed saves and input added during a save remain protected. Each save clears only its own saved values. DELETE confirms discarding unsaved input before deleting the moment at its saved timestamp, then redirects without another leave confirmation. The browser regression scenarios are in `tools/preview/editor-unsaved.mjs`.
+
+### sensitive calculation
+
+`sensitive` can be set by hand in the editor or by `import-curation` from studio's file (`sensitive_manual = true`). While `sensitive_manual` is false, `shelf/Sensitive.ts` recomputes it from the body and annotations whenever the moment or one of its annotations is saved.
+
+## Maintenance commands
+
 Maintenance commands in `server/src/cmd/`: `gc.ts` (remove orphaned storage files), `sanity-check.ts`, `regenerate-cache.ts`, `list-missing.ts` (list lost media; see `tools/README.md`) — run as `node server/dist/cmd/<name>.js` inside the production app container (from `7io-org/compose`'s `the-gear-of-seasons/`, `make gc` / `make sanity-check` wrap the first two).
 
-`export-curation.ts` writes the export studio reads (#49) as a tar to stdout, and nothing else to stdout (messages go to stderr): for every published moment, `<YYYYMMDD-HHMMSS>/hexe.yaml` (the moment's metadata, curation fields and, per `[image]`/`[video]`/`[audio]` entity, its type, size and annotation; the `[markdown]` URLs, split into `repo`/`ref`/`path` when they are `https://raw.githubusercontent.com/` URLs or `https://code.ledyba.org/` `/raw/branch/`, `/raw/tag/` or `/raw/commit/` URLs, without a query or `#`) and `<YYYYMMDD-HHMMSS>/hexe.fml` (the body as stored), plus a top-level `index.yaml` listing each moment's `moment` and `title`. Times are written in JST whatever the server's time zone, and the same database gives the same bytes (fixed key order, sorted entries, fixed tar header times/owners/modes, no generation time, no network access). Run it in production with `-T`, since a TTY would turn `\n` into `\r\n` and break the tar: `docker compose exec -T the-gear-of-seasons node server/dist/cmd/export-curation.js > export.tar`. The keys, value checks and `moment` format it shares with `import-curation.ts` live in `server/src/shelf/CurationFormat.ts`.
+### Curation export
 
-`import-curation.ts` loads studio's curation file (the moment- and entity-level fields of #2; format in #43) into the database. The database is the source of truth, so it is not part of the regular flow; it is for rewriting many values at once, and nothing else depends on it. By default it only prints the plan (changes, conflicts, counts) and writes nothing; `--apply` writes it in one transaction. It writes moments through the ura SAVE path, so for each moment it writes, the plan also lists `icon_id` and, while `sensitive_manual` is false, `sensitive` when recomputing them from the body (and the annotations) changes them. Values already in the database that differ from the file are reported as conflicts and left alone unless `--overwrite` is given; database values equal to the defaults (`tier = archive`, `series = []`, `human_verified = false`, and `sensitive` while `sensitive_manual = false`) count as not entered, so the file's value is written without a conflict. Pass `-` to read the file from stdin, so it need not be copied into the container: `docker compose exec -T the-gear-of-seasons node server/dist/cmd/import-curation.js - [--apply] [--overwrite] < curation.yaml`. It reads the current values without locking them, so a moment or annotation saved in ura while it runs can be overwritten: do not edit in ura during an import. For the same reason a plan printed without `--apply` is not guaranteed to match what a later `--apply` writes; check what was written in the `--apply` run's own output. Every SAVE also writes the curation fields as the editor shows them, so saving from a tab opened before the import puts back the `tier`, `series` and `sensitive` the import changed.
+`export-curation.ts` writes the export studio reads (#49) as a tar to stdout, and nothing else to stdout (messages go to stderr): for every published moment, `<YYYYMMDD-HHMMSS>/hexe.yaml` (the moment's metadata, curation fields and, per `[image]`/`[video]`/`[audio]` entity, its type, size and annotation; the `[markdown]` URLs, split into `repo`/`ref`/`path` when they are `https://raw.githubusercontent.com/` URLs or `https://code.ledyba.org/` `/raw/branch/`, `/raw/tag/` or `/raw/commit/` URLs, without a query or `#`) and `<YYYYMMDD-HHMMSS>/hexe.fml` (the body as stored), plus a top-level `index.yaml` listing each moment's `moment` and `title`.
+
+Times are written in JST whatever the server's time zone, and the same database gives the same bytes (fixed key order, sorted entries, fixed tar header times/owners/modes, no generation time, no network access).
+
+Run it in production with `-T`, since a TTY would turn `\n` into `\r\n` and break the tar: `docker compose exec -T the-gear-of-seasons node server/dist/cmd/export-curation.js > export.tar`. The keys, value checks and `moment` format it shares with `import-curation.ts` live in `server/src/shelf/CurationFormat.ts`.
+
+### Curation import
+
+`import-curation.ts` loads studio's curation file (the moment- and entity-level fields of #2; format in #43) into the database. The database is the source of truth, so it is not part of the regular flow; it is for rewriting many values at once, and nothing else depends on it.
+
+By default it only prints the plan (changes, conflicts, counts) and writes nothing; `--apply` writes it in one transaction. It writes moments through the ura SAVE path, so for each moment it writes, the plan also lists `icon_id` and, while `sensitive_manual` is false, `sensitive` when recomputing them from the body (and the annotations) changes them.
+
+Values already in the database that differ from the file are reported as conflicts and left alone unless `--overwrite` is given; database values equal to the defaults (`tier = archive`, `series = []`, `human_verified = false`, and `sensitive` while `sensitive_manual = false`) count as not entered, so the file's value is written without a conflict.
+
+Pass `-` to read the file from stdin, so it need not be copied into the container: `docker compose exec -T the-gear-of-seasons node server/dist/cmd/import-curation.js - [--apply] [--overwrite] < curation.yaml`.
+
+It reads the current values without locking them, so a moment or annotation saved in ura while it runs can be overwritten: do not edit in ura during an import. For the same reason a plan printed without `--apply` is not guaranteed to match what a later `--apply` writes; check what was written in the `--apply` run's own output. Every SAVE also writes the curation fields as the editor shows them, so saving from a tab opened before the import puts back the `tier`, `series` and `sensitive` the import changed.
+
+### Tools
 
 `tools/` holds the tooling for finding and restoring lost media, described in `tools/README.md`, plus the screenshot tooling in `tools/preview/` (see "Screenshots" above) and `tools/sync-from-prod.sh` (see "Development environment" above). Among the former, `tools/restore.rs/` is a standalone Rust utility for restoring/deduplicating media from backups; it is not part of the build.
