@@ -42,9 +42,11 @@ export function momentBodyText(doc: fml.Document): string {
 // doc は m.text をパースしたもの。annotations には、本文のメディアの注釈が入っていること（行が無い entity は入っていなくてよい）。
 export function momentListItem(m: Moment, doc: fml.Document, annotations: ReadonlyMap<string, EntityAnnotation>): protocol.Moment.List.Item {
   const media = momentMedia(doc);
+  const mediaByType: Record<protocol.EntityType, number> = { image: 0, video: 0, audio: 0 };
   let unentered = 0;
   let unverified = 0;
   for (const { entity, type } of media) {
+    mediaByType[type]++;
     const state = protocol.annotationState(type, annotations.get(entity) ?? kNoAnnotation);
     if (state === 'unentered') {
       unentered++;
@@ -65,6 +67,7 @@ export function momentListItem(m: Moment, doc: fml.Document, annotations: Readon
     sensitive: m.sensitive,
     sensitiveManual: m.sensitiveManual,
     media: media.length,
+    mediaByType,
     unentered,
     unverified,
   };

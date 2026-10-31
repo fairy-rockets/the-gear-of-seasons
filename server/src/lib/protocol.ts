@@ -115,7 +115,8 @@ export namespace Moment {
   export namespace List {
     // ura の一覧（/moments/）に埋め込む、moment 1つ分の要約。下書きも含めた全件を新しい順に渡し、ブラウザで絞り込む。
     // bodyText は検索に使う本文の文章（text ブロックと [link] の text）で、fml の記法は含まない。
-    // media は本文の [image]・[video]・[audio] の entity の数（同じ entity は1回）。
+    // media は本文の [image]・[video]・[audio] の entity の数（同じ entity は1回）。mediaByType はその型ごとの内訳で、
+    // 型は entity が最初に出てくるブロックの型。
     // unentered・unverified はそのうち annotationState が 'unentered'・'unverified' のものの数。
     export type Item = {
       path: string;
@@ -130,6 +131,7 @@ export namespace Moment {
       sensitive: boolean;
       sensitiveManual: boolean;
       media: number;
+      mediaByType: Record<EntityType, number>;
       unentered: number;
       unverified: number;
     };
