@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
-import exifr from 'exifr';
+import ExifReader from 'exifreader';
 import dayjs from 'dayjs';
 import {fileTypeFromFile} from 'file-type';
 
@@ -35,23 +35,28 @@ export async function probe(srcFilePath: string): Promise<ProbeResult> {
     const filePath = path.join(tempDir, `probe.${fileType.ext}`);
     await fs.copyFile(srcFilePath, filePath);
     const timestamp = await (async () => {
-      // exifr が読めるのは画像だけ。パスを渡すと exifr は FileHandle.stat に options としてパスを渡し、
-      // Node 26 ではそれが例外になる（開いた FileHandle も閉じられない）ので、読んだ中身を渡す。
-      // FIXME: exifr はメンテナンスされていないので替える（#63）。
       if (!fileType.mime.startsWith('image/')) {
         return undefined;
       }
       try {
-        const exif = await exifr.parse(await fs.readFile(filePath));
-        if (exif === undefined || exif === null) {
+        const tags = ExifReader.load(await fs.readFile(filePath), {
+          expanded: true,
+          includeTags: { exif: ['DateTimeDigitized', 'DateTimeOriginal'] },
+        }).exif;
+        // EXIF の DateTimeDigitized が CreateDate に相当する。オフセット・サブ秒は使わず、
+        // タイムゾーンを持たない撮影日時をサーバーのローカル時刻として扱う。
+        const timestamp = tags?.DateTimeDigitized?.value[0] || tags?.DateTimeOriginal?.value[0];
+        if (typeof timestamp !== 'string') {
           return undefined;
         }
-        const timestamp: Date | undefined = exif['CreateDate'] || exif['DateTimeOriginal'];
-        if (timestamp === undefined) {
-          return undefined;
-        } else {
-          return dayjs(timestamp);
+        const [year, month, day, hours, minutes, seconds] = timestamp.trim().split(/[-: ]/g).map(Number);
+        const date = new Date(year, month - 1, day);
+        if (!Number.isNaN(hours) && !Number.isNaN(minutes) && !Number.isNaN(seconds)) {
+          date.setHours(hours);
+          date.setMinutes(minutes);
+          date.setSeconds(seconds);
         }
+        return Number.isNaN(+date) ? undefined : dayjs(date);
       } catch (e) {
         return undefined;
       }
