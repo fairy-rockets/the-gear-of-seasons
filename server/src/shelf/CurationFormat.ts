@@ -91,7 +91,11 @@ export function isMomentLabel(label: string): boolean {
   try {
     Temporal.Instant.from(label);
     return true;
-  } catch (_err) {
-    return false;
+  } catch (err) {
+    // 存在しない日時のときは RangeError。Temporal の無い実行環境の ReferenceError などは、不正な時刻にせず投げ直す。
+    if (err instanceof RangeError) {
+      return false;
+    }
+    throw err;
   }
 }
