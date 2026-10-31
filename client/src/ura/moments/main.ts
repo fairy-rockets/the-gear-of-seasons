@@ -16,7 +16,9 @@ type FilterKey = 'year' | 'status' | 'tier' | 'series' | 'sensitive' | 'annotati
 type Sort = 'desc' | 'asc';
 
 // 絞り込みの条件。null は「すべて」。
+// media は押しているメディアの種類を kMediaTypes の順にカンマでつないだもの（'video,audio' など）で、'' は絞り込まない。
 type State = Record<FilterKey, string | null> & {
+  media: string;
   q: string;
   sort: Sort;
 };
@@ -32,8 +34,11 @@ type Filter = {
 const kStorageKey = 'ura-moments:state';
 
 const kDefaults: State = {
-  year: null, status: null, tier: null, series: null, sensitive: null, annotation: null, q: '', sort: 'desc',
+  year: null, status: null, tier: null, series: null, sensitive: null, annotation: null, media: '', q: '', sort: 'desc',
 };
+
+// 「メディア」の行。ほかの行と違い、複数押せて、押したものをすべて本文に持つ moment を残す。
+const kMediaTypes: [protocol.EntityType, string][] = [['image', '画像あり'], ['video', '動画あり'], ['audio', '音声あり']];
 
 const kStatusLabels: Record<protocol.MomentStatus, string> = {
   draft: '下書き',
@@ -111,6 +116,15 @@ function makeFilters(items: Item[]): Filter[] {
   ];
 }
 
+function parseMedia(v: string): protocol.EntityType[] {
+  const found = new Set(v.split(','));
+  return kMediaTypes.map(([t]) => t).filter((t) => found.has(t));
+}
+
+function hasAllMedia(it: Item, types: protocol.EntityType[]): boolean {
+  return types.every((t) => it.mediaByType[t] > 0);
+}
+
 // 知らない値は捨てて既定値にする（消えた series や、古い形の保存を引きずらない）。
 function normalize(filters: Filter[], raw: { [key: string]: unknown }): State {
   const st: State = { ...kDefaults };
@@ -119,6 +133,9 @@ function normalize(filters: Filter[], raw: { [key: string]: unknown }): State {
     if (typeof v === 'string' && f.options.some(([o]) => o === v)) {
       st[f.key] = v;
     }
+  }
+  if (typeof raw['media'] === 'string') {
+    st.media = parseMedia(raw['media']).join(',');
   }
   if (typeof raw['q'] === 'string') {
     st.q = raw['q'];
@@ -154,7 +171,8 @@ function saveState(st: State, remember: boolean) {
       params.set(k, v);
     }
   }
-  const query = params.toString();
+  // カンマはクエリにそのまま書いてよいので、media=video,audio と読める形にする。
+  const query = params.toString().replace(/%2C/gi, ',');
   window.history.replaceState(null, '', query.length > 0 ? `?${query}` : window.location.pathname);
   if (!remember) {
     return;
@@ -175,7 +193,9 @@ function filtersHTML(filters: Filter[], items: Item[]): string {
     return `<div class="moments-filter"><span class="moments-filter-label">${esc(f.label)}</span>` +
       `<span class="seg" data-f="${f.key}"><button data-all="">すべて</button>${buttons}</span></div>`;
   });
+  const media = kMediaTypes.map(([t, label]) => `<button data-v="${t}">${esc(label)}<small></small></button>`).join('');
   rows.push(
+    `<div class="moments-filter"><span class="moments-filter-label">メディア</span><span class="seg" id="moments-media">${media}</span></div>`,
     '<div class="moments-filter"><span class="moments-filter-label">並び</span>' +
     '<span class="seg" id="moments-sort"><button data-v="desc">新しい順</button><button data-v="asc">古い順</button></span></div>',
     '<div class="moments-filter"><span class="moments-filter-label">検索</span>' +
@@ -223,8 +243,10 @@ export default function main() {
 
   const visible = (): Item[] => {
     const words = st.q.trim().toLowerCase().split(/\s+/).filter((w) => w.length > 0);
+    const media = parseMedia(st.media);
     const found = items.filter((it) =>
       filters.every((f) => st[f.key] === null || f.match(it, st[f.key]!!)) &&
+      hasAllMedia(it, media) &&
       words.every((w) => it.hay.includes(w)));
     // サーバーは新しい順で渡す。
     return st.sort === 'desc' ? found : found.reverse();
@@ -238,6 +260,15 @@ export default function main() {
         b.setAttribute('aria-pressed', String(pressed));
       });
     }
+    // 件数は、ほかの条件をかけずに、今押しているものにそのボタンを足したときに残る件数。
+    const media = parseMedia(st.media);
+    filtersElem.querySelectorAll<HTMLButtonElement>('#moments-media button').forEach((b) => {
+      const t = b.dataset.v as protocol.EntityType;
+      const pressed = media.includes(t);
+      b.setAttribute('aria-pressed', String(pressed));
+      const types = pressed ? media : [...media, t];
+      b.querySelector('small')!!.textContent = String(items.filter((it) => hasAllMedia(it, types)).length);
+    });
     filtersElem.querySelectorAll<HTMLButtonElement>('#moments-sort button').forEach((b) => {
       b.setAttribute('aria-pressed', String(b.dataset.v === st.sort));
     });
@@ -259,6 +290,10 @@ export default function main() {
     const seg = b.closest<HTMLElement>('[data-f]');
     if (seg !== null) {
       st[seg.dataset.f as FilterKey] = b.dataset.all !== undefined ? null : b.dataset.v!!;
+    } else if (b.closest('#moments-media') !== null) {
+      const media = parseMedia(st.media);
+      const t = b.dataset.v as protocol.EntityType;
+      st.media = kMediaTypes.map(([m]) => m).filter((m) => m === t ? !media.includes(m) : media.includes(m)).join(',');
     } else if (b.closest('#moments-sort') !== null) {
       st.sort = b.dataset.v as Sort;
     } else if (b.id === 'moments-reset') {
