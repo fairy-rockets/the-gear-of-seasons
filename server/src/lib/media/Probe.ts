@@ -37,6 +37,7 @@ export async function probe(srcFilePath: string): Promise<ProbeResult> {
     const timestamp = await (async () => {
       // exifr が読めるのは画像だけ。パスを渡すと exifr は FileHandle.stat に options としてパスを渡し、
       // Node 26 ではそれが例外になる（開いた FileHandle も閉じられない）ので、読んだ中身を渡す。
+      // FIXME: exifr はメンテナンスされていないので替える（#63）。
       if (!fileType.mime.startsWith('image/')) {
         return undefined;
       }
