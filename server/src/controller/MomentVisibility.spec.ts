@@ -84,6 +84,9 @@ class StubShelf {
   async findMomentListItems(visibility: MomentVisibility): Promise<protocol.Moment.List.Item[]> {
     return this.visible(visibility).map((m) => momentListItem(m, fml.parse(m.text), new Map()));
   }
+  async findEntityAnnotations() {
+    return new Map();
+  }
   async findEntity(_id: string): Promise<null> {
     return null;
   }

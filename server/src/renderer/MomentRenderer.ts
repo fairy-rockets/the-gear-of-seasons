@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import * as fml from '../lib/fml.js';
 
 import Shelf from '../shelf/Shelf.js';
+import { EntityAnnotation } from '../shelf/EntityAnnotation.js';
 import { Moment, MomentSummary, formatMomentPath } from '../shelf/Moment.js';
 
 class MomentRenderer {
@@ -40,6 +41,12 @@ class MomentRenderer {
   async render(now: dayjs.Dayjs, moment: Moment): Promise<string> {
     const buff: string[] = [];
     const doc = fml.parse(moment.text);
+    const imageIDs = [...new Set(doc.blocks
+      .filter((block): block is fml.Image => block.type === 'image' && block.entity !== undefined)
+      .map((block) => block.entity!))];
+    const annotations = imageIDs.length > 0
+      ? await this.shelf.findEntityAnnotations(imageIDs)
+      : new Map<string, EntityAnnotation>();
     buff.push(`
 <div class="moment-info">
   <h1 class="moment-title title">${escapeHTML(moment.title)}</h1>
@@ -54,7 +61,7 @@ class MomentRenderer {
           buff.push(`<p>${block.text}</p>`);
           break;
         case 'image':
-          buff.push(await this.renderImage(block));
+          buff.push(await this.renderImage(block, annotations.get(block.entity ?? '')));
           break;
         case 'video':
           buff.push(await this.renderVideo(block));
@@ -74,7 +81,7 @@ class MomentRenderer {
   }
   // メディアの要素には data-entity（entity の id）と data-type（種類）を付ける。ura の編集画面が、
   // プレビューのメディアから注釈の引き出しを開くのに使う。
-  private async renderImage(block: fml.Image): Promise<string> {
+  private async renderImage(block: fml.Image, annotation: EntityAnnotation | undefined): Promise<string> {
     if (block.entity === undefined) {
       return `<p>!!Image not set!!</p>`
     }
@@ -94,7 +101,10 @@ class MomentRenderer {
       height = Math.min(2048, entity.height);
       width = entity.width * height / entity.height;
     }
-    const img = `<img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="an image." data-entity="${escapeAttribute(entity.id)}" data-type="image">`;
+    const alt = annotation?.humanVerified === true && annotation.alt !== null && annotation.alt.trim() !== ''
+      ? annotation.alt
+      : 'an image.';
+    const img = `<img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="${escapeAttribute(alt)}" data-entity="${escapeAttribute(entity.id)}" data-type="image">`;
     // 元画像は表示にもリンクにも使わない。entity の元ファイルへのリンクは [link] ブロックで貼れる。
     if (!block.link) {
       return img;
