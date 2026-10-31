@@ -68,6 +68,8 @@ export default class Uploader {
 
     this.target_.appendChild(this.progressDialog_);
     this.progressBar_.max = files.length;
+    // 同じページで前に上げたときの値が残っていると、最初から満タンに見える
+    this.progressBar_.value = 0;
 
     const embeds: string[] = [];
 
