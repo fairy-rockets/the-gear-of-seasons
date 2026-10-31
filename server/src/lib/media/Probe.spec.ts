@@ -43,7 +43,7 @@ function exifSegment(tags: [number, string][]): Buffer {
   return Buffer.concat([header, body]);
 }
 
-async function probeExif(tags: [number, string][]): Promise<media.ProbeResult> {
+async function probeExif(tags: [number, string][], ext = 'jpg'): Promise<media.ProbeResult> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-probe-spec-'));
   try {
     const plain = path.join(dir, 'plain.jpg');
@@ -52,6 +52,35 @@ async function probeExif(tags: [number, string][]): Promise<media.ProbeResult> {
     const filepath = path.join(dir, 'exif.jpg');
     // SOI の直後に APP1 を差し込む。
     await fs.writeFile(filepath, Buffer.concat([jpeg.subarray(0, 2), exifSegment(tags), jpeg.subarray(2)]));
+    if (ext !== 'jpg') {
+      const converted = path.join(dir, `exif.${ext}`);
+      await promisify(execFile)('magick', [filepath, converted]);
+      return await media.probe(converted);
+    }
+    return await media.probe(filepath);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
+
+async function probeVideo(tags: Record<string, string>, streamOnly = false): Promise<media.ProbeResult> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-video-spec-'));
+  try {
+    const filepath = path.join(dir, 'video.mp4');
+    const metadata = Object.entries(tags).flatMap(([key, value]) => ['-metadata', `${key}=${value}`]);
+    await promisify(execFile)('ffmpeg', [
+      '-v', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=16x16:d=0.1',
+      '-c:v', 'libx264', '-movflags', 'use_metadata_tags', ...metadata, filepath,
+    ]);
+    if (streamOnly) {
+      // ムービーヘッダーの日時だけをゼロにし、トラック/映像ストリームの日時を残す。
+      const video = await fs.readFile(filepath);
+      const mvhd = video.indexOf(Buffer.from('mvhd'));
+      assert.ok(mvhd > 0);
+      assert.equal(video[mvhd + 4], 0);
+      video.writeUInt32BE(0, mvhd + 8);
+      await fs.writeFile(filepath, video);
+    }
     return await media.probe(filepath);
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
@@ -102,6 +131,90 @@ describe("Media", () => {
       const r = await probeExif(tags);
       assert.equal(r.timestamp, undefined);
       assert.equal(r.width, 16);
+    }
+  });
+
+  it("PNG のテキストに格納された EXIF プロファイルも読む", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-png-spec-'));
+    try {
+      const filepath = path.join(dir, 'raw-exif.png');
+      const exif = exifSegment([[0x9004, '2020:02:03 04:05:06']]).subarray(4);
+      const rawProfile = `\nexif\n${exif.length.toString().padStart(8)}\n${exif.toString('hex')}\n`;
+      await promisify(execFile)('magick', ['-size', '16x16', 'xc:red', '-set', 'Raw profile type exif', rawProfile, filepath]);
+      const png = await fs.readFile(filepath);
+      assert.ok(png.includes(Buffer.from('Raw profile type exif')));
+      assert.ok(!png.includes(Buffer.from('eXIf')));
+      const r = await media.probe(filepath);
+      assert.equal(r.timestamp?.valueOf(), new Date(2020, 1, 3, 4, 5, 6).valueOf());
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("改行入りの EXIF が別の日時項目として読まれない", async () => {
+    const r = await probeExif([[0x9004, 'invalid\n2020:02:03 04:05:06']]);
+    assert.equal(r.timestamp, undefined);
+    assert.equal(r.width, 16);
+  });
+
+  it("HEIC でも EXIF の撮影日時と優先順位を保つ", async function () {
+    this.timeout(10000);
+    const r = await probeExif([[0x9003, '2016:05:13 23:14:52'], [0x9004, '2020:02:03 04:05:06']], 'heic');
+    assert.equal(r.mimeType, 'image/heic');
+    assert.equal(r.width, 16);
+    assert.equal(r.timestamp?.valueOf(), new Date(2020, 1, 3, 4, 5, 6).valueOf());
+  });
+
+  it("動画の creation_time は UTC の瞬間として読む", async () => {
+    const r = await probeVideo({creation_time: '2020-02-03T04:05:06Z'});
+    assert.equal(r.type, 'video');
+    assert.equal(r.width, 16);
+    assert.equal(r.timestamp?.valueOf(), Date.parse('2020-02-03T04:05:06Z'));
+  });
+
+  it("動画はオフセット付き撮影日時を creation_time より優先する", async () => {
+    const r = await probeVideo({
+      creation_time: '2020-02-03T04:05:06Z',
+      'com.apple.quicktime.creationdate': '2019-05-06T07:08:09+09:00',
+    });
+    assert.equal(r.timestamp?.valueOf(), Date.parse('2019-05-06T07:08:09+09:00'));
+  });
+
+  it("動画のタイムゾーンがない撮影日時はローカル時刻として読む", async () => {
+    const r = await probeVideo({date: '2020-02-03T04:05:06'});
+    assert.equal(r.timestamp?.valueOf(), new Date(2020, 1, 3, 4, 5, 6).valueOf());
+  });
+
+  it("動画の不正な撮影日時は無視して有効な creation_time を読む", async () => {
+    const r = await probeVideo({date: '2020-02-31T04:05:06Z', creation_time: '2020-02-03T04:05:06Z'});
+    assert.equal(r.timestamp?.valueOf(), Date.parse('2020-02-03T04:05:06Z'));
+  });
+
+  it("動画は映像ストリームだけの creation_time も読む", async () => {
+    const r = await probeVideo({creation_time: '2020-02-03T04:05:06Z'}, true);
+    assert.equal(r.timestamp?.valueOf(), Date.parse('2020-02-03T04:05:06Z'));
+  });
+
+  it("動画の撮影日時が無い・不正・ゼロ日時なら未設定にする", async () => {
+    for (const tags of [{}, {date: 'invalid'}, {date: '2020-02-03'}, {date: '2020-02-03T04:05:06+25:00'}, {date: '1904-01-01T00:00:00Z'}, {creation_time: '1970-01-01T00:00:00Z'}] as Record<string, string>[]) {
+      const r = await probeVideo(tags);
+      assert.equal(r.timestamp, undefined);
+    }
+  });
+
+  it("音声の creation_time は撮影日時として使わない", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-audio-spec-'));
+    try {
+      const filepath = path.join(dir, 'audio.m4a');
+      await promisify(execFile)('ffmpeg', [
+        '-v', 'error', '-f', 'lavfi', '-i', 'anullsrc=r=8000:cl=mono', '-t', '0.1',
+        '-metadata', 'creation_time=2020-02-03T04:05:06Z', filepath,
+      ]);
+      const r = await media.probe(filepath);
+      assert.equal(r.type, 'audio');
+      assert.equal(r.timestamp, undefined);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
     }
   });
 

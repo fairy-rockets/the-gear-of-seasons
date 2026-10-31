@@ -111,6 +111,14 @@ Clicking a mark or an image opens a drawer over the text column (`client/src/ura
 
 The editor attaches `beforeunload` only while the moment or annotation has unsaved input, or a SAVE, annotation save or DELETE is in flight. The moment is compared with its initial or last successfully saved raw input values; annotations compare touched field values with the loaded or saved annotation. Initial inputs are clean; failed saves and input added during a save remain protected. Each save clears only its own saved values. DELETE confirms discarding unsaved input before deleting the moment at its saved timestamp, then redirects without another leave confirmation. The browser regression scenarios are in `tools/preview/editor-unsaved.mjs`.
 
+### Capture timestamps
+
+Images use ImageMagick to read EXIF `DateTimeDigitized` (`CreateDate`), falling back to `DateTimeOriginal`. These timestamps are interpreted as server-local time; EXIF offset and subsecond tags are not used. The Docker image includes `imagemagick-heic` and `libheif-libde265` for HEIC reading and conversion.
+
+Videos use the existing ffprobe result: `com.apple.quicktime.creationdate`, `DateTimeOriginal`, then `date`, first from container tags and then from the video stream. The container's `creation_time`, then the video stream's `creation_time`, are fallbacks. Only complete `YYYY-MM-DDTHH:mm:ss` timestamps (also allowing a space instead of `T` and fractional seconds) are accepted. Explicit offsets and UTC are honored; timestamps without a zone use server-local time. Missing, invalid and zero epoch dates are ignored; filesystem timestamps are not used. Audio has no capture timestamp.
+
+When SAVE has no date, it uses the first image or video in body order with a capture timestamp. If none has one, it uses the current time. An explicitly entered date takes precedence.
+
 ### sensitive calculation
 
 `sensitive` can be set by hand in the editor or by `import-curation` from studio's file (`sensitive_manual = true`). While `sensitive_manual` is false, `shelf/Sensitive.ts` recomputes it from the body and annotations whenever the moment or one of its annotations is saved.

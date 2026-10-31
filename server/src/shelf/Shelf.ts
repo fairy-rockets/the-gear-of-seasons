@@ -313,7 +313,7 @@ class Shelf {
     const doc = fml.parse(req.text);
     if (date === null || date.length === 0) {
       for (const block of doc.blocks) {
-        if (block.type === 'image' && block.entity !== undefined) {
+        if ((block.type === 'image' || block.type === 'video') && block.entity !== undefined) {
           const e = await this.findEntity(block.entity);
           if (e === null || e.timestamp === undefined) {
             continue;

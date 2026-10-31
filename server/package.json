@@ -45,7 +45,6 @@
     "@wordpress/escape-html": "^3.46.0",
     "axios": "^1.16.1",
     "dayjs": "^1.11.20",
-    "exifreader": "^4.52.0",
     "fastify": "^5.8.5",
     "file-type": "^22.0.1",
     "handlebars": "^4.7.9",

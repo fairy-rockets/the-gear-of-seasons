@@ -320,6 +320,46 @@ describe("Shelf.updateMoment（SAVE）", () => {
     assert.deepStrictEqual(repo.saved.map((s) => s[0]), ['insertMoment']);
   });
 
+  it("日時が空なら、動画だけの投稿も撮影日時で補完する", async () => {
+    const t = dayjs('2019-05-06T07:08:09+09:00');
+    const video: Entity = { type: 'video', id: kB, iconID: 'i', timestamp: t, mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
+    const repo = new FakeRepo([video], []);
+    const m = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, originalDate: null, date: '', text: `[video entity="${kB}"]` });
+    assert.ok(m.timestamp!!.isSame(t));
+    assert.deepStrictEqual(repo.saved.map((s) => s[0]), ['insertMoment']);
+  });
+
+  it("画像と動画は本文で先に出る撮影日時を使う", async () => {
+    const image = { ...kImageA, timestamp: dayjs('2020-02-03T04:05:06+09:00') };
+    const video: Entity = { type: 'video', id: kB, iconID: 'i', timestamp: dayjs('2019-05-06T07:08:09+09:00'), mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
+    for (const first of ['image', 'video']) {
+      const text = first === 'image' ? `[image entity="${kA}"][video entity="${kB}"]` : `[video entity="${kB}"][image entity="${kA}"]`;
+      const repo: FakeRepo = new FakeRepo([image, video], []);
+      const m: Moment = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, originalDate: null, date: null, text });
+      assert.ok(m.timestamp!!.isSame(first === 'image' ? image.timestamp : video.timestamp));
+    }
+  });
+
+  it("撮影日時のない動画を飛ばし、指定日時は撮影日時より優先する", async () => {
+    const t = dayjs('2019-05-06T07:08:09+09:00');
+    const video: Entity = { type: 'video', id: kB, iconID: 'i', timestamp: undefined, mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
+    const repo = new FakeRepo([{ ...kImageA, timestamp: t }, video], []);
+    const text = `[video entity="${kB}"][image entity="${kA}"]`;
+    const auto = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, originalDate: null, date: null, text });
+    assert.ok(auto.timestamp!!.isSame(t));
+    const manual = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, originalDate: null, text });
+    assert.ok(manual.timestamp!!.isSame(parseMomentTime(kReq.date!)));
+  });
+
+  it("動画の撮影日時がなければ現在時刻で補完する", async () => {
+    const video: Entity = { type: 'video', id: kB, iconID: 'i', timestamp: undefined, mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
+    const repo = new FakeRepo([video], []);
+    const before = dayjs().startOf('second');
+    const m = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, originalDate: null, date: null, text: `[video entity="${kB}"]` });
+    assert.ok(m.timestamp!!.valueOf() >= before.valueOf());
+    assert.ok(m.timestamp!!.valueOf() <= dayjs().valueOf());
+  });
+
   it("書き換える moment が無ければ例外にする", async () => {
     const repo = new FakeRepo([kImageA], []);
     await assert.rejects(() => new Shelf(repo as unknown as Repo).updateMoment(kReq), /Moment not found/);
