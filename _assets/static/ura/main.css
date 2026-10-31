@@ -357,11 +357,8 @@ img.emoji {
   pointer-events: none;
 }
 
+/* アップロードの進捗パネル。toast-container の中に入れ、トーストと縦に積む */
 div.uploader-progress {
-  position: fixed;
-  bottom: 1em;
-  right: 1em;
-
   width: 10em;
   padding: 1em;
   
@@ -386,10 +383,11 @@ div.uploader-progress > progress {
   width: 90%;
   margin: 0 auto;
   display: block;
-  flex: 0 0 0;
+  /* 縦並びの flex で基準の高さを 0 にすると、Chromium では高さ 0 になって消える */
+  flex: 0 0 auto;
 }
 
-/* 失敗を知らせる通知。位置と配色は uploader-progress に合わせる */
+/* 失敗を知らせる通知と、アップロードの進捗パネルを右下に積む置き場 */
 div.toast-container {
   position: fixed;
   bottom: 1em;
