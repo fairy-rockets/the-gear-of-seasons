@@ -4,7 +4,7 @@
 
 ## Pre-requirements
 
-- node.js 26 or higher (for `Temporal`)
+- node.js 26 or higher
 - ffmpeg
 - ImageMagick 7.0 or higher
 
