@@ -50,7 +50,7 @@ export type MarkdownRef = {
 };
 
 // [markdown url=…] の URL を、git のホスティングの raw の URL として分解する。分解できなければ url だけ。
-// ref にスラッシュは含まれない前提で、最初の1段を ref、残りを path とする（URL だけでは ref と path の境目が決まらないため）。
+// GitHub の refs/heads・refs/tags は名前空間も ref に含める。ブランチ名・タグ名は最初の1段、残りを path とする（URL だけでは境目が決まらないため）。
 // path はデコードせず、URL に書かれたまま出す。
 export function parseMarkdownURL(url: string): MarkdownRef {
   let u: URL;
@@ -68,8 +68,12 @@ export function parseMarkdownURL(url: string): MarkdownRef {
   }
   // https://raw.githubusercontent.com/<owner>/<repo>/<ref>/<path...>
   if (u.host === 'raw.githubusercontent.com' && segments.length >= 4) {
-    const [owner, repo, ref, ...path] = segments;
-    return { url, repo: `github.com/${owner}/${repo}`, ref, path: path.join('/') };
+    const [owner, repo] = segments;
+    const refEnd = segments[2] === 'refs' && ['heads', 'tags'].includes(segments[3]) ? 5 : 3;
+    if (segments.length <= refEnd) {
+      return { url };
+    }
+    return { url, repo: `github.com/${owner}/${repo}`, ref: segments.slice(2, refEnd).join('/'), path: segments.slice(refEnd).join('/') };
   }
   // Forgejo: https://code.ledyba.org/<owner>/<repo>/raw/{branch,tag,commit}/<ref>/<path...>
   if (u.host === 'code.ledyba.org' && segments.length >= 6 && segments[2] === 'raw' && ['branch', 'tag', 'commit'].includes(segments[3])) {

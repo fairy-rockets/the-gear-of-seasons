@@ -204,6 +204,34 @@ describe("parseMarkdownURL", () => {
       url: 'https://raw.githubusercontent.com/o/r/main/docs/a.md', repo: 'github.com/o/r', ref: 'main', path: 'docs/a.md',
     });
   });
+  it("GitHub の refs/heads と refs/tags を ref に含める", () => {
+    for (const ref of ['refs/heads/main', 'refs/tags/v1.0']) {
+      const url = `https://raw.githubusercontent.com/o/r/${ref}/docs/a.md`;
+      assert.deepStrictEqual(parseMarkdownURL(url), {
+        url, repo: 'github.com/o/r', ref, path: 'docs/a.md',
+      });
+    }
+  });
+  it("GitHub の完全な ref でも、名前は最初の1段として残りを path にする", () => {
+    const url = 'https://raw.githubusercontent.com/o/r/refs/heads/feature/topic/a.md';
+    assert.deepStrictEqual(parseMarkdownURL(url), {
+      url, repo: 'github.com/o/r', ref: 'refs/heads/feature', path: 'topic/a.md',
+    });
+  });
+  it("GitHub と Forgejo の path はパーセントエンコードを維持する", () => {
+    const path = 'docs/%E6%97%A5%E6%9C%AC%E8%AA%9E%20%23%25%2F.md';
+    for (const [base, repo, ref] of [
+      ['https://raw.githubusercontent.com/o/r/main', 'github.com/o/r', 'main'],
+      ['https://raw.githubusercontent.com/o/r/refs/heads/main', 'github.com/o/r', 'refs/heads/main'],
+      ['https://raw.githubusercontent.com/o/r/refs/tags/v1.0', 'github.com/o/r', 'refs/tags/v1.0'],
+      ['https://code.ledyba.org/o/r/raw/branch/main', 'code.ledyba.org/o/r', 'main'],
+      ['https://code.ledyba.org/o/r/raw/tag/v1.0', 'code.ledyba.org/o/r', 'v1.0'],
+      ['https://code.ledyba.org/o/r/raw/commit/0123abcd', 'code.ledyba.org/o/r', '0123abcd'],
+    ]) {
+      const url = `${base}/${path}`;
+      assert.deepStrictEqual(parseMarkdownURL(url), { url, repo, ref, path });
+    }
+  });
   it("code.ledyba.org の raw/tag と raw/commit も、ref の次の1段までを ref にする", () => {
     assert.deepStrictEqual(parseMarkdownURL('https://code.ledyba.org/o/r/raw/tag/v1.0/docs/a.md'), {
       url: 'https://code.ledyba.org/o/r/raw/tag/v1.0/docs/a.md', repo: 'code.ledyba.org/o/r', ref: 'v1.0', path: 'docs/a.md',
@@ -216,6 +244,15 @@ describe("parseMarkdownURL", () => {
     for (const url of [
       'https://example.com/o/r/main/a.md',
       'https://raw.githubusercontent.com/o/r/main',
+      'https://raw.githubusercontent.com/o/r/refs/heads',
+      'https://raw.githubusercontent.com/o/r/refs/heads/main',
+      'https://raw.githubusercontent.com/o/r/refs/tags',
+      'https://raw.githubusercontent.com/o/r/refs/tags/v1.0',
+      'https://raw.githubusercontent.com/o/r/refs/heads/main/',
+      'https://raw.githubusercontent.com/o/r/refs/tags//a.md',
+      'https://code.ledyba.org/o/r/raw/branch/main',
+      'https://code.ledyba.org/o/r/raw/tag/v1.0',
+      'https://code.ledyba.org/o/r/raw/commit/0123abcd',
       'https://raw.githubusercontent.com/o/r/main/a.md?token=x',
       'http://raw.githubusercontent.com/o/r/main/a.md',
       'https://code.ledyba.org/o/r/raw/other/main/a.md',
