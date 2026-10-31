@@ -56,7 +56,8 @@ export async function probe(srcFilePath: string): Promise<ProbeResult> {
           date.setMinutes(minutes);
           date.setSeconds(seconds);
         }
-        return Number.isNaN(+date) ? undefined : dayjs(date);
+        const result = dayjs(Number.isNaN(+date) ? timestamp : date);
+        return result.isValid() ? result : undefined;
       } catch (e) {
         return undefined;
       }

@@ -92,6 +92,11 @@ describe("Media", () => {
     assert.equal(r.timestamp?.millisecond(), 0);
   });
 
+  it("スラッシュ区切りの撮影日時もローカル時刻として読む", async () => {
+    const r = await probeExif([[0x9004, '2020/02/03 04:05:06']]);
+    assert.equal(r.timestamp?.valueOf(), new Date(2020, 1, 3, 4, 5, 6).valueOf());
+  });
+
   it("撮影日時が無い画像と読めない日時は無視する", async () => {
     for (const tags of [[], [[0x9003, 'invalid date']]] as [number, string][][]) {
       const r = await probeExif(tags);
