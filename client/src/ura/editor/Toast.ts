@@ -16,7 +16,8 @@ let container: HTMLDivElement | null = null;
 const entries = new Map<string, Entry>();
 let serial = 0;
 
-function getContainer(): HTMLDivElement {
+// 右下の置き場。アップロードの進捗パネルもここに入れ、トーストと重ならずに積む
+export function getToastContainer(): HTMLDivElement {
   if (container === null) {
     container = document.createElement('div');
     container.classList.add('toast-container');
@@ -45,7 +46,7 @@ export function showToast(text: string, options: ToastOptions = {}) {
     elem.classList.add('toast');
     elem.setAttribute('role', 'alert');
     elem.addEventListener('click', () => dismissToast(key));
-    getContainer().appendChild(elem);
+    getToastContainer().appendChild(elem);
     entry = { elem, timer: null };
     entries.set(key, entry);
   }

@@ -1,5 +1,5 @@
 import Editor from './Editor';
-import { describeError, describeResponseError, showToast } from './Toast';
+import { describeError, describeResponseError, getToastContainer, showToast } from './Toast';
 
 const SUPPORTED_TYPES = ['image/', 'video/', 'audio/'];
 
@@ -66,7 +66,7 @@ export default class Uploader {
       return;
     }
 
-    this.target_.appendChild(this.progressDialog_);
+    getToastContainer().appendChild(this.progressDialog_);
     this.progressBar_.max = files.length;
     // 同じページで前に上げたときの値が残っていると、最初から満タンに見える
     this.progressBar_.value = 0;
@@ -107,11 +107,11 @@ export default class Uploader {
     });
 
     upload(0).then(() => {
-      this.target_.removeChild(this.progressDialog_);
+      this.progressDialog_.remove();
       this.editor_!.onUpload(embeds);
     }).catch((err) => {
       console.error(err);
-      this.target_.removeChild(this.progressDialog_);
+      this.progressDialog_.remove();
       showToast(`アップロードに失敗しました: ${describeError(err)}`);
     });
   }
