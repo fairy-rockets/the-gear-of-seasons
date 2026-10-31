@@ -35,8 +35,14 @@ export async function probe(srcFilePath: string): Promise<ProbeResult> {
     const filePath = path.join(tempDir, `probe.${fileType.ext}`);
     await fs.copyFile(srcFilePath, filePath);
     const timestamp = await (async () => {
+      // exifr が読めるのは画像だけ。パスを渡すと exifr は FileHandle.stat に options としてパスを渡し、
+      // Node 26 ではそれが例外になる（開いた FileHandle も閉じられない）ので、読んだ中身を渡す。
+      // FIXME: exifr はメンテナンスされていないので替える（#63）。
+      if (!fileType.mime.startsWith('image/')) {
+        return undefined;
+      }
       try {
-        const exif = await exifr.parse(filePath);
+        const exif = await exifr.parse(await fs.readFile(filePath));
         if (exif === undefined || exif === null) {
           return undefined;
         }

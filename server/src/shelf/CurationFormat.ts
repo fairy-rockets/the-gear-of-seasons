@@ -82,18 +82,20 @@ export function toJST(timestamp: dayjs.Dayjs): dayjs.Dayjs {
   return timestamp.utcOffset(9 * 60);
 }
 
-// 形だけでなく、存在する日時か。dayjs は 2017-02-30 を 03-01 に繰り越して読むので、
-// 読んだ時刻を同じオフセットで書き直し、元の文字列に戻ることを確かめる。
+// 形だけでなく、存在する日時か。存在しない日時（2017-02-30、25時など）は Temporal.Instant.from が例外にする。
+// Temporal は 60 秒（うるう秒）を 59 秒に丸めて読むので、それだけは先に弾く。
 export function isMomentLabel(label: string): boolean {
-  const m = kMomentFormat.exec(label);
-  if (m === null) {
+  if (!kMomentFormat.test(label) || label.slice(17, 19) === '60') {
     return false;
   }
-  const offset = m[1] === 'Z' ? '+00:00' : m[1];
-  const t = dayjs(label);
-  if (!t.isValid()) {
-    return false;
+  try {
+    Temporal.Instant.from(label);
+    return true;
+  } catch (err) {
+    // 存在しない日時のときは RangeError。Temporal の無い実行環境の ReferenceError などは、不正な時刻にせず投げ直す。
+    if (err instanceof RangeError) {
+      return false;
+    }
+    throw err;
   }
-  const minutes = (offset[0] === '-' ? -1 : 1) * (Number(offset.slice(1, 3)) * 60 + Number(offset.slice(4, 6)));
-  return t.utcOffset(minutes).format('YYYY-MM-DDTHH:mm:ssZ') === label.slice(0, 19) + offset;
 }

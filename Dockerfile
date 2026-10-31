@@ -1,5 +1,5 @@
 # ツールだけの段。compose.dev.yml の app-dev はこの段でソースをバインドして動かす。
-FROM node:22-alpine AS tools
+FROM node:26-alpine AS tools
 
 WORKDIR /app
 
