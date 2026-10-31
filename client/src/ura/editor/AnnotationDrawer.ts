@@ -255,6 +255,7 @@ export default class AnnotationDrawer {
     this.show_(false);
     this.form_.replaceChildren();
     this.select_(null);
+    this.editor_!.updateUnsavedChanges();
     return true;
   }
 
@@ -272,6 +273,11 @@ export default class AnnotationDrawer {
   private setSaving_(saving: boolean) {
     this.saving_ = saving;
     this.updateButtons_();
+    this.editor_!.updateUnsavedChanges();
+  }
+
+  isSaving(): boolean {
+    return this.saving_;
   }
 
   // moment の SAVE・削除の通信中は、注釈を保存しない（Editor が通信の始めと終わりに呼ぶ）。
@@ -319,6 +325,12 @@ export default class AnnotationDrawer {
     }
     opened.entry.annotation = values;
     opened.original = values;
+    for (const [field, input] of opened.inputs) {
+      // string[] は === だと参照比較になるため、JSON.stringify で要素の順番を含めて比較する。
+      if (JSON.stringify(input.read()) === JSON.stringify(values[field])) {
+        input.touched = false;
+      }
+    }
     this.refreshMarks_();
     this.updateStatus_('保存しました');
     if (result.moment !== undefined) {
@@ -454,7 +466,7 @@ export default class AnnotationDrawer {
     return values as AnnotationValues;
   }
 
-  private isDirty_(): boolean {
+  hasUnsavedChanges(): boolean {
     if (this.opened_ === null) {
       return false;
     }
@@ -462,14 +474,15 @@ export default class AnnotationDrawer {
   }
 
   private confirmDiscard_(): boolean {
-    if (!this.isDirty_()) {
+    if (!this.hasUnsavedChanges()) {
       return true;
     }
     return confirm('保存していない注釈の入力があります。捨てますか？');
   }
 
   private updateStatus_(message?: string) {
-    if (this.isDirty_()) {
+    this.editor_!.updateUnsavedChanges();
+    if (this.hasUnsavedChanges()) {
       this.status_.textContent = '保存していない入力があります';
       this.status_.classList.add('annotation-status-dirty');
     } else {

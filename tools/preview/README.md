@@ -62,3 +62,15 @@ docker rmi gears-shot   # 撮影用のイメージも要らなくなったら
   入れるには root が要る。コンテナの中で完結させる。
 - **公開ポート(`-p 0.0.0.0:...`)での起動は Claude Code の自動承認に弾かれる。**
   実機で見るためにポートを開けるときは、ナギに手で打ってもらうこと。
+
+## ura の未保存入力の確認
+
+`editor-unsaved.mjs` は、ビルドした editor bundle を Chromium で動かし、初期状態・各入力欄・
+再読み込み／移動／タブを閉じる際の確認・保存の成功／失敗／通信中の追加入力・moment と注釈の
+独立した保存・DELETE の確認と一覧への移動を検証する。API はスクリプト内で置き換え、DB に書き込まない。
+
+`compose.dev.yml` の `app-dev` で client をビルドした後、リポジトリのルートから実行する:
+
+```sh
+docker run --rm -v "$PWD:/app:ro" gears-shot node /app/tools/preview/editor-unsaved.mjs
+```
