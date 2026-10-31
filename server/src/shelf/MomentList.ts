@@ -23,15 +23,25 @@ export function momentMedia(doc: fml.Document): MediaRef[] {
   return [...found].map(([entity, type]) => ({ entity, type }));
 }
 
-// 注釈の行が無い entity の値。列の既定値（human_verified は false、ほかは null）。
-const kNoAnnotation: protocol.AnnotationValues = {
-  medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
-  looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
-  role: null, roleGroup: null, roleStar: null, roleNote: null,
-};
+// 注釈の行が無い entity の値。
+const kNoAnnotation = protocol.emptyAnnotationValues();
 
-// annotations には、本文のメディアの注釈が入っていること（行が無い entity は入っていなくてよい）。
-export function momentListItem(m: Moment, media: MediaRef[], annotations: ReadonlyMap<string, EntityAnnotation>): protocol.Moment.List.Item {
+// 検索に使う本文の文章。text ブロックと [link] の text をつないだもので、fml の記法（[image entity="…"] など）は含まない。
+export function momentBodyText(doc: fml.Document): string {
+  const texts: string[] = [];
+  for (const block of doc.blocks) {
+    if (block.type === 'text') {
+      texts.push(block.text);
+    } else if (block.type === 'link' && block.text !== undefined) {
+      texts.push(block.text);
+    }
+  }
+  return texts.join('\n');
+}
+
+// doc は m.text をパースしたもの。annotations には、本文のメディアの注釈が入っていること（行が無い entity は入っていなくてよい）。
+export function momentListItem(m: Moment, doc: fml.Document, annotations: ReadonlyMap<string, EntityAnnotation>): protocol.Moment.List.Item {
+  const media = momentMedia(doc);
   let unentered = 0;
   let unverified = 0;
   for (const { entity, type } of media) {
@@ -47,7 +57,7 @@ export function momentListItem(m: Moment, media: MediaRef[], annotations: Readon
     date: formatMomentTime(m.timestamp!!),
     title: m.title,
     author: m.author,
-    text: m.text,
+    bodyText: momentBodyText(doc),
     iconID: m.iconID ?? null,
     status: m.status,
     tier: m.tier,

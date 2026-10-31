@@ -69,14 +69,6 @@ export function parseAnnotationValues(v: unknown): AnnotationValues {
   return values as AnnotationValues;
 }
 
-function emptyAnnotationValues(): AnnotationValues {
-  return {
-    medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
-    role: null, roleGroup: null, roleStar: null, roleNote: null,
-  };
-}
-
 function badRequest(reply: FastifyReply, message: string): FastifyReply {
   return reply
     .type('application/json;charset=UTF-8')
@@ -115,7 +107,7 @@ export default class AnnotationController {
       if (entity === null) {
         continue;
       }
-      entities.push({ entityID: entity.id, type: entity.type, annotation: emptyAnnotationValues() });
+      entities.push({ entityID: entity.id, type: entity.type, annotation: protocol.emptyAnnotationValues() });
     }
     const annotations = await this.shelf.findEntityAnnotations(entities.map((e) => e.entityID));
     for (const e of entities) {

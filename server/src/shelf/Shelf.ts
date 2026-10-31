@@ -351,10 +351,10 @@ class Shelf {
   // ura の一覧（/moments/）の要約。新しい順。注釈は1度にまとめて引く。
   async findMomentListItems(visibility: MomentVisibility): Promise<protocol.Moment.List.Item[]> {
     const moments = await this.repo.findAllMoments(visibility);
-    const media = moments.map((m) => momentMedia(fml.parse(m.text)));
-    const ids = [...new Set(media.flat().map((it) => it.entity))];
+    const docs = moments.map((m) => fml.parse(m.text));
+    const ids = [...new Set(docs.flatMap((doc) => momentMedia(doc).map((it) => it.entity)))];
     const annotations = await this.repo.findEntityAnnotations(ids);
-    return moments.map((m, i) => momentListItem(m, media[i], annotations));
+    return moments.map((m, i) => momentListItem(m, docs[i], annotations));
   }
 
   async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {

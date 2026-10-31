@@ -53,6 +53,15 @@ export const kAnnotationFieldsByType: Record<EntityType, readonly AnnotationFiel
   audio: ['alt', 'description', 'tags'],
 };
 
+// 注釈の行が無い entity の値。列の既定値（humanVerified は false、ほかは null）。呼ぶたびに新しいオブジェクトを返す。
+export function emptyAnnotationValues(): AnnotationValues {
+  return {
+    medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
+    looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
+    role: null, roleGroup: null, roleStar: null, roleNote: null,
+  };
+}
+
 // 注釈がどこまで入ったか。ura の編集画面の注釈の印と、一覧の絞り込みで同じ判定を使う。
 // unentered: その種類が持つ項目がすべて null（human_verified は false）。注釈の行が無い entity もこれ。
 // unverified / verified: 何か入っていて、human_verified が false / true。human_verified を持つ種類（画像・動画）だけ。
@@ -105,6 +114,7 @@ export namespace Moment {
   }
   export namespace List {
     // ura の一覧（/moments/）に埋め込む、moment 1つ分の要約。下書きも含めた全件を新しい順に渡し、ブラウザで絞り込む。
+    // bodyText は検索に使う本文の文章（text ブロックと [link] の text）で、fml の記法は含まない。
     // media は本文の [image]・[video]・[audio] の entity の数（同じ entity は1回）。
     // unentered・unverified はそのうち annotationState が 'unentered'・'unverified' のものの数。
     export type Item = {
@@ -112,7 +122,7 @@ export namespace Moment {
       date: string;
       title: string;
       author: string;
-      text: string;
+      bodyText: string;
       iconID: string | null;
       status: MomentStatus;
       tier: MomentTier;

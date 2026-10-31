@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 import Asset from '../lib/Asset.js';
+import * as fml from '../lib/fml.js';
 import * as protocol from '../lib/protocol.js';
 import Shelf from '../shelf/Shelf.js';
 import { momentListItem } from '../shelf/MomentList.js';
@@ -81,7 +82,7 @@ class StubShelf {
     return this.visible(visibility).map(StubShelf.summary);
   }
   async findMomentListItems(visibility: MomentVisibility): Promise<protocol.Moment.List.Item[]> {
-    return this.visible(visibility).map((m) => momentListItem(m, [], new Map()));
+    return this.visible(visibility).map((m) => momentListItem(m, fml.parse(m.text), new Map()));
   }
   async findEntity(_id: string): Promise<null> {
     return null;

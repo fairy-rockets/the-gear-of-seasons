@@ -3,10 +3,12 @@ import * as protocol from '../../protocol';
 // ura の一覧（/moments/）。サーバーがページに埋め込んだ全件の要約（#moments-data）を、ここで絞り込んで描く。
 // 条件は URL のクエリと localStorage に書く。開いたときは URL のクエリを優先し（サイドバーの「確認待ち」など、
 // リンクで条件を渡すため）、クエリが無ければ localStorage の条件を使う。
+// クエリから開いたときは、そのページで条件を変えるまで localStorage に書かない。リンクで開いたあとに「一覧」へ戻ると、
+// 前に自分で選んだ条件に戻る。
 
 type Item = protocol.Moment.List.Item & {
   year: string;
-  // 検索の対象（題名と本文）。小文字にしてある。
+  // 検索の対象（題名と本文の文章）。小文字にしてある。
   hay: string;
 };
 
@@ -53,7 +55,7 @@ function loadItems(): Item[] {
   return items.map((it) => ({
     ...it,
     year: it.date.slice(0, 4),
-    hay: `${it.title}\n${it.text}`.toLowerCase(),
+    hay: `${it.title}\n${it.bodyText}`.toLowerCase(),
   }));
 }
 
@@ -127,23 +129,25 @@ function normalize(filters: Filter[], raw: { [key: string]: unknown }): State {
   return st;
 }
 
-function loadState(filters: Filter[]): State {
+// fromQuery は、URL のクエリから読んだか。
+function loadState(filters: Filter[]): { st: State, fromQuery: boolean } {
   const params = new URLSearchParams(window.location.search);
   if ([...params.keys()].length > 0) {
-    return normalize(filters, Object.fromEntries(params));
+    return { st: normalize(filters, Object.fromEntries(params)), fromQuery: true };
   }
   try {
     const saved = window.localStorage.getItem(kStorageKey);
     if (saved !== null) {
-      return normalize(filters, JSON.parse(saved));
+      return { st: normalize(filters, JSON.parse(saved)), fromQuery: false };
     }
   } catch (_e) {
     // 読めなければ既定値。
   }
-  return { ...kDefaults };
+  return { st: { ...kDefaults }, fromQuery: false };
 }
 
-function saveState(st: State) {
+// remember が false なら URL だけを書き換え、localStorage には書かない。
+function saveState(st: State, remember: boolean) {
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(st)) {
     if (v !== null && v !== kDefaults[k as keyof State]) {
@@ -152,6 +156,9 @@ function saveState(st: State) {
   }
   const query = params.toString();
   window.history.replaceState(null, '', query.length > 0 ? `?${query}` : window.location.pathname);
+  if (!remember) {
+    return;
+  }
   try {
     window.localStorage.setItem(kStorageKey, JSON.stringify(st));
   } catch (_e) {
@@ -204,7 +211,8 @@ function cardHTML(it: Item): string {
 export default function main() {
   const items = loadItems();
   const filters = makeFilters(items);
-  const st = loadState(filters);
+  const { st, fromQuery } = loadState(filters);
+  let remember = !fromQuery;
 
   const filtersElem = document.getElementById('moments-filters')!!;
   const listElem = document.getElementById('moments-list')!!;
@@ -240,7 +248,7 @@ export default function main() {
     listElem.innerHTML = found.map(cardHTML).join('');
     countElem.textContent = `${found.length} / ${items.length}件`;
     emptyElem.hidden = found.length > 0;
-    saveState(st);
+    saveState(st, remember);
   };
 
   filtersElem.addEventListener('click', (ev) => {
@@ -258,10 +266,12 @@ export default function main() {
     } else {
       return;
     }
+    remember = true;
     apply();
   });
   qElem.addEventListener('input', () => {
     st.q = qElem.value;
+    remember = true;
     apply();
   });
   apply();

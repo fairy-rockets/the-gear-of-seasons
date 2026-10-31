@@ -8,18 +8,14 @@ import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { EntityAnnotation } from './EntityAnnotation.js';
 import { Moment, MomentVisibility } from './Moment.js';
-import { momentListItem, momentMedia } from './MomentList.js';
+import { momentBodyText, momentListItem, momentMedia } from './MomentList.js';
 
 const kImage = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const kVideo = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 const kAudio = 'cccccccccccccccccccccccccccccccc';
 const kImage2 = 'dddddddddddddddddddddddddddddddd';
 
-const kEmpty: protocol.AnnotationValues = {
-  medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
-  looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
-  role: null, roleGroup: null, roleStar: null, roleNote: null,
-};
+const kEmpty = protocol.emptyAnnotationValues();
 
 function annotation(entityID: string, values: Partial<protocol.AnnotationValues>): EntityAnnotation {
   return { entityID, ...kEmpty, ...values };
@@ -38,7 +34,7 @@ function moment(text: string, status: Moment['status'] = 'published'): Moment {
 
 function item(text: string, as: Map<string, EntityAnnotation>): protocol.Moment.List.Item {
   const m = moment(text);
-  return momentListItem(m, momentMedia(fml.parse(m.text)), as);
+  return momentListItem(m, fml.parse(m.text), as);
 }
 
 describe("annotationState", () => {
@@ -72,6 +68,17 @@ describe("momentMedia", () => {
   });
 });
 
+describe("momentBodyText", () => {
+  it("text ブロックと [link] の text だけをつなぎ、fml の記法は含まない", () => {
+    const doc = fml.parse(`前の文\n[image entity="${kImage}"]\n[link entity="${kImage}" text="元の画像"]\n[markdown url="https://hexe.net/a.md"]\n後の文`);
+    const text = momentBodyText(doc);
+    assert.ok(text.includes('前の文') && text.includes('元の画像') && text.includes('後の文'), text);
+    for (const w of ['image', 'entity', kImage, 'markdown', 'hexe.net']) {
+      assert.ok(!text.includes(w), `${w}: ${text}`);
+    }
+  });
+});
+
 describe("momentListItem", () => {
   it("注釈の行が無いメディアは、画像・動画・音声とも未入力と数える", () => {
     const it = item(`[image entity="${kImage}"]\n[video entity="${kVideo}"]\n[audio entity="${kAudio}"]`, new Map());
@@ -99,7 +106,7 @@ describe("momentListItem", () => {
   it("moment の項目をそのまま写す", () => {
     const it = item('ほんぶん', new Map());
     assert.deepStrictEqual({ ...it, media: undefined, unentered: undefined, unverified: undefined }, {
-      path: '/2024/11/14/13:18:23/', date: '2024/11/14 13:18:23', title: '題', author: '宵宮ナギ', text: 'ほんぶん',
+      path: '/2024/11/14/13:18:23/', date: '2024/11/14 13:18:23', title: '題', author: '宵宮ナギ', bodyText: 'ほんぶん',
       iconID: kImage, status: 'published', tier: 'pickup', series: ['癒し'], sensitive: true, sensitiveManual: false,
       media: undefined, unentered: undefined, unverified: undefined,
     });

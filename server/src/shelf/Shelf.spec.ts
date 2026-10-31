@@ -22,6 +22,11 @@ const kVisibilityAware: { [name: string]: (shelf: Shelf, v: MomentVisibility) =>
   findMomentListItems: (shelf, v) => shelf.findMomentListItems(v),
 };
 
+// Repo を2回以上呼ぶもの（ないものは1回）。findMomentListItems は moment を引いたあと、その注釈を引く。
+const kRepoCalls: { [name: string]: number } = {
+  findMomentListItems: 2,
+};
+
 // MomentVisibility を取らないことが決まっているもの。理由もここに書く。
 const kWithoutVisibility: { [name: string]: string } = {
   enumurateAllEntities: 'moment を引かない',
@@ -74,7 +79,7 @@ describe("Shelf のメソッド", () => {
         const { repo, received } = stubRepo();
         await call(new Shelf(repo), v);
         // moment を引く呼び出し（最初の1回）が v を受け取り、ほかの呼び出しは MomentVisibility を受け取らない。
-        assert.ok(received.length >= 1);
+        assert.strictEqual(received.length, kRepoCalls[name] ?? 1);
         const args = received[0];
         assert.strictEqual(args[args.length - 1], v);
         for (const rest of received.slice(1)) {
