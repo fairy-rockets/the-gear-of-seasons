@@ -28,7 +28,7 @@ docker compose exec the-gear-of-seasons \
 | `missing-original.md5-map.csv` | `original,medium` の対。`restore.rs` の `--md5-map` が読む形式（medium を持つ image のみ） |
 | `missing-medium.tsv` / `missing-icon.tsv` | 派生ファイルが無い entity。original があるなら `regenerate-cache` で作り直せる |
 | `dangling-refs.tsv` | entities に行が無い参照と、その参照元の moment |
-| `orphan-*.txt` | どの entity からも参照されていないファイル。`gc` はこれを消さない |
+| `orphan-*.txt` | どの entity からも参照されていないファイル（`regenerate-cache` で置き換わった古い medium・icon など）。これを消すコマンドは無いので、要らなければ手で消す（`gc` が消すのは moment から参照されていない entity と、そのファイルだけ） |
 
 ## 2. 元ファイルを探す
 
