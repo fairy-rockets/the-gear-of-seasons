@@ -2,7 +2,8 @@ import Repo from '../repo/Repo.js';
 import Shelf from '../shelf/Shelf.js';
 import { Entity } from '../shelf/Entity.js'
 
-async function main() {
+// 引数に entity の ID を渡すと、その entity だけを作り直す。引数が無ければ全 entity を作り直す。
+async function main(ids: string[]) {
   const started = performance.now();
   console.log('** Regenerating entity cache **');
   const repo = new Repo();
@@ -10,8 +11,19 @@ async function main() {
   const entities: Entity[] = []; 
 
   try {
-    for await (const e of shelf.enumurateAllEntities()) {
-      entities.push(e);
+    if (ids.length > 0) {
+      // 1件でも見つからなければ、何も作り直さずに止める。
+      for (const id of ids) {
+        const e = await shelf.findEntity(id);
+        if (e === null) {
+          throw new Error(`Entity not found: ${id}`);
+        }
+        entities.push(e);
+      }
+    } else {
+      for await (const e of shelf.enumurateAllEntities()) {
+        entities.push(e);
+      }
     }
     let processed = 0;
     for (const entity of entities) {
@@ -27,7 +39,7 @@ async function main() {
   }
 }
 
-main()
+main(process.argv.slice(2))
   .then(() => {})
   .catch((err) => {
     console.error(err);
