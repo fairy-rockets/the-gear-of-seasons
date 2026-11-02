@@ -125,7 +125,7 @@ When SAVE has no date, it uses the first image or video in body order with a cap
 
 ## Maintenance commands
 
-Maintenance commands in `server/src/cmd/`: `gc.ts` (remove orphaned storage files), `sanity-check.ts`, `regenerate-cache.ts`, `list-missing.ts` (list lost media; see `tools/README.md`) — run as `node server/dist/cmd/<name>.js` inside the production app container (from `7io-org/compose`'s `the-gear-of-seasons/`, `make gc` / `make sanity-check` wrap the first two).
+Maintenance commands in `server/src/cmd/`: `gc.ts` (ask one by one whether to delete each entity that no moment, including drafts, refers to; it does not look for storage files that no entity refers to), `sanity-check.ts`, `regenerate-cache.ts` (re-probe originals and rebuild medium/icon for every entity, or only for the entity IDs given as arguments; the running server keeps entities cached without expiry, so restart the app container afterwards; the medium/icon files it replaces stay in storage and show up in `list-missing`'s `orphan-*.txt`), `list-missing.ts` (list lost media; see `tools/README.md`) — run as `node server/dist/cmd/<name>.js` inside the production app container (from `7io-org/compose`'s `the-gear-of-seasons/`, `make gc` / `make sanity-check` wrap the first two).
 
 ### Curation export
 
