@@ -34,6 +34,8 @@ async function main(ids: string[]) {
       const end = performance.now();
       console.log(` -> Done in ${((end-beg)/1000).toPrecision(2)}sec (total: ${((end-started)/1000).toPrecision(2)}sec)`);
     }
+    // 動いているサーバーは entity を期限なしでキャッシュしていて、このプロセスからは消せない。
+    console.log('** Restart the app container to drop the cached entities, before running gc **');
   } finally {
     await repo.close();
   }
