@@ -8,7 +8,8 @@ async function main(ids: string[]) {
   console.log('** Regenerating entity cache **');
   const repo = new Repo();
   const shelf = new Shelf(repo);
-  const entities: Entity[] = []; 
+  const entities: Entity[] = [];
+  let processed = 0;
 
   try {
     if (ids.length > 0) {
@@ -25,7 +26,6 @@ async function main(ids: string[]) {
         entities.push(e);
       }
     }
-    let processed = 0;
     for (const entity of entities) {
       console.log(`[${entity.mimeType}] ${entity.id} (${processed+1}/${entities.length})`);
       const beg = performance.now();
@@ -34,10 +34,13 @@ async function main(ids: string[]) {
       const end = performance.now();
       console.log(` -> Done in ${((end-beg)/1000).toPrecision(2)}sec (total: ${((end-started)/1000).toPrecision(2)}sec)`);
     }
-    // 動いているサーバーは entity を期限なしでキャッシュしていて、このプロセスからは消せない。
-    console.log('** Restart the app container to drop the cached entities, before running gc **');
   } finally {
     await repo.close();
+    // 動いているサーバーは entity を期限なしでキャッシュしていて、このプロセスからは消せない。
+    // 途中で失敗しても、それまでに作り直した entity があれば伝える。
+    if (processed > 0) {
+      console.log('** Restart the app container to drop the cached entities, before running gc **');
+    }
   }
 }
 
