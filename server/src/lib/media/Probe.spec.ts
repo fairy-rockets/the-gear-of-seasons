@@ -95,6 +95,25 @@ describe("Media", () => {
     assert.equal(r.height, 1000);
   });
 
+  // ImageMagick はコマごとに -format を出力する。コマを指定し忘れると、
+  // 全コマの寸法が区切り無しでつながった値（16,2416,2416,24…）を height として読んでしまう（#73）。
+  it("アニメーション GIF の寸法は先頭のコマの寸法にする", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-gif-spec-'));
+    try {
+      const filepath = path.join(dir, 'anim.gif');
+      await promisify(execFile)('magick', ['-size', '16x24', 'xc:red', 'xc:blue', 'xc:green', '-loop', '0', filepath]);
+      // 素材が本当に複数コマであること。1コマに潰れると、このテストは何も確かめなくなる。
+      const { stdout } = await promisify(execFile)('magick', ['identify', '-format', '%p\n', filepath]);
+      assert.equal(stdout.trim().split('\n').length, 3);
+      const r = await media.probe(filepath);
+      assert.equal(r.mimeType, 'image/gif');
+      assert.equal(r.width, 16);
+      assert.equal(r.height, 24);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("EXIF の撮影日時を timestamp にする", async () => {
     const r = await probeExif([[0x9003, '2016:05:13 23:14:52']]);
     assert.equal(r.width, 16);
