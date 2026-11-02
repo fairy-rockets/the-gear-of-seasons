@@ -39,7 +39,7 @@ async function main(ids: string[]) {
     // 動いているサーバーは entity を期限なしでキャッシュしていて、このプロセスからは消せない。
     // 途中で失敗しても、それまでに作り直した entity があれば伝える。
     if (processed > 0) {
-      console.log('** Restart the app container to drop the cached entities, before running gc **');
+      console.log('** Restart the app container: the running server keeps the old entities cached **');
     }
   }
 }
