@@ -82,7 +82,7 @@ Server layering (entry: `server/src/cmd/main.ts`, listens on port 3000):
 
 `Repo.transaction` runs its callback's queries on one connection between `BEGIN` and `COMMIT`. Use the repo passed to the callback: queries made through the outer repo use other connections, outside the transaction.
 
-The schema is defined by the Flyway migrations `db/flyway_data/sql/V*__*.sql`. Columns that take one of a fixed set of values (`entities.type`, `moments.status`/`tier`, and `entity_annotations.medium`/`palette`/`looks_nude`/`looks_child`/`role`) are PostgreSQL ENUM types whose values match the types and constants in `lib/protocol.ts`; adding a value takes a migration (`ALTER TYPE … ADD VALUE`) as well as the TypeScript change.
+The schema is defined by the Flyway migrations `db/flyway_data/sql/V*__*.sql`:
 
 | Table | Contents |
 | --- | --- |
