@@ -82,7 +82,7 @@ Server layering (entry: `server/src/cmd/main.ts`, listens on port 3000):
 
 `Repo.transaction` runs its callback's queries on one connection between `BEGIN` and `COMMIT`. Use the repo passed to the callback: queries made through the outer repo use other connections, outside the transaction.
 
-The schema is defined in `db/flyway_data/sql/V0__init.sql`, `V1__moment_status.sql` and `V2__curation.sql`:
+The schema is defined by the Flyway migrations `db/flyway_data/sql/V*__*.sql`:
 
 | Table | Contents |
 | --- | --- |
