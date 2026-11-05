@@ -3,6 +3,8 @@ import Shelf from '../shelf/Shelf.js';
 import { Entity } from '../shelf/Entity.js'
 
 // 引数に entity の ID を渡すと、その entity だけを作り直す。引数が無ければ全 entity を作り直す。
+// 1件の失敗（original が無い、など）では止めず、理由を出して残りを続け、
+// 最後に失敗の件数を出す。失敗があれば終了コードを 1 にする。
 async function main(ids: string[]) {
   const started = performance.now();
   console.log('** Regenerating entity cache **');
@@ -10,6 +12,7 @@ async function main(ids: string[]) {
   const shelf = new Shelf(repo);
   const entities: Entity[] = [];
   let processed = 0;
+  const failed: string[] = [];
 
   try {
     if (ids.length > 0) {
@@ -26,13 +29,26 @@ async function main(ids: string[]) {
         entities.push(e);
       }
     }
-    for (const entity of entities) {
-      console.log(`[${entity.mimeType}] ${entity.id} (${processed+1}/${entities.length})`);
+    for (const [i, entity] of entities.entries()) {
+      console.log(`[${entity.mimeType}] ${entity.id} (${i+1}/${entities.length})`);
       const beg = performance.now();
-      await shelf.regenerateEntityCache(entity);
+      try {
+        await shelf.regenerateEntityCache(entity);
+      } catch (err) {
+        // 理由は message だけを出す。
+        const reason = err instanceof Error ? err.message : String(err);
+        console.error(` -> Failed: ${entity.id}: ${reason}`);
+        failed.push(entity.id);
+        continue;
+      }
       ++processed;
       const end = performance.now();
       console.log(` -> Done in ${((end-beg)/1000).toPrecision(2)}sec (total: ${((end-started)/1000).toPrecision(2)}sec)`);
+    }
+    console.log(`** ${processed} regenerated, ${failed.length} failed **`);
+    if (failed.length > 0) {
+      console.error(`Failed entities:\n${failed.map((id) => `  - ${id}`).join('\n')}`);
+      process.exitCode = 1;
     }
   } finally {
     await repo.close();
