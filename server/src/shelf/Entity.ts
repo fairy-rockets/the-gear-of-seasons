@@ -59,22 +59,3 @@ export type ExternalEntity = ExternalVideoEntity;
 // location で InternalEntity と ExternalEntity に絞り込める。
 export type Entity = InternalEntity | ExternalEntity;
 
-// 元ファイル（_storage/original）を持つか。external は持たない。
-export function hasOriginalFile(entity: Entity): boolean {
-  switch (entity.location) {
-    case 'internal':
-      return true;
-    case 'external':
-      return false;
-  }
-}
-
-// 元ファイルの種類（DB の mime_type）。元ファイルを持たない external は null。
-export function originalMimeType(entity: Entity): string | null {
-  switch (entity.location) {
-    case 'internal':
-      return entity.mimeType;
-    case 'external':
-      return null;
-  }
-}

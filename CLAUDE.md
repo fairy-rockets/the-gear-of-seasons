@@ -68,13 +68,13 @@ The server serves **two sites from one Fastify instance, distinguished by Host h
 
 `server/src/Server.ts` defines all routes and dispatches via `omote`/`ura`/`both`/`each` helpers that 404 on the wrong hostname. This omote/ura split is mirrored everywhere: `server/src/controller/{omote,ura,both}/`, `client/src/{omote,ura}/`, `_assets/{static,templates}/{omote,ura}/`, and webpack entries `omote/main` + `ura/editor` + `ura/moments`.
 
-A moment's URL — the one users see and the one to link to — is `/<YYYY>/<MM>/<DD>/<HH:mm:ss>/` (e.g. `https://hexe.net/2016/11/25/05:58:19/`): omote shows it on the gear (`MomentController`), ura opens it in the editor. `/moment/<YYYY>/<MM>/<DD>/<HH:mm:ss>/` is not a page but the body fragment the gear fetches (`client/src/omote/World.ts`). Media is served from `/entity/<id>` (the original as uploaded; for a video kept on YouTube, a 302 redirect to its YouTube page), `/entity/<id>/medium` (images only) and `/entity/<id>/icon`; which of them each fml block displays or links to is described on its type in `server/src/lib/fml.ts`.
+A moment's URL — the one users see and the one to link to — is `/<YYYY>/<MM>/<DD>/<HH:mm:ss>/` (e.g. `https://hexe.net/2016/11/25/05:58:19/`): omote shows it on the gear (`MomentController`), ura opens it in the editor. `/moment/<YYYY>/<MM>/<DD>/<HH:mm:ss>/` is not a page but the body fragment the gear fetches (`client/src/omote/World.ts`). Media is served from `/entity/<id>` (the original as uploaded; for a video kept outside the server, such as on YouTube, a 302 redirect to its page there), `/entity/<id>/medium` (images only) and `/entity/<id>/icon`; which of them each fml block displays or links to is described on its type in `server/src/lib/fml.ts`.
 
 Server layering (entry: `server/src/cmd/main.ts`, listens on port 3000):
 
 - **Repo** (`repo/`): PostgreSQL access via `pg` (node-postgres), with a `pg.Pool` of up to 10 connections and NodeCache. See "Database" below for tables and transaction boundaries.
 - **Storage** (`storage/`): content-addressed file store under `_storage/` — three kinds (`original`, `medium`, `icon`), files sharded by md5 as `ab/cd/ef/rest-of-hash`.
-- **Shelf** (`shelf/`): domain layer combining Repo + Storage; handles uploads (probes media, generates medium/icon derivatives via ffmpeg/ImageMagick), videos kept on YouTube (see "External videos" below) and moment CRUD.
+- **Shelf** (`shelf/`): domain layer combining Repo + Storage; handles uploads (probes media, generates medium/icon derivatives via ffmpeg/ImageMagick), videos kept outside the server, such as on YouTube (see "External videos" below) and moment CRUD.
 - **fml** (`lib/fml.ts`): custom markup language for moment bodies (text/image/video/audio/markdown blocks), rendered to HTML by `renderer/MomentRenderer.ts`.
 - **protocol** (`lib/protocol.ts`): shared server↔client types; the client imports it via symlink `client/src/protocol.ts`.
 
@@ -92,7 +92,7 @@ The schema is defined by the Flyway migrations `db/flyway_data/sql/V*__*.sql`:
 
 ### External videos
 
-Long videos are kept on YouTube and shown in moments as an embedded player. Such a video is an ordinary `video` entity with `location = 'external'` (every entity type in `server/src/shelf/Entity.ts` has `location`; `location === 'external'` narrows to `ExternalVideoEntity`, whose `external` is the parsed `external` column), so the body still uses `[video entity="…"]`, and the gear, OGP, the SAVE date fallback, sensitive, annotations, the moment list counts and `export-curation` treat it like any other video.
+Long videos are kept outside the server (for now only on YouTube) and shown in moments as an embedded player. Such a video is an ordinary `video` entity with `location = 'external'` (every entity type in `server/src/shelf/Entity.ts` has `location`; `location === 'external'` narrows to `ExternalVideoEntity`, whose `external` is the parsed `external` column), so the body still uses `[video entity="…"]`, and the gear, OGP, the SAVE date fallback, sensitive, annotations, the moment list counts and `export-curation` treat it like any other video.
 
 - The id is the md5 (32 hex digits) of `<platform>:<id>` (`youtube:<video ID>`), so every form of URL for the same video gives the same entity. `external` holds `{"platform": "youtube", "id": "<video ID>"}`. Neither the page URL (`/entity/<id>` redirects to `https://www.youtube.com/watch?v=<video ID>`) nor the embed URL is stored; both are built per platform from `external` (`server/src/lib/ExternalVideoFormat.ts`). `mime_type` is NULL: it is the type of the original, which an external entity does not have.
 - The only stored file is the icon. There is no original or medium.

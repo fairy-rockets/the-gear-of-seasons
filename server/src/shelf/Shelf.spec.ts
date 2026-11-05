@@ -34,6 +34,9 @@ const kWithoutVisibility: { [name: string]: string } = {
   resolveEntityPath: 'moment を引かない',
   insertEntity: 'moment を引かない',
   deleteEntity: 'moment を引かない',
+  deleteInternalEntity: 'moment を引かない',
+  deleteExternalEntity: 'moment を引かない',
+  regenerateInternalEntityCache: 'moment を引かない',
   regenerateEntityCache: 'moment を引かない',
   resolveFilepaths: 'moment を引かない',
   updateMoment: '書き込みだけ',
@@ -396,7 +399,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
   }
 });
 
-describe("Shelf の外部（YouTube）の動画", () => {
+describe("Shelf の外部の動画", () => {
   const kExternal: ExternalVideoEntity = {
     type: 'video', location: 'external', id: kA, iconID: 'old-icon', timestamp: dayjs('2025-01-04T06:14:49Z'),
     width: 1280, height: 720, duration: 3856,

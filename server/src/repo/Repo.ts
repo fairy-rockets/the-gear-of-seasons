@@ -3,7 +3,7 @@ import NodeCache from 'node-cache';
 import pg from 'pg';
 
 import Pool, { Queryable } from './Pool.js';
-import { Entity, EntityLocation, ExternalVideo, originalMimeType } from '../shelf/Entity.js';
+import { Entity, EntityLocation, ExternalVideo } from '../shelf/Entity.js';
 import { parseExternalVideo } from '../lib/ExternalVideoFormat.js';
 import {
   EntityAnnotation,
@@ -158,12 +158,12 @@ insert into entities (
           entity.iconID,
           timestamp,
           'video',
-          originalMimeType(entity),
+          locationColumns(entity).mimeType,
           entity.width,
           entity.height,
           entity.duration,
           entity.location,
-          encodeExternal(entity),
+          locationColumns(entity).external,
         ]);
         break;
       case 'audio':
@@ -230,7 +230,7 @@ where
           entity.id,
           null,
           entity.iconID,
-          originalMimeType(entity),
+          locationColumns(entity).mimeType,
           entity.width,
           entity.height,
           entity.duration,
@@ -607,13 +607,14 @@ function decodeMomentSummary(row: pg.QueryResultRow): MomentSummary {
   };
 }
 
-// external 列（jsonb）に書く値。配列でない値は JSON の文字列にして渡す。
-function encodeExternal(entity: Entity): string | null {
+// 置き場所で値が決まる列。internal は元ファイルの種類（mime_type）を持ち、external は外部の動画を指す値（external、jsonb）を持つ。
+// jsonb には、配列でない値を JSON の文字列にして渡す。
+function locationColumns(entity: Entity): { mimeType: string | null, external: string | null } {
   switch (entity.location) {
     case 'internal':
-      return null;
+      return { mimeType: entity.mimeType, external: null };
     case 'external':
-      return JSON.stringify(entity.external);
+      return { mimeType: null, external: JSON.stringify(entity.external) };
   }
 }
 

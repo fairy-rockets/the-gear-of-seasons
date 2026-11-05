@@ -81,7 +81,7 @@ export default class EntityController {
     return this.sendFile(entity, file, ext, req, reply);
   }
 
-  // 外部（YouTube）の動画の元は外部のページ（platform ごとに external の中身から組み立てる）。storage には icon だけを持つ。
+  // 外部（今は YouTube だけ）の動画の元は外部のページ（platform ごとに external の中身から組み立てる）。storage には icon だけを持つ。
   private async handleExternal(entity: ExternalEntity, type: EntityFileType, req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     if (type === 'original') {
       return reply.redirect(externalVideoPresentation(entity.external).pageURL, 302);

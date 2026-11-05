@@ -12,7 +12,7 @@ import * as path from 'path';
 
 import Repo from '../repo/Repo.js';
 import Shelf from '../shelf/Shelf.js';
-import { Entity, hasOriginalFile, originalMimeType } from '../shelf/Entity.js';
+import { Entity } from '../shelf/Entity.js';
 import { formatMomentPath } from '../shelf/Moment.js';
 import * as fml from '../lib/fml.js';
 
@@ -25,7 +25,12 @@ function mediumIDOf(entity: Entity): string | null {
 
 // 一覧に出す種類。external には元ファイルが無く mime_type も無いので、external と出す。
 function mimeTypeOf(entity: Entity): string {
-  return originalMimeType(entity) ?? 'external';
+  switch (entity.location) {
+    case 'internal':
+      return entity.mimeType;
+    case 'external':
+      return 'external';
+  }
 }
 
 // storage/<kind>/ab/cd/ef/<のこり> を辿って、実際に置かれている md5 を集める
@@ -116,17 +121,20 @@ async function main() {
     const used = new Map<Kind, Set<string>>(kKinds.map((kind) => [kind, new Set<string>()]));
     for (const entity of entities.values()) {
       const mediumID = mediumIDOf(entity);
-      // 外部（YouTube）の動画は original を持たない（icon だけ）。NAS から探し直す一覧にも入れない。
-      const hasOriginal = hasOriginalFile(entity);
-      if (hasOriginal) {
-        used.get('original')!!.add(entity.id);
+      switch (entity.location) {
+        case 'internal':
+          used.get('original')!!.add(entity.id);
+          if (!stored.get('original')!!.has(entity.id)) {
+            missing.get('original')!!.push(entity);
+          }
+          break;
+        case 'external':
+          // 外部（今は YouTube だけ）の動画は original を持たない（icon だけ）。NAS から探し直す一覧にも入れない。
+          break;
       }
       used.get('icon')!!.add(entity.iconID);
       if (mediumID !== null) {
         used.get('medium')!!.add(mediumID);
-      }
-      if (hasOriginal && !stored.get('original')!!.has(entity.id)) {
-        missing.get('original')!!.push(entity);
       }
       if (!stored.get('icon')!!.has(entity.iconID)) {
         missing.get('icon')!!.push(entity);

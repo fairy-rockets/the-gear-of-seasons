@@ -1,10 +1,20 @@
 import Repo from '../repo/Repo.js';
 import Shelf from '../shelf/Shelf.js';
-import { Entity, originalMimeType } from '../shelf/Entity.js'
+import { Entity } from '../shelf/Entity.js'
 
 // 引数に entity の ID を渡すと、その entity だけを作り直す。引数が無ければ全 entity を作り直す。
 // 1件の失敗（original が無い、など）では止めず、理由を出して残りを続け、
 // 最後に失敗の件数を出す。失敗があれば終了コードを 1 にする。
+// ログに出す種類。internal は元ファイルの種類（mime_type）、external は元ファイルが無いので external。
+function kindOf(entity: Entity): string {
+  switch (entity.location) {
+    case 'internal':
+      return entity.mimeType;
+    case 'external':
+      return 'external';
+  }
+}
+
 async function main(ids: string[]) {
   const started = performance.now();
   console.log('** Regenerating entity cache **');
@@ -30,8 +40,7 @@ async function main(ids: string[]) {
       }
     }
     for (const [i, entity] of entities.entries()) {
-      // external には元ファイルが無く、mime_type も無い。
-      console.log(`[${originalMimeType(entity) ?? 'external'}] ${entity.id} (${i+1}/${entities.length})`);
+      console.log(`[${kindOf(entity)}] ${entity.id} (${i+1}/${entities.length})`);
       const beg = performance.now();
       try {
         await shelf.regenerateEntityCache(entity);

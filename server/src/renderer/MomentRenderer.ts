@@ -140,7 +140,7 @@ class MomentRenderer {
         return MomentRenderer.renderExternalVideo(entity);
     }
   }
-  // 外部（YouTube）の動画は埋め込みのプレイヤーで見せる。縦横比は entity の埋め込みの大きさから取り、
+  // 外部（今は YouTube だけ）の動画は埋め込みのプレイヤーで見せる。縦横比は entity の埋め込みの大きさから取り、
   // 幅は埋め込みの大きさを上限に、本文の幅に合わせる（Shorts は縦長に出る）。
   private static renderExternalVideo(entity: ExternalVideoEntity): string {
     const style = `aspect-ratio: ${entity.width} / ${entity.height}; max-width: ${entity.width}px;`;
