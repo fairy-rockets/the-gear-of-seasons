@@ -15,6 +15,9 @@ export default class Uploader {
   private readonly progressDialog_: HTMLDivElement;
   private readonly progressImage_: HTMLImageElement;
   private readonly progressBar_: HTMLProgressElement;
+  private readonly anchor_: HTMLSpanElement;
+  private readonly menu_: HTMLDivElement;
+  private readonly urlInput_: HTMLInputElement;
   constructor(target: HTMLElement, button: HTMLInputElement) {
     this.target_ = target;
     this.button_ = button;
@@ -24,10 +27,57 @@ export default class Uploader {
     this.fileButton_.type = 'file';
     this.fileButton_.multiple = true;
 
+    // ↑ を押すと出すサブメニュー。「ファイル」は今までのアップロード、URL の欄は外部（今は YouTube だけ）の動画の埋め込み。
+    // ↑ と一緒に包み、包みを基準に ↑ の下へ置く。
+    this.anchor_ = document.createElement('span');
+    this.anchor_.classList.add('upload-anchor');
+    this.button_.parentNode!.insertBefore(this.anchor_, this.button_);
+    this.anchor_.appendChild(this.button_);
+
+    this.menu_ = document.createElement('div');
+    this.menu_.classList.add('upload-menu');
+    this.menu_.hidden = true;
+    const fileItem = document.createElement('button');
+    fileItem.type = 'button';
+    fileItem.textContent = 'ファイル';
+    this.menu_.appendChild(fileItem);
+    this.urlInput_ = document.createElement('input');
+    this.urlInput_.type = 'url';
+    this.urlInput_.placeholder = '埋め込む URL（Enter で挿入）';
+    this.menu_.appendChild(this.urlInput_);
+    this.anchor_.appendChild(this.menu_);
+
     this.button_.addEventListener('click', (e: MouseEvent) => {
       e.preventDefault();
+      if (this.menu_.hidden) {
+        this.openMenu_();
+      } else {
+        this.closeMenu_();
+      }
+    }, false);
+    fileItem.addEventListener('click', (e: MouseEvent) => {
+      e.preventDefault();
+      this.closeMenu_();
       this.fileButton_.click();
     }, false);
+    this.urlInput_.addEventListener('keydown', (e: KeyboardEvent) => {
+      // 変換の確定の Enter では送らない
+      if (e.key === 'Enter' && !e.isComposing) {
+        e.preventDefault();
+        this.insertEmbed_(this.urlInput_.value.trim());
+      }
+    });
+    // 外側のクリックと Esc で閉じる
+    document.addEventListener('mousedown', (e: MouseEvent) => {
+      if (!this.menu_.hidden && !this.anchor_.contains(e.target as Node)) {
+        this.closeMenu_();
+      }
+    });
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !this.menu_.hidden) {
+        this.closeMenu_();
+      }
+    });
     this.fileButton_.addEventListener('change', this.onButtonChange_.bind(this));
 
     this.dragStartListener_ = this.onDragStart_.bind(this);
@@ -56,6 +106,53 @@ export default class Uploader {
     this.hoverDialog_.addEventListener('drop', this.dropListener_, false);
     this.hoverDialog_.addEventListener('dragleave', this.dragEndListener_, false);
     this.hoverDialog_.addEventListener('dragend', this.dragEndListener_, false);
+  }
+
+  private openMenu_() {
+    this.menu_.hidden = false;
+    this.urlInput_.focus();
+  }
+
+  private closeMenu_() {
+    this.menu_.hidden = true;
+  }
+
+  // 外部（今は YouTube だけ）の動画の URL を /embed に送り、返った fml を本文に挿入する。
+  private insertEmbed_(url: string) {
+    if (url.length === 0 || this.urlInput_.disabled) {
+      return;
+    }
+    this.urlInput_.disabled = true;
+    this.progressImage_.src = '';
+    // 何本目かを数えられないので、進み具合の無い表示にする
+    this.progressBar_.removeAttribute('value');
+    getToastContainer().appendChild(this.progressDialog_);
+    fetch('/embed', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+      headers: {
+        'Accept': 'text/plain',
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(resp =>
+        resp.status === 200 ?
+          resp.text() :
+          describeResponseError(resp).then(reason => Promise.reject(new Error(reason))))
+      .then(embed => {
+        this.urlInput_.value = '';
+        this.closeMenu_();
+        this.editor_!.onUpload([embed]);
+      })
+      .catch(err => {
+        // 欄の URL は残し、直して送り直せるようにする
+        console.error(err);
+        showToast(`埋め込みに失敗しました: ${describeError(err)}`);
+      })
+      .finally(() => {
+        this.progressDialog_.remove();
+        this.urlInput_.disabled = false;
+      });
   }
 
   private upload_(files_: FileList) {

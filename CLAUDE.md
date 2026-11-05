@@ -117,6 +117,8 @@ Long videos are kept outside the server (for now only on YouTube) and shown in m
 
 The moment SAVE (`Shelf.updateMoment`) writes every moment column, including the curation fields. `import-curation` uses this same save path. Annotations are saved separately from the moment.
 
+The ⬆ button opens a submenu (built by `client/src/ura/editor/Uploader.ts`) with ファイル, which uploads files through `POST /upload` as dragging and dropping does, and a URL field. Enter in the URL field sends `POST /embed` with JSON `{url}`; the server makes the external video entity (see "External videos") and, like `/upload`, returns the fml to insert (`[video entity="…"]`) as text/plain. Unsupported URLs and failed fetches return `{statusCode, error, message}` (400, 502, or 503 without an API key), shown as a toast. Clicking outside the submenu or Esc closes it.
+
 Each medium in the editor preview (`<img>`/`<video>`/`<audio>`, or the `<iframe>` of an external video, with `data-entity` and `data-type`) has a mark showing its `annotationState`: unentered, unverified or verified; audio uses entered because it has no `human_verified` field. The states, selectable values and fields available for each entity type are defined in `lib/protocol.ts`, shared with the client.
 
 Clicking a mark or an image opens a drawer over the text column (`client/src/ura/editor/AnnotationDrawer.ts`). It reads annotations with `GET /annotations?ids=<id>,…` and saves one entity with `POST /annotation` (`Shelf.saveEntityAnnotation`). The drawer rereads the annotation each time it opens and saves every field. A value changed elsewhere (another tab or `import-curation`) while the drawer is open can therefore be overwritten when it saves.
