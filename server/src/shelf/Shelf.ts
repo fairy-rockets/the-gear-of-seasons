@@ -176,7 +176,12 @@ class Shelf {
                                           path.join(tempDir, 'medium.jpg');
       const iconPath = path.join(tempDir, 'icon.jpg');
       const [originalPath, probeResult] = await (async () => {
-        const [base, filename] = (await this.storage.original.fetch(entity.id))!!;
+        // regenerate-cache が失敗の理由として出すので、元ファイルが無いことが分かるエラーにする。
+        const found = await this.storage.original.fetch(entity.id);
+        if (found === null) {
+          throw new Error('original not found in storage');
+        }
+        const [base, filename] = found;
         const probeResult = await probe(path.join(base, filename));
         const originalPath = path.join(tempDir, `original.${probeResult.ext}`);
         await fs.copyFile(path.join(base, filename), originalPath);

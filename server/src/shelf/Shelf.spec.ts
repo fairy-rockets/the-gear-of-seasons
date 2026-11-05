@@ -244,6 +244,15 @@ describe("Shelf.saveEntityAnnotation", () => {
   });
 });
 
+describe("Shelf.regenerateEntityCache", () => {
+  it("original が無ければ、それと分かるエラーにする（regenerate-cache が理由として出す）", async () => {
+    const shelf = new Shelf({} as Repo);
+    const storage = (shelf as unknown as { storage: { original: { fetch: unknown } } }).storage;
+    storage.original.fetch = async () => null;
+    await assert.rejects(shelf.regenerateEntityCache(kImageA), /original not found in storage/);
+  });
+});
+
 describe("Shelf.updateMoment（SAVE）", () => {
   const kOld = parseMomentTime('2020/01/02 03:04:05');
   const kReq: protocol.Moment.Save.Request = {
