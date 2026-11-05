@@ -68,13 +68,13 @@ The server serves **two sites from one Fastify instance, distinguished by Host h
 
 `server/src/Server.ts` defines all routes and dispatches via `omote`/`ura`/`both`/`each` helpers that 404 on the wrong hostname. This omote/ura split is mirrored everywhere: `server/src/controller/{omote,ura,both}/`, `client/src/{omote,ura}/`, `_assets/{static,templates}/{omote,ura}/`, and webpack entries `omote/main` + `ura/editor` + `ura/moments`.
 
-A moment's URL — the one users see and the one to link to — is `/<YYYY>/<MM>/<DD>/<HH:mm:ss>/` (e.g. `https://hexe.net/2016/11/25/05:58:19/`): omote shows it on the gear (`MomentController`), ura opens it in the editor. `/moment/<YYYY>/<MM>/<DD>/<HH:mm:ss>/` is not a page but the body fragment the gear fetches (`client/src/omote/World.ts`). Media is served from `/entity/<id>` (the original as uploaded), `/entity/<id>/medium` (images only) and `/entity/<id>/icon`; which of them each fml block displays or links to is described on its type in `server/src/lib/fml.ts`.
+A moment's URL — the one users see and the one to link to — is `/<YYYY>/<MM>/<DD>/<HH:mm:ss>/` (e.g. `https://hexe.net/2016/11/25/05:58:19/`): omote shows it on the gear (`MomentController`), ura opens it in the editor. `/moment/<YYYY>/<MM>/<DD>/<HH:mm:ss>/` is not a page but the body fragment the gear fetches (`client/src/omote/World.ts`). Media is served from `/entity/<id>` (the original as uploaded; for a video kept on YouTube, a 302 redirect to its YouTube page), `/entity/<id>/medium` (images only) and `/entity/<id>/icon`; which of them each fml block displays or links to is described on its type in `server/src/lib/fml.ts`.
 
 Server layering (entry: `server/src/cmd/main.ts`, listens on port 3000):
 
 - **Repo** (`repo/`): PostgreSQL access via `pg` (node-postgres), with a `pg.Pool` of up to 10 connections and NodeCache. See "Database" below for tables and transaction boundaries.
 - **Storage** (`storage/`): content-addressed file store under `_storage/` — three kinds (`original`, `medium`, `icon`), files sharded by md5 as `ab/cd/ef/rest-of-hash`.
-- **Shelf** (`shelf/`): domain layer combining Repo + Storage; handles uploads (probes media, generates medium/icon derivatives via ffmpeg/ImageMagick) and moment CRUD.
+- **Shelf** (`shelf/`): domain layer combining Repo + Storage; handles uploads (probes media, generates medium/icon derivatives via ffmpeg/ImageMagick), videos kept on YouTube (see "External videos" below) and moment CRUD.
 - **fml** (`lib/fml.ts`): custom markup language for moment bodies (text/image/video/audio/markdown blocks), rendered to HTML by `renderer/MomentRenderer.ts`.
 - **protocol** (`lib/protocol.ts`): shared server↔client types; the client imports it via symlink `client/src/protocol.ts`.
 
@@ -87,8 +87,17 @@ The schema is defined by the Flyway migrations `db/flyway_data/sql/V*__*.sql`:
 | Table | Contents |
 | --- | --- |
 | `moments` | Keyed by timestamp; title, author and body text; `status` (draft/published); curation fields `tier`, `series`, `sensitive` and `sensitive_manual`. |
-| `entities` | Media keyed by md5 hash; image/video/audio type and medium/icon derivative ids. |
+| `entities` | Media keyed by md5 hash; image/video/audio type and medium/icon derivative ids. `location` is `internal` (the original is in `_storage/original`) or `external` (kept outside the server, e.g. a video on YouTube; only videos can be external); it has no default, so every INSERT sets it. `external` (jsonb) is non-NULL exactly for external entities and holds what that platform needs to point at it, at least `platform` (YouTube: `{"platform": "youtube", "id": "<11-character video ID>"}`); the app validates the rest per platform. For external videos `width`/`height` are the embed size, used only as the aspect ratio. |
 | `entity_annotations` | One row per entity: alt, `looks_*`, role and the other per-media curation fields. NULL means "not entered". |
+
+### External videos
+
+Long videos are kept on YouTube and shown in moments as an embedded player. Such a video is an ordinary `video` entity with `location = 'external'` (every entity type in `server/src/shelf/Entity.ts` has `location`; `location === 'external'` narrows to `ExternalVideoEntity`, whose `external` is the parsed `external` column), so the body still uses `[video entity="…"]`, and the gear, OGP, the SAVE date fallback, sensitive, annotations, the moment list counts and `export-curation` treat it like any other video.
+
+- The id is the md5 (32 hex digits) of `<platform>:<id>` (`youtube:<video ID>`), so every form of URL for the same video gives the same entity. `external` holds `{"platform": "youtube", "id": "<video ID>"}`. Neither the page URL (`/entity/<id>` redirects to `https://www.youtube.com/watch?v=<video ID>`) nor the embed URL is stored; both are built per platform from `external` (`server/src/lib/ExternalVideoFormat.ts`). `mime_type` is `video/x-youtube` (the column is NOT NULL; it is never used as a `<source>` type).
+- The only stored file is the icon. There is no original or medium.
+- Reading `external` from the database does not parse URLs: `Repo` dispatches on `platform` and validates the content per platform (`parseExternalVideo`; for YouTube, an 11-character video ID), and an unknown platform or invalid content fails to load with the entity id in the error.
+- `MomentRenderer` renders an external `[video]` as an `<iframe class="embed external <platform>">` (styled through `embed external`, whatever the platform; src and title per platform, for YouTube `youtube-nocookie.com/embed/<video ID>`) with the same `data-entity`/`data-type` as `<video>`, an inline `aspect-ratio` from width/height and the embed width as `max-width`, so Shorts show portrait.
 
 ### ura moment list
 
@@ -105,7 +114,7 @@ The schema is defined by the Flyway migrations `db/flyway_data/sql/V*__*.sql`:
 
 The moment SAVE (`Shelf.updateMoment`) writes every moment column, including the curation fields. `import-curation` uses this same save path. Annotations are saved separately from the moment.
 
-Each medium in the editor preview (`<img>`/`<video>`/`<audio>` with `data-entity` and `data-type`) has a mark showing its `annotationState`: unentered, unverified or verified; audio uses entered because it has no `human_verified` field. The states, selectable values and fields available for each entity type are defined in `lib/protocol.ts`, shared with the client.
+Each medium in the editor preview (`<img>`/`<video>`/`<audio>`, or the `<iframe>` of an external video, with `data-entity` and `data-type`) has a mark showing its `annotationState`: unentered, unverified or verified; audio uses entered because it has no `human_verified` field. The states, selectable values and fields available for each entity type are defined in `lib/protocol.ts`, shared with the client.
 
 Clicking a mark or an image opens a drawer over the text column (`client/src/ura/editor/AnnotationDrawer.ts`). It reads annotations with `GET /annotations?ids=<id>,…` and saves one entity with `POST /annotation` (`Shelf.saveEntityAnnotation`). The drawer rereads the annotation each time it opens and saves every field. A value changed elsewhere (another tab or `import-curation`) while the drawer is open can therefore be overwritten when it saves.
 
@@ -125,7 +134,7 @@ When SAVE has no date, it uses the first image or video in body order with a cap
 
 ## Maintenance commands
 
-Maintenance commands in `server/src/cmd/`: `gc.ts` (ask one by one whether to delete each entity that no moment, including drafts, refers to; it does not look for storage files that no entity refers to), `sanity-check.ts`, `regenerate-cache.ts` (re-probe originals and rebuild medium/icon for every entity, or only for the entity IDs given as arguments; an entity that fails (for example, a missing original) is reported with its id and reason on stderr and the rest continue, then it prints the number of failures and exits with 1 if any failed; the running server keeps entities cached without expiry, so restart the app container afterwards; the medium/icon files it replaces stay in storage and show up in `list-missing`'s `orphan-*.txt`), `list-missing.ts` (list lost media; see `tools/README.md`) — run as `node server/dist/cmd/<name>.js` inside the production app container (from `7io-org/compose`'s `the-gear-of-seasons/`, `make gc` / `make sanity-check` wrap the first two).
+Maintenance commands in `server/src/cmd/`: `gc.ts` (ask one by one whether to delete each entity that no moment, including drafts, refers to; for an external video it deletes only the icon; it does not look for storage files that no entity refers to), `sanity-check.ts` (checks only the icon of external videos), `regenerate-cache.ts` (re-probe originals and rebuild medium/icon for every entity, or only for the entity IDs given as arguments; an entity that fails (for example, a missing original) is reported with its id and reason on stderr and the rest continue, then it prints the number of failures and exits with 1 if any failed; the running server keeps entities cached without expiry, so restart the app container afterwards; the medium/icon files it replaces stay in storage and show up in `list-missing`'s `orphan-*.txt`), `list-missing.ts` (list lost media; external videos have no original and are left out of the original lists; see `tools/README.md`) — run as `node server/dist/cmd/<name>.js` inside the production app container (from `7io-org/compose`'s `the-gear-of-seasons/`, `make gc` / `make sanity-check` wrap the first two).
 
 ### Curation export
 

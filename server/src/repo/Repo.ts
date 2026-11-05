@@ -3,7 +3,8 @@ import NodeCache from 'node-cache';
 import pg from 'pg';
 
 import Pool, { Queryable } from './Pool.js';
-import { Entity } from '../shelf/Entity.js';
+import { Entity, EntityLocation, ExternalVideo } from '../shelf/Entity.js';
+import { parseExternalVideo } from '../lib/ExternalVideoFormat.js';
 import {
   EntityAnnotation,
   parseAnnotationMedium,
@@ -73,7 +74,9 @@ select
   "mime_type",
   "width",
   "height",
-  "duration"
+  "duration",
+  "location",
+  "external"
 from entities
 `;
     const { rows } = await this.pool.query(q1, []);
@@ -100,7 +103,9 @@ select
   "mime_type",
   "width",
   "height",
-  "duration"
+  "duration",
+  "location",
+  "external"
 from entities
   where id = $1
 `;
@@ -124,9 +129,9 @@ from entities
     // language=PostgreSQL
     const q = `
 insert into entities (
-  "id", "medium_id", "icon_id", "timestamp", "type", "mime_type", "width", "height", "duration"
+  "id", "medium_id", "icon_id", "timestamp", "type", "mime_type", "width", "height", "duration", "location", "external"
 ) values (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 ) ON CONFLICT DO NOTHING;
 `;
     switch (entity.type) {
@@ -140,6 +145,8 @@ insert into entities (
           entity.mimeType,
           entity.width,
           entity.height,
+          null,
+          'internal',
           null,
         ]);
         break;
@@ -155,6 +162,9 @@ insert into entities (
           entity.width,
           entity.height,
           entity.duration,
+          entity.location,
+          // jsonb。配列でない値は JSON の文字列にして渡す。
+          entity.location === 'external' ? JSON.stringify(entity.external) : null,
         ]);
         break;
       case 'audio':
@@ -168,6 +178,8 @@ insert into entities (
           null,
           null,
           entity.duration,
+          'internal',
+          null,
         ]);
         break;
       default:
@@ -596,6 +608,27 @@ function decodeMomentSummary(row: pg.QueryResultRow): MomentSummary {
   };
 }
 
+// external（jsonb）を platform で振り分けて、platform ごとに中身を検証する。未知の platform・不正な中身は投げる。
+function decodeExternalVideo(id: string, value: unknown): ExternalVideo {
+  try {
+    return parseExternalVideo(value);
+  } catch (e) {
+    throw new Error(`Entity ${id}: invalid external: ${(e as Error).message}`);
+  }
+}
+
+// location を読む。external になれるのは video だけ（DB の CHECK と同じ）。
+function decodeLocation(row: pg.QueryResultRow): EntityLocation {
+  const location = row['location'];
+  if (location !== 'internal' && location !== 'external') {
+    throw new Error(`Entity ${row['id']}: invalid location: ${location}`);
+  }
+  if (location === 'external' && row['type'] !== 'video') {
+    throw new Error(`Entity ${row['id']}: only a video can be external (type: ${row['type']})`);
+  }
+  return location;
+}
+
 function decodeEntity(row: pg.QueryResultRow): Entity {
   const type = row['type'] as string;
   const timestamp = (() => {
@@ -606,10 +639,12 @@ function decodeEntity(row: pg.QueryResultRow): Entity {
       return dayjs(d as Date);
     }
   })();
+  const location = decodeLocation(row);
   switch (type) {
     case 'image':
       return {
         type: 'image',
+        location: 'internal',
         id: row['id'] as string,
         mediumID: row['medium_id'] as string,
         iconID: row['icon_id'] as string,
@@ -618,9 +653,9 @@ function decodeEntity(row: pg.QueryResultRow): Entity {
         width: row['width'] as number,
         height: row['height'] as number,
       };
-    case 'video':
-      return {
-        type: 'video',
+    case 'video': {
+      const video = {
+        type: 'video' as const,
         id: row['id'] as string,
         iconID: row['icon_id'] as string,
         timestamp: timestamp,
@@ -629,9 +664,15 @@ function decodeEntity(row: pg.QueryResultRow): Entity {
         height: row['height'] as number,
         duration: row['duration'] as number,
       };
+      if (location === 'internal') {
+        return { ...video, location: 'internal' };
+      }
+      return { ...video, location: 'external', external: decodeExternalVideo(video.id, row['external']) };
+    }
     case 'audio':
       return {
         type: 'audio',
+        location: 'internal',
         id: row['id'] as string,
         iconID: row['icon_id'] as string,
         timestamp: timestamp,

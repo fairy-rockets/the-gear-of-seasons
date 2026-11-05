@@ -111,12 +111,16 @@ async function main() {
     const used = new Map<Kind, Set<string>>(kKinds.map((kind) => [kind, new Set<string>()]));
     for (const entity of entities.values()) {
       const mediumID = mediumIDOf(entity);
-      used.get('original')!!.add(entity.id);
+      // 外部（YouTube）の動画は original を持たない（icon だけ）。NAS から探し直す一覧にも入れない。
+      const external = entity.location === 'external';
+      if (!external) {
+        used.get('original')!!.add(entity.id);
+      }
       used.get('icon')!!.add(entity.iconID);
       if (mediumID !== null) {
         used.get('medium')!!.add(mediumID);
       }
-      if (!stored.get('original')!!.has(entity.id)) {
+      if (!external && !stored.get('original')!!.has(entity.id)) {
         missing.get('original')!!.push(entity);
       }
       if (!stored.get('icon')!!.has(entity.iconID)) {

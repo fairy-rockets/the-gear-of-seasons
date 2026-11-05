@@ -3,6 +3,7 @@ import assert from 'assert';
 import dayjs from 'dayjs';
 
 import Repo, { momentVisibilityCondition } from './Repo.js';
+import { Entity } from '../shelf/Entity.js';
 import { EntityAnnotation } from '../shelf/EntityAnnotation.js';
 import { Moment, MomentVisibility } from '../shelf/Moment.js';
 
@@ -350,4 +351,66 @@ describe("Repo の entity の注釈", () => {
       kID, 'photo', '海', null, ['海', 'a,"b"'], 'color', [], 'partial', 'adult', null, false, 'grab', null, true, null,
     ]);
   });
+});
+
+describe("Repo の entity の置き場所", () => {
+  const kExternal: Entity = {
+    type: 'video', location: 'external', id: 'yt', iconID: 'i', timestamp: undefined, mimeType: 'video/x-youtube',
+    width: 1280, height: 720, duration: 1,
+    external: { platform: 'youtube', id: '5WDuZByHZQA' },
+  };
+  const kInternal: Entity[] = [
+    { type: 'image', location: 'internal', id: 'img', mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1, height: 1 },
+    { type: 'video', location: 'internal', id: 'vid', iconID: 'i', timestamp: undefined, mimeType: 'video/mp4', width: 1, height: 1, duration: 1 },
+    { type: 'audio', location: 'internal', id: 'aud', iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 1 },
+  ];
+
+  // location の列に既定値は無いので、INSERT はどの種類でも location を明示する。external は jsonb に JSON の文字列で渡す。
+  it("INSERT は location と external を必ず渡す", async () => {
+    for (const e of [...kInternal, kExternal]) {
+      const repo = new Repo();
+      const calls = stubPool(repo, []);
+      await repo.insertEntity(e);
+      assert.strictEqual(calls.length, 1);
+      assert.match(calls[0].q, /"location", "external"\s*\) values \(\s*\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9, \$10, \$11\s*\)/);
+      assert.deepStrictEqual(calls[0].args.slice(9), e.location === 'external'
+        ? ['external', '{"platform":"youtube","id":"5WDuZByHZQA"}']
+        : ['internal', null], e.id);
+    }
+  });
+
+  // pg は jsonb をオブジェクトにして返す。
+  const row = (type: string, location: string, external: unknown) => ({
+    id: 'yt', medium_id: 'm', icon_id: 'i', timestamp: null, type, mime_type: 'video/x-youtube',
+    width: 1280, height: 720, duration: 1, location, external,
+  });
+
+  it("external は platform ごとに読む", async () => {
+    const repo = new Repo();
+    stubPool(repo, [row('video', 'external', { platform: 'youtube', id: '5WDuZByHZQA' })]);
+    assert.deepStrictEqual(await repo.findEntity('yt'), kExternal);
+  });
+
+  it("internal の動画は external を持たない", async () => {
+    const repo = new Repo();
+    stubPool(repo, [{ ...row('video', 'internal', null), mime_type: 'video/mp4' }]);
+    const e = await repo.findEntity('yt');
+    assert.strictEqual(e?.location, 'internal');
+    assert.ok(!('external' in e!));
+  });
+
+  for (const [name, r, message] of [
+    ['未知の platform', row('video', 'external', { platform: 'tiktok', id: 'x' }), /Entity yt: invalid external: .*unknown platform/],
+    ['YouTube の動画 ID の形でない', row('video', 'external', { platform: 'youtube', id: 'short' }), /Entity yt: invalid external: .*invalid video id/],
+    ['external が無い', row('video', 'external', null), /Entity yt: invalid external/],
+    ['external の画像', row('image', 'external', { platform: 'youtube', id: '5WDuZByHZQA' }), /Entity yt: only a video can be external/],
+    ['external の音声', row('audio', 'external', { platform: 'youtube', id: '5WDuZByHZQA' }), /Entity yt: only a video can be external/],
+    ['未知の location', row('video', 'elsewhere', null), /Entity yt: invalid location/],
+  ] as [string, Record<string, unknown>, RegExp][]) {
+    it(`${name}の行は、entity の id を添えて投げる`, async () => {
+      const repo = new Repo();
+      stubPool(repo, [r]);
+      await assert.rejects(repo.findEntity('yt'), message);
+    });
+  }
 });

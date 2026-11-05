@@ -7,10 +7,10 @@ import { EntityAnnotation, validateEntityAnnotation } from './EntityAnnotation.j
 const kID = '0123456789abcdef0123456789abcdef';
 
 const kImage: Entity = {
-  type: 'image', id: kID, mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1, height: 1,
+  type: 'image', location: 'internal', id: kID, mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1, height: 1,
 };
 const kAudio: Entity = {
-  type: 'audio', id: kID, iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 1,
+  type: 'audio', location: 'internal', id: kID, iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 1,
 };
 
 const kEmpty: EntityAnnotation = {

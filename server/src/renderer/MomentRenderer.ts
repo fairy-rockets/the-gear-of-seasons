@@ -4,8 +4,10 @@ import {marked} from 'marked';
 import dayjs from 'dayjs';
 
 import * as fml from '../lib/fml.js';
+import { externalVideoEmbedURL, externalVideoPlayerTitle } from '../lib/ExternalVideoFormat.js';
 
 import Shelf from '../shelf/Shelf.js';
+import { ExternalVideoEntity } from '../shelf/Entity.js';
 import { EntityAnnotation } from '../shelf/EntityAnnotation.js';
 import { Moment, MomentSummary, formatMomentPath } from '../shelf/Moment.js';
 
@@ -126,11 +128,22 @@ class MomentRenderer {
     if (entity.type !== 'video') {
       return `<p>!!id=${escapeHTML(block.entity)} is not a video!!</p>`
     }
+    if (entity.location === 'external') {
+      return MomentRenderer.renderExternalVideo(entity);
+    }
     return `
 <video class="embed" preload="metadata" loop controls="controls" width="${entity.width}" height="${entity.height}" data-entity="${escapeAttribute(entity.id)}" data-type="video">
   <source type="${escapeAttribute(entity.mimeType)}" src="/entity/${escapeAttribute(entity.id)}">
   <a href="/entity/${escapeAttribute(entity.id)}">Click to play.</a>
 </video>
+`.trim();
+  }
+  // 外部（YouTube）の動画は埋め込みのプレイヤーで見せる。縦横比は entity の埋め込みの大きさから取り、
+  // 幅は埋め込みの大きさを上限に、本文の幅に合わせる（Shorts は縦長に出る）。
+  private static renderExternalVideo(entity: ExternalVideoEntity): string {
+    const style = `aspect-ratio: ${entity.width} / ${entity.height}; max-width: ${entity.width}px;`;
+    return `
+<iframe class="embed external ${escapeAttribute(entity.external.platform)}" src="${escapeAttribute(externalVideoEmbedURL(entity.external))}" style="${escapeAttribute(style)}" title="${escapeAttribute(externalVideoPlayerTitle(entity.external))}" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" data-entity="${escapeAttribute(entity.id)}" data-type="video"></iframe>
 `.trim();
   }
   private async renderAudio(block: fml.Audio) {

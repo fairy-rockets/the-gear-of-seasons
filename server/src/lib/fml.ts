@@ -230,6 +230,8 @@ export function makeImage(entity: string | undefined, link?: string | undefined)
 
 // [video entity="<id>"]: 動画には medium が無いので、元ファイルを再生する。
 // <video> を再生できないブラウザ向けに、元ファイルへのリンクも置く。
+// YouTube に置いた動画（external）は youtube-nocookie.com/embed/<動画ID> の iframe で見せ、リンクは置かない。
+// その entity の /entity/<id> は YouTube の動画のページへリダイレクトする。
 export type Video = {
   type: 'video';
   entity: string | undefined;

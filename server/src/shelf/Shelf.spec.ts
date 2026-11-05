@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import * as protocol from '../lib/protocol.js';
 import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
-import { Entity } from './Entity.js';
+import { Entity, ExternalVideoEntity } from './Entity.js';
 import { EntityAnnotation } from './EntityAnnotation.js';
 import { Moment, MomentVisibility, parseMomentTime } from './Moment.js';
 
@@ -195,10 +195,10 @@ class FakeRepo {
 }
 
 const kImageA: Entity = {
-  type: 'image', id: kA, mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1, height: 1,
+  type: 'image', location: 'internal', id: kA, mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1, height: 1,
 };
 const kAudioB: Entity = {
-  type: 'audio', id: kB, iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 1,
+  type: 'audio', location: 'internal', id: kB, iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 1,
 };
 
 describe("Shelf.saveEntityAnnotation", () => {
@@ -331,7 +331,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
 
   it("日時が空なら、動画だけの投稿も撮影日時で補完する", async () => {
     const t = dayjs('2019-05-06T07:08:09+09:00');
-    const video: Entity = { type: 'video', id: kB, iconID: 'i', timestamp: t, mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
+    const video: Entity = { type: 'video', location: 'internal', id: kB, iconID: 'i', timestamp: t, mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
     const repo = new FakeRepo([video], []);
     const m = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, originalDate: null, date: '', text: `[video entity="${kB}"]` });
     assert.ok(m.timestamp!!.isSame(t));
@@ -340,7 +340,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
 
   it("画像と動画は本文で先に出る撮影日時を使う", async () => {
     const image = { ...kImageA, timestamp: dayjs('2020-02-03T04:05:06+09:00') };
-    const video: Entity = { type: 'video', id: kB, iconID: 'i', timestamp: dayjs('2019-05-06T07:08:09+09:00'), mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
+    const video: Entity = { type: 'video', location: 'internal', id: kB, iconID: 'i', timestamp: dayjs('2019-05-06T07:08:09+09:00'), mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
     for (const first of ['image', 'video']) {
       const text = first === 'image' ? `[image entity="${kA}"][video entity="${kB}"]` : `[video entity="${kB}"][image entity="${kA}"]`;
       const repo: FakeRepo = new FakeRepo([image, video], []);
@@ -351,7 +351,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
 
   it("撮影日時のない動画を飛ばし、指定日時は撮影日時より優先する", async () => {
     const t = dayjs('2019-05-06T07:08:09+09:00');
-    const video: Entity = { type: 'video', id: kB, iconID: 'i', timestamp: undefined, mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
+    const video: Entity = { type: 'video', location: 'internal', id: kB, iconID: 'i', timestamp: undefined, mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
     const repo = new FakeRepo([{ ...kImageA, timestamp: t }, video], []);
     const text = `[video entity="${kB}"][image entity="${kA}"]`;
     const auto = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, originalDate: null, date: null, text });
@@ -361,7 +361,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
   });
 
   it("動画の撮影日時がなければ現在時刻で補完する", async () => {
-    const video: Entity = { type: 'video', id: kB, iconID: 'i', timestamp: undefined, mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
+    const video: Entity = { type: 'video', location: 'internal', id: kB, iconID: 'i', timestamp: undefined, mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
     const repo = new FakeRepo([video], []);
     const before = dayjs().startOf('second');
     const m = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, originalDate: null, date: null, text: `[video entity="${kB}"]` });
@@ -394,4 +394,62 @@ describe("Shelf.updateMoment（SAVE）", () => {
       assert.deepStrictEqual(repo.saved, []);
     });
   }
+});
+
+describe("Shelf の外部（YouTube）の動画", () => {
+  const kExternal: ExternalVideoEntity = {
+    type: 'video', location: 'external', id: kA, iconID: 'old-icon', timestamp: dayjs('2025-01-04T06:14:49Z'), mimeType: 'video/x-youtube',
+    width: 1280, height: 720, duration: 3856,
+    external: { platform: 'youtube', id: 'TXt9E_dNVms' },
+  };
+  // storage と Repo の呼ばれ方を記録する。
+  function setup() {
+    const calls: unknown[][] = [];
+    const repo = {
+      deleteEntity: async (e: Entity) => { calls.push(['repo.deleteEntity', e.id]); },
+      updateEntity: async (e: Entity) => { calls.push(['repo.updateEntity', e]); },
+    };
+    const shelf = new Shelf(repo as unknown as Repo);
+    const storage = (shelf as unknown as { storage: { [kind: string]: unknown } }).storage;
+    for (const kind of ['original', 'medium', 'icon']) {
+      storage[kind] = {
+        remove: async (hash: string) => { calls.push([`${kind}.remove`, hash]); return true; },
+        fetch: async (hash: string) => { calls.push([`${kind}.fetch`, hash]); return ['/base', hash]; },
+        upload: async (_file: string) => { calls.push([`${kind}.upload`]); return 'new-icon'; },
+        resolveAbsolutePath: (hash: string) => `/${kind}/${hash}`,
+      };
+    }
+    return { shelf, calls };
+  }
+
+  it("削除では icon だけを消す", async () => {
+    const { shelf, calls } = setup();
+    await shelf.deleteEntity(kExternal);
+    assert.deepStrictEqual(calls, [['icon.remove', 'old-icon'], ['repo.deleteEntity', kA]]);
+  });
+
+  it("元ファイルの場所は無く、ファイルは icon だけ", async () => {
+    const { shelf, calls } = setup();
+    assert.strictEqual(await shelf.resolveEntityPath(kExternal, 'original'), null);
+    assert.strictEqual(await shelf.resolveEntityPath(kExternal, 'medium'), null);
+    assert.deepStrictEqual(await shelf.resolveEntityPath(kExternal, 'icon'), ['/base', 'old-icon']);
+    assert.deepStrictEqual([...await shelf.resolveFilepaths(kExternal)], ['/icon/old-icon']);
+    assert.deepStrictEqual(calls, [['icon.fetch', 'old-icon']]);
+  });
+
+  it("作り直しは、まだ対応していないので何も書かずに失敗する", async () => {
+    const { shelf, calls } = setup();
+    await assert.rejects(shelf.regenerateEntityCache(kExternal), /not supported yet/);
+    assert.deepStrictEqual(calls, []);
+  });
+
+  it("日時が空の SAVE は、外部の動画の時刻（配信開始・公開）を使う", async () => {
+    const repo = new FakeRepo([kExternal], []);
+    const m = await new Shelf(repo as unknown as Repo).updateMoment({
+      title: 't', originalDate: null, date: '', author: 'a', text: `[video entity="${kA}"]`,
+      status: 'draft', tier: 'archive', series: [], sensitiveOverride: null,
+    });
+    assert.ok(m.timestamp!!.isSame(dayjs('2025-01-04T06:14:49Z')));
+    assert.strictEqual(m.iconID, kA);
+  });
 });

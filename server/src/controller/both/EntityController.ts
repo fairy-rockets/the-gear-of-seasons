@@ -5,6 +5,7 @@ import {fileTypeFromFile} from 'file-type';
 import send, {SendOptions} from '@fastify/send';
 
 import Shelf from '../../shelf/Shelf.js';
+import { externalVideoPageURL } from '../../lib/ExternalVideoFormat.js';
 
 export interface EntityControllerInterface extends RequestGenericInterface {
   Params: {
@@ -29,6 +30,10 @@ export default class EntityController {
         .code(404)
         .type('text/plain;charset=UTF-8')
         .send('Entity not found.');
+    }
+    // 外部（YouTube）の動画の元は、外部のページ（platform ごとに external の中身から組み立てる）。icon だけを storage に持つ。
+    if (entity.location === 'external' && type === 'original') {
+      return reply.redirect(externalVideoPageURL(entity.external), 302);
     }
     const filepath = await this.shelf.resolveEntityPath(entity, type);
     if (filepath === null) {
@@ -56,6 +61,10 @@ export default class EntityController {
         break;
       case 'audio/x-flac':
         ext = '.flac';
+        break;
+      case 'video/x-youtube':
+        // 元ファイルは無く、ここまで来るのは icon だけ。
+        ext = '';
         break;
       default:
         return reply

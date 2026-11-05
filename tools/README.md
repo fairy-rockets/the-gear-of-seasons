@@ -23,7 +23,7 @@ docker compose exec the-gear-of-seasons \
 
 | ファイル | 中身 |
 |---|---|
-| `missing-original.tsv` | original が無い entity（`id` / `type` / `mime`） |
+| `missing-original.tsv` | original が無い entity（`id` / `type` / `mime`）。外部（YouTube）の動画は original を持たないので入らない |
 | `missing-original.md5.txt` | 同じものの id だけ。id = 元ファイルの md5 なので、これがそのまま探し物のリストになる |
 | `missing-original.md5-map.csv` | `original,medium` の対。`restore.rs` の `--md5-map` が読む形式（medium を持つ image のみ） |
 | `missing-medium.tsv` / `missing-icon.tsv` | 派生ファイルが無い entity。original があるなら `regenerate-cache` で作り直せる |
