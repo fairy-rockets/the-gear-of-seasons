@@ -18,3 +18,8 @@ ALTER TABLE "entities" ADD CONSTRAINT "entities_location_external_check"
 -- external になれるのは video だけ。
 ALTER TABLE "entities" ADD CONSTRAINT "entities_location_type_check"
   CHECK ("location" = 'internal' OR "type" = 'video');
+
+-- mime_type は元ファイルの種類なので、元ファイルを持つ internal だけが持ち、external は NULL にする。
+ALTER TABLE "entities" ALTER COLUMN "mime_type" DROP NOT NULL;
+ALTER TABLE "entities" ADD CONSTRAINT "entities_location_mime_type_check"
+  CHECK (("location" = 'internal') = ("mime_type" IS NOT NULL));

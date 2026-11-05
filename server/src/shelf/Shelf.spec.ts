@@ -398,7 +398,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
 
 describe("Shelf の外部（YouTube）の動画", () => {
   const kExternal: ExternalVideoEntity = {
-    type: 'video', location: 'external', id: kA, iconID: 'old-icon', timestamp: dayjs('2025-01-04T06:14:49Z'), mimeType: 'video/x-youtube',
+    type: 'video', location: 'external', id: kA, iconID: 'old-icon', timestamp: dayjs('2025-01-04T06:14:49Z'),
     width: 1280, height: 720, duration: 3856,
     external: { platform: 'youtube', id: 'TXt9E_dNVms' },
   };

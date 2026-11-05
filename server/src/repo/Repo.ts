@@ -158,7 +158,7 @@ insert into entities (
           entity.iconID,
           timestamp,
           'video',
-          entity.mimeType,
+          entity.location === 'internal' ? entity.mimeType : null,
           entity.width,
           entity.height,
           entity.duration,
@@ -231,7 +231,7 @@ where
           entity.id,
           null,
           entity.iconID,
-          entity.mimeType,
+          entity.location === 'internal' ? entity.mimeType : null,
           entity.width,
           entity.height,
           entity.duration,
@@ -629,6 +629,15 @@ function decodeLocation(row: pg.QueryResultRow): EntityLocation {
   return location;
 }
 
+// internal の mime_type（元ファイルの種類）。internal なら必ずある（DB の CHECK と同じ）。
+function decodeMimeType(row: pg.QueryResultRow): string {
+  const mimeType = row['mime_type'];
+  if (typeof mimeType !== 'string') {
+    throw new Error(`Entity ${row['id']}: an internal entity must have mime_type`);
+  }
+  return mimeType;
+}
+
 function decodeEntity(row: pg.QueryResultRow): Entity {
   const type = row['type'] as string;
   const timestamp = (() => {
@@ -649,7 +658,7 @@ function decodeEntity(row: pg.QueryResultRow): Entity {
         mediumID: row['medium_id'] as string,
         iconID: row['icon_id'] as string,
         timestamp: timestamp,
-        mimeType: row['mime_type'] as string,
+        mimeType: decodeMimeType(row),
         width: row['width'] as number,
         height: row['height'] as number,
       };
@@ -659,13 +668,12 @@ function decodeEntity(row: pg.QueryResultRow): Entity {
         id: row['id'] as string,
         iconID: row['icon_id'] as string,
         timestamp: timestamp,
-        mimeType: row['mime_type'] as string,
         width: row['width'] as number,
         height: row['height'] as number,
         duration: row['duration'] as number,
       };
       if (location === 'internal') {
-        return { ...video, location: 'internal' };
+        return { ...video, location: 'internal', mimeType: decodeMimeType(row) };
       }
       return { ...video, location: 'external', external: decodeExternalVideo(video.id, row['external']) };
     }
@@ -676,7 +684,7 @@ function decodeEntity(row: pg.QueryResultRow): Entity {
         id: row['id'] as string,
         iconID: row['icon_id'] as string,
         timestamp: timestamp,
-        mimeType: row['mime_type'] as string,
+        mimeType: decodeMimeType(row),
         duration: row['duration'] as number,
       };
     default:

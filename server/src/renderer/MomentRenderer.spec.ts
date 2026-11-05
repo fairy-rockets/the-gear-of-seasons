@@ -85,7 +85,7 @@ describe("MomentRenderer.render", () => {
       type: 'video', location: 'external',
       id: 'yt',
       iconID: 'yt-icon',
-      mimeType: 'video/x-youtube',
+     
       timestamp: undefined,
       width: 1280,
       height: 720,
@@ -96,7 +96,7 @@ describe("MomentRenderer.render", () => {
       type: 'video', location: 'external',
       id: 'shorts',
       iconID: 'shorts-icon',
-      mimeType: 'video/x-youtube',
+     
       timestamp: undefined,
       width: 508,
       height: 720,

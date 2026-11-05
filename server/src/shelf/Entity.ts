@@ -13,12 +13,13 @@ type EntityBase = {
   readonly id: string;
   readonly iconID: string,
   readonly timestamp: dayjs.Dayjs | undefined,
-  readonly mimeType: string,
   readonly location: EntityLocation,
 };
 
+// 元ファイルを持つ entity。mimeType は元ファイルの種類（external には元ファイルが無いので持たない）。
 type Internal = {
   readonly location: 'internal',
+  readonly mimeType: string,
 };
 
 export type ImageEntity = EntityBase & Internal & {

@@ -355,7 +355,7 @@ describe("Repo の entity の注釈", () => {
 
 describe("Repo の entity の置き場所", () => {
   const kExternal: Entity = {
-    type: 'video', location: 'external', id: 'yt', iconID: 'i', timestamp: undefined, mimeType: 'video/x-youtube',
+    type: 'video', location: 'external', id: 'yt', iconID: 'i', timestamp: undefined,
     width: 1280, height: 720, duration: 1,
     external: { platform: 'youtube', id: '5WDuZByHZQA' },
   };
@@ -366,7 +366,8 @@ describe("Repo の entity の置き場所", () => {
   ];
 
   // location の列に既定値は無いので、INSERT はどの種類でも location を明示する。external は jsonb に JSON の文字列で渡す。
-  it("INSERT は location と external を必ず渡す", async () => {
+  // mime_type は元ファイルの種類なので、external では NULL。
+  it("INSERT は location と external を必ず渡し、external の mime_type は NULL にする", async () => {
     for (const e of [...kInternal, kExternal]) {
       const repo = new Repo();
       const calls = stubPool(repo, []);
@@ -376,12 +377,22 @@ describe("Repo の entity の置き場所", () => {
       assert.deepStrictEqual(calls[0].args.slice(9), e.location === 'external'
         ? ['external', '{"platform":"youtube","id":"5WDuZByHZQA"}']
         : ['internal', null], e.id);
+      assert.strictEqual(calls[0].args[5], e.location === 'internal' ? e.mimeType : null, e.id);
     }
   });
 
+  it("UPDATE でも external の mime_type は NULL にする", async () => {
+    const repo = new Repo();
+    const calls = stubPool(repo, []);
+    await repo.updateEntity(kExternal);
+    assert.strictEqual(calls.length, 1);
+    assert.match(calls[0].q, /"mime_type" = \$4/);
+    assert.strictEqual(calls[0].args[3], null);
+  });
+
   // pg は jsonb をオブジェクトにして返す。
-  const row = (type: string, location: string, external: unknown) => ({
-    id: 'yt', medium_id: 'm', icon_id: 'i', timestamp: null, type, mime_type: 'video/x-youtube',
+  const row = (type: string, location: string, external: unknown, mimeType: string | null = null) => ({
+    id: 'yt', medium_id: 'm', icon_id: 'i', timestamp: null, type, mime_type: mimeType,
     width: 1280, height: 720, duration: 1, location, external,
   });
 
@@ -393,10 +404,11 @@ describe("Repo の entity の置き場所", () => {
 
   it("internal の動画は external を持たない", async () => {
     const repo = new Repo();
-    stubPool(repo, [{ ...row('video', 'internal', null), mime_type: 'video/mp4' }]);
+    stubPool(repo, [row('video', 'internal', null, 'video/mp4')]);
     const e = await repo.findEntity('yt');
     assert.strictEqual(e?.location, 'internal');
     assert.ok(!('external' in e!));
+    assert.strictEqual(e?.location === 'internal' && e.mimeType, 'video/mp4');
   });
 
   for (const [name, r, message] of [
@@ -406,6 +418,8 @@ describe("Repo の entity の置き場所", () => {
     ['external の画像', row('image', 'external', { platform: 'youtube', id: '5WDuZByHZQA' }), /Entity yt: only a video can be external/],
     ['external の音声', row('audio', 'external', { platform: 'youtube', id: '5WDuZByHZQA' }), /Entity yt: only a video can be external/],
     ['未知の location', row('video', 'elsewhere', null), /Entity yt: invalid location/],
+    ['mime_type の無い internal の動画', row('video', 'internal', null), /Entity yt: an internal entity must have mime_type/],
+    ['mime_type の無い画像', row('image', 'internal', null), /Entity yt: an internal entity must have mime_type/],
   ] as [string, Record<string, unknown>, RegExp][]) {
     it(`${name}の行は、entity の id を添えて投げる`, async () => {
       const repo = new Repo();

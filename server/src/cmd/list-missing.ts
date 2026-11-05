@@ -23,6 +23,11 @@ function mediumIDOf(entity: Entity): string | null {
   return entity.type === 'image' ? entity.mediumID : null;
 }
 
+// 一覧に出す種類。external には元ファイルが無く mime_type も無いので、external と出す。
+function mimeTypeOf(entity: Entity): string {
+  return entity.location === 'internal' ? entity.mimeType : 'external';
+}
+
 // storage/<kind>/ab/cd/ef/<のこり> を辿って、実際に置かれている md5 を集める
 async function enumurateStoredHashes(storagePath: string, kind: Kind): Promise<Set<string>> {
   const hashes = new Set<string>();
@@ -153,7 +158,7 @@ async function main() {
       for (const entity of list.sort((a, b) => a.id.localeCompare(b.id))) {
         const where = refs.get(entity.id);
         const from = where === undefined ? '(本文から参照されていません)' : [...where].sort().join(' ');
-        console.log(`  - ${entity.id} [${entity.type}] ${entity.mimeType} ${from}`);
+        console.log(`  - ${entity.id} [${entity.type}] ${mimeTypeOf(entity)} ${from}`);
       }
       console.log();
     }
@@ -186,7 +191,7 @@ async function main() {
       const lostOriginals = missing.get('original')!!;
       await write(
         'missing-original.tsv',
-        lostOriginals.map((e) => [e.id, e.type, e.mimeType].join('\t')),
+        lostOriginals.map((e) => [e.id, e.type, mimeTypeOf(e)].join('\t')),
       );
       await write('missing-original.md5.txt', lostOriginals.map((e) => e.id));
       // tools/restore.rs の --md5-map が読む形式（medium を持つ image だけ）
@@ -199,7 +204,7 @@ async function main() {
       for (const kind of ['medium', 'icon'] as Kind[]) {
         await write(
           `missing-${kind}.tsv`,
-          missing.get(kind)!!.map((e) => [e.id, kind === 'medium' ? mediumIDOf(e) : e.iconID, e.mimeType].join('\t')),
+          missing.get(kind)!!.map((e) => [e.id, kind === 'medium' ? mediumIDOf(e) : e.iconID, mimeTypeOf(e)].join('\t')),
         );
       }
       await write('dangling-refs.tsv', dangling.map((id) => [id, [...refs.get(id)!!].sort().join(' ')].join('\t')));

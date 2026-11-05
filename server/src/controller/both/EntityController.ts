@@ -42,8 +42,10 @@ export default class EntityController {
         .type('text/plain')
         .send('Entity file has been lost.');
     }
+    // mime_type は元ファイルの種類なので、external は持たない。
+    const mimeType = entity.location === 'internal' ? entity.mimeType : null;
     let ext;
-    switch(entity.mimeType) {
+    switch(mimeType) {
       case 'image/jpeg':
         ext = '.jpeg';
         break;
@@ -62,15 +64,15 @@ export default class EntityController {
       case 'audio/x-flac':
         ext = '.flac';
         break;
-      case 'video/x-youtube':
-        // 元ファイルは無く、ここまで来るのは icon だけ。
+      case null:
+        // external には元ファイルが無く（original は上でリダイレクトした）、ここまで来るのは icon だけ。
         ext = '';
         break;
       default:
         return reply
           .code(500)
           .type('text/plain;charset=UTF-8')
-          .send(`Unsupported mime type: ${entity.mimeType}`);
+          .send(`Unsupported mime type: ${mimeType}`);
     }
     const [rootPath, entityPath] = filepath;
 
@@ -105,7 +107,8 @@ export default class EntityController {
         return reply
           .code(sendResult.statusCode)
           .headers(sendResult.headers)
-          .type(entity.mimeType)
+          // original は internal だけ（external は上でリダイレクトした）。
+          .type(mimeType!!)
           .header('content-disposition', `inline; filename=\"${id+".original"+ext}\"`)
           .send(stream);
       case 'medium': {

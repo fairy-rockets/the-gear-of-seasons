@@ -30,7 +30,8 @@ async function main(ids: string[]) {
       }
     }
     for (const [i, entity] of entities.entries()) {
-      console.log(`[${entity.mimeType}] ${entity.id} (${i+1}/${entities.length})`);
+      // external には元ファイルが無く、mime_type も無い。
+      console.log(`[${entity.location === 'internal' ? entity.mimeType : 'external'}] ${entity.id} (${i+1}/${entities.length})`);
       const beg = performance.now();
       try {
         await shelf.regenerateEntityCache(entity);
