@@ -1,6 +1,6 @@
 import Repo from '../repo/Repo.js';
 import Shelf from '../shelf/Shelf.js';
-import { Entity } from '../shelf/Entity.js'
+import { Entity, originalMimeType } from '../shelf/Entity.js'
 
 // 引数に entity の ID を渡すと、その entity だけを作り直す。引数が無ければ全 entity を作り直す。
 // 1件の失敗（original が無い、など）では止めず、理由を出して残りを続け、
@@ -31,7 +31,7 @@ async function main(ids: string[]) {
     }
     for (const [i, entity] of entities.entries()) {
       // external には元ファイルが無く、mime_type も無い。
-      console.log(`[${entity.location === 'internal' ? entity.mimeType : 'external'}] ${entity.id} (${i+1}/${entities.length})`);
+      console.log(`[${originalMimeType(entity) ?? 'external'}] ${entity.id} (${i+1}/${entities.length})`);
       const beg = performance.now();
       try {
         await shelf.regenerateEntityCache(entity);

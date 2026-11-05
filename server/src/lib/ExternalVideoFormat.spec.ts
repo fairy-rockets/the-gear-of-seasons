@@ -3,9 +3,7 @@ import assert from 'assert';
 
 import {
   ExternalVideoFormatError,
-  externalVideoEmbedURL,
-  externalVideoPageURL,
-  externalVideoPlayerTitle,
+  externalVideoPresentation,
   parseExternalVideo,
 } from './ExternalVideoFormat.js';
 
@@ -28,8 +26,10 @@ describe("ExternalVideoFormat", () => {
   }
   it("ページと埋め込みの URL、プレイヤーの title は platform ごとに中身から組み立てる", () => {
     const video = { platform: 'youtube', id: 'jLfOrvniehM' } as const;
-    assert.strictEqual(externalVideoPageURL(video), 'https://www.youtube.com/watch?v=jLfOrvniehM');
-    assert.strictEqual(externalVideoEmbedURL(video), 'https://www.youtube-nocookie.com/embed/jLfOrvniehM');
-    assert.strictEqual(externalVideoPlayerTitle(video), 'YouTube video player');
+    assert.deepStrictEqual(externalVideoPresentation(video), {
+      pageURL: 'https://www.youtube.com/watch?v=jLfOrvniehM',
+      embedURL: 'https://www.youtube-nocookie.com/embed/jLfOrvniehM',
+      playerTitle: 'YouTube video player',
+    });
   });
 });

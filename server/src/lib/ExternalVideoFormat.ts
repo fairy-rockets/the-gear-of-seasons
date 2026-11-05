@@ -3,7 +3,7 @@
 //
 // platform を足すときに触る場所:
 // - このファイル: ExternalVideoPlatformName・型（ExternalVideo の union）・parseExternalVideo・
-//   externalVideoPageURL・externalVideoEmbedURL・externalVideoPlayerTitle
+//   externalVideoPresentation
 import { youtubeEmbedURL, youtubeWatchURL } from './youtube.js';
 
 export type ExternalVideoPlatformName = 'youtube';
@@ -25,7 +25,8 @@ export class ExternalVideoFormatError extends Error {
   }
 }
 
-// DB から読んだ external の値を検証する。未知の platform、項目の過不足、不正な値は投げる。
+// DB から読んだ external の値を検証する。未知の platform、項目の過不足、不正な値は ExternalVideoFormatError を投げる
+// （message は `external has an unknown platform: <値の JSON>` のように、何が不正かと値）。
 export function parseExternalVideo(value: unknown): ExternalVideo {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new ExternalVideoFormatError(`external is not an object: ${JSON.stringify(value)}`);
@@ -48,26 +49,23 @@ export function parseExternalVideo(value: unknown): ExternalVideo {
   }
 }
 
-// その動画のページ（/entity/<id> のリダイレクト先）。
-export function externalVideoPageURL(video: ExternalVideo): string {
-  switch (video.platform) {
-    case 'youtube':
-      return youtubeWatchURL(video.id);
-  }
-}
+// 動画を見せるのに使う URL と名前。DB には持たず、platform ごとに external の中身から組み立てる。
+export type ExternalVideoPresentation = {
+  // その動画のページ（/entity/<id> のリダイレクト先）。
+  readonly pageURL: string,
+  // 本文に埋め込む iframe の src。
+  readonly embedURL: string,
+  // 本文に埋め込む iframe の title。
+  readonly playerTitle: string,
+};
 
-// 本文に埋め込む iframe の title。
-export function externalVideoPlayerTitle(video: ExternalVideo): string {
+export function externalVideoPresentation(video: ExternalVideo): ExternalVideoPresentation {
   switch (video.platform) {
     case 'youtube':
-      return 'YouTube video player';
-  }
-}
-
-// 本文に埋め込む iframe の src。
-export function externalVideoEmbedURL(video: ExternalVideo): string {
-  switch (video.platform) {
-    case 'youtube':
-      return youtubeEmbedURL(video.id);
+      return {
+        pageURL: youtubeWatchURL(video.id),
+        embedURL: youtubeEmbedURL(video.id),
+        playerTitle: 'YouTube video player',
+      };
   }
 }

@@ -3,7 +3,7 @@ import NodeCache from 'node-cache';
 import pg from 'pg';
 
 import Pool, { Queryable } from './Pool.js';
-import { Entity, EntityLocation, ExternalVideo } from '../shelf/Entity.js';
+import { Entity, EntityLocation, ExternalVideo, originalMimeType } from '../shelf/Entity.js';
 import { parseExternalVideo } from '../lib/ExternalVideoFormat.js';
 import {
   EntityAnnotation,
@@ -158,13 +158,12 @@ insert into entities (
           entity.iconID,
           timestamp,
           'video',
-          entity.location === 'internal' ? entity.mimeType : null,
+          originalMimeType(entity),
           entity.width,
           entity.height,
           entity.duration,
           entity.location,
-          // jsonb。配列でない値は JSON の文字列にして渡す。
-          entity.location === 'external' ? JSON.stringify(entity.external) : null,
+          encodeExternal(entity),
         ]);
         break;
       case 'audio':
@@ -231,7 +230,7 @@ where
           entity.id,
           null,
           entity.iconID,
-          entity.location === 'internal' ? entity.mimeType : null,
+          originalMimeType(entity),
           entity.width,
           entity.height,
           entity.duration,
@@ -608,7 +607,18 @@ function decodeMomentSummary(row: pg.QueryResultRow): MomentSummary {
   };
 }
 
-// external（jsonb）を platform で振り分けて、platform ごとに中身を検証する。未知の platform・不正な中身は投げる。
+// external 列（jsonb）に書く値。配列でない値は JSON の文字列にして渡す。
+function encodeExternal(entity: Entity): string | null {
+  switch (entity.location) {
+    case 'internal':
+      return null;
+    case 'external':
+      return JSON.stringify(entity.external);
+  }
+}
+
+// external（jsonb）を platform で振り分けて、platform ごとに中身を検証する。未知の platform・不正な中身は
+// Error を投げる（message は `Entity <id>: invalid external: <ExternalVideoFormatError の message>`）。
 function decodeExternalVideo(id: string, value: unknown): ExternalVideo {
   try {
     return parseExternalVideo(value);
@@ -617,7 +627,8 @@ function decodeExternalVideo(id: string, value: unknown): ExternalVideo {
   }
 }
 
-// location を読む。external になれるのは video だけ（DB の CHECK と同じ）。
+// location を読む。external になれるのは video だけ（DB の CHECK と同じ）。どちらかに外れた行は
+// Error を投げる（message は `Entity <id>: invalid location: <値>` か `Entity <id>: only a video can be external (type: <type>)`）。
 function decodeLocation(row: pg.QueryResultRow): EntityLocation {
   const location = row['location'];
   if (location !== 'internal' && location !== 'external') {
@@ -629,7 +640,8 @@ function decodeLocation(row: pg.QueryResultRow): EntityLocation {
   return location;
 }
 
-// internal の mime_type（元ファイルの種類）。internal なら必ずある（DB の CHECK と同じ）。
+// internal の mime_type（元ファイルの種類）。internal なら必ずある（DB の CHECK と同じ）。無い行は
+// Error を投げる（message は `Entity <id>: an internal entity must have mime_type`）。
 function decodeMimeType(row: pg.QueryResultRow): string {
   const mimeType = row['mime_type'];
   if (typeof mimeType !== 'string') {
@@ -672,10 +684,12 @@ function decodeEntity(row: pg.QueryResultRow): Entity {
         height: row['height'] as number,
         duration: row['duration'] as number,
       };
-      if (location === 'internal') {
-        return { ...video, location: 'internal', mimeType: decodeMimeType(row) };
+      switch (location) {
+        case 'internal':
+          return { ...video, location: 'internal', mimeType: decodeMimeType(row) };
+        case 'external':
+          return { ...video, location: 'external', external: decodeExternalVideo(video.id, row['external']) };
       }
-      return { ...video, location: 'external', external: decodeExternalVideo(video.id, row['external']) };
     }
     case 'audio':
       return {

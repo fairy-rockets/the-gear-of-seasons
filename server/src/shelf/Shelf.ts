@@ -11,7 +11,7 @@ import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from '../lib
 
 import Repo from '../repo/Repo.js';
 import Storage from '../storage/Storage.js';
-import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity.js';
+import { Entity, ImageEntity, VideoEntity, AudioEntity, hasOriginalFile } from './Entity.js';
 import { EntityAnnotation, validateEntityAnnotation } from './EntityAnnotation.js';
 import {
   Moment,
@@ -64,10 +64,13 @@ class Shelf {
   async resolveEntityPath(entity: Entity, type: 'original' | 'medium' | 'icon'): Promise<[string, string] | null> {
     switch(type) {
       case 'original':
-        if (entity.location === 'external') {
-          return null;
+        switch (entity.location) {
+          case 'internal':
+            return this.storage.original.fetch(entity.id);
+          case 'external':
+            // 外部の動画は、元ファイルを持たない。
+            return null;
         }
-        return this.storage.original.fetch(entity.id);
       case 'medium':
         if (entity.type === 'image') {
           return this.storage.medium.fetch(entity.mediumID);
@@ -168,7 +171,7 @@ class Shelf {
         break;
       case 'video':
         // 外部の動画は、元ファイルを持たない。
-        if (e.location === 'internal') {
+        if (hasOriginalFile(e)) {
           await this.storage.original.remove(e.id);
         }
         await this.storage.icon.remove(e.iconID);
@@ -178,9 +181,12 @@ class Shelf {
   }
 
   async regenerateEntityCache(entity: Entity) {
-    if (entity.location === 'external') {
-      // 外部の entity を取り直す処理はまだ無い（取り込む経路も無いので、外部の entity はまだ存在しない）。
-      throw new Error(`regenerating an external entity is not supported yet: ${entity.id}`);
+    switch (entity.location) {
+      case 'internal':
+        break;
+      case 'external':
+        // 外部の entity を取り直す処理はまだ無い（取り込む経路も無いので、外部の entity はまだ存在しない）。
+        throw new Error(`regenerating an external entity is not supported yet: ${entity.id}`);
     }
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
     try {
@@ -266,7 +272,7 @@ class Shelf {
   async resolveFilepaths(entity: Entity): Promise<Set<string>> {
     const set = new Set<string>();
     // 外部の動画は、元ファイルを持たない。
-    const originalPath = entity.location === 'external' ? null : this.storage.original.resolveAbsolutePath(entity.id);
+    const originalPath = hasOriginalFile(entity) ? this.storage.original.resolveAbsolutePath(entity.id) : null;
     if (originalPath !== null) {
       set.add(originalPath);
     }
