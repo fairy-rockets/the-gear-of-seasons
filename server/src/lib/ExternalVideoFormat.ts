@@ -25,8 +25,7 @@ export class ExternalVideoFormatError extends Error {
   }
 }
 
-// DB から読んだ external の値を検証する。未知の platform、項目の過不足、不正な値は ExternalVideoFormatError を投げる
-// （message は `external has an unknown platform: <値の JSON>` のように、何が不正かと値）。
+// DB から読んだ external の値を検証する。未知の platform、項目の過不足、不正な値なら例外を投げる。
 export function parseExternalVideo(value: unknown): ExternalVideo {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new ExternalVideoFormatError(`external is not an object: ${JSON.stringify(value)}`);

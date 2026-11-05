@@ -617,8 +617,7 @@ function encodeExternal(entity: Entity): string | null {
   }
 }
 
-// external（jsonb）を platform で振り分けて、platform ごとに中身を検証する。未知の platform・不正な中身は
-// Error を投げる（message は `Entity <id>: invalid external: <ExternalVideoFormatError の message>`）。
+// external（jsonb）を platform で振り分けて、platform ごとに中身を検証する。未知の platform・不正な中身なら例外を投げる。
 function decodeExternalVideo(id: string, value: unknown): ExternalVideo {
   try {
     return parseExternalVideo(value);
@@ -627,8 +626,7 @@ function decodeExternalVideo(id: string, value: unknown): ExternalVideo {
   }
 }
 
-// location を読む。external になれるのは video だけ（DB の CHECK と同じ）。どちらかに外れた行は
-// Error を投げる（message は `Entity <id>: invalid location: <値>` か `Entity <id>: only a video can be external (type: <type>)`）。
+// location を読む。external になれるのは video だけ（DB の CHECK と同じ）。外れた行なら例外を投げる。
 function decodeLocation(row: pg.QueryResultRow): EntityLocation {
   const location = row['location'];
   if (location !== 'internal' && location !== 'external') {
@@ -640,8 +638,7 @@ function decodeLocation(row: pg.QueryResultRow): EntityLocation {
   return location;
 }
 
-// internal の mime_type（元ファイルの種類）。internal なら必ずある（DB の CHECK と同じ）。無い行は
-// Error を投げる（message は `Entity <id>: an internal entity must have mime_type`）。
+// internal の mime_type（元ファイルの種類）。internal なら必ずある（DB の CHECK と同じ）。無い行なら例外を投げる。
 function decodeMimeType(row: pg.QueryResultRow): string {
   const mimeType = row['mime_type'];
   if (typeof mimeType !== 'string') {
