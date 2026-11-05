@@ -49,6 +49,8 @@ services:
       - 'URA_HOST=ura.localhost'
       - 'OMOTE_ORIGIN=http://localhost:8889'
       - 'DB_HOST=postgres-dev'
+      # チェックアウトの .env（追跡しない）から。無くても起動し、YouTube の動画の取り込みだけができない
+      - 'YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-}'
       - 'TZ=Asia/Tokyo'
       - 'npm_config_cache=/app/dev-var/npm-cache'
     command:

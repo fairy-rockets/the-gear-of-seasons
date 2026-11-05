@@ -11,7 +11,13 @@ import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from '../lib
 
 import Repo from '../repo/Repo.js';
 import Storage from '../storage/Storage.js';
-import { Entity, ImageEntity, VideoEntity, AudioEntity, ExternalEntity, InternalEntity } from './Entity.js';
+import { Entity, ImageEntity, VideoEntity, AudioEntity, ExternalEntity, ExternalVideoRef, ExternalVideoEntity, InternalEntity } from './Entity.js';
+import {
+  ExternalVideoError,
+  ExternalVideoPlatform,
+  defaultExternalVideoPlatforms,
+  externalVideoEntityID,
+} from './ExternalVideo.js';
 import { EntityAnnotation, validateEntityAnnotation } from './EntityAnnotation.js';
 import {
   Moment,
@@ -38,8 +44,10 @@ class Shelf {
     medium: Storage,
     icon: Storage,
   };
+  private readonly externalVideoPlatforms: ExternalVideoPlatform[];
 
-  constructor(repo: Repo) {
+  // externalVideoPlatforms はテスト用（YouTube に問い合わせない）。ふだんは環境変数の設定から作る。
+  constructor(repo: Repo, externalVideoPlatforms?: ExternalVideoPlatform[]) {
     this.storagePath = path.join(dirname, '..', '..', '..', '_storage');
     this.repo = repo;
     this.storage = {
@@ -47,6 +55,7 @@ class Shelf {
       medium: new Storage(this.storagePath, 'medium'),
       icon: new Storage(this.storagePath, 'icon'),
     };
+    this.externalVideoPlatforms = externalVideoPlatforms ?? defaultExternalVideoPlatforms();
   }
 
   /* ***********************************************************************************************
@@ -156,6 +165,76 @@ class Shelf {
     }
   }
 
+  // 外部（今は YouTube だけ）の動画の URL から entity を作る。同じ動画の entity が既にあれば、外部に問い合わせずにそれを返す。
+  // 取り込めない URL・動画なら例外を投げる。
+  async insertExternalVideo(url: string): Promise<Entity> {
+    let video: ExternalVideoRef | null = null;
+    let platform: ExternalVideoPlatform | null = null;
+    for (const p of this.externalVideoPlatforms) {
+      video = p.match(url);
+      if (video !== null) {
+        platform = p;
+        break;
+      }
+    }
+    if (video === null || platform === null) {
+      throw new ExternalVideoError(400, `埋め込めない URL です（今は YouTube の動画だけ）: ${url}`);
+    }
+    const id = externalVideoEntityID(video);
+    const found = await this.findEntity(id);
+    if (found !== null) {
+      return found;
+    }
+    const { info, thumbnail } = await platform.fetch(video);
+    const entity: ExternalVideoEntity = {
+      type: 'video',
+      location: 'external',
+      id: id,
+      iconID: await this.uploadExternalVideoIcon(thumbnail),
+      timestamp: info.timestamp,
+      width: info.width,
+      height: info.height,
+      duration: info.duration,
+      externalRef: video,
+    };
+    await this.repo.insertEntity(entity);
+    return entity;
+  }
+
+  // 外部の動画のサムネイルから icon を作り、storage に置く。
+  private async uploadExternalVideoIcon(thumbnail: Buffer): Promise<string> {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
+    try {
+      const thumbnailPath = path.join(tempDir, 'thumbnail');
+      const iconPath = path.join(tempDir, 'icon.jpg');
+      await fs.writeFile(thumbnailPath, thumbnail);
+      await makeImageIcon(thumbnailPath, iconPath, 256);
+      return await this.storage.icon.upload(iconPath);
+    } finally {
+      await fs.rm(tempDir, {
+        recursive: true,
+        force: true,
+      });
+    }
+  }
+
+  // 外部の動画の entity を、外部から取り直した icon・大きさ・長さで書き換える。id と timestamp は変えない。
+  private async regenerateExternalVideoCache(entity: ExternalVideoEntity) {
+    const platform = this.externalVideoPlatforms.find((p) => p.platform === entity.externalRef.platform);
+    if (platform === undefined) {
+      throw new Error(`[FIXME] Unknown external video platform: ${entity.externalRef.platform}`);
+    }
+    const { info, thumbnail } = await platform.fetch(entity.externalRef);
+    const newEntity: ExternalVideoEntity = {
+      ...entity,
+      iconID: await this.uploadExternalVideoIcon(thumbnail),
+      width: info.width,
+      height: info.height,
+      duration: info.duration,
+    };
+    await this.repo.updateEntity(newEntity);
+  }
+
   async deleteEntity(e: Entity) {
     switch (e.location) {
       case 'internal':
@@ -199,8 +278,8 @@ class Shelf {
       case 'internal':
         return await this.regenerateInternalEntityCache(entity);
       case 'external':
-        // 外部の entity を取り直す処理はまだ無い（取り込む経路も無いので、外部の entity はまだ存在しない）。
-        throw new Error(`regenerating an external entity is not supported yet: ${entity.id}`);
+        await this.regenerateExternalVideoCache(entity);
+        return entity;
     }
   }
 
