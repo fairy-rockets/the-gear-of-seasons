@@ -8,7 +8,7 @@ import {
 } from './ExternalVideoRef.js';
 
 describe("ExternalVideoRef", () => {
-  it("YouTube の external を読む", () => {
+  it("YouTube の external_ref を読む", () => {
     assert.deepStrictEqual(parseExternalVideoRef({ platform: 'youtube', id: 'TXt9E_dNVms' }), { platform: 'youtube', id: 'TXt9E_dNVms' });
   });
   for (const value of [
@@ -20,7 +20,7 @@ describe("ExternalVideoRef", () => {
     { platform: 'youtube', id: 12345678901 },
     { platform: 'youtube', id: 'TXt9E_dNVms', url: 'https://example.com/' },
   ]) {
-    it(`不正な external（${JSON.stringify(value)}）は投げる`, () => {
+    it(`不正な external_ref（${JSON.stringify(value)}）は例外を投げる`, () => {
       assert.throws(() => parseExternalVideoRef(value), ExternalVideoRefFormatError);
     });
   }

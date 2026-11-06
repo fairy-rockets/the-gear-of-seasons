@@ -76,7 +76,7 @@ select
   "height",
   "duration",
   "location",
-  "external"
+  "external_ref"
 from entities
 `;
     const { rows } = await this.pool.query(q1, []);
@@ -105,7 +105,7 @@ select
   "height",
   "duration",
   "location",
-  "external"
+  "external_ref"
 from entities
   where id = $1
 `;
@@ -129,7 +129,7 @@ from entities
     // language=PostgreSQL
     const q = `
 insert into entities (
-  "id", "medium_id", "icon_id", "timestamp", "type", "mime_type", "width", "height", "duration", "location", "external"
+  "id", "medium_id", "icon_id", "timestamp", "type", "mime_type", "width", "height", "duration", "location", "external_ref"
 ) values (
   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 ) ON CONFLICT DO NOTHING;
@@ -163,7 +163,7 @@ insert into entities (
           entity.height,
           entity.duration,
           entity.location,
-          encodeExternal(entity),
+          encodeExternalRef(entity),
         ]);
         break;
       case 'audio':
@@ -617,22 +617,22 @@ function encodeMimeType(entity: Entity): string | null {
   }
 }
 
-// external 列（jsonb）の値。配列でない値は JSON の文字列にして渡す。internal は NULL。
-function encodeExternal(entity: Entity): string | null {
+// external_ref 列（jsonb）の値。配列でない値は JSON の文字列にして渡す。internal は NULL。
+function encodeExternalRef(entity: Entity): string | null {
   switch (entity.location) {
     case 'internal':
       return null;
     case 'external':
-      return JSON.stringify(entity.external);
+      return JSON.stringify(entity.externalRef);
   }
 }
 
-// external（jsonb）を platform で振り分けて、platform ごとに中身を検証する。未知の platform・不正な中身なら例外を投げる。
+// external_ref（jsonb）を platform で振り分けて、platform ごとに中身を検証する。未知の platform・不正な中身なら例外を投げる。
 function decodeExternalVideoRef(id: string, value: unknown): ExternalVideoRef {
   try {
     return parseExternalVideoRef(value);
   } catch (e) {
-    throw new Error(`Entity ${id}: invalid external: ${(e as Error).message}`);
+    throw new Error(`Entity ${id}: invalid external_ref: ${(e as Error).message}`);
   }
 }
 
@@ -695,7 +695,7 @@ function decodeEntity(row: pg.QueryResultRow): Entity {
         case 'internal':
           return { ...video, location: 'internal', mimeType: decodeMimeType(row) };
         case 'external':
-          return { ...video, location: 'external', external: decodeExternalVideoRef(video.id, row['external']) };
+          return { ...video, location: 'external', externalRef: decodeExternalVideoRef(video.id, row['external_ref']) };
       }
     }
     case 'audio':

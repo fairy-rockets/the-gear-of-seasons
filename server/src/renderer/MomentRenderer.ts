@@ -144,9 +144,9 @@ class MomentRenderer {
   // 幅は埋め込みの大きさを上限に、本文の幅に合わせる（Shorts は縦長に出る）。
   private static renderExternalVideo(entity: ExternalVideoEntity): string {
     const style = `aspect-ratio: ${entity.width} / ${entity.height}; max-width: ${entity.width}px;`;
-    const { embedURL, playerTitle } = externalVideoPresentation(entity.external);
+    const { embedURL, playerTitle } = externalVideoPresentation(entity.externalRef);
     return `
-<iframe class="embed external ${escapeAttribute(entity.external.platform)}" src="${escapeAttribute(embedURL)}" style="${escapeAttribute(style)}" title="${escapeAttribute(playerTitle)}" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" data-entity="${escapeAttribute(entity.id)}" data-type="video"></iframe>
+<iframe class="embed external ${escapeAttribute(entity.externalRef.platform)}" src="${escapeAttribute(embedURL)}" style="${escapeAttribute(style)}" title="${escapeAttribute(playerTitle)}" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" data-entity="${escapeAttribute(entity.id)}" data-type="video"></iframe>
 `.trim();
   }
   private async renderAudio(block: fml.Audio) {

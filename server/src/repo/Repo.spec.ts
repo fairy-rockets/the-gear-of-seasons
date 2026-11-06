@@ -357,7 +357,7 @@ describe("Repo の entity の置き場所", () => {
   const kExternal: Entity = {
     type: 'video', location: 'external', id: 'yt', iconID: 'i', timestamp: undefined,
     width: 1280, height: 720, duration: 1,
-    external: { platform: 'youtube', id: '5WDuZByHZQA' },
+    externalRef: { platform: 'youtube', id: '5WDuZByHZQA' },
   };
   const kInternal: Entity[] = [
     { type: 'image', location: 'internal', id: 'img', mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1, height: 1 },
@@ -365,15 +365,15 @@ describe("Repo の entity の置き場所", () => {
     { type: 'audio', location: 'internal', id: 'aud', iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 1 },
   ];
 
-  // location の列に既定値は無いので、INSERT はどの種類でも location を明示する。external は jsonb に JSON の文字列で渡す。
+  // location の列に既定値は無いので、INSERT はどの種類でも location を明示する。external_ref は jsonb に JSON の文字列で渡す。
   // mime_type は元ファイルの種類なので、external では NULL。
-  it("INSERT は location と external を必ず渡し、external の mime_type は NULL にする", async () => {
+  it("INSERT は location と external_ref を必ず渡し、external の mime_type は NULL にする", async () => {
     for (const e of [...kInternal, kExternal]) {
       const repo = new Repo();
       const calls = stubPool(repo, []);
       await repo.insertEntity(e);
       assert.strictEqual(calls.length, 1);
-      assert.match(calls[0].q, /"location", "external"\s*\) values \(\s*\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9, \$10, \$11\s*\)/);
+      assert.match(calls[0].q, /"location", "external_ref"\s*\) values \(\s*\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9, \$10, \$11\s*\)/);
       assert.deepStrictEqual(calls[0].args.slice(9), e.location === 'external'
         ? ['external', '{"platform":"youtube","id":"5WDuZByHZQA"}']
         : ['internal', null], e.id);
@@ -391,30 +391,30 @@ describe("Repo の entity の置き場所", () => {
   });
 
   // pg は jsonb をオブジェクトにして返す。
-  const row = (type: string, location: string, external: unknown, mimeType: string | null = null) => ({
+  const row = (type: string, location: string, externalRef: unknown, mimeType: string | null = null) => ({
     id: 'yt', medium_id: 'm', icon_id: 'i', timestamp: null, type, mime_type: mimeType,
-    width: 1280, height: 720, duration: 1, location, external,
+    width: 1280, height: 720, duration: 1, location, external_ref: externalRef,
   });
 
-  it("external は platform ごとに読む", async () => {
+  it("external_ref は platform ごとに読む", async () => {
     const repo = new Repo();
     stubPool(repo, [row('video', 'external', { platform: 'youtube', id: '5WDuZByHZQA' })]);
     assert.deepStrictEqual(await repo.findEntity('yt'), kExternal);
   });
 
-  it("internal の動画は external を持たない", async () => {
+  it("internal の動画は externalRef を持たない", async () => {
     const repo = new Repo();
     stubPool(repo, [row('video', 'internal', null, 'video/mp4')]);
     const e = await repo.findEntity('yt');
     assert.strictEqual(e?.location, 'internal');
-    assert.ok(!('external' in e!));
+    assert.ok(!('externalRef' in e!));
     assert.strictEqual(e?.location === 'internal' && e.mimeType, 'video/mp4');
   });
 
   for (const [name, r, message] of [
-    ['未知の platform', row('video', 'external', { platform: 'tiktok', id: 'x' }), /Entity yt: invalid external: .*unknown platform/],
-    ['YouTube の動画 ID の形でない', row('video', 'external', { platform: 'youtube', id: 'short' }), /Entity yt: invalid external: .*invalid video id/],
-    ['external が無い', row('video', 'external', null), /Entity yt: invalid external/],
+    ['未知の platform', row('video', 'external', { platform: 'tiktok', id: 'x' }), /Entity yt: invalid external_ref: .*unknown platform/],
+    ['YouTube の動画 ID の形でない', row('video', 'external', { platform: 'youtube', id: 'short' }), /Entity yt: invalid external_ref: .*invalid video id/],
+    ['external_ref が無い', row('video', 'external', null), /Entity yt: invalid external_ref/],
     ['external の画像', row('image', 'external', { platform: 'youtube', id: '5WDuZByHZQA' }), /Entity yt: only a video can be external/],
     ['external の音声', row('audio', 'external', { platform: 'youtube', id: '5WDuZByHZQA' }), /Entity yt: only a video can be external/],
     ['未知の location', row('video', 'elsewhere', null), /Entity yt: invalid location/],

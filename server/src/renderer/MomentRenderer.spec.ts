@@ -90,7 +90,7 @@ describe("MomentRenderer.render", () => {
       width: 1280,
       height: 720,
       duration: 8315,
-      external: { platform: 'youtube', id: '5WDuZByHZQA' },
+      externalRef: { platform: 'youtube', id: '5WDuZByHZQA' },
     },
     {
       type: 'video', location: 'external',
@@ -101,7 +101,7 @@ describe("MomentRenderer.render", () => {
       width: 508,
       height: 720,
       duration: 60,
-      external: { platform: 'youtube', id: 'jLfOrvniehM' },
+      externalRef: { platform: 'youtube', id: 'jLfOrvniehM' },
     },
   ];
   // render が使う Shelf の読み取りだけを用意し、DB を立てずに済ませる。

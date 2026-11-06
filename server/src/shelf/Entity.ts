@@ -24,10 +24,10 @@ type InternalEntityBase = EntityBase & {
   readonly mimeType: string,
 };
 
-// サーバーの外にある entity。external は DB の external（jsonb）で、platform ごとの項目を持つ。
+// サーバーの外にある entity。externalRef は DB の external_ref（jsonb）で、platform ごとの項目を持つ。
 type ExternalEntityBase = EntityBase & {
   readonly location: 'external',
-  readonly external: ExternalVideoRef,
+  readonly externalRef: ExternalVideoRef,
 };
 
 type ImageTraits = {

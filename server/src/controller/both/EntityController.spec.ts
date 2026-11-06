@@ -10,7 +10,7 @@ import EntityController from './EntityController.js';
 const kExternal: Entity = {
   type: 'video', location: 'external', id: 'yt', iconID: 'yt-icon', timestamp: undefined,
   width: 1280, height: 720, duration: 1,
-  external: { platform: 'youtube', id: '5WDuZByHZQA' },
+  externalRef: { platform: 'youtube', id: '5WDuZByHZQA' },
 };
 
 class StubReply {
