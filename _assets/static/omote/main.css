@@ -204,6 +204,13 @@ h1 {
   width: 100%;
 }
 
+/* 縦横比（aspect-ratio）と幅の上限（max-width）は、レンダラが埋め込みの大きさから inline で付ける */
+.content-wrapper .content iframe.embed.external {
+  width: 100%;
+  height: auto;
+  border: 0;
+}
+
 
 img.emoji {
   height: 1em;

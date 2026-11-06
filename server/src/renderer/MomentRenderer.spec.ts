@@ -54,7 +54,7 @@ describe("MomentRenderer.renderNavigationFooter", () => {
 describe("MomentRenderer.render", () => {
   const entities: Entity[] = [
     {
-      type: 'image',
+      type: 'image', location: 'internal',
       id: 'img',
       mediumID: 'img-medium',
       iconID: 'img-icon',
@@ -64,7 +64,7 @@ describe("MomentRenderer.render", () => {
       height: 3000,
     },
     {
-      type: 'video',
+      type: 'video', location: 'internal',
       id: 'vid',
       iconID: 'vid-icon',
       mimeType: 'video/mp4',
@@ -74,12 +74,34 @@ describe("MomentRenderer.render", () => {
       duration: 10,
     },
     {
-      type: 'audio',
+      type: 'audio', location: 'internal',
       id: 'aud',
       iconID: 'aud-icon',
       mimeType: 'audio/mpeg',
       timestamp: undefined,
       duration: 10,
+    },
+    {
+      type: 'video', location: 'external',
+      id: 'yt',
+      iconID: 'yt-icon',
+     
+      timestamp: undefined,
+      width: 1280,
+      height: 720,
+      duration: 8315,
+      externalRef: { platform: 'youtube', id: '5WDuZByHZQA' },
+    },
+    {
+      type: 'video', location: 'external',
+      id: 'shorts',
+      iconID: 'shorts-icon',
+     
+      timestamp: undefined,
+      width: 508,
+      height: 720,
+      duration: 60,
+      externalRef: { platform: 'youtube', id: 'jLfOrvniehM' },
     },
   ];
   // render が使う Shelf の読み取りだけを用意し、DB を立てずに済ませる。
@@ -206,6 +228,25 @@ describe("MomentRenderer.render", () => {
     const html = await render('[video entity="vid"]');
     assert.ok(html.includes('src="/entity/vid"'));
     assert.ok(html.includes('<a href="/entity/vid">Click to play.</a>'));
+  });
+
+  it("外部（YouTube）の動画は youtube-nocookie の iframe にし、<video> や元ファイルへのリンクを出さない", async () => {
+    const html = await render('[video entity="yt"]');
+    assert.ok(html.startsWith('<div class="moment-info">'));
+    const iframe = /<iframe [^>]*><\/iframe>/.exec(html)?.[0] ?? '';
+    assert.ok(iframe.startsWith('<iframe class="embed external youtube" src="https://www.youtube-nocookie.com/embed/5WDuZByHZQA"'), html);
+    assert.ok(iframe.includes('title="YouTube video player"'), iframe);
+    assert.ok(iframe.includes('loading="lazy"'), iframe);
+    assert.ok(iframe.includes('allowfullscreen'), iframe);
+    assert.ok(iframe.includes('referrerpolicy="strict-origin-when-cross-origin"'), iframe);
+    assert.ok(iframe.includes('data-entity="yt" data-type="video"'), iframe);
+    assert.ok(!html.includes('<video'), html);
+    assert.ok(!html.includes('/entity/yt'), html);
+  });
+
+  it("外部の動画の縦横比と幅の上限は、埋め込みの大きさから付ける（Shorts は縦長）", async () => {
+    assert.ok((await render('[video entity="yt"]')).includes('style="aspect-ratio: 1280 / 720; max-width: 1280px;"'));
+    assert.ok((await render('[video entity="shorts"]')).includes('style="aspect-ratio: 508 / 720; max-width: 508px;"'));
   });
 
   it("音声は元ファイルを再生元にする", async () => {

@@ -11,7 +11,7 @@ import { resizeImage, makeImageIcon, makeVideoIcon, makeAudioIcon } from '../lib
 
 import Repo from '../repo/Repo.js';
 import Storage from '../storage/Storage.js';
-import { Entity, ImageEntity, VideoEntity, AudioEntity } from './Entity.js';
+import { Entity, ImageEntity, VideoEntity, AudioEntity, ExternalEntity, InternalEntity } from './Entity.js';
 import { EntityAnnotation, validateEntityAnnotation } from './EntityAnnotation.js';
 import {
   Moment,
@@ -64,7 +64,13 @@ class Shelf {
   async resolveEntityPath(entity: Entity, type: 'original' | 'medium' | 'icon'): Promise<[string, string] | null> {
     switch(type) {
       case 'original':
-        return this.storage.original.fetch(entity.id);
+        switch (entity.location) {
+          case 'internal':
+            return this.storage.original.fetch(entity.id);
+          case 'external':
+            // 外部の動画は、元ファイルを持たない。
+            return null;
+        }
       case 'medium':
         if (entity.type === 'image') {
           return this.storage.medium.fetch(entity.mediumID);
@@ -96,6 +102,7 @@ class Shelf {
           const iconID = await this.storage.icon.upload(iconPath);
           entity = {
             type: 'image',
+            location: 'internal',
             id: originalID,
             mediumID: mediumID,
             iconID: iconID,
@@ -111,6 +118,7 @@ class Shelf {
           const iconID = await this.storage.icon.upload(iconPath);
           entity = {
             type: 'video',
+            location: 'internal',
             id: originalID,
             iconID: iconID,
             mimeType: meta.mimeType,
@@ -126,6 +134,7 @@ class Shelf {
           const iconID = await this.storage.icon.upload(iconPath);
           entity = {
             type: 'audio',
+            location: 'internal',
             id: originalID,
             iconID: iconID,
             mimeType: meta.mimeType,
@@ -148,6 +157,17 @@ class Shelf {
   }
 
   async deleteEntity(e: Entity) {
+    switch (e.location) {
+      case 'internal':
+        await this.deleteInternalEntity(e);
+        break;
+      case 'external':
+        await this.deleteExternalEntity(e);
+        break;
+    }
+  }
+
+  private async deleteInternalEntity(e: InternalEntity) {
     switch(e.type) {
       case 'image':
         await this.storage.original.remove(e.id);
@@ -168,7 +188,24 @@ class Shelf {
     }
   }
 
+  // 外部の entity は、元ファイルを持たず icon だけを storage に持つ。
+  private async deleteExternalEntity(e: ExternalEntity) {
+    await this.storage.icon.remove(e.iconID);
+    await this.repo.deleteEntity(e);
+  }
+
   async regenerateEntityCache(entity: Entity) {
+    switch (entity.location) {
+      case 'internal':
+        return await this.regenerateInternalEntityCache(entity);
+      case 'external':
+        // 外部の entity を取り直す処理はまだ無い（取り込む経路も無いので、外部の entity はまだ存在しない）。
+        throw new Error(`regenerating an external entity is not supported yet: ${entity.id}`);
+    }
+  }
+
+  // 元ファイルから medium・icon と大きさ・長さを作り直す。
+  private async regenerateInternalEntityCache(entity: InternalEntity) {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
     try {
       const mediumPath =
@@ -196,6 +233,7 @@ class Shelf {
           const iconID = await this.storage.icon.upload(iconPath);
           newEntity = {
             type: 'image',
+            location: 'internal',
             id: entity.id,
             mediumID: mediumID,
             iconID: iconID,
@@ -211,6 +249,7 @@ class Shelf {
           const iconID = await this.storage.icon.upload(iconPath);
           newEntity = {
             type: 'video',
+            location: 'internal',
             id: entity.id,
             iconID: iconID,
             mimeType: entity.mimeType,
@@ -226,6 +265,7 @@ class Shelf {
           const iconID = await this.storage.icon.upload(iconPath);
           newEntity = {
             type: 'audio',
+            location: 'internal',
             id: entity.id,
             iconID: iconID,
             mimeType: entity.mimeType,
@@ -249,9 +289,17 @@ class Shelf {
 
   async resolveFilepaths(entity: Entity): Promise<Set<string>> {
     const set = new Set<string>();
-    const originalPath = this.storage.original.resolveAbsolutePath(entity.id);
-    if (originalPath !== null) {
-      set.add(originalPath);
+    switch (entity.location) {
+      case 'internal': {
+        const originalPath = this.storage.original.resolveAbsolutePath(entity.id);
+        if (originalPath !== null) {
+          set.add(originalPath);
+        }
+        break;
+      }
+      case 'external':
+        // 外部の entity は、元ファイルを持たない。
+        break;
     }
     const iconPath = this.storage.icon.resolveAbsolutePath(entity.iconID);
     if (iconPath !== null) {

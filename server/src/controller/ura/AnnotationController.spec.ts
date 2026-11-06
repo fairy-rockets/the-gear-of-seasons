@@ -19,8 +19,8 @@ const kAudio = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 const kMissing = 'cccccccccccccccccccccccccccccccc';
 
 const kEntities: Entity[] = [
-  { type: 'image', id: kImage, mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1, height: 1 },
-  { type: 'audio', id: kAudio, iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 1 },
+  { type: 'image', location: 'internal', id: kImage, mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1, height: 1 },
+  { type: 'audio', location: 'internal', id: kAudio, iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 1 },
 ];
 
 const kEmpty: protocol.AnnotationValues = {

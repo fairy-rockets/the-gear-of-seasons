@@ -5,12 +5,22 @@ import {fileTypeFromFile} from 'file-type';
 import send, {SendOptions} from '@fastify/send';
 
 import Shelf from '../../shelf/Shelf.js';
+import { Entity, ExternalEntity, InternalEntity } from '../../shelf/Entity.js';
+import { externalVideoPresentation } from '../../lib/ExternalVideoRef.js';
 
 export interface EntityControllerInterface extends RequestGenericInterface {
   Params: {
     id: string,
   }
 }
+
+type EntityFileType = 'original' | 'medium' | 'icon';
+
+// 送るファイル。original の Content-Type は元ファイルの種類（internal の mime_type）。
+type StoredFile =
+  | { readonly type: 'original', readonly contentType: string }
+  | { readonly type: 'medium' }
+  | { readonly type: 'icon' };
 
 export default class EntityController {
   private readonly shelf: Shelf;
@@ -20,7 +30,7 @@ export default class EntityController {
   static async create(shelf: Shelf): Promise<EntityController> {
     return new EntityController(shelf);
   }
-  async handle(type: 'original' | 'medium' | 'icon', _req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+  async handle(type: EntityFileType, _req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const req = _req as FastifyRequest<EntityControllerInterface>;
     const id = req.params.id;
     const entity = await this.shelf.findEntity(id);
@@ -30,13 +40,15 @@ export default class EntityController {
         .type('text/plain;charset=UTF-8')
         .send('Entity not found.');
     }
-    const filepath = await this.shelf.resolveEntityPath(entity, type);
-    if (filepath === null) {
-      return reply
-        .code(404)
-        .type('text/plain')
-        .send('Entity file has been lost.');
+    switch (entity.location) {
+      case 'internal':
+        return this.handleInternal(entity, type, req, reply);
+      case 'external':
+        return this.handleExternal(entity, type, req, reply);
     }
+  }
+
+  private async handleInternal(entity: InternalEntity, type: EntityFileType, req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     let ext;
     switch(entity.mimeType) {
       case 'image/jpeg':
@@ -62,6 +74,30 @@ export default class EntityController {
           .code(500)
           .type('text/plain;charset=UTF-8')
           .send(`Unsupported mime type: ${entity.mimeType}`);
+    }
+    const file: StoredFile = type === 'original'
+      ? { type: 'original', contentType: entity.mimeType }
+      : { type };
+    return this.sendFile(entity, file, ext, req, reply);
+  }
+
+  // 外部（今は YouTube だけ）の動画の元は外部のページ（platform ごとに externalRef の中身から組み立てる）。storage には icon だけを持つ。
+  private async handleExternal(entity: ExternalEntity, type: EntityFileType, req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    if (type === 'original') {
+      return reply.redirect(externalVideoPresentation(entity.externalRef).pageURL, 302);
+    }
+    // 元ファイルが無いので、ファイル名に付ける拡張子も無い。
+    return this.sendFile(entity, { type }, '', req, reply);
+  }
+
+  private async sendFile(entity: Entity, file: StoredFile, ext: string, req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    const id = entity.id;
+    const filepath = await this.shelf.resolveEntityPath(entity, file.type);
+    if (filepath === null) {
+      return reply
+        .code(404)
+        .type('text/plain')
+        .send('Entity file has been lost.');
     }
     const [rootPath, entityPath] = filepath;
 
@@ -91,12 +127,12 @@ export default class EntityController {
     }
     const stream = sendResult.stream;
 
-    switch (type) {
+    switch (file.type) {
       case 'original':
         return reply
           .code(sendResult.statusCode)
           .headers(sendResult.headers)
-          .type(entity.mimeType)
+          .type(file.contentType)
           .header('content-disposition', `inline; filename=\"${id+".original"+ext}\"`)
           .send(stream);
       case 'medium': {
@@ -121,11 +157,6 @@ export default class EntityController {
           .type('image/jpeg')
           .header("content-disposition", `inline; filename=\"${id+".icon"+ext}\"`)
           .send(stream);
-      default:
-        return reply
-          .code(500)
-          .type('text/plain;charset=UTF-8')
-          .send('Unknown entity type.');
     }
   }
 }

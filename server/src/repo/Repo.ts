@@ -3,7 +3,8 @@ import NodeCache from 'node-cache';
 import pg from 'pg';
 
 import Pool, { Queryable } from './Pool.js';
-import { Entity } from '../shelf/Entity.js';
+import { Entity, EntityLocation, ExternalVideoRef } from '../shelf/Entity.js';
+import { parseExternalVideoRef } from '../lib/ExternalVideoRef.js';
 import {
   EntityAnnotation,
   parseAnnotationMedium,
@@ -73,7 +74,9 @@ select
   "mime_type",
   "width",
   "height",
-  "duration"
+  "duration",
+  "location",
+  "external_ref"
 from entities
 `;
     const { rows } = await this.pool.query(q1, []);
@@ -100,7 +103,9 @@ select
   "mime_type",
   "width",
   "height",
-  "duration"
+  "duration",
+  "location",
+  "external_ref"
 from entities
   where id = $1
 `;
@@ -124,9 +129,9 @@ from entities
     // language=PostgreSQL
     const q = `
 insert into entities (
-  "id", "medium_id", "icon_id", "timestamp", "type", "mime_type", "width", "height", "duration"
+  "id", "medium_id", "icon_id", "timestamp", "type", "mime_type", "width", "height", "duration", "location", "external_ref"
 ) values (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 ) ON CONFLICT DO NOTHING;
 `;
     switch (entity.type) {
@@ -141,6 +146,8 @@ insert into entities (
           entity.width,
           entity.height,
           null,
+          'internal',
+          null,
         ]);
         break;
       }
@@ -151,10 +158,12 @@ insert into entities (
           entity.iconID,
           timestamp,
           'video',
-          entity.mimeType,
+          encodeMimeType(entity),
           entity.width,
           entity.height,
           entity.duration,
+          entity.location,
+          encodeExternalRef(entity),
         ]);
         break;
       case 'audio':
@@ -168,6 +177,8 @@ insert into entities (
           null,
           null,
           entity.duration,
+          'internal',
+          null,
         ]);
         break;
       default:
@@ -219,7 +230,7 @@ where
           entity.id,
           null,
           entity.iconID,
-          entity.mimeType,
+          encodeMimeType(entity),
           entity.width,
           entity.height,
           entity.duration,
@@ -596,6 +607,56 @@ function decodeMomentSummary(row: pg.QueryResultRow): MomentSummary {
   };
 }
 
+// mime_type 列の値。internal は元ファイルの種類、external は元ファイルが無いので NULL。
+function encodeMimeType(entity: Entity): string | null {
+  switch (entity.location) {
+    case 'internal':
+      return entity.mimeType;
+    case 'external':
+      return null;
+  }
+}
+
+// external_ref 列（jsonb）の値。配列でない値は JSON の文字列にして渡す。internal は NULL。
+function encodeExternalRef(entity: Entity): string | null {
+  switch (entity.location) {
+    case 'internal':
+      return null;
+    case 'external':
+      return JSON.stringify(entity.externalRef);
+  }
+}
+
+// external_ref（jsonb）を platform で振り分けて、platform ごとに中身を検証する。未知の platform・不正な中身なら例外を投げる。
+function decodeExternalVideoRef(id: string, value: unknown): ExternalVideoRef {
+  try {
+    return parseExternalVideoRef(value);
+  } catch (e) {
+    throw new Error(`Entity ${id}: invalid external_ref: ${(e as Error).message}`);
+  }
+}
+
+// location を読む。external になれるのは video だけ（DB の CHECK と同じ）。外れた行なら例外を投げる。
+function decodeLocation(row: pg.QueryResultRow): EntityLocation {
+  const location = row['location'];
+  if (location !== 'internal' && location !== 'external') {
+    throw new Error(`Entity ${row['id']}: invalid location: ${location}`);
+  }
+  if (location === 'external' && row['type'] !== 'video') {
+    throw new Error(`Entity ${row['id']}: only a video can be external (type: ${row['type']})`);
+  }
+  return location;
+}
+
+// internal の mime_type（元ファイルの種類）。internal なら必ずある（DB の CHECK と同じ）。無い行なら例外を投げる。
+function decodeMimeType(row: pg.QueryResultRow): string {
+  const mimeType = row['mime_type'];
+  if (typeof mimeType !== 'string') {
+    throw new Error(`Entity ${row['id']}: an internal entity must have mime_type`);
+  }
+  return mimeType;
+}
+
 function decodeEntity(row: pg.QueryResultRow): Entity {
   const type = row['type'] as string;
   const timestamp = (() => {
@@ -606,36 +667,45 @@ function decodeEntity(row: pg.QueryResultRow): Entity {
       return dayjs(d as Date);
     }
   })();
+  const location = decodeLocation(row);
   switch (type) {
     case 'image':
       return {
         type: 'image',
+        location: 'internal',
         id: row['id'] as string,
         mediumID: row['medium_id'] as string,
         iconID: row['icon_id'] as string,
         timestamp: timestamp,
-        mimeType: row['mime_type'] as string,
+        mimeType: decodeMimeType(row),
         width: row['width'] as number,
         height: row['height'] as number,
       };
-    case 'video':
-      return {
-        type: 'video',
+    case 'video': {
+      const video = {
+        type: 'video' as const,
         id: row['id'] as string,
         iconID: row['icon_id'] as string,
         timestamp: timestamp,
-        mimeType: row['mime_type'] as string,
         width: row['width'] as number,
         height: row['height'] as number,
         duration: row['duration'] as number,
       };
+      switch (location) {
+        case 'internal':
+          return { ...video, location: 'internal', mimeType: decodeMimeType(row) };
+        case 'external':
+          return { ...video, location: 'external', externalRef: decodeExternalVideoRef(video.id, row['external_ref']) };
+      }
+    }
     case 'audio':
       return {
         type: 'audio',
+        location: 'internal',
         id: row['id'] as string,
         iconID: row['icon_id'] as string,
         timestamp: timestamp,
-        mimeType: row['mime_type'] as string,
+        mimeType: decodeMimeType(row),
         duration: row['duration'] as number,
       };
     default:

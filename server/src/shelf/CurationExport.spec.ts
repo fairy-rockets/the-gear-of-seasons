@@ -29,13 +29,13 @@ const kC = 'cccccccccccccccccccccccccccccccc';
 const kD = 'dddddddddddddddddddddddddddddddd';
 
 const kImageA: Entity = {
-  type: 'image', id: kA, mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1200, height: 1600,
+  type: 'image', location: 'internal', id: kA, mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1200, height: 1600,
 };
 const kVideoB: Entity = {
-  type: 'video', id: kB, iconID: 'i', timestamp: undefined, mimeType: 'video/mp4', width: 1920, height: 1080, duration: 19.5,
+  type: 'video', location: 'internal', id: kB, iconID: 'i', timestamp: undefined, mimeType: 'video/mp4', width: 1920, height: 1080, duration: 19.5,
 };
 const kAudioC: Entity = {
-  type: 'audio', id: kC, iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 61.25,
+  type: 'audio', location: 'internal', id: kC, iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 61.25,
 };
 
 function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): EntityAnnotation {

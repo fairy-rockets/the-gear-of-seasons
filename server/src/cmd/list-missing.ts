@@ -13,6 +13,7 @@ import * as path from 'path';
 import Repo from '../repo/Repo.js';
 import Shelf from '../shelf/Shelf.js';
 import { Entity } from '../shelf/Entity.js';
+import { entityKind } from './lib/entity.js';
 import { formatMomentPath } from '../shelf/Moment.js';
 import * as fml from '../lib/fml.js';
 
@@ -111,13 +112,20 @@ async function main() {
     const used = new Map<Kind, Set<string>>(kKinds.map((kind) => [kind, new Set<string>()]));
     for (const entity of entities.values()) {
       const mediumID = mediumIDOf(entity);
-      used.get('original')!!.add(entity.id);
+      switch (entity.location) {
+        case 'internal':
+          used.get('original')!!.add(entity.id);
+          if (!stored.get('original')!!.has(entity.id)) {
+            missing.get('original')!!.push(entity);
+          }
+          break;
+        case 'external':
+          // 外部（今は YouTube だけ）の動画は original を持たない（icon だけ）。NAS から探し直す一覧にも入れない。
+          break;
+      }
       used.get('icon')!!.add(entity.iconID);
       if (mediumID !== null) {
         used.get('medium')!!.add(mediumID);
-      }
-      if (!stored.get('original')!!.has(entity.id)) {
-        missing.get('original')!!.push(entity);
       }
       if (!stored.get('icon')!!.has(entity.iconID)) {
         missing.get('icon')!!.push(entity);
@@ -149,7 +157,7 @@ async function main() {
       for (const entity of list.sort((a, b) => a.id.localeCompare(b.id))) {
         const where = refs.get(entity.id);
         const from = where === undefined ? '(本文から参照されていません)' : [...where].sort().join(' ');
-        console.log(`  - ${entity.id} [${entity.type}] ${entity.mimeType} ${from}`);
+        console.log(`  - ${entity.id} [${entity.type}] ${entityKind(entity)} ${from}`);
       }
       console.log();
     }
@@ -182,7 +190,7 @@ async function main() {
       const lostOriginals = missing.get('original')!!;
       await write(
         'missing-original.tsv',
-        lostOriginals.map((e) => [e.id, e.type, e.mimeType].join('\t')),
+        lostOriginals.map((e) => [e.id, e.type, entityKind(e)].join('\t')),
       );
       await write('missing-original.md5.txt', lostOriginals.map((e) => e.id));
       // tools/restore.rs の --md5-map が読む形式（medium を持つ image だけ）
@@ -195,7 +203,7 @@ async function main() {
       for (const kind of ['medium', 'icon'] as Kind[]) {
         await write(
           `missing-${kind}.tsv`,
-          missing.get(kind)!!.map((e) => [e.id, kind === 'medium' ? mediumIDOf(e) : e.iconID, e.mimeType].join('\t')),
+          missing.get(kind)!!.map((e) => [e.id, kind === 'medium' ? mediumIDOf(e) : e.iconID, entityKind(e)].join('\t')),
         );
       }
       await write('dangling-refs.tsv', dangling.map((id) => [id, [...refs.get(id)!!].sort().join(' ')].join('\t')));
