@@ -3,8 +3,8 @@ import NodeCache from 'node-cache';
 import pg from 'pg';
 
 import Pool, { Queryable } from './Pool.js';
-import { Entity, EntityLocation, ExternalVideo } from '../shelf/Entity.js';
-import { parseExternalVideo } from '../lib/ExternalVideoFormat.js';
+import { Entity, EntityLocation, ExternalVideoRef } from '../shelf/Entity.js';
+import { parseExternalVideoRef } from '../lib/ExternalVideoRef.js';
 import {
   EntityAnnotation,
   parseAnnotationMedium,
@@ -628,9 +628,9 @@ function encodeExternal(entity: Entity): string | null {
 }
 
 // external（jsonb）を platform で振り分けて、platform ごとに中身を検証する。未知の platform・不正な中身なら例外を投げる。
-function decodeExternalVideo(id: string, value: unknown): ExternalVideo {
+function decodeExternalVideoRef(id: string, value: unknown): ExternalVideoRef {
   try {
-    return parseExternalVideo(value);
+    return parseExternalVideoRef(value);
   } catch (e) {
     throw new Error(`Entity ${id}: invalid external: ${(e as Error).message}`);
   }
@@ -695,7 +695,7 @@ function decodeEntity(row: pg.QueryResultRow): Entity {
         case 'internal':
           return { ...video, location: 'internal', mimeType: decodeMimeType(row) };
         case 'external':
-          return { ...video, location: 'external', external: decodeExternalVideo(video.id, row['external']) };
+          return { ...video, location: 'external', external: decodeExternalVideoRef(video.id, row['external']) };
       }
     }
     case 'audio':

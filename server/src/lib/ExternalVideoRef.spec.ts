@@ -2,14 +2,14 @@ import { describe, it } from 'mocha';
 import assert from 'assert';
 
 import {
-  ExternalVideoFormatError,
+  ExternalVideoRefFormatError,
   externalVideoPresentation,
-  parseExternalVideo,
-} from './ExternalVideoFormat.js';
+  parseExternalVideoRef,
+} from './ExternalVideoRef.js';
 
-describe("ExternalVideoFormat", () => {
+describe("ExternalVideoRef", () => {
   it("YouTube の external を読む", () => {
-    assert.deepStrictEqual(parseExternalVideo({ platform: 'youtube', id: 'TXt9E_dNVms' }), { platform: 'youtube', id: 'TXt9E_dNVms' });
+    assert.deepStrictEqual(parseExternalVideoRef({ platform: 'youtube', id: 'TXt9E_dNVms' }), { platform: 'youtube', id: 'TXt9E_dNVms' });
   });
   for (const value of [
     null, 'youtube', [], {},
@@ -21,7 +21,7 @@ describe("ExternalVideoFormat", () => {
     { platform: 'youtube', id: 'TXt9E_dNVms', url: 'https://example.com/' },
   ]) {
     it(`不正な external（${JSON.stringify(value)}）は投げる`, () => {
-      assert.throws(() => parseExternalVideo(value), ExternalVideoFormatError);
+      assert.throws(() => parseExternalVideoRef(value), ExternalVideoRefFormatError);
     });
   }
   it("ページと埋め込みの URL、プレイヤーの title は platform ごとに中身から組み立てる", () => {

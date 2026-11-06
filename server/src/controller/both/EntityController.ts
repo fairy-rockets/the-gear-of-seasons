@@ -6,7 +6,7 @@ import send, {SendOptions} from '@fastify/send';
 
 import Shelf from '../../shelf/Shelf.js';
 import { Entity, ExternalEntity, InternalEntity } from '../../shelf/Entity.js';
-import { externalVideoPresentation } from '../../lib/ExternalVideoFormat.js';
+import { externalVideoPresentation } from '../../lib/ExternalVideoRef.js';
 
 export interface EntityControllerInterface extends RequestGenericInterface {
   Params: {

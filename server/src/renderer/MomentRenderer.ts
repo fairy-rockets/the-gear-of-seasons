@@ -4,7 +4,7 @@ import {marked} from 'marked';
 import dayjs from 'dayjs';
 
 import * as fml from '../lib/fml.js';
-import { externalVideoPresentation } from '../lib/ExternalVideoFormat.js';
+import { externalVideoPresentation } from '../lib/ExternalVideoRef.js';
 
 import Shelf from '../shelf/Shelf.js';
 import { ExternalVideoEntity } from '../shelf/Entity.js';

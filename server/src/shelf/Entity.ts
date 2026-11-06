@@ -1,8 +1,8 @@
 import dayjs from 'dayjs';
 
-import { ExternalVideo } from '../lib/ExternalVideoFormat.js';
+import { ExternalVideoRef } from '../lib/ExternalVideoRef.js';
 
-export type { ExternalVideo };
+export type { ExternalVideoRef };
 
 // entity の型は、「どこに置いてあるか」の Base と、「何のメディアか」の Traits を組み合わせて作る。
 
@@ -27,7 +27,7 @@ type InternalEntityBase = EntityBase & {
 // サーバーの外にある entity。external は DB の external（jsonb）で、platform ごとの項目を持つ。
 type ExternalEntityBase = EntityBase & {
   readonly location: 'external',
-  readonly external: ExternalVideo,
+  readonly external: ExternalVideoRef,
 };
 
 type ImageTraits = {
