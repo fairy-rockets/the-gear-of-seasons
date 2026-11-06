@@ -158,12 +158,12 @@ insert into entities (
           entity.iconID,
           timestamp,
           'video',
-          locationColumns(entity).mimeType,
+          encodeMimeType(entity),
           entity.width,
           entity.height,
           entity.duration,
           entity.location,
-          locationColumns(entity).external,
+          encodeExternal(entity),
         ]);
         break;
       case 'audio':
@@ -230,7 +230,7 @@ where
           entity.id,
           null,
           entity.iconID,
-          locationColumns(entity).mimeType,
+          encodeMimeType(entity),
           entity.width,
           entity.height,
           entity.duration,
@@ -607,14 +607,23 @@ function decodeMomentSummary(row: pg.QueryResultRow): MomentSummary {
   };
 }
 
-// 置き場所で値が決まる列。internal は元ファイルの種類（mime_type）を持ち、external は外部の動画を指す値（external、jsonb）を持つ。
-// jsonb には、配列でない値を JSON の文字列にして渡す。
-function locationColumns(entity: Entity): { mimeType: string | null, external: string | null } {
+// mime_type 列の値。internal は元ファイルの種類、external は元ファイルが無いので NULL。
+function encodeMimeType(entity: Entity): string | null {
   switch (entity.location) {
     case 'internal':
-      return { mimeType: entity.mimeType, external: null };
+      return entity.mimeType;
     case 'external':
-      return { mimeType: null, external: JSON.stringify(entity.external) };
+      return null;
+  }
+}
+
+// external 列（jsonb）の値。配列でない値は JSON の文字列にして渡す。internal は NULL。
+function encodeExternal(entity: Entity): string | null {
+  switch (entity.location) {
+    case 'internal':
+      return null;
+    case 'external':
+      return JSON.stringify(entity.external);
   }
 }
 
