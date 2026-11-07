@@ -94,11 +94,16 @@ describe("youtubeVideoInfo", () => {
         (e: unknown) => e instanceof ExternalVideoError && e.statusCode === 400 && e.message.includes(why));
     });
   }
-  it("liveBroadcastContent が無ければ取り込まない", () => {
-    assert.throws(
-      () => youtubeVideoInfo({ ...kLong, snippet: { ...kLong.snippet, liveBroadcastContent: undefined } }),
-      ExternalVideoError);
-  });
+  for (const [name, resource] of [
+    ['liveBroadcastContent が無い', { ...kLong, snippet: { ...kLong.snippet, liveBroadcastContent: undefined } }],
+    ['liveBroadcastContent が知らない値', { ...kLong, snippet: { ...kLong.snippet, liveBroadcastContent: 'unknown' } }],
+    ['snippet が無い', { ...kLong, snippet: undefined }],
+  ] as [string, YouTubeVideoResource][]) {
+    it(`${name}なら、応答の問題として 502 で取り込まない`, () => {
+      assert.throws(() => youtubeVideoInfo(resource),
+        (e: unknown) => e instanceof ExternalVideoError && e.statusCode === 502);
+    });
+  }
   it("長さ・大きさ・時刻が読めなければ取り込まない", () => {
     assert.throws(() => youtubeVideoInfo({ ...kLong, contentDetails: { duration: 'xx' } }), ExternalVideoError);
     assert.throws(() => youtubeVideoInfo({ ...kLong, player: {} }), ExternalVideoError);

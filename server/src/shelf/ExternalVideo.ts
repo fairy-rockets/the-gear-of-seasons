@@ -73,9 +73,13 @@ function positiveInteger(v: number | string | undefined): number | null {
 export function youtubeVideoInfo(resource: YouTubeVideoResource): ExternalVideoInfo {
   const snippet = resource.snippet;
   const live = snippet?.liveBroadcastContent;
-  if (live !== 'none') {
-    const why = live === 'live' ? '配信中' : live === 'upcoming' ? '配信予定' : `liveBroadcastContent=${live}`;
+  if (live === 'live' || live === 'upcoming') {
+    const why = live === 'live' ? '配信中' : '配信予定';
     throw new ExternalVideoError(400, `YouTube の動画 ${resource.id} は${why}なので取り込めません。配信が終わってから取り込んでください。`);
+  }
+  // 値が無い・知らない値なのは YouTube の応答の問題なので、ほかの値が欠けているときと同じく 502 にする。
+  if (live !== 'none') {
+    throw new ExternalVideoError(502, `YouTube の動画 ${resource.id} が配信かどうか分かりません: liveBroadcastContent=${live}`);
   }
   // 生放送のアーカイブでは publishedAt が配信開始より後になるので、配信開始の時刻を先に見る。
   const time = resource.liveStreamingDetails?.actualStartTime ?? snippet?.publishedAt;
