@@ -144,6 +144,22 @@ describe("POST /insert-embed", () => {
     assert.strictEqual(r.body, `[video entity="${kID}"]`);
   });
 
+  for (const [name, api, includes] of [
+    ['動画の情報を取れない', { findVideo: async () => { throw new Error('YouTube Data API: 500'); }, fetchImage: async () => thumbnail }, 'YouTube Data API: 500'],
+    ['サムネイルを取れない', { findVideo: async () => kVideo, fetchImage: async () => { throw new Error('YouTube のサムネイル: 404'); } }, 'YouTube のサムネイル: 404'],
+    ['サムネイルが画像でない', { findVideo: async () => kVideo, fetchImage: async () => Buffer.from('<html>error</html>') }, 'サムネイルを icon にできません'],
+  ] as [string, YouTubeDataAPI, string][]) {
+    it(`${name}なら 502 で、entity も icon も作らない`, async () => {
+      const { repo, icons, post } = setup(api);
+      const r = await post({ url: 'https://youtu.be/TXt9E_dNVms' });
+      assert.strictEqual(r.statusCode, 502);
+      assert.deepStrictEqual([r.body.statusCode, r.body.error], [502, 'Bad Gateway']);
+      assert.ok(r.body.message.includes(includes), r.body.message);
+      assert.strictEqual(repo.entities.size, 0);
+      assert.deepStrictEqual(icons, []);
+    });
+  }
+
   for (const [name, api, body, status, includes] of [
     ['url が無い', 'fake', {}, 400, 'url'],
     ['url が文字列でない', 'fake', { url: 1 }, 400, 'url'],

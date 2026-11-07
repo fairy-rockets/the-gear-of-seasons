@@ -208,7 +208,12 @@ class Shelf {
       const thumbnailPath = path.join(tempDir, 'thumbnail');
       const iconPath = path.join(tempDir, 'icon.jpg');
       await fs.writeFile(thumbnailPath, thumbnail);
-      await makeImageIcon(thumbnailPath, iconPath, 256);
+      try {
+        await makeImageIcon(thumbnailPath, iconPath, 256);
+      } catch (e) {
+        // 取れたサムネイルが画像として読めない（エラーのページが返った、など）のは、外部の応答の問題なので 502 にする。
+        throw new ExternalVideoError(502, `外部の動画のサムネイルを icon にできません: ${(e as Error).message}`);
+      }
       return await this.storage.icon.upload(iconPath);
     } finally {
       await fs.rm(tempDir, {
