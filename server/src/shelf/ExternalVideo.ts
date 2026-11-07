@@ -47,6 +47,14 @@ export function externalVideoEntityID(video: ExternalVideoRef): string {
   return crypto.createHash('md5').update(`${video.platform}:${video.id}`).digest('hex');
 }
 
+// 環境変数の設定で作る、サーバーとコマンドが使う platform の一覧。
+export function defaultExternalVideoPlatforms(): ExternalVideoPlatform[] {
+  const key = Config.youtubeApiKey;
+  return [
+    new YouTubePlatform(key !== null ? new YouTubeDataAPIClient(key) : null),
+  ];
+}
+
 /* *************************************************************************************************
  * YouTube
  ************************************************************************************************ */
@@ -146,12 +154,4 @@ export class YouTubePlatform implements ExternalVideoPlatform {
     }
     return { info, thumbnail };
   }
-}
-
-// 環境変数の設定で作る、サーバーとコマンドが使う platform の一覧。
-export function defaultExternalVideoPlatforms(): ExternalVideoPlatform[] {
-  const key = Config.youtubeApiKey;
-  return [
-    new YouTubePlatform(key !== null ? new YouTubeDataAPIClient(key) : null),
-  ];
 }

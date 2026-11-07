@@ -36,7 +36,7 @@ async function main(ids: string[]) {
       try {
         await shelf.regenerateEntityCache(entity);
       } catch (err) {
-        // 理由は message だけを出す（YouTube の失敗は、キーを含まない message にしてある）。
+        // 理由は message だけを出す。
         const reason = err instanceof Error ? err.message : String(err);
         console.error(` -> Failed: ${entity.id}: ${reason}`);
         failed.push(entity.id);

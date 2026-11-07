@@ -35,7 +35,7 @@ const kWithoutVisibility: { [name: string]: string } = {
   resolveEntityPath: 'moment を引かない',
   insertEntity: 'moment を引かない',
   insertExternalVideo: 'moment を引かない',
-  uploadExternalVideoIcon: 'moment を引かない',
+  generateExternalVideoIcon: 'moment を引かない',
   regenerateExternalVideoCache: 'moment を引かない',
   deleteEntity: 'moment を引かない',
   deleteInternalEntity: 'moment を引かない',

@@ -190,7 +190,7 @@ class Shelf {
       type: 'video',
       location: 'external',
       id: id,
-      iconID: await this.uploadExternalVideoIcon(thumbnail),
+      iconID: await this.generateExternalVideoIcon(thumbnail),
       timestamp: info.timestamp,
       width: info.width,
       height: info.height,
@@ -202,7 +202,7 @@ class Shelf {
   }
 
   // 外部の動画のサムネイルから icon を作り、storage に置く。
-  private async uploadExternalVideoIcon(thumbnail: Buffer): Promise<string> {
+  private async generateExternalVideoIcon(thumbnail: Buffer): Promise<string> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'the-gear-of-seasons-upload-'));
     try {
       const thumbnailPath = path.join(tempDir, 'thumbnail');
@@ -232,7 +232,7 @@ class Shelf {
     const { info, thumbnail } = await platform.fetch(entity.externalRef);
     const newEntity: ExternalVideoEntity = {
       ...entity,
-      iconID: await this.uploadExternalVideoIcon(thumbnail),
+      iconID: await this.generateExternalVideoIcon(thumbnail),
       width: info.width,
       height: info.height,
       duration: info.duration,
