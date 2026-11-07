@@ -297,6 +297,9 @@ export default class Editor {
             this.text_.value.substring(0, startPos)
           + embedsString
           + this.text_.value.substring(endPos, this.text_.value.length);
+      // value に代入するとカーソルが末尾に飛ぶので、挿入した文字列の直後に置き直す。
+      const caret = startPos + embedsString.length;
+      this.text_.setSelectionRange(caret, caret);
     } else {
       this.text_.value += '\n' + embedsString;
     }
