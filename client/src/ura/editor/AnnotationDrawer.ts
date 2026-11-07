@@ -15,13 +15,15 @@ type Entry = {
 type Kind =
   { kind: 'enum', values: readonly string[] } |
   { kind: 'string', multiline: boolean } |
-  { kind: 'list' } |
+  // suggestions は、押すと欄にその値を足したり外したりするボタン。候補に無い値も欄に書ける。
+  { kind: 'list', suggestions?: readonly string[] } |
   { kind: 'tristate' } |
   { kind: 'checkbox' };
 
 // Record にしてあるので、protocol.ts に項目を足すと、ここに足すまでコンパイルが通らない。
 const kKinds: Record<AnnotationField, Kind> = {
   medium: { kind: 'enum', values: protocol.kAnnotationMedia },
+  materials: { kind: 'list', suggestions: protocol.kMaterialSuggestions },
   alt: { kind: 'string', multiline: false },
   description: { kind: 'string', multiline: true },
   tags: { kind: 'list' },
@@ -40,6 +42,7 @@ const kKinds: Record<AnnotationField, Kind> = {
 // 欄の見出し。DB とキュレーションのファイルと同じ名前にする。
 const kLabels: Record<AnnotationField, string> = {
   medium: 'medium',
+  materials: 'materials',
   alt: 'alt',
   description: 'description',
   tags: 'tags',
@@ -58,7 +61,7 @@ const kLabels: Record<AnnotationField, string> = {
 // 引き出しの先頭にまとめる、Ollama が下書きする項目と、それをすべて確かめたかの human_verified（#2）。human_verified は最後。
 // ほかの項目は、このまとまりの後に protocol.ts の kAnnotationFields の順で並べる。
 const kDraftFields: readonly AnnotationField[] = [
-  'medium', 'alt', 'description', 'tags', 'palette', 'looksNude', 'looksChild', 'looksNote', 'humanVerified',
+  'medium', 'materials', 'alt', 'description', 'tags', 'palette', 'looksNude', 'looksChild', 'looksNote', 'humanVerified',
 ];
 
 const kTypeLabels: Record<protocol.EntityType, string> = {
@@ -587,10 +590,22 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
       text.disabled = check.checked;
       empty.appendChild(check);
       empty.appendChild(document.createTextNode('なし（空のリスト）'));
-      text.addEventListener('input', touch);
+      const buttons: HTMLButtonElement[] = [];
+      // 候補のボタンの押された見た目を、欄の今の値に合わせる。
+      const refresh = () => {
+        const items = check.checked ? [] : splitList(text.value);
+        for (const b of buttons) {
+          b.setAttribute('aria-pressed', String(items.includes(b.value)));
+        }
+      };
+      text.addEventListener('input', () => {
+        touch();
+        refresh();
+      });
       check.addEventListener('change', () => {
         touch();
         text.disabled = check.checked;
+        refresh();
       });
       input.read = () => {
         if (check.checked) {
@@ -601,7 +616,41 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
       };
       box.appendChild(text);
       box.appendChild(empty);
-      row.appendChild(box);
+      if (kind.suggestions === undefined) {
+        row.appendChild(box);
+        break;
+      }
+      const column = document.createElement('div');
+      column.classList.add('annotation-list-column');
+      const suggestions = document.createElement('div');
+      suggestions.classList.add('annotation-suggestions');
+      for (const v of kind.suggestions) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.value = v;
+        b.textContent = v;
+        // 押すと欄の値に足す（あれば外す）。「なし」のチェックは外す。
+        b.addEventListener('click', () => {
+          const items = check.checked ? [] : splitList(text.value);
+          const i = items.indexOf(v);
+          if (i >= 0) {
+            items.splice(i, 1);
+          } else {
+            items.push(v);
+          }
+          check.checked = false;
+          text.disabled = false;
+          text.value = items.join(', ');
+          // 手で書いたときと同じく input を起こし、触った印・ボタンの見た目・引き出しの未保存の判定を更新する。
+          text.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        buttons.push(b);
+        suggestions.appendChild(b);
+      }
+      refresh();
+      column.appendChild(box);
+      column.appendChild(suggestions);
+      row.appendChild(column);
       break;
     }
     case 'tristate': {

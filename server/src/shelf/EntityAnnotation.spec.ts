@@ -16,6 +16,7 @@ const kAudio: Entity = {
 const kEmpty: EntityAnnotation = {
   entityID: kID,
   medium: null,
+  materials: null,
   alt: null,
   description: null,
   tags: null,

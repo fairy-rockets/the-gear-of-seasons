@@ -17,10 +17,10 @@ const html = `<!doctype html><meta charset="utf-8"><div class="editor-wrapper">
 <select id="tier"><option>archive</option><option>pickup</option></select>
 <input id="series" value="a, b">
 <select id="sensitive"><option value="auto">自動</option><option>true</option><option>false</option></select>
-<textarea id="text">本文</textarea><button id="save">SAVE</button><button id="delete">DEL</button>
+<textarea id="text">本文</textarea><textarea id="intent"></textarea><button id="save">SAVE</button><button id="delete">DEL</button>
 <button id="upload">UPLOAD</button></div><div id="preview"></div><a id="leave" href="/other">移動</a>
 <script src="/js/editor.js"></script>`;
-const empty = { medium: null, alt: null, description: null, tags: null, palette: null,
+const empty = { medium: null, materials: null, alt: null, description: null, tags: null, palette: null,
   characters: null, looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
   role: null, roleGroup: null, roleStar: null, roleNote: null };
 const browser = await puppeteer.launch({ executablePath: '/usr/bin/chromium', headless: true,
@@ -32,6 +32,8 @@ let fail = false;
 let saves = 0;
 let deletes = 0;
 let lastDelete = null;
+let lastSave = null;
+let lastAnnotation = null;
 page.on('pageerror', error => { throw error; });
 await page.setRequestInterception(true);
 page.on('request', async request => {
@@ -46,6 +48,8 @@ page.on('request', async request => {
     const req = JSON.parse(request.postData());
     if (path === '/save') saves++;
     if (path === '/delete') { deletes++; lastDelete = req; }
+    if (path === '/save') lastSave = req;
+    if (path === '/annotation') lastAnnotation = req;
     const body = path === '/save' ? { date: req.date ?? date, status: req.status,
       path: '/edit', sensitive: false, sensitiveManual: false, body: media }
       : path === '/delete' ? { year: '2026' } : {};
@@ -95,7 +99,7 @@ try {
     ['#date', '2027/01/01 00:00:00', date, 'input'],
     ['#author', '甚三紅もみじ', '宵宮ナギ', 'change'], ['#status', 'published', 'draft', 'change'],
     ['#tier', 'pickup', 'archive', 'change'], ['#series', 'a,b', 'a, b', 'input'],
-    ['#sensitive', 'true', 'auto', 'change'],
+    ['#sensitive', 'true', 'auto', 'change'], ['#intent', 'ねらい', '', 'input'],
   ]) {
     await input(selector, changed, event);
     assert.equal(await dirty(), true, `${selector} protects raw changes`);
@@ -120,6 +124,7 @@ try {
   page.off('dialog', dismissUnload);
   await page.click('#save'); await idle();
   assert.equal(await dirty(), false, 'successful SAVE is clean');
+  assert.equal(lastSave.intent, null, 'empty intent is sent as null');
   console.log('ok: native reload/navigation/tab close confirmation and successful SAVE');
 
   hold = true;
@@ -144,7 +149,10 @@ try {
   assert.equal(await page.$eval('#status', el => el.value), 'published');
   assert.equal(await dirty(), true, 'edits during SAVE survive');
   await page.click('#save'); await idle(); assert.equal(await dirty(), false);
-  console.log('ok: failed/pending SAVE, duplicate SAVE and edits during SAVE');
+  await input('#intent', 'ねらい\n二行目'); assert.equal(await dirty(), true, 'intent protects changes');
+  await page.click('#save'); await idle();
+  assert.equal(lastSave.intent, 'ねらい\n二行目'); assert.equal(await dirty(), false);
+  console.log('ok: failed/pending SAVE, duplicate SAVE, edits during SAVE and intent');
 
   await annotation(); await page.waitForSelector('.annotation-form input');
   assert.equal(await dirty(), false, 'opening annotation is clean');
@@ -160,12 +168,26 @@ try {
   await annotationInput('通信中に変更'); await release(); await idle();
   assert.equal(await dirty(), true, 'annotation edits during save survive');
   await page.click('.annotation-save'); await idle(); assert.equal(await dirty(), false);
+  // materials の候補のボタンは、押すと欄に足し、もう一度押すと外す。候補に無い値も欄に書ける。
+  const materials = () => page.evaluate(() => [...document.querySelectorAll('.annotation-field')]
+    .find(el => el.querySelector('.annotation-label').textContent === 'materials')
+    .querySelector('input[type="text"]').value);
+  const suggestion = v => page.click(`.annotation-suggestions button[value="${v}"]`);
+  await suggestion('pencil'); await suggestion('digital');
+  assert.equal(await materials(), 'pencil, digital');
+  assert.equal(await page.$eval('.annotation-suggestions button[value="pencil"]', el => el.getAttribute('aria-pressed')), 'true');
+  await suggestion('pencil');
+  assert.equal(await materials(), 'digital');
+  assert.equal(await dirty(), true, 'suggestion buttons mark the annotation dirty');
+  await page.click('.annotation-save'); await idle();
+  assert.deepEqual(lastAnnotation.annotation.materials, ['digital']);
+  assert.equal(await dirty(), false);
   await annotationInput('一時変更'); await annotationInput('通信中に変更');
   assert.equal(await dirty(), false, 'annotation revert is clean');
   await input('#title', 'moment だけ未保存');
   await page.click('.annotation-save'); await idle(); assert.equal(await dirty(), true);
   await page.click('.annotation-close');
-  console.log('ok: independent saves, failed/pending annotation save, edits and revert');
+  console.log('ok: independent saves, failed/pending annotation save, materials suggestions, edits and revert');
 
   let confirmed = '';
   page.once('dialog', async dialog => { confirmed = dialog.message(); await dialog.dismiss(); });

@@ -147,6 +147,10 @@ export function hexeYamlObject(
     sensitive: m.sensitive,
     sensitive_manual: m.sensitiveManual,
   };
+  // 値の無い項目はキーごと書かない（メディアの注釈と同じ）。複数行なら stringifyYaml が | のブロックにする。
+  if (m.intent !== null) {
+    obj['intent'] = m.intent;
+  }
   if (m.iconID !== undefined) {
     obj['icon'] = m.iconID;
   }

@@ -6,6 +6,7 @@ import * as protocol from '../../lib/protocol.js';
 import Shelf from '../../shelf/Shelf.js';
 import {
   Moment,
+  parseMomentIntent,
   parseMomentSeries,
   parseMomentStatus,
   parseMomentTier,
@@ -40,6 +41,7 @@ export default class PreviewController {
       series: parseMomentSeries(raw.series),
       sensitive: override ?? false,
       sensitiveManual: override !== null,
+      intent: parseMomentIntent(raw.intent),
     };
     return reply
       .type('text/html;charset=UTF-8')

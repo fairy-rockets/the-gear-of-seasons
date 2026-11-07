@@ -18,6 +18,8 @@ type Moment = {
   // sensitiveManual が false の間は、本文と entity_annotations から計算した値（Sensitive.ts）を書き込むたびに保つ。
   sensitive: boolean;
   sensitiveManual: boolean;
+  // ねらい・解釈・振り返り（#80）。ura とエクスポートでだけ扱い、omote には出さない。null は未入力。
+  intent: string | null;
 };
 
 type MomentSummary = {
@@ -53,6 +55,14 @@ export function parseMomentSeries(v: unknown): string[] {
     return v;
   }
   throw new Error(`Invalid moment series: ${JSON.stringify(v)}`);
+}
+
+// null は未入力。欠けている（undefined）ときも例外にする（null に読み替えると、古いクライアントからの保存で値が消える）。
+export function parseMomentIntent(v: unknown): string | null {
+  if (v === null || typeof v === 'string') {
+    return v;
+  }
+  throw new Error(`Invalid moment intent: ${JSON.stringify(v)}`);
 }
 
 // sensitive の手での上書き。null は自動。欠けている（undefined）ときも例外にする（自動に読み替えない）。

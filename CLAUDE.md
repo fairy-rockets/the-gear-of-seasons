@@ -87,9 +87,9 @@ The schema is defined by the Flyway migrations `db/flyway_data/sql/V*__*.sql`:
 
 | Table | Contents |
 | --- | --- |
-| `moments` | Keyed by timestamp; title, author and body text; `status` (draft/published); curation fields `tier`, `series`, `sensitive` and `sensitive_manual`. |
+| `moments` | Keyed by timestamp; title, author and body text; `status` (draft/published); curation fields `tier`, `series`, `sensitive` and `sensitive_manual`; `intent` (the aim of the work, an interpretation or a look back; NULL means not entered), which only ura and the curation export/import handle and omote never shows. |
 | `entities` | Media keyed by md5 hash; image/video/audio type and medium/icon derivative ids. `location` is `internal` (the original is in `_storage/original`) or `external` (kept outside the server, e.g. a video on YouTube; only videos can be external); it has no default, so every INSERT sets it. `mime_type` is the type of the original, so it is non-NULL exactly for internal entities. `external_ref` (jsonb) is non-NULL exactly for external entities and holds what that platform needs to point at it, at least `platform` (YouTube: `{"platform": "youtube", "id": "<11-character video ID>"}`); the app validates the rest per platform. For external videos `width`/`height` are the embed size, used only as the aspect ratio. |
-| `entity_annotations` | One row per entity: alt, `looks_*`, role and the other per-media curation fields. NULL means "not entered". |
+| `entity_annotations` | One row per entity: alt, `looks_*`, role, `materials` (the materials used, a free `text[]`) and the other per-media curation fields. NULL means "not entered". |
 
 ### External videos
 
@@ -115,13 +115,15 @@ Long videos are kept outside the server (for now only on YouTube) and shown in m
 
 ### ura editor and saving
 
-The moment SAVE (`Shelf.updateMoment`) writes every moment column, including the curation fields. `import-curation` uses this same save path. Annotations are saved separately from the moment.
+The moment SAVE (`Shelf.updateMoment`) writes every moment column, including the curation fields and `intent`. `import-curation` uses this same save path. Annotations are saved separately from the moment.
+
+`intent` is entered in 意図 below the body, a `<details>` that starts closed; its textarea can be resized vertically. An empty field is saved as NULL. `Moment.Save.Request` requires `intent` (`null` when empty), so a request from a page that does not send it fails instead of clearing the value.
 
 The ⬆ button opens a submenu (built by `client/src/ura/editor/Uploader.ts`) with ファイル, which uploads files through `POST /upload` as dragging and dropping does, and a URL field. Enter in the URL field sends `POST /embed` with JSON `{url}`; the server makes the external video entity (see "External videos") and, like `/upload`, returns the fml to insert (`[video entity="…"]`) as text/plain. Unsupported URLs and failed fetches return `{statusCode, error, message}` (400, 502, or 503 without an API key), shown as a toast. The submenu closes on a click outside it, on Esc, when focus moves to an element outside it and the ⬆ button, and when the window loses focus (which is also how a click inside the preview's YouTube iframe closes it).
 
 Each medium in the editor preview (`<img>`/`<video>`/`<audio>`, or the `<iframe>` of an external video, with `data-entity` and `data-type`) has a mark showing its `annotationState`: unentered, unverified or verified; audio uses entered because it has no `human_verified` field. The states, selectable values and fields available for each entity type are defined in `lib/protocol.ts`, shared with the client.
 
-Clicking a mark or an image opens a drawer over the text column (`client/src/ura/editor/AnnotationDrawer.ts`). It reads annotations with `GET /annotations?ids=<id>,…` and saves one entity with `POST /annotation` (`Shelf.saveEntityAnnotation`). The drawer rereads the annotation each time it opens and saves every field. A value changed elsewhere (another tab or `import-curation`) while the drawer is open can therefore be overwritten when it saves.
+Clicking a mark or an image opens a drawer over the text column (`client/src/ura/editor/AnnotationDrawer.ts`). It reads annotations with `GET /annotations?ids=<id>,…` and saves one entity with `POST /annotation` (`Shelf.saveEntityAnnotation`). Under the `materials` field the drawer shows buttons for the common materials (`kMaterialSuggestions` in `lib/protocol.ts`) that add the value to the field or remove it; values not among them can be typed in. The drawer rereads the annotation each time it opens and saves every field. A value changed elsewhere (another tab or `import-curation`) while the drawer is open can therefore be overwritten when it saves.
 
 The editor attaches `beforeunload` only while the moment or annotation has unsaved input, or a SAVE, annotation save or DELETE is in flight. The moment is compared with its initial or last successfully saved raw input values; annotations compare touched field values with the loaded or saved annotation. Initial inputs are clean; failed saves and input added during a save remain protected. Each save clears only its own saved values. DELETE confirms discarding unsaved input before deleting the moment at its saved timestamp, then redirects without another leave confirmation. The browser regression scenarios are in `tools/preview/editor-unsaved.mjs`.
 
@@ -145,7 +147,7 @@ Maintenance commands in `server/src/cmd/`: `gc.ts` (ask one by one whether to de
 
 ### Curation export
 
-`export-curation.ts` writes the export studio reads (#49) as a tar to stdout, and nothing else to stdout (messages go to stderr): for every published moment, `<YYYYMMDD-HHMMSS>/hexe.yaml` (the moment's metadata, curation fields and, per `[image]`/`[video]`/`[audio]` entity, its type, size and annotation; the `[markdown]` URLs, split into `repo`/`ref`/`path` when they are `https://raw.githubusercontent.com/` URLs or `https://code.ledyba.org/` `/raw/branch/`, `/raw/tag/` or `/raw/commit/` URLs, without a query or `#`) and `<YYYYMMDD-HHMMSS>/hexe.fml` (the body as stored), plus a top-level `index.yaml` listing each moment's `moment` and `title`.
+`export-curation.ts` writes the export studio reads (#49) as a tar to stdout, and nothing else to stdout (messages go to stderr): for every published moment, `<YYYYMMDD-HHMMSS>/hexe.yaml` (the moment's metadata, curation fields, `intent` and, per `[image]`/`[video]`/`[audio]` entity, its type, size and annotation; the `[markdown]` URLs, split into `repo`/`ref`/`path` when they are `https://raw.githubusercontent.com/` URLs or `https://code.ledyba.org/` `/raw/branch/`, `/raw/tag/` or `/raw/commit/` URLs, without a query or `#`) and `<YYYYMMDD-HHMMSS>/hexe.fml` (the body as stored), plus a top-level `index.yaml` listing each moment's `moment` and `title`.
 
 Times are written in JST whatever the server's time zone, and the same database gives the same bytes (fixed key order, sorted entries, fixed tar header times/owners/modes, no generation time, no network access).
 
@@ -161,7 +163,7 @@ Values already in the database that differ from the file are reported as conflic
 
 Pass `-` to read the file from stdin, so it need not be copied into the container: `docker compose exec -T the-gear-of-seasons node server/dist/cmd/import-curation.js - [--apply] [--overwrite] < curation.yaml`.
 
-It reads the current values without locking them, so a moment or annotation saved in ura while it runs can be overwritten: do not edit in ura during an import. For the same reason a plan printed without `--apply` is not guaranteed to match what a later `--apply` writes; check what was written in the `--apply` run's own output. Every SAVE also writes the curation fields as the editor shows them, so saving from a tab opened before the import puts back the `tier`, `series` and `sensitive` the import changed.
+It reads the current values without locking them, so a moment or annotation saved in ura while it runs can be overwritten: do not edit in ura during an import. For the same reason a plan printed without `--apply` is not guaranteed to match what a later `--apply` writes; check what was written in the `--apply` run's own output. Every SAVE also writes the curation fields as the editor shows them, so saving from a tab opened before the import puts back the `tier`, `series`, `sensitive` and `intent` the import changed.
 
 ### Tools
 

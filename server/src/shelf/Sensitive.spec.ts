@@ -12,6 +12,7 @@ function annotation(entityID: string, looksNude: LooksNude | null, looksChild: L
   return {
     entityID,
     medium: null,
+    materials: null,
     alt: null,
     description: null,
     tags: null,

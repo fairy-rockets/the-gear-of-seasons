@@ -42,6 +42,7 @@ const kRow = {
   series: [],
   sensitive: false,
   sensitive_manual: false,
+  intent: null,
 };
 
 const kPublishedOnly = `"status" = 'published'`;
@@ -163,6 +164,7 @@ describe("Repo の moment の可視性", () => {
     series: [],
     sensitive: false,
     sensitiveManual: false,
+    intent: null,
   };
 
   it("insertMoment は status を明示して渡す", async () => {
@@ -198,9 +200,10 @@ describe("Repo のキュレーションの項目", () => {
     series: [],
     sensitive: false,
     sensitiveManual: false,
+    intent: null,
   };
 
-  const kCurated: Moment = { ...kMoment, tier: 'sketch', series: ['魔女hexe'], sensitive: true, sensitiveManual: true };
+  const kCurated: Moment = { ...kMoment, tier: 'sketch', series: ['魔女hexe'], sensitive: true, sensitiveManual: true, intent: 'ねらい' };
 
   it("updateMoment（SAVE）はキュレーションの項目も Moment の値をそのまま書く", async () => {
     await repo.updateMoment(kTimestamp, kCurated);
@@ -209,8 +212,9 @@ describe("Repo のキュレーションの項目", () => {
     assert.ok(q.includes(`"series" = $9::text[]`), q);
     assert.ok(q.includes(`"sensitive" = $10`), q);
     assert.ok(q.includes(`"sensitive_manual" = $11`), q);
+    assert.ok(q.includes(`"intent" = $12`), q);
     assert.ok(!q.includes('case'), q);
-    assert.deepStrictEqual(calls[0].args.slice(6), [kTimestamp.toDate(), 'sketch', ['魔女hexe'], true, true]);
+    assert.deepStrictEqual(calls[0].args.slice(6), [kTimestamp.toDate(), 'sketch', ['魔女hexe'], true, true, 'ねらい']);
   });
 
   it("updateMoment は moment が無ければ false を返す", async () => {
@@ -221,9 +225,9 @@ describe("Repo のキュレーションの項目", () => {
   it("insertMoment はキュレーションの項目も Moment の値をそのまま書く", async () => {
     await repo.insertMoment(kCurated);
     const q = calls[0].q;
-    assert.ok(q.includes(`"tier", "series", "sensitive", "sensitive_manual"`), q);
+    assert.ok(q.includes(`"tier", "series", "sensitive", "sensitive_manual", "intent"`), q);
     assert.ok(q.includes(`$8::text[]`), q);
-    assert.deepStrictEqual(calls[0].args.slice(6), ['sketch', ['魔女hexe'], true, true]);
+    assert.deepStrictEqual(calls[0].args.slice(6), ['sketch', ['魔女hexe'], true, true, 'ねらい']);
   });
 
   it("findMoment はキュレーションの項目も読む", async () => {
@@ -234,6 +238,28 @@ describe("Repo のキュレーションの項目", () => {
     assert.deepStrictEqual(m?.series, ['癒し', '季節']);
     assert.strictEqual(m?.sensitive, true);
     assert.strictEqual(m?.sensitiveManual, true);
+  });
+
+  it("intent を読む。NULL は null のまま", async () => {
+    calls = stubPool(repo, [{ ...kRow, intent: 'ねらい' }]);
+    assert.strictEqual((await repo.findMoment(kTimestamp, 'all'))?.intent, 'ねらい');
+    calls = stubPool(repo, [kRow]);
+    assert.strictEqual((await repo.findMoment(kTimestamp, 'all'))?.intent, null);
+  });
+
+  // decodeMoment に渡すクエリが1つでも intent を読み落とすと、そこで読んだ moment を書き戻したときに intent が消える。
+  it("moment を丸ごと読むクエリは、どれも intent を読む", async () => {
+    const reads: [string, () => Promise<unknown>][] = [
+      ['findMoment', () => repo.findMoment(kTimestamp, 'all')],
+      ['findAllMoments', () => repo.findAllMoments('all')],
+      ['enumurateAllMoments', async () => { for await (const _ of repo.enumurateAllMoments()) { /* 読むだけ */ } }],
+      ['findAutoSensitiveMomentCandidates', () => repo.findAutoSensitiveMomentCandidates('a')],
+    ];
+    for (const [name, read] of reads) {
+      calls = stubPool(repo, [kRow]);
+      await read();
+      assert.match(calls[0].q, /"sensitive_manual", "intent"\s+from moments/, name);
+    }
   });
 
   it("DB に知らない tier があれば例外にする", async () => {
@@ -275,6 +301,7 @@ describe("Repo の entity の注釈", () => {
   const kAnnotationRow = {
     entity_id: kID,
     medium: 'drawing',
+    materials: null,
     alt: null,
     description: null,
     tags: [],
@@ -313,6 +340,7 @@ describe("Repo の entity の注釈", () => {
     const a = await repo.findEntityAnnotation(kID);
     assert.ok(a !== null);
     assert.strictEqual(a.medium, 'drawing');
+    assert.strictEqual(a.materials, null);
     assert.deepStrictEqual(a.tags, []);
     assert.strictEqual(a.characters, null);
     assert.strictEqual(a.looksNude, 'none');
@@ -330,6 +358,7 @@ describe("Repo の entity の注釈", () => {
     const a: EntityAnnotation = {
       entityID: kID,
       medium: 'photo',
+      materials: ['pencil', 'digital'],
       alt: '海',
       description: null,
       tags: ['海', 'a,"b"'],
@@ -348,7 +377,7 @@ describe("Repo の entity の注釈", () => {
     const q = calls[0].q;
     assert.ok(q.includes(`on conflict ("entity_id") do update set`), q);
     assert.deepStrictEqual(calls[0].args, [
-      kID, 'photo', '海', null, ['海', 'a,"b"'], 'color', [], 'partial', 'adult', null, false, 'grab', null, true, null,
+      kID, 'photo', ['pencil', 'digital'], '海', null, ['海', 'a,"b"'], 'color', [], 'partial', 'adult', null, false, 'grab', null, true, null,
     ]);
   });
 });

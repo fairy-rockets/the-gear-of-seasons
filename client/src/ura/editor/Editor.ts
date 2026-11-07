@@ -14,6 +14,7 @@ export default class Editor {
   private readonly series_: HTMLInputElement;
   private readonly sensitive_: HTMLSelectElement;
   private readonly text_: HTMLTextAreaElement;
+  private readonly intent_: HTMLTextAreaElement;
   private readonly save_: HTMLButtonElement;
   private readonly delete_: HTMLButtonElement;
   private originalDate_: string;
@@ -33,7 +34,7 @@ export default class Editor {
   executePreviewUpdater_: () => void;
   onSaveEventListener_: () => void;
   onDeleteEventListener_: () => void;
-  constructor(title: HTMLInputElement, date: HTMLInputElement, author: HTMLSelectElement, status: HTMLSelectElement, tier: HTMLSelectElement, series: HTMLInputElement, sensitive: HTMLSelectElement, text: HTMLTextAreaElement, save: HTMLButtonElement, del: HTMLButtonElement) {
+  constructor(title: HTMLInputElement, date: HTMLInputElement, author: HTMLSelectElement, status: HTMLSelectElement, tier: HTMLSelectElement, series: HTMLInputElement, sensitive: HTMLSelectElement, text: HTMLTextAreaElement, intent: HTMLTextAreaElement, save: HTMLButtonElement, del: HTMLButtonElement) {
     this.title_ = title;
     this.date_ = date;
     this.author_ = author;
@@ -42,10 +43,12 @@ export default class Editor {
     this.series_ = series;
     this.sensitive_ = sensitive;
     this.text_ = text;
+    this.intent_ = intent;
     this.save_ = save;
     this.delete_ = del;
     this.originalDate_ = date.value;
-    this.fields_ = [title, date, author, status, tier, series, sensitive, text];
+    // onSave_ が位置で date（1）と status（3）を参照するので、足す欄は末尾に置く。
+    this.fields_ = [title, date, author, status, tier, series, sensitive, text, intent];
     this.savedValues_ = this.formValues_();
     this.guarding_ = false;
     this.onChangeEventListener_ = this.onChange_.bind(this);
@@ -69,6 +72,8 @@ export default class Editor {
     this.tier_.addEventListener('change', this.onChangeEventListener_);
     this.series_.addEventListener('input', this.onChangeEventListener_);
     this.sensitive_.addEventListener('change', this.onChangeEventListener_);
+    // 意図はプレビューに出ないので、未保存の判定だけを更新する。
+    this.intent_.addEventListener('input', () => this.updateUnsavedChanges());
     this.save_.addEventListener('click', this.onSaveEventListener_);
     this.delete_.addEventListener('click', this.onDeleteEventListener_);
     window.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -165,6 +170,8 @@ export default class Editor {
       // カンマ区切り。前後の空白と、空の要素は落とす。
       series: this.series_.value.split(',').map((s) => s.trim()).filter((s) => s.length > 0),
       sensitiveOverride: this.sensitive_.value === 'auto' ? null : this.sensitive_.value === 'true',
+      // 空欄は未入力（null）。
+      intent: this.intent_.value.length > 0 ? this.intent_.value : null,
     };
   }
 
