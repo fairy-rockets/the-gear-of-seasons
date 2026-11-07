@@ -283,19 +283,34 @@ export default class Editor {
     this.preview_!.onChange(body);
   }
 
+  // 本文の欄にフォーカスを移す。
+  focusText() {
+    this.text_.focus();
+  }
+
   onUpload(embeds: string[]) {
     const embedsString = embeds.join('\n\n');
-    if (this.text_.selectionStart || this.text_.selectionStart === 0) {
-      const startPos = this.text_.selectionStart;
-      const endPos = this.text_.selectionEnd;
-      this.text_.value =
-            this.text_.value.substring(0, startPos)
-          + embedsString
-          + this.text_.value.substring(endPos, this.text_.value.length);
-    } else {
-      this.text_.value += '\n' + embedsString;
+    const value = this.text_.value;
+    const hasSelection = this.text_.selectionStart !== null && this.text_.selectionStart !== undefined;
+    // 選択している範囲（無ければ末尾）を、挿入する文字列で置き換える。
+    const startPos = hasSelection ? this.text_.selectionStart : value.length;
+    const endPos = hasSelection ? this.text_.selectionEnd : value.length;
+    const inserted = hasSelection ? embedsString : '\n' + embedsString;
+    // value への代入は undo の履歴を消すので、execCommand で挿入して Ctrl+Z で戻せるようにする。
+    // 挿入すると input が起き、未保存の判定とプレビューの更新の予約が走る。
+    this.text_.focus();
+    this.text_.setSelectionRange(startPos, endPos);
+    if (!document.execCommand('insertText', false, inserted)) {
+      // execCommand が使えないときは、value に代入してカーソルを挿入した文字列の直後に置き直す。
+      this.text_.value = value.substring(0, startPos) + inserted + value.substring(endPos);
+      const caret = startPos + inserted.length;
+      this.text_.setSelectionRange(caret, caret);
     }
     this.updateUnsavedChanges();
+    // input で予約されたプレビューの更新は取り消し、すぐに更新する（二重に /preview を送らない）。
+    if (this.changeId_ !== null) {
+      window.clearTimeout(this.changeId_);
+    }
     this.executePreviewUpdate_();
   }
 }

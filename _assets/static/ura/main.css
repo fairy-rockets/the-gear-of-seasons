@@ -334,6 +334,44 @@ img.emoji {
   outline-offset: 2px;
 }
 
+/* ↑ のサブメニュー。↑ と一緒に包んだ .upload-anchor を基準に、↑ の下に出す */
+.editor-container .editor-wrapper .upload-anchor {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.editor-container .editor-wrapper .upload-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  margin-top: 0.2em;
+  padding: 0.4em;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4em;
+
+  background: #080816;
+  border: 1px solid white;
+}
+
+.editor-container .editor-wrapper .upload-menu[hidden] {
+  display: none;
+}
+
+.editor-container .editor-wrapper .upload-menu input {
+  width: 20em;
+}
+
+/* /embed の送信中の表示 */
+.editor-container .editor-wrapper .upload-menu .upload-status {
+  font-size: smaller;
+  color: #9ab;
+}
+
 .uploader-hover {
   position: fixed;
   top: 0;
