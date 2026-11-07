@@ -366,6 +366,12 @@ img.emoji {
   width: 20em;
 }
 
+/* /embed の送信中の表示 */
+.editor-container .editor-wrapper .upload-menu .upload-status {
+  font-size: smaller;
+  color: #9ab;
+}
+
 .uploader-hover {
   position: fixed;
   top: 0;

@@ -283,6 +283,11 @@ export default class Editor {
     this.preview_!.onChange(body);
   }
 
+  // 本文の欄にフォーカスを移す。
+  focusText() {
+    this.text_.focus();
+  }
+
   onUpload(embeds: string[]) {
     const embedsString = embeds.join('\n\n');
     if (this.text_.selectionStart || this.text_.selectionStart === 0) {

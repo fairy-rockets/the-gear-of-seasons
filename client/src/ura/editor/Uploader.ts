@@ -3,6 +3,11 @@ import { describeError, describeResponseError, getToastContainer, showToast } fr
 
 const SUPPORTED_TYPES = ['image/', 'video/', 'audio/'];
 
+// IME で変換している途中のキーか。Safari は変換を確定する Enter を isComposing = false・keyCode = 229 で送ってくる。
+function isComposing(e: KeyboardEvent): boolean {
+  return e.isComposing || e.keyCode === 229;
+}
+
 export default class Uploader {
   private readonly target_: HTMLElement;
   private readonly button_: HTMLInputElement;
@@ -18,6 +23,7 @@ export default class Uploader {
   private readonly anchor_: HTMLSpanElement;
   private readonly menu_: HTMLDivElement;
   private readonly urlInput_: HTMLInputElement;
+  private readonly embedStatus_: HTMLDivElement;
   constructor(target: HTMLElement, button: HTMLInputElement) {
     this.target_ = target;
     this.button_ = button;
@@ -45,6 +51,13 @@ export default class Uploader {
     this.urlInput_.type = 'url';
     this.urlInput_.placeholder = '埋め込む URL（Enter で挿入）';
     this.menu_.appendChild(this.urlInput_);
+    // /embed の送信中の表示。アップロードの進捗パネルとは分ける（同時に動いても表示が崩れないように）。
+    this.embedStatus_ = document.createElement('div');
+    this.embedStatus_.classList.add('upload-status');
+    this.embedStatus_.setAttribute('role', 'status');
+    this.embedStatus_.textContent = '取り込み中…';
+    this.embedStatus_.hidden = true;
+    this.menu_.appendChild(this.embedStatus_);
     this.anchor_.appendChild(this.menu_);
 
     this.button_.addEventListener('click', (e: MouseEvent) => {
@@ -62,19 +75,41 @@ export default class Uploader {
     }, false);
     this.urlInput_.addEventListener('keydown', (e: KeyboardEvent) => {
       // 変換の確定の Enter では送らない
-      if (e.key === 'Enter' && !e.isComposing) {
+      if (e.key === 'Enter' && !isComposing(e)) {
         e.preventDefault();
         this.insertEmbed_(this.urlInput_.value.trim());
       }
     });
-    // 外側のクリックと Esc で閉じる
+    // メニューの中の、URL の欄以外を押してもフォーカスを欄から動かさない（押しただけでは閉じないように）。
+    this.menu_.addEventListener('mousedown', (e: MouseEvent) => {
+      if (e.target !== this.urlInput_) {
+        e.preventDefault();
+      }
+    });
+    // 外側のクリックと Esc、外へのフォーカスの移動で閉じる
     document.addEventListener('mousedown', (e: MouseEvent) => {
       if (!this.menu_.hidden && !this.anchor_.contains(e.target as Node)) {
         this.closeMenu_();
       }
     });
     document.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !this.menu_.hidden) {
+      // 変換を取り消す Esc では閉じない
+      if (e.key === 'Escape' && !isComposing(e) && !this.menu_.hidden) {
+        this.closeMenu_();
+        this.button_.focus();
+      }
+    });
+    this.anchor_.addEventListener('focusout', (e: FocusEvent) => {
+      // 移った先が分からない（null）ときは、外側のクリックと window の blur に任せる
+      const next = e.relatedTarget as Node | null;
+      if (!this.menu_.hidden && next !== null && !this.anchor_.contains(next)) {
+        this.closeMenu_();
+      }
+    });
+    // プレビューの iframe（YouTube のプレイヤー）の中を押したときは document に mousedown が来ないので、
+    // window からフォーカスが外れたことで閉じる。
+    window.addEventListener('blur', () => {
+      if (!this.menu_.hidden) {
         this.closeMenu_();
       }
     });
@@ -119,14 +154,12 @@ export default class Uploader {
 
   // 外部（今は YouTube だけ）の動画の URL を /embed に送り、返った fml を本文に挿入する。
   private insertEmbed_(url: string) {
-    if (url.length === 0 || this.urlInput_.disabled) {
+    if (url.length === 0 || this.urlInput_.readOnly) {
       return;
     }
-    this.urlInput_.disabled = true;
-    this.progressImage_.src = '';
-    // 何本目かを数えられないので、進み具合の無い表示にする
-    this.progressBar_.removeAttribute('value');
-    getToastContainer().appendChild(this.progressDialog_);
+    // disabled にするとフォーカスが外れるので、送信中は readOnly にする。
+    this.urlInput_.readOnly = true;
+    this.embedStatus_.hidden = false;
     fetch('/embed', {
       method: 'POST',
       body: JSON.stringify({ url }),
@@ -143,15 +176,22 @@ export default class Uploader {
         this.urlInput_.value = '';
         this.closeMenu_();
         this.editor_!.onUpload([embed]);
+        return true;
       })
       .catch(err => {
         // 欄の URL は残し、直して送り直せるようにする
         console.error(err);
         showToast(`埋め込みに失敗しました: ${describeError(err)}`);
+        return false;
       })
-      .finally(() => {
-        this.progressDialog_.remove();
-        this.urlInput_.disabled = false;
+      .then(ok => {
+        this.embedStatus_.hidden = true;
+        this.urlInput_.readOnly = false;
+        if (ok) {
+          this.editor_!.focusText();
+        } else if (!this.menu_.hidden) {
+          this.urlInput_.focus();
+        }
       });
   }
 
