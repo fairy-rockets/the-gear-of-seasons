@@ -45,13 +45,16 @@ const kMaxEmbedHeight = 720;
 // 失敗したときは、キーが入った URL を含む axios のエラーをそのまま投げず、状態とメッセージだけの Error にする。
 export class YouTubeDataAPIClient implements YouTubeDataAPI {
   private readonly apiKey: string;
-  constructor(apiKey: string) {
+  // videos.list の URL。テストでは、繋がらない URL にして失敗のときの経路を見る。
+  private readonly endpoint: string;
+  constructor(apiKey: string, endpoint = 'https://www.googleapis.com/youtube/v3/videos') {
     this.apiKey = apiKey;
+    this.endpoint = endpoint;
   }
   async findVideo(videoID: string): Promise<YouTubeVideoResource | null> {
     let data: { items?: YouTubeVideoResource[] };
     try {
-      const r = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+      const r = await axios.get(this.endpoint, {
         params: {
           part: 'snippet,contentDetails,player,liveStreamingDetails',
           maxHeight: kMaxEmbedHeight,
@@ -80,7 +83,8 @@ export class YouTubeDataAPIClient implements YouTubeDataAPI {
   }
 }
 
-function describeAxiosError(e: unknown): string {
+// axios のエラーを、状態と YouTube のエラーのメッセージだけの文にする。キーが入った URL や params は含めない。
+export function describeAxiosError(e: unknown): string {
   if (axios.isAxiosError(e)) {
     if (e.response !== undefined) {
       const body = e.response.data as { error?: { message?: unknown } } | undefined;
