@@ -112,7 +112,7 @@ describe("MomentRenderer.render", () => {
     },
     findEntityAnnotations: async () => new Map<string, EntityAnnotation>(),
   } as unknown as Shelf;
-  const render = (text: string, renderer = new MomentRenderer(shelf)) => {
+  const render = (text: string, renderer = new MomentRenderer(shelf), intent: string | null = null) => {
     const moment: Moment = {
       timestamp: dayjs('2020-01-01 00:00:00'),
       title: 'title',
@@ -124,12 +124,13 @@ describe("MomentRenderer.render", () => {
       series: [],
       sensitive: false,
       sensitiveManual: false,
+      intent,
     };
     return renderer.render(dayjs('2020-01-02 00:00:00'), moment);
   };
 
   const annotation = (alt: string | null, humanVerified = true): EntityAnnotation => ({
-    entityID: 'img', medium: null, alt, description: null, tags: null, palette: null,
+    entityID: 'img', medium: null, materials: null, alt, description: null, tags: null, palette: null,
     characters: null, looksNude: null, looksChild: null, looksNote: null, humanVerified,
     role: null, roleGroup: null, roleStar: null, roleNote: null,
   });
@@ -204,6 +205,12 @@ describe("MomentRenderer.render", () => {
     const [firstHTML, secondHTML] = await Promise.all([first, second]);
     assert.ok(firstHTML.includes('alt="最初の説明"'), firstHTML);
     assert.ok(secondHTML.includes('alt="次の説明"'), secondHTML);
+  });
+
+  it("intent（ねらい）は omote に出さない", async () => {
+    const html = await render('ほんぶん', undefined, 'ないしょのねらい');
+    assert.ok(html.includes('ほんぶん'), html);
+    assert.ok(!html.includes('ないしょのねらい'), html);
   });
 
   it("画像は medium を表示し、元画像へはリンクしない", async () => {

@@ -39,6 +39,7 @@ function moment(timestamp: dayjs.Dayjs, status: Moment['status']): Moment {
     series: [],
     sensitive: false,
     sensitiveManual: false,
+    intent: null,
   };
 }
 

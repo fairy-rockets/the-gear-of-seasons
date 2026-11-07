@@ -27,6 +27,7 @@ export default class NewController {
         series: '',
         sensitive: 'auto',
         autoSensitive: false,
+        intent: '',
       }));
   }
 }

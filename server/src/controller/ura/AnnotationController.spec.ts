@@ -24,7 +24,7 @@ const kEntities: Entity[] = [
 ];
 
 const kEmpty: protocol.AnnotationValues = {
-  medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
+  medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
   looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
   role: null, roleGroup: null, roleStar: null, roleNote: null,
 };
@@ -35,7 +35,7 @@ const kManual = dayjs('2020-01-03T03:04:05+09:00');
 function moment(timestamp: dayjs.Dayjs, sensitiveManual: boolean): Moment {
   return {
     timestamp, title: 't', author: 'a', text: `[image entity="${kImage}"]`, iconID: kImage, status: 'draft',
-    tier: 'archive', series: [], sensitive: false, sensitiveManual,
+    tier: 'archive', series: [], sensitive: false, sensitiveManual, intent: null,
   };
 }
 
@@ -190,14 +190,16 @@ describe("POST /annotation", () => {
 
   it("空の文字列と空のリストは、null に変えずにそのまま書く", async () => {
     const { repo, save } = setup();
-    await save(request({ alt: '', tags: [], characters: ['a'] }));
+    await save(request({ alt: '', tags: [], characters: ['a'], materials: [] }));
     const a = repo.annotations.get(kImage)!!;
-    assert.deepStrictEqual([a.alt, a.tags, a.characters, a.description], ['', [], ['a'], null]);
+    assert.deepStrictEqual([a.alt, a.tags, a.characters, a.materials, a.description], ['', [], ['a'], [], null]);
   });
 
   const invalid: [string, unknown][] = [
     ['alt が数', request({ alt: 1 as any })],
     ['tags が文字列', request({ tags: 'a,b' as any })],
+    ['materials が文字列', request({ materials: 'digital' as any })],
+    ['materials が欠けている', { ...request({}), annotation: (({ materials: _, ...rest }) => rest)(kEmpty) }],
     ['humanVerified が null', request({ humanVerified: null as any })],
     ['roleStar が文字列', request({ roleStar: 'true' as any })],
     ['medium が定義に無い', request({ medium: 'oil' as any })],
@@ -223,6 +225,7 @@ describe("POST /annotation", () => {
     const { repo, save } = setup();
     await assert.rejects(() => save({ ...request({ looksNude: 'none' }), entityID: kAudio }), /cannot have looksNude/);
     assert.deepStrictEqual(repo.log, ['BEGIN', 'ROLLBACK']);
+    await assert.rejects(() => save({ ...request({ materials: ['digital'] }), entityID: kAudio }), /cannot have materials/);
     assert.strictEqual(repo.annotations.size, 0);
   });
 

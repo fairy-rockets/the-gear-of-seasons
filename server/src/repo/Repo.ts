@@ -262,9 +262,9 @@ where
     const q = `
 insert into moments(
   "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", "series", "sensitive", "sensitive_manual"
+  "tier", "series", "sensitive", "sensitive_manual", "intent"
 ) values (
-  $1, $2, $3, $4, $5, $6, $7, $8::text[], $9, $10
+  $1, $2, $3, $4, $5, $6, $7, $8::text[], $9, $10, $11
 );`;
     await this.pool.query(q, [
       moment.timestamp.toDate(),
@@ -277,6 +277,7 @@ insert into moments(
       moment.series,
       moment.sensitive,
       moment.sensitiveManual,
+      moment.intent,
     ]);
   }
 
@@ -297,7 +298,8 @@ update moments set
   "tier" = $8,
   "series" = $9::text[],
   "sensitive" = $10,
-  "sensitive_manual" = $11
+  "sensitive_manual" = $11,
+  "intent" = $12
 where "timestamp" = $7;
 `;
     const r = await this.pool.query(q, [
@@ -312,6 +314,7 @@ where "timestamp" = $7;
       moment.series,
       moment.sensitive,
       moment.sensitiveManual,
+      moment.intent,
     ]);
     return r.rowCount === 1;
   }
@@ -335,9 +338,7 @@ where
   async findAllMoments(visibility: MomentVisibility): Promise<Moment[]> {
     // language=PostgreSQL
     const q=`
-select
-  "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", "series", "sensitive", "sensitive_manual"
+select ${kMomentColumns}
 from moments
   where
     ${momentVisibilityCondition(visibility)}
@@ -389,9 +390,7 @@ from moments
   async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
     // language=PostgreSQL
     const q=`
-select
-  "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", "series", "sensitive", "sensitive_manual"
+select ${kMomentColumns}
 from moments
   where
     "timestamp" = $1
@@ -447,9 +446,7 @@ limit 1;
   async* enumurateAllMoments(): AsyncGenerator<Moment> {
     // language=PostgreSQL
     const q=`
-select
-  "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", "series", "sensitive", "sensitive_manual"
+select ${kMomentColumns}
 from moments
 `;
     const { rows } = await this.pool.query(q, []);
@@ -464,9 +461,7 @@ from moments
   async findAutoSensitiveMomentCandidates(entityID: string): Promise<Moment[]> {
     // language=PostgreSQL
     const q=`
-select
-  "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", "series", "sensitive", "sensitive_manual"
+select ${kMomentColumns}
 from moments
   where
     "text" like '%' || $1::text || '%'
@@ -503,7 +498,7 @@ delete from moments where "timestamp" = $1;
     // language=PostgreSQL
     const q = `
 select
-  "entity_id", "medium", "alt", "description", "tags", "palette", "characters",
+  "entity_id", "medium", "materials", "alt", "description", "tags", "palette", "characters",
   "looks_nude", "looks_child", "looks_note", "human_verified",
   "role", "role_group", "role_star", "role_note"
 from entity_annotations
@@ -522,13 +517,14 @@ from entity_annotations
     // language=PostgreSQL
     const q = `
 insert into entity_annotations (
-  "entity_id", "medium", "alt", "description", "tags", "palette", "characters",
+  "entity_id", "medium", "materials", "alt", "description", "tags", "palette", "characters",
   "looks_nude", "looks_child", "looks_note", "human_verified",
   "role", "role_group", "role_star", "role_note"
 ) values (
-  $1, $2, $3, $4, $5::text[], $6, $7::text[], $8, $9, $10, $11, $12, $13, $14, $15
+  $1, $2, $3::text[], $4, $5, $6::text[], $7, $8::text[], $9, $10, $11, $12, $13, $14, $15, $16
 ) on conflict ("entity_id") do update set
   "medium" = excluded."medium",
+  "materials" = excluded."materials",
   "alt" = excluded."alt",
   "description" = excluded."description",
   "tags" = excluded."tags",
@@ -546,6 +542,7 @@ insert into entity_annotations (
     await this.pool.query(q, [
       a.entityID,
       a.medium,
+      a.materials,
       a.alt,
       a.description,
       a.tags,
@@ -563,6 +560,9 @@ insert into entity_annotations (
   }
 }
 
+// decodeMoment が読む列。moment を丸ごと読むクエリはすべてこれを使う（列を読み落とすと、読んだ moment を書き戻したときにその値が消える）。
+const kMomentColumns = `"timestamp", "title", "author", "text", "icon_id", "status", "tier", "series", "sensitive", "sensitive_manual", "intent"`;
+
 function decodeMoment(row: pg.QueryResultRow): Moment {
   return {
     timestamp: dayjs(row['timestamp'] as Date),
@@ -575,6 +575,7 @@ function decodeMoment(row: pg.QueryResultRow): Moment {
     series: row['series'] as string[],
     sensitive: row['sensitive'] as boolean,
     sensitiveManual: row['sensitive_manual'] as boolean,
+    intent: row['intent'] as (string | null),
   };
 }
 
@@ -582,6 +583,7 @@ function decodeEntityAnnotation(row: pg.QueryResultRow): EntityAnnotation {
   return {
     entityID: row['entity_id'] as string,
     medium: parseAnnotationMedium(row['medium']),
+    materials: row['materials'] as (string[] | null),
     alt: row['alt'] as (string | null),
     description: row['description'] as (string | null),
     tags: row['tags'] as (string[] | null),

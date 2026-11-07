@@ -148,6 +148,27 @@ img.emoji {
   background: #111;
 }
 
+/* 意図の欄。普段は畳んでおき、開くと本文の下に出す。高さはドラッグで変えられる */
+.editor-container .editor-wrapper .editor-intent {
+  margin-top: 0.5em;
+}
+
+.editor-container .editor-wrapper .editor-intent summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.editor-container .editor-wrapper #intent {
+  display: block;
+  margin-top: 0.25em;
+  box-sizing: border-box;
+  width: 100%;
+  resize: vertical;
+  font-size: 16px;
+  color: #ddd;
+  background: #111;
+}
+
 .editor-container > div {
   flex: 1 1 0;
 }
@@ -272,6 +293,36 @@ img.emoji {
 .annotation-empty {
   flex: 0 0 auto;
   font-size: smaller;
+}
+
+/* 候補のボタンを持つリストの欄。欄の下に候補を並べる */
+.annotation-list-column {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+}
+
+.annotation-suggestions {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 0.25em;
+}
+
+.annotation-suggestions button {
+  font-size: smaller;
+  font-family: monospace;
+  color: #9ab;
+  background: #111;
+  border: 1px solid #556;
+  cursor: pointer;
+}
+
+.annotation-suggestions button[aria-pressed="true"] {
+  color: #111;
+  background: #9ab;
+  border-color: #9ab;
 }
 
 /* 下書きの範囲のまとまり。human_verified が false の間だけ枠を出す（枠の有無で欄が動かないよう、幅は常にとる） */

@@ -28,7 +28,7 @@ function annotations(...list: EntityAnnotation[]): Map<string, EntityAnnotation>
 function moment(text: string, status: Moment['status'] = 'published'): Moment {
   return {
     timestamp: dayjs('2024-11-14T13:18:23+09:00'), title: '題', author: '宵宮ナギ', text, iconID: kImage, status,
-    tier: 'pickup', series: ['癒し'], sensitive: true, sensitiveManual: false,
+    tier: 'pickup', series: ['癒し'], sensitive: true, sensitiveManual: false, intent: null,
   };
 }
 

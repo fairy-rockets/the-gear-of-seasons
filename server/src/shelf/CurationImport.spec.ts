@@ -37,7 +37,7 @@ const kAudioC: Entity = {
 
 function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): EntityAnnotation {
   return {
-    entityID, medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
+    entityID, medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
     looksNude: null, looksChild: null, looksNote: null, humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
     ...values,
   };
@@ -47,7 +47,7 @@ function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): E
 function moment(t: string, text: string, values: Partial<Moment> = {}): Moment {
   return {
     timestamp: dayjs(t), title: 't', author: 'a', text, iconID: momentIconID(fml.parse(text)), status: 'published',
-    tier: 'archive', series: [], sensitive: false, sensitiveManual: false,
+    tier: 'archive', series: [], sensitive: false, sensitiveManual: false, intent: null,
     ...values,
   };
 }
@@ -85,6 +85,7 @@ function applyToState(s: CurationState, p: CurationPlan) {
     const cur = s.moments.get(m.timestamp.valueOf())!!;
     cur.tier = m.tier;
     cur.series = m.series;
+    cur.intent = m.intent;
     if (m.sensitive !== null) {
       cur.sensitive = m.sensitive;
       cur.sensitiveManual = true;
@@ -125,6 +126,35 @@ moments:
         { key: 'tags', field: 'tags', value: [] },
       ],
     }]);
+  });
+  it("moment の intent と、メディアの materials を読む", () => {
+    const m = parse(`
+moments:
+  - moment: ${kT1}
+    intent: |
+      海の青を見せたかった。
+      二行目。
+    media:
+      - { entity: ${kA}, materials: [pencil, coffee] }
+      - { entity: ${kB}, materials: [] }
+`).moments[0];
+    assert.strictEqual(m.intent, '海の青を見せたかった。\n二行目。\n');
+    assert.deepStrictEqual(m.media.map((x) => x.fields), [
+      [{ key: 'materials', field: 'materials', value: ['pencil', 'coffee'] }],
+      [{ key: 'materials', field: 'materials', value: [] }],
+    ]);
+  });
+  it("文字列でない intent と、文字列のリストでない materials はエラー", () => {
+    const { errors } = parseCurationFile(`
+moments:
+  - moment: ${kT1}
+    intent: [ねらい]
+    media: [{ entity: ${kA}, materials: digital }]
+`);
+    assert.deepStrictEqual(errors, [
+      `moment ${kT1}: intent: 文字列ではありません: ["ねらい"]`,
+      `moment ${kT1} entity ${kA}: materials: 文字列のリストではありません: "digital"`,
+    ]);
   });
   it("YAML の重複キーはエラー", () => {
     const { errors } = parseCurationFile(`
@@ -277,6 +307,15 @@ moments:
       `moment ${kT2} entity ${kB}: entities にありません`,
     ]);
   });
+  it("音声の materials はエラー", () => {
+    const s = state([moment(kT1, `[audio entity="${kC}"]`)], [kAudioC]);
+    const p = plan(`
+moments:
+  - moment: ${kT1}
+    media: [{ entity: ${kC}, materials: [digital] }]
+`, s);
+    assert.deepStrictEqual(p.errors, [`moment ${kT1} entity ${kC}: audio の entity が持たない項目です: materials`]);
+  });
   it("音声の alt・description・tags と、human_verified: false は通す", () => {
     const s = state([moment(kT1, `[audio entity="${kC}"]`)], [kAudioC]);
     const p = plan(`
@@ -355,6 +394,36 @@ moments:
 `, state([moment(kT1, '', { tier: 'pickup', series: ['夏'] })], []));
     assert.deepStrictEqual(p2.moments, []);
     assert.deepStrictEqual(p2.conflicts.map((c) => c.key), ['tier', 'series']);
+  });
+  it("intent は null を未入力とみなし、値があって違えば衝突、--overwrite なら上書きする", () => {
+    const src = `
+moments:
+  - moment: ${kT1}
+    intent: 新しいねらい
+`;
+    const p1 = plan(src, state([moment(kT1, '')], []));
+    assert.deepStrictEqual(p1.conflicts, []);
+    assert.deepStrictEqual(p1.moments[0].changes, [{ key: 'intent', from: null, to: '新しいねらい', overwrite: false }]);
+    assert.strictEqual(p1.moments[0].intent, '新しいねらい');
+
+    const p2 = plan(src, state([moment(kT1, '', { intent: '前のねらい' })], []));
+    assert.deepStrictEqual(p2.moments, []);
+    assert.deepStrictEqual(p2.conflicts, [{ momentLabel: kT1, entityID: null, key: 'intent', current: '前のねらい', file: '新しいねらい' }]);
+
+    const p3 = plan(src, state([moment(kT1, '', { intent: '前のねらい' })], []), true);
+    assert.deepStrictEqual(p3.moments[0].changes, [{ key: 'intent', from: '前のねらい', to: '新しいねらい', overwrite: true }]);
+  });
+  it("materials は null を未入力とみなし、空のリストは値として扱う", () => {
+    const src = `
+moments:
+  - moment: ${kT1}
+    media: [{ entity: ${kA}, materials: [digital] }]
+`;
+    const p1 = plan(src, state([moment(kT1, `[image entity="${kA}"]`)], [kImageA]));
+    assert.deepStrictEqual(p1.entities[0].changes, [{ key: 'materials', from: null, to: ['digital'], overwrite: false }]);
+    const p2 = plan(src, state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [annotation(kA, { materials: [] })]));
+    assert.deepStrictEqual(p2.entities, []);
+    assert.deepStrictEqual(p2.conflicts, [{ momentLabel: kT1, entityID: kA, key: 'materials', current: [], file: ['digital'] }]);
   });
   it("書く moment の、本文から求め直される sensitive（自動のとき）と icon_id の変化を計画に出す", () => {
     const s = state([
@@ -491,7 +560,8 @@ moments:
 describe("applyCurationPlan", () => {
   it("注釈を書いてから、moment ごとに今の値を読み、計画で変わる項目だけを差し替えて updateMoment（SAVE と同じ口）で書く", async () => {
     const moments = [
-      moment(kT1, `[image entity="${kA}"]`, { title: '海', tier: 'pickup', series: ['夏'] }),
+      // intent は計画に無いので、今の値のまま書く。
+      moment(kT1, `[image entity="${kA}"]`, { title: '海', tier: 'pickup', series: ['夏'], intent: 'もとのねらい' }),
       // 手で上書き済み。計画に sensitive が無ければ、上書きの値のまま書く。
       moment(kT2, '', { status: 'draft', sensitive: true, sensitiveManual: true }),
       // 自動。計画に sensitive が無ければ、自動のまま書く。
@@ -504,6 +574,7 @@ moments:
     media: [{ entity: ${kA}, alt: 海 }]
   - moment: ${kT2}
     series: [冬]
+    intent: 冬のねらい
   - moment: ${kT3}
     tier: sketch
 `, state(moments, [kImageA]));
@@ -525,17 +596,17 @@ moments:
       ['findMoment', dayjs(kT1).format(), 'all'],
       ['updateMoment', {
         title: '海', originalDate: date(kT1), date: date(kT1), author: 'a', text: `[image entity="${kA}"]`, status: 'published',
-        tier: 'pickup', series: ['夏'], sensitiveOverride: true,
+        tier: 'pickup', series: ['夏'], sensitiveOverride: true, intent: 'もとのねらい',
       }],
       ['findMoment', dayjs(kT2).format(), 'all'],
       ['updateMoment', {
         title: 't', originalDate: date(kT2), date: date(kT2), author: 'a', text: '', status: 'draft',
-        tier: 'archive', series: ['冬'], sensitiveOverride: true,
+        tier: 'archive', series: ['冬'], sensitiveOverride: true, intent: '冬のねらい',
       }],
       ['findMoment', dayjs(kT3).format(), 'all'],
       ['updateMoment', {
         title: 't', originalDate: date(kT3), date: date(kT3), author: 'a', text: '', status: 'published',
-        tier: 'sketch', series: [], sensitiveOverride: null,
+        tier: 'sketch', series: [], sensitiveOverride: null, intent: null,
       }],
     ]);
   });

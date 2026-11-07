@@ -14,6 +14,10 @@ export const kLooksNude = ['nude', 'partial', 'unclear', 'none'] as const;
 export const kLooksChild = ['child', 'ambiguous', 'adult', 'none'] as const;
 export const kAnnotationRoles = ['grab', 'both', 'deep', 'none'] as const;
 
+// materials（使った画材）は値を決めていないので、どんな文字列でも入る。これは注釈の引き出しに出す、よく使う画材の候補（#80）。
+// digital はソフトを問わずデジタルで描いたもの。
+export const kMaterialSuggestions = ['digital', 'pencil', 'colored_pencil', 'pastel', 'watercolor'] as const;
+
 export type AnnotationMedium = typeof kAnnotationMedia[number];
 export type AnnotationPalette = typeof kAnnotationPalettes[number];
 export type LooksNude = typeof kLooksNude[number];
@@ -24,6 +28,7 @@ export type AnnotationRole = typeof kAnnotationRoles[number];
 // null は「値なし」（未入力）で、空の文字列・空のリストとは別の値として扱う。
 export type AnnotationValues = {
   medium: AnnotationMedium | null;
+  materials: string[] | null;
   alt: string | null;
   description: string | null;
   tags: string[] | null;
@@ -42,7 +47,7 @@ export type AnnotationValues = {
 export type AnnotationField = keyof AnnotationValues;
 
 export const kAnnotationFields: readonly AnnotationField[] = [
-  'medium', 'alt', 'description', 'tags', 'palette', 'characters', 'looksNude', 'looksChild', 'looksNote',
+  'medium', 'materials', 'alt', 'description', 'tags', 'palette', 'characters', 'looksNude', 'looksChild', 'looksNote',
   'humanVerified', 'role', 'roleGroup', 'roleStar', 'roleNote',
 ];
 
@@ -56,7 +61,7 @@ export const kAnnotationFieldsByType: Record<EntityType, readonly AnnotationFiel
 // 注釈の行が無い entity の値。列の既定値（humanVerified は false、ほかは null）。呼ぶたびに新しいオブジェクトを返す。
 export function emptyAnnotationValues(): AnnotationValues {
   return {
-    medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
+    medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
     looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
     role: null, roleGroup: null, roleStar: null, roleNote: null,
   };
@@ -92,6 +97,8 @@ export namespace Moment {
       series: string[];
       // null なら本文と注釈から計算した値（自動）。true / false なら手での上書き。
       sensitiveOverride: boolean | null;
+      // ねらい・解釈・振り返り。null は未入力。省略はできない（古いタブからの保存で、黙って null にしないため）。
+      intent: string | null;
     };
     export type Response = {
       path: string;

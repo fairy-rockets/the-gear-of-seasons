@@ -40,7 +40,7 @@ const kAudioC: Entity = {
 
 function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): EntityAnnotation {
   return {
-    entityID, medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
+    entityID, medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
     looksNude: null, looksChild: null, looksNote: null, humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
     ...values,
   };
@@ -49,7 +49,7 @@ function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): E
 function moment(t: string, text: string, values: Partial<Moment> = {}): Moment {
   return {
     timestamp: dayjs(t), title: '常夏の世界一周', author: '宵宮ナギ', text, iconID: kA, status: 'published',
-    tier: 'archive', series: [], sensitive: false, sensitiveManual: false,
+    tier: 'archive', series: [], sensitive: false, sensitiveManual: false, intent: null,
     ...values,
   };
 }
@@ -65,11 +65,11 @@ describe("hexeYamlObject", () => {
   it("moment の項目をこの順に出し、時刻はサーバの時間帯によらず JST で書く", () => {
     // UTC では前の日。JST では 2017-07-26 05:00:00。
     const m = moment('2017-07-25T20:00:00Z', `[image entity="${kA}"]`, {
-      status: 'published', tier: 'pickup', series: ['夏', '海'], sensitive: true, sensitiveManual: true,
+      status: 'published', tier: 'pickup', series: ['夏', '海'], sensitive: true, sensitiveManual: true, intent: '海の青',
     });
     const obj = hexeYamlObject(m, ...maps([kImageA]));
     assert.deepStrictEqual(Object.keys(obj), [
-      'moment', 'url', 'title', 'created', 'author', 'status', 'tier', 'series', 'sensitive', 'sensitive_manual', 'icon', 'media',
+      'moment', 'url', 'title', 'created', 'author', 'status', 'tier', 'series', 'sensitive', 'sensitive_manual', 'intent', 'icon', 'media',
     ]);
     assert.deepStrictEqual({ ...obj, media: undefined }, {
       moment: '2017-07-26T05:00:00+09:00',
@@ -82,6 +82,7 @@ describe("hexeYamlObject", () => {
       series: ['夏', '海'],
       sensitive: true,
       sensitive_manual: true,
+      intent: '海の青',
       icon: kA,
       media: undefined,
     });
@@ -101,6 +102,9 @@ describe("hexeYamlObject", () => {
     const obj = hexeYamlObject(moment('2017-07-26T02:46:00+09:00', '本文だけ', { iconID: undefined }), ...maps([]));
     assert.ok(!('icon' in obj));
     assert.ok(!('markdown' in obj));
+    // intent が null（未入力）ならキーごと出さない。空の文字列は値として出す。
+    assert.ok(!('intent' in obj));
+    assert.strictEqual(hexeYamlObject(moment('2017-07-26T02:46:00+09:00', '', { intent: '' }), ...maps([]))['intent'], '');
     assert.deepStrictEqual(obj['media'], []);
   });
 
@@ -128,7 +132,7 @@ describe("hexeYamlObject", () => {
 
   it("注釈は種類が持つ項目だけを #2 の順に出し、null は出さず、空の文字列・空のリスト・false は出す", () => {
     const full: Partial<EntityAnnotation> = {
-      medium: 'drawing', alt: '海', description: '一行目\n二行目\n', tags: ['海', '船'], palette: 'color', characters: [],
+      medium: 'drawing', materials: ['pencil', 'digital'], alt: '海', description: '一行目\n二行目\n', tags: ['海', '船'], palette: 'color', characters: [],
       looksNude: 'none', looksChild: 'child', looksNote: '', humanVerified: true,
       role: 'grab', roleGroup: '空の青', roleStar: false, roleNote: '',
     };
@@ -137,22 +141,22 @@ describe("hexeYamlObject", () => {
       annotation(kA, full),
       // 音声の注釈の行には humanVerified = false が入っているが、音声は humanVerified を持たないので出さない。
       annotation(kC, { alt: '', tags: [] }),
-      annotation(kB, { alt: '波', looksNude: 'partial' }),
+      annotation(kB, { alt: '波', looksNude: 'partial', materials: [] }),
     ]))['media'] as Record<string, unknown>[];
     assert.deepStrictEqual(Object.keys(media[0]), [
       'entity', 'type', 'width', 'height',
-      'medium', 'alt', 'description', 'tags', 'palette', 'characters', 'looks_nude', 'looks_child', 'looks_note', 'human_verified',
+      'medium', 'materials', 'alt', 'description', 'tags', 'palette', 'characters', 'looks_nude', 'looks_child', 'looks_note', 'human_verified',
       'role', 'role_group', 'role_star', 'role_note',
     ]);
     assert.deepStrictEqual(media[0], {
       entity: kA, type: 'image', width: 1200, height: 1600,
-      medium: 'drawing', alt: '海', description: '一行目\n二行目\n', tags: ['海', '船'], palette: 'color', characters: [],
+      medium: 'drawing', materials: ['pencil', 'digital'], alt: '海', description: '一行目\n二行目\n', tags: ['海', '船'], palette: 'color', characters: [],
       looks_nude: 'none', looks_child: 'child', looks_note: '', human_verified: true,
       role: 'grab', role_group: '空の青', role_star: false, role_note: '',
     });
     assert.deepStrictEqual(media[1], { entity: kC, type: 'audio', duration: 61.25, alt: '', tags: [] });
     assert.deepStrictEqual(media[2], {
-      entity: kB, type: 'video', width: 1920, height: 1080, duration: 19.5, alt: '波', looks_nude: 'partial', human_verified: false,
+      entity: kB, type: 'video', width: 1920, height: 1080, duration: 19.5, materials: [], alt: '波', looks_nude: 'partial', human_verified: false,
     });
   });
 
@@ -322,11 +326,12 @@ describe("exportEntries", () => {
 
   it("改行を含む文字列は | のブロックで書き、長い行も折り返さない", () => {
     const long = 'あ'.repeat(200);
-    const m = moment('2017-07-26T02:46:00+09:00', `[image entity="${kA}"]`, { title: long });
+    const m = moment('2017-07-26T02:46:00+09:00', `[image entity="${kA}"]`, { title: long, intent: 'ねらい\n振り返り\n' });
     const src = source([m], [kImageA], [annotation(kA, { description: '一行目\n二行目\n' })]);
     const yaml = exportEntries(src).find((e) => e.name.endsWith('hexe.yaml'))!!.content;
     assert.ok(yaml.includes(`\ntitle: ${long}\n`), yaml);
     assert.ok(yaml.includes('    description: |\n      一行目\n      二行目\n'), yaml);
+    assert.ok(yaml.includes('\nintent: |\n  ねらい\n  振り返り\n'), yaml);
   });
 
   it("同じ DB からは同じ内容になる", async () => {

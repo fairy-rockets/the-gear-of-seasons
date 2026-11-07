@@ -16,6 +16,7 @@ import {
   kMomentKeys,
   parseBoolean,
   parseEnum,
+  parseString,
   parseStrings,
 } from './CurationFormat.js';
 
@@ -47,6 +48,7 @@ export type CurationFileMoment = {
   tier?: MomentTier;
   series?: string[];
   sensitive?: boolean;
+  intent?: string;
   media: CurationFileMedia[];
 };
 
@@ -122,6 +124,9 @@ export function parseCurationFile(src: string): { file: CurationFile, errors: st
             break;
           case 'sensitive':
             moment.sensitive = parseBoolean(v);
+            break;
+          case 'intent':
+            moment.intent = parseString(v);
             break;
         }
       } catch (err) {
@@ -256,9 +261,10 @@ export type MomentPlan = {
   label: string;
   timestamp: dayjs.Dayjs;
   changes: FieldChange[];
-  // 書いたあとの tier と series。
+  // 書いたあとの tier・series・intent。
   tier: MomentTier;
   series: string[];
+  intent: string | null;
   // 手で上書きする sensitive の値。書かないなら null。
   sensitive: boolean | null;
 };
@@ -337,26 +343,24 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
     // moment の項目
     const mp: MomentPlan = {
       label: fm.label, timestamp: current.timestamp!!, changes: [],
-      tier: current.tier, series: current.series, sensitive: null,
+      tier: current.tier, series: current.series, intent: current.intent, sensitive: null,
     };
-    if (fm.tier !== undefined) {
-      const d = decide('tier', current.tier, fm.tier, opts.overwrite);
-      if (d === 'conflict') {
-        conflict(null, 'tier', current.tier, fm.tier);
-      } else if (d !== 'same') {
-        mp.changes.push({ key: 'tier', from: current.tier, to: fm.tier, overwrite: d === 'overwrite' });
-        mp.tier = fm.tier;
+    // ファイルにある項目だけを、今の値と比べて計画に入れる。
+    const planField = <K extends 'tier' | 'series' | 'intent'>(key: K, next: MomentPlan[K] | undefined) => {
+      if (next === undefined) {
+        return;
       }
-    }
-    if (fm.series !== undefined) {
-      const d = decide('series', current.series, fm.series, opts.overwrite);
+      const d = decide(key, current[key], next, opts.overwrite);
       if (d === 'conflict') {
-        conflict(null, 'series', current.series, fm.series);
+        conflict(null, key, current[key], next);
       } else if (d !== 'same') {
-        mp.changes.push({ key: 'series', from: current.series, to: fm.series, overwrite: d === 'overwrite' });
-        mp.series = fm.series;
+        mp.changes.push({ key, from: current[key], to: next, overwrite: d === 'overwrite' });
+        mp[key] = next;
       }
-    }
+    };
+    planField('tier', fm.tier);
+    planField('series', fm.series);
+    planField('intent', fm.intent);
     // sensitive は、手で上書きされていない（sensitive_manual = false）なら未入力とみなす。
     // 値が今と同じでも、sensitive_manual を true にするために書く（2回目は変わらない）。
     if (fm.sensitive !== undefined) {
@@ -503,6 +507,7 @@ export async function applyCurationPlan(shelf: Shelf, plan: CurationPlan) {
       tier: changed('tier') ? m.tier : current.tier,
       series: changed('series') ? m.series : current.series,
       sensitiveOverride: m.sensitive ?? keep,
+      intent: changed('intent') ? m.intent : current.intent,
     });
   }
 }

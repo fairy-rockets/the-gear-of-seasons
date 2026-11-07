@@ -27,6 +27,7 @@ function nullable<T>(parse: (v: unknown) => T): (v: unknown) => T | null {
 // 項目ごとの値の形。Record にしてあるので、項目を足すと、ここに足すまでコンパイルが通らない。
 const kParsers: Record<AnnotationField, (v: unknown) => AnnotationValue> = {
   medium: parseAnnotationMedium,
+  materials: nullable(parseStrings),
   alt: nullable(parseString),
   description: nullable(parseString),
   tags: nullable(parseStrings),

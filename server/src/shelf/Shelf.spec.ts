@@ -103,7 +103,7 @@ const kB = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
 function annotation(entityID: string, looksNude: EntityAnnotation['looksNude'], looksChild: EntityAnnotation['looksChild']): EntityAnnotation {
   return {
-    entityID, medium: null, alt: null, description: null, tags: null, palette: null, characters: null,
+    entityID, medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
     looksNude, looksChild, looksNote: null, humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
   };
 }
@@ -114,7 +114,7 @@ function curated(text: string, sensitiveManual: boolean, sensitive = false): Mom
   return {
     timestamp: dayjs('2020-01-02T03:04:05+09:00').add(numCurated, 'day'),
     title: 't', author: 'a', text, iconID: undefined, status: 'draft',
-    tier: 'pickup', series: ['癒し'], sensitive, sensitiveManual,
+    tier: 'pickup', series: ['癒し'], sensitive, sensitiveManual, intent: null,
   };
 }
 
@@ -272,6 +272,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
     tier: 'sketch',
     series: ['魔女hexe', '癒し'],
     sensitiveOverride: null,
+    intent: 'ねらい\n振り返り',
   };
   // kOld にある moment を持ち、kA に nude・child の注釈がある（自動なら sensitive = true）。
   function repoWithMoment(): FakeRepo {
@@ -295,7 +296,15 @@ describe("Shelf.updateMoment（SAVE）", () => {
       series: ['魔女hexe', '癒し'],
       sensitive: true,
       sensitiveManual: false,
+      intent: 'ねらい\n振り返り',
     }]]);
+  });
+
+  it("intent が null なら未入力として書く", async () => {
+    const repo = repoWithMoment();
+    const m = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, intent: null });
+    assert.strictEqual(m.intent, null);
+    assert.strictEqual((repo.saved[0][2] as Moment).intent, null);
   });
 
   it("sensitiveOverride が true / false なら、その値を手での上書きとして書く", async () => {
@@ -383,7 +392,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
   });
 
   // 古いクライアントからの保存で、キュレーションの項目が黙って変わらないように。
-  for (const key of ['status', 'tier', 'series', 'sensitiveOverride']) {
+  for (const key of ['status', 'tier', 'series', 'sensitiveOverride', 'intent']) {
     it(`${key} が欠けていれば、何も書かずに例外にする`, async () => {
       const repo = repoWithMoment();
       const req: Record<string, unknown> = { ...kReq };
@@ -393,7 +402,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
     });
   }
 
-  for (const [key, value] of [['tier', 'featured'], ['series', '魔女hexe, 癒し'], ['series', [1]], ['sensitiveOverride', 'auto']] as [string, unknown][]) {
+  for (const [key, value] of [['tier', 'featured'], ['series', '魔女hexe, 癒し'], ['series', [1]], ['sensitiveOverride', 'auto'], ['intent', 1]] as [string, unknown][]) {
     it(`${key} が ${JSON.stringify(value)} なら、何も書かずに例外にする`, async () => {
       const repo = repoWithMoment();
       const req = { ...kReq, [key]: value } as protocol.Moment.Save.Request;
@@ -470,7 +479,7 @@ describe("Shelf の外部の動画", () => {
     const repo = new FakeRepo([kExternal], []);
     const m = await new Shelf(repo as unknown as Repo, []).updateMoment({
       title: 't', originalDate: null, date: '', author: 'a', text: `[video entity="${kA}"]`,
-      status: 'draft', tier: 'archive', series: [], sensitiveOverride: null,
+      status: 'draft', tier: 'archive', series: [], sensitiveOverride: null, intent: null,
     });
     assert.ok(m.timestamp!!.isSame(dayjs('2025-01-04T06:14:49Z')));
     assert.strictEqual(m.iconID, kA);

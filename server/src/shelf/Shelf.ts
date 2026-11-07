@@ -25,6 +25,7 @@ import {
   MomentVisibility,
   formatMomentTime,
   momentIconID,
+  parseMomentIntent,
   parseMomentSeries,
   parseMomentStatus,
   parseMomentTier,
@@ -446,6 +447,7 @@ class Shelf {
     const status = parseMomentStatus(req.status);
     const tier = parseMomentTier(req.tier);
     const series = parseMomentSeries(req.series);
+    const intent = parseMomentIntent(req.intent);
     let date = req.date;
     const doc = fml.parse(req.text);
     if (date === null || date.length === 0) {
@@ -476,6 +478,7 @@ class Shelf {
       status: status,
       tier: tier,
       series: series,
+      intent: intent,
     };
   }
 

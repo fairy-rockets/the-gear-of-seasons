@@ -17,6 +17,8 @@ type EditorData = {
   sensitive: 'auto' | 'true' | 'false';
   // 本文と注釈から計算した sensitive の値。「自動（今は…）」に出す。
   autoSensitive: boolean;
+  // 未入力（null）は空の文字列。
+  intent: string;
 };
 
 class EditorTemplate {
