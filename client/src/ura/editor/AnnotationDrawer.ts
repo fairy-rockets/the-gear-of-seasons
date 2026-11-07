@@ -561,7 +561,7 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
       if (text instanceof HTMLInputElement) {
         text.type = 'text';
       } else {
-        text.rows = 4;
+        text.rows = 6;
       }
       text.value = (value as string | null) ?? '';
       text.placeholder = value === '' ? '（空の文字列）' : '（未入力）';
