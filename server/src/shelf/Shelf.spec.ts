@@ -7,6 +7,7 @@ import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { Entity, ExternalVideoEntity } from './Entity.js';
 import { EntityAnnotation } from './EntityAnnotation.js';
+import { ExternalVideoPlatform } from './ExternalVideo.js';
 import { Moment, MomentVisibility, parseMomentTime } from './Moment.js';
 
 // Shelf は Repo への受け渡しだけなので、Repo をスタブにして
@@ -33,6 +34,9 @@ const kWithoutVisibility: { [name: string]: string } = {
   findEntity: 'moment を引かない',
   resolveEntityPath: 'moment を引かない',
   insertEntity: 'moment を引かない',
+  insertExternalVideo: 'moment を引かない',
+  generateExternalVideoIcon: 'moment を引かない',
+  regenerateExternalVideoCache: 'moment を引かない',
   deleteEntity: 'moment を引かない',
   deleteInternalEntity: 'moment を引かない',
   deleteExternalEntity: 'moment を引かない',
@@ -406,13 +410,13 @@ describe("Shelf の外部の動画", () => {
     externalRef: { platform: 'youtube', id: 'TXt9E_dNVms' },
   };
   // storage と Repo の呼ばれ方を記録する。
-  function setup() {
+  function setup(platforms: ExternalVideoPlatform[] = []) {
     const calls: unknown[][] = [];
     const repo = {
       deleteEntity: async (e: Entity) => { calls.push(['repo.deleteEntity', e.id]); },
       updateEntity: async (e: Entity) => { calls.push(['repo.updateEntity', e]); },
     };
-    const shelf = new Shelf(repo as unknown as Repo);
+    const shelf = new Shelf(repo as unknown as Repo, platforms);
     const storage = (shelf as unknown as { storage: { [kind: string]: unknown } }).storage;
     for (const kind of ['original', 'medium', 'icon']) {
       storage[kind] = {
@@ -440,15 +444,31 @@ describe("Shelf の外部の動画", () => {
     assert.deepStrictEqual(calls, [['icon.fetch', 'old-icon']]);
   });
 
-  it("作り直しは、まだ対応していないので何も書かずに失敗する", async () => {
-    const { shelf, calls } = setup();
-    await assert.rejects(shelf.regenerateEntityCache(kExternal), /not supported yet/);
-    assert.deepStrictEqual(calls, []);
+  it("作り直しでは、外部から icon と大きさ・長さだけを取り直し、id と時刻は変えない", async () => {
+    const fetched: unknown[] = [];
+    const platform: ExternalVideoPlatform = {
+      platform: 'youtube',
+      match: () => null,
+      fetch: async (video) => {
+        fetched.push(video);
+        return {
+          info: { timestamp: dayjs('2030-01-01T00:00:00Z'), width: 1920, height: 1080, duration: 3857, thumbnailURL: 'x' },
+          // makeImageIcon に通せる画像（1x1 の GIF）
+          thumbnail: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'),
+        };
+      },
+    };
+    const { shelf, calls } = setup([platform]);
+    await shelf.regenerateEntityCache(kExternal);
+    assert.deepStrictEqual(fetched, [kExternal.externalRef]);
+    assert.deepStrictEqual(calls, [['icon.upload'], ['repo.updateEntity', {
+      ...kExternal, iconID: 'new-icon', width: 1920, height: 1080, duration: 3857,
+    }]]);
   });
 
   it("日時が空の SAVE は、外部の動画の時刻（配信開始・公開）を使う", async () => {
     const repo = new FakeRepo([kExternal], []);
-    const m = await new Shelf(repo as unknown as Repo).updateMoment({
+    const m = await new Shelf(repo as unknown as Repo, []).updateMoment({
       title: 't', originalDate: null, date: '', author: 'a', text: `[video entity="${kA}"]`,
       status: 'draft', tier: 'archive', series: [], sensitiveOverride: null,
     });

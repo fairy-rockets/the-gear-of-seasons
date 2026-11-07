@@ -4,6 +4,9 @@
 // platform を足すときに触る場所:
 // - このファイル: ExternalVideoPlatformName・型（ExternalVideoRef の union）・parseExternalVideoRef・
 //   externalVideoPresentation
+// - lib/ExternalVideoURL.ts: 入力された URL の matcher
+// - shelf/ExternalVideo.ts: ExternalVideoPlatform の実装（URL の判定と取得）・defaultExternalVideoPlatforms
+// - shelf/Shelf.ts: insertExternalVideo の、対応していない URL のエラー文（「今は YouTube の動画だけ」）
 import { youtubeEmbedURL, youtubeWatchURL } from './youtube.js';
 
 export type ExternalVideoPlatformName = 'youtube';
