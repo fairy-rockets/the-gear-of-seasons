@@ -47,7 +47,6 @@ export default class Editor {
     this.save_ = save;
     this.delete_ = del;
     this.originalDate_ = date.value;
-    // onSave_ が位置で date（1）と status（3）を参照するので、足す欄は末尾に置く。
     this.fields_ = [title, date, author, status, tier, series, sensitive, text, intent];
     this.savedValues_ = this.formValues_();
     this.guarding_ = false;
@@ -205,15 +204,17 @@ export default class Editor {
       this.setBusy_(false);
     }
     const unchanged = this.formValues_().every((value, i) => value === submitted[i]);
+    const iDate = this.fields_.indexOf(this.date_);
+    const iStatus = this.fields_.indexOf(this.status_);
     // 応答の日時・ステータスは、送信後にその欄を編集していなければ反映する。
-    if (this.date_.value === submitted[1]) {
+    if (this.date_.value === submitted[iDate]) {
       this.date_.value = result.date;
     }
-    if (this.status_.value === submitted[3]) {
+    if (this.status_.value === submitted[iStatus]) {
       this.status_.value = result.status;
     }
-    submitted[1] = result.date;
-    submitted[3] = result.status;
+    submitted[iDate] = result.date;
+    submitted[iStatus] = result.status;
     this.savedValues_ = submitted;
     this.originalDate_ = result.date;
     this.updateUnsavedChanges();

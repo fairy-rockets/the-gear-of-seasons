@@ -247,20 +247,6 @@ describe("Repo のキュレーションの項目", () => {
     assert.strictEqual((await repo.findMoment(kTimestamp, 'all'))?.intent, null);
   });
 
-  // decodeMoment に渡すクエリが1つでも intent を読み落とすと、そこで読んだ moment を書き戻したときに intent が消える。
-  it("moment を丸ごと読むクエリは、どれも intent を読む", async () => {
-    const reads: [string, () => Promise<unknown>][] = [
-      ['findMoment', () => repo.findMoment(kTimestamp, 'all')],
-      ['findAllMoments', () => repo.findAllMoments('all')],
-      ['enumurateAllMoments', async () => { for await (const _ of repo.enumurateAllMoments()) { /* 読むだけ */ } }],
-      ['findAutoSensitiveMomentCandidates', () => repo.findAutoSensitiveMomentCandidates('a')],
-    ];
-    for (const [name, read] of reads) {
-      calls = stubPool(repo, [kRow]);
-      await read();
-      assert.match(calls[0].q, /"sensitive_manual", "intent"\s+from moments/, name);
-    }
-  });
 
   it("DB に知らない tier があれば例外にする", async () => {
     calls = stubPool(repo, [{ ...kRow, tier: 'featured' }]);

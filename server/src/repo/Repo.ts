@@ -338,9 +338,7 @@ where
   async findAllMoments(visibility: MomentVisibility): Promise<Moment[]> {
     // language=PostgreSQL
     const q=`
-select
-  "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", "series", "sensitive", "sensitive_manual", "intent"
+select ${kMomentColumns}
 from moments
   where
     ${momentVisibilityCondition(visibility)}
@@ -392,9 +390,7 @@ from moments
   async findMoment(timestamp: dayjs.Dayjs, visibility: MomentVisibility): Promise<Moment | null> {
     // language=PostgreSQL
     const q=`
-select
-  "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", "series", "sensitive", "sensitive_manual", "intent"
+select ${kMomentColumns}
 from moments
   where
     "timestamp" = $1
@@ -450,9 +446,7 @@ limit 1;
   async* enumurateAllMoments(): AsyncGenerator<Moment> {
     // language=PostgreSQL
     const q=`
-select
-  "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", "series", "sensitive", "sensitive_manual", "intent"
+select ${kMomentColumns}
 from moments
 `;
     const { rows } = await this.pool.query(q, []);
@@ -467,9 +461,7 @@ from moments
   async findAutoSensitiveMomentCandidates(entityID: string): Promise<Moment[]> {
     // language=PostgreSQL
     const q=`
-select
-  "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", "series", "sensitive", "sensitive_manual", "intent"
+select ${kMomentColumns}
 from moments
   where
     "text" like '%' || $1::text || '%'
@@ -567,6 +559,9 @@ insert into entity_annotations (
     ]);
   }
 }
+
+// decodeMoment が読む列。moment を丸ごと読むクエリはすべてこれを使う（列を読み落とすと、読んだ moment を書き戻したときにその値が消える）。
+const kMomentColumns = `"timestamp", "title", "author", "text", "icon_id", "status", "tier", "series", "sensitive", "sensitive_manual", "intent"`;
 
 function decodeMoment(row: pg.QueryResultRow): Moment {
   return {

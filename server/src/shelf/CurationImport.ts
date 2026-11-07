@@ -345,33 +345,22 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
       label: fm.label, timestamp: current.timestamp!!, changes: [],
       tier: current.tier, series: current.series, intent: current.intent, sensitive: null,
     };
-    if (fm.tier !== undefined) {
-      const d = decide('tier', current.tier, fm.tier, opts.overwrite);
-      if (d === 'conflict') {
-        conflict(null, 'tier', current.tier, fm.tier);
-      } else if (d !== 'same') {
-        mp.changes.push({ key: 'tier', from: current.tier, to: fm.tier, overwrite: d === 'overwrite' });
-        mp.tier = fm.tier;
+    // ファイルにある項目だけを、今の値と比べて計画に入れる。
+    const planField = <K extends 'tier' | 'series' | 'intent'>(key: K, next: MomentPlan[K] | undefined) => {
+      if (next === undefined) {
+        return;
       }
-    }
-    if (fm.series !== undefined) {
-      const d = decide('series', current.series, fm.series, opts.overwrite);
+      const d = decide(key, current[key], next, opts.overwrite);
       if (d === 'conflict') {
-        conflict(null, 'series', current.series, fm.series);
+        conflict(null, key, current[key], next);
       } else if (d !== 'same') {
-        mp.changes.push({ key: 'series', from: current.series, to: fm.series, overwrite: d === 'overwrite' });
-        mp.series = fm.series;
+        mp.changes.push({ key, from: current[key], to: next, overwrite: d === 'overwrite' });
+        mp[key] = next;
       }
-    }
-    if (fm.intent !== undefined) {
-      const d = decide('intent', current.intent, fm.intent, opts.overwrite);
-      if (d === 'conflict') {
-        conflict(null, 'intent', current.intent, fm.intent);
-      } else if (d !== 'same') {
-        mp.changes.push({ key: 'intent', from: current.intent, to: fm.intent, overwrite: d === 'overwrite' });
-        mp.intent = fm.intent;
-      }
-    }
+    };
+    planField('tier', fm.tier);
+    planField('series', fm.series);
+    planField('intent', fm.intent);
     // sensitive は、手で上書きされていない（sensitive_manual = false）なら未入力とみなす。
     // 値が今と同じでも、sensitive_manual を true にするために書く（2回目は変わらない）。
     if (fm.sensitive !== undefined) {

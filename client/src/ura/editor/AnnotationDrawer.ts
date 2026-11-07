@@ -590,29 +590,16 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
       text.disabled = check.checked;
       empty.appendChild(check);
       empty.appendChild(document.createTextNode('なし（空のリスト）'));
-      const buttons: HTMLButtonElement[] = [];
-      // 候補のボタンの押された見た目を、欄の今の値に合わせる。
-      const refresh = () => {
-        const items = check.checked ? [] : splitList(text.value);
-        for (const b of buttons) {
-          b.setAttribute('aria-pressed', String(items.includes(b.value)));
-        }
-      };
-      text.addEventListener('input', () => {
-        touch();
-        refresh();
-      });
+      // 欄の今の値。「なし」なら空のリスト。
+      const items = () => check.checked ? [] : splitList(text.value);
+      text.addEventListener('input', touch);
       check.addEventListener('change', () => {
         touch();
         text.disabled = check.checked;
-        refresh();
       });
       input.read = () => {
-        if (check.checked) {
-          return [];
-        }
-        const items = splitList(text.value);
-        return items.length === 0 ? null : items;
+        const list = items();
+        return list.length === 0 && !check.checked ? null : list;
       };
       box.appendChild(text);
       box.appendChild(empty);
@@ -624,6 +611,16 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
       column.classList.add('annotation-list-column');
       const suggestions = document.createElement('div');
       suggestions.classList.add('annotation-suggestions');
+      const buttons: HTMLButtonElement[] = [];
+      // 候補のボタンの押された見た目を、欄の今の値に合わせる。
+      const refresh = () => {
+        const list = items();
+        for (const b of buttons) {
+          b.setAttribute('aria-pressed', String(list.includes(b.value)));
+        }
+      };
+      text.addEventListener('input', refresh);
+      check.addEventListener('change', refresh);
       for (const v of kind.suggestions) {
         const b = document.createElement('button');
         b.type = 'button';
@@ -631,16 +628,16 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
         b.textContent = v;
         // 押すと欄の値に足す（あれば外す）。「なし」のチェックは外す。
         b.addEventListener('click', () => {
-          const items = check.checked ? [] : splitList(text.value);
-          const i = items.indexOf(v);
+          const list = items();
+          const i = list.indexOf(v);
           if (i >= 0) {
-            items.splice(i, 1);
+            list.splice(i, 1);
           } else {
-            items.push(v);
+            list.push(v);
           }
           check.checked = false;
           text.disabled = false;
-          text.value = items.join(', ');
+          text.value = list.join(', ');
           // 手で書いたときと同じく input を起こし、触った印・ボタンの見た目・引き出しの未保存の判定を更新する。
           text.dispatchEvent(new Event('input', { bubbles: true }));
         });
