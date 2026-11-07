@@ -1,4 +1,4 @@
-// /insert-embed に入力された URL が、どの platform のどの動画かを見分ける。
+// /embed に入力された URL が、どの platform のどの動画かを見分ける。
 // platform を足すときは、ここに matcher を足し、その platform の ExternalVideoPlatform（shelf/ExternalVideo.ts）の match から使う。
 import { ExternalVideoRef } from './ExternalVideoRef.js';
 import { YouTubeURLError, isYoutubeURL, parseYoutubeId } from './youtube.js';

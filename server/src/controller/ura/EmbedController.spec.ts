@@ -13,7 +13,7 @@ import { Entity } from '../../shelf/Entity.js';
 import { YouTubePlatform } from '../../shelf/ExternalVideo.js';
 import { YouTubeDataAPI, YouTubeVideoResource } from '../../lib/YouTubeDataAPI.js';
 
-import InsertEmbedController from './InsertEmbedController.js';
+import EmbedController from './EmbedController.js';
 
 // 本物の Shelf を、DB の代わりに配列で持つ Repo と、YouTube の代わりの API の上で動かす。
 
@@ -76,7 +76,7 @@ function setup(api: YouTubeDataAPI | null) {
       return 'icon-hash';
     },
   };
-  const c = new InsertEmbedController(shelf);
+  const c = new EmbedController(shelf);
   const post = async (body: unknown) => {
     const reply = new StubReply();
     await c.handle({ body } as unknown as FastifyRequest, reply as unknown as FastifyReply);
@@ -85,9 +85,9 @@ function setup(api: YouTubeDataAPI | null) {
   return { repo, icons, post };
 }
 
-describe("POST /insert-embed", () => {
+describe("POST /embed", () => {
   before(async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'insert-embed-spec-'));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'embed-spec-'));
     try {
       const file = path.join(dir, 'thumbnail.jpg');
       await spawn('magick', ['-size', '1280x720', 'xc:#336699', file]);

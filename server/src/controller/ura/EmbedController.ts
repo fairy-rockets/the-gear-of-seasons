@@ -12,13 +12,13 @@ function errorReply(reply: FastifyReply, statusCode: number, error: string, mess
 
 // ura の編集画面の ↑ の URL 欄が使う口。外部（今は YouTube だけ）の動画の URL を受け取って entity にし、
 // /upload と同じく、本文に挿入する fml を返す。
-export default class InsertEmbedController {
+export default class EmbedController {
   private readonly shelf: Shelf;
   constructor(shelf: Shelf) {
     this.shelf = shelf;
   }
-  static async create(shelf: Shelf): Promise<InsertEmbedController> {
-    return new InsertEmbedController(shelf);
+  static async create(shelf: Shelf): Promise<EmbedController> {
+    return new EmbedController(shelf);
   }
   async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const body = req.body as { url?: unknown } | null | undefined;

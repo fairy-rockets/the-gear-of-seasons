@@ -9,7 +9,7 @@ import { ExternalVideoRef } from './Entity.js';
 // 外部に置いてある動画を entity として取り込むときの、platform ごとの URL の判定と取得。
 // platform を足すときは ExternalVideoPlatform を実装し、defaultExternalVideoPlatforms に足す。
 
-// 取り込めない理由。statusCode は /insert-embed が返す HTTP の状態。
+// 取り込めない理由。statusCode は /embed が返す HTTP の状態。
 export class ExternalVideoError extends Error {
   readonly statusCode: number;
   constructor(statusCode: number, message: string) {

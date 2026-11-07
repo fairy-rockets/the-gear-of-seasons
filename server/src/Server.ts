@@ -25,7 +25,7 @@ import SitemapController from './controller/omote/SitemapController.js';
 import UraIndexController from './controller/ura/IndexController.js';
 import MomentListController from './controller/ura/MomentListController.js';
 import UploadController from './controller/ura/UploadController.js';
-import InsertEmbedController from './controller/ura/InsertEmbedController.js';
+import EmbedController from './controller/ura/EmbedController.js';
 import NewController from './controller/ura/NewController.js';
 import EditController from './controller/ura/EditController.js';
 import SaveController from './controller/ura/SaveController.js';
@@ -186,9 +186,9 @@ class Server {
       const ura = await UploadController.create(this.shelf);
       this.ura.post('/upload', ura.handle.bind(this));
     }
-    { // (ura)/insert-embed
-      const ura = await InsertEmbedController.create(this.shelf);
-      this.ura.post('/insert-embed', ura.handle.bind(ura));
+    { // (ura)/embed
+      const ura = await EmbedController.create(this.shelf);
+      this.ura.post('/embed', ura.handle.bind(ura));
     }
 
     { // (omote/ura)/static/*
