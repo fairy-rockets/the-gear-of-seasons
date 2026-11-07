@@ -619,24 +619,35 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
           b.setAttribute('aria-pressed', String(list.includes(b.value)));
         }
       };
-      text.addEventListener('input', refresh);
-      check.addEventListener('change', refresh);
+      // 「なし」から候補のボタンで足したか。ボタンで外して空に戻ったら「なし」に戻し、[] を黙って null にしない。
+      // 欄や「なし」を手で触ったら忘れる。
+      let fromEmpty = false;
+      text.addEventListener('input', (e) => {
+        if (e.isTrusted) {
+          fromEmpty = false;
+        }
+        refresh();
+      });
+      check.addEventListener('change', () => {
+        fromEmpty = false;
+        refresh();
+      });
       for (const v of kind.suggestions) {
         const b = document.createElement('button');
         b.type = 'button';
         b.value = v;
         b.textContent = v;
-        // 押すと欄の値に足す（あれば外す）。「なし」のチェックは外す。
+        // 押すと欄の値に足す（あれば、重なっているものも含めて外す）。足すときは「なし」のチェックを外す。
         b.addEventListener('click', () => {
-          const list = items();
-          const i = list.indexOf(v);
-          if (i >= 0) {
-            list.splice(i, 1);
+          let list = items();
+          if (list.includes(v)) {
+            list = list.filter((x) => x !== v);
           } else {
+            fromEmpty ||= check.checked;
             list.push(v);
           }
-          check.checked = false;
-          text.disabled = false;
+          check.checked = list.length === 0 && fromEmpty;
+          text.disabled = check.checked;
           text.value = list.join(', ');
           // 手で書いたときと同じく input を起こし、触った印・ボタンの見た目・引き出しの未保存の判定を更新する。
           text.dispatchEvent(new Event('input', { bubbles: true }));

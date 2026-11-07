@@ -247,7 +247,6 @@ describe("Repo のキュレーションの項目", () => {
     assert.strictEqual((await repo.findMoment(kTimestamp, 'all'))?.intent, null);
   });
 
-
   it("DB に知らない tier があれば例外にする", async () => {
     calls = stubPool(repo, [{ ...kRow, tier: 'featured' }]);
     await assert.rejects(() => repo.findMoment(kTimestamp, 'all'), /Invalid moment tier/);

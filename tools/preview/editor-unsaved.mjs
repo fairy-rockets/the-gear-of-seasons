@@ -182,6 +182,28 @@ try {
   await page.click('.annotation-save'); await idle();
   assert.deepEqual(lastAnnotation.annotation.materials, ['digital']);
   assert.equal(await dirty(), false);
+  // 「なし」から足して外すと「なし」（[]）に戻り、欄が空から足して外すと未入力（null）に戻る。重なった値はまとめて外す。
+  await page.evaluate(() => {
+    const check = [...document.querySelectorAll('.annotation-field')]
+      .find(el => el.querySelector('.annotation-label').textContent === 'materials')
+      .querySelector('input[type="checkbox"]');
+    check.click();
+  });
+  await suggestion('pastel'); assert.equal(await materials(), 'pastel');
+  await suggestion('pastel');
+  await page.click('.annotation-save'); await idle();
+  assert.deepEqual(lastAnnotation.annotation.materials, [], 'removing back to empty keeps []');
+  await page.evaluate(() => {
+    const field = [...document.querySelectorAll('.annotation-field')]
+      .find(el => el.querySelector('.annotation-label').textContent === 'materials');
+    field.querySelector('input[type="checkbox"]').click();
+    const text = field.querySelector('input[type="text"]');
+    text.value = 'pencil, pencil';
+    text.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await suggestion('pencil');
+  await page.click('.annotation-save'); await idle();
+  assert.equal(lastAnnotation.annotation.materials, null, 'removing typed values back to empty is null');
   await annotationInput('一時変更'); await annotationInput('通信中に変更');
   assert.equal(await dirty(), false, 'annotation revert is clean');
   await input('#title', 'moment だけ未保存');

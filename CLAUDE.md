@@ -155,7 +155,7 @@ Run it in production with `-T`, since a TTY would turn `\n` into `\r\n` and brea
 
 ### Curation import
 
-`import-curation.ts` loads studio's curation file (the moment- and entity-level fields of #2; format in #43) into the database. The database is the source of truth, so it is not part of the regular flow; it is for rewriting many values at once, and nothing else depends on it.
+`import-curation.ts` loads studio's curation file (the moment- and entity-level fields of #2 and #80; format in #43) into the database. The database is the source of truth, so it is not part of the regular flow; it is for rewriting many values at once, and nothing else depends on it.
 
 By default it only prints the plan (changes, conflicts, counts) and writes nothing; `--apply` writes it in one transaction. It writes moments through the ura SAVE path, so for each moment it writes, the plan also lists `icon_id` and, while `sensitive_manual` is false, `sensitive` when recomputing them from the body (and the annotations) changes them.
 
