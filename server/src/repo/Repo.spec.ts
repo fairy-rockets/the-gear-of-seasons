@@ -342,7 +342,7 @@ describe("Repo の entity の注釈", () => {
   it("upsertEntityAnnotation はすべての項目を、null も含めてそのまま渡す", async () => {
     const a: EntityAnnotation = {
       entityID: kID,
-      medium: 'photo',
+      medium: 'camera',
       materials: ['pencil', 'digital'],
       alt: '海',
       description: null,
@@ -362,7 +362,7 @@ describe("Repo の entity の注釈", () => {
     const q = calls[0].q;
     assert.ok(q.includes(`on conflict ("entity_id") do update set`), q);
     assert.deepStrictEqual(calls[0].args, [
-      kID, 'photo', ['pencil', 'digital'], '海', null, ['海', 'a,"b"'], 'color', [], 'partial', 'adult', null, false, 'grab', null, true, null,
+      kID, 'camera', ['pencil', 'digital'], '海', null, ['海', 'a,"b"'], 'color', [], 'partial', 'adult', null, false, 'grab', null, true, null,
     ]);
   });
 });

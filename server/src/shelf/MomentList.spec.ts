@@ -53,7 +53,7 @@ describe("annotationState", () => {
     assert.strictEqual(protocol.annotationState('audio', { ...kEmpty, tags: [] }), 'entered');
   });
   it("音声が持たない項目だけが入っていても、音声は未入力", () => {
-    assert.strictEqual(protocol.annotationState('audio', { ...kEmpty, medium: 'photo' }), 'unentered');
+    assert.strictEqual(protocol.annotationState('audio', { ...kEmpty, medium: 'camera' }), 'unentered');
   });
 });
 
