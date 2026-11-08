@@ -22,9 +22,6 @@ const kEmpty: EntityAnnotation = {
   tags: null,
   palette: null,
   characters: null,
-  looksNude: null,
-  looksChild: null,
-  looksNote: null,
   humanVerified: false,
   role: null,
   roleGroup: null,
@@ -37,7 +34,7 @@ describe("validateEntityAnnotation", () => {
     validateEntityAnnotation(kImage, {
       ...kEmpty,
       medium: 'drawing', alt: 'a', description: 'd', tags: ['t'], palette: 'color', characters: ['c'],
-      looksNude: 'none', looksChild: 'child', looksNote: 'n', humanVerified: true,
+      humanVerified: true,
       role: 'grab', roleGroup: 'g', roleStar: false, roleNote: 'r',
     });
   });
@@ -47,7 +44,6 @@ describe("validateEntityAnnotation", () => {
   it("音声が持たない項目があれば例外にする", () => {
     const cases: Partial<EntityAnnotation>[] = [
       { medium: 'camera' }, { palette: 'monochrome' }, { characters: [] },
-      { looksNude: 'none' }, { looksChild: 'none' }, { looksNote: '' },
       { role: 'none' }, { roleGroup: '' }, { roleStar: false }, { roleNote: '' },
       { humanVerified: true },
     ];
@@ -56,7 +52,7 @@ describe("validateEntityAnnotation", () => {
     }
   });
   it("定義に無い値は例外にする", () => {
-    assert.throws(() => validateEntityAnnotation(kImage, { ...kEmpty, looksChild: 'teen' as any }), /Invalid looks_child/);
+    assert.throws(() => validateEntityAnnotation(kImage, { ...kEmpty, palette: 'sepia' as any }), /Invalid palette/);
     assert.throws(() => validateEntityAnnotation(kImage, { ...kEmpty, medium: 'oil' as any }), /Invalid medium/);
     assert.throws(() => validateEntityAnnotation(kImage, { ...kEmpty, role: '' as any }), /Invalid role/);
   });

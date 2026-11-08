@@ -262,11 +262,8 @@ describe("Repo の entity の注釈", () => {
     tags: [],
     palette: null,
     characters: null,
-    looks_nude: 'none',
-    looks_child: 'child',
-    looks_note: null,
     human_verified: true,
-    role: null,
+    role: 'none',
     role_group: null,
     role_star: null,
     role_note: null,
@@ -298,15 +295,15 @@ describe("Repo の entity の注釈", () => {
     assert.strictEqual(a.materials, null);
     assert.deepStrictEqual(a.tags, []);
     assert.strictEqual(a.characters, null);
-    assert.strictEqual(a.looksNude, 'none');
+    assert.strictEqual(a.role, 'none');
     assert.strictEqual(a.palette, null);
     assert.strictEqual(a.humanVerified, true);
     assert.strictEqual(a.roleStar, null);
   });
 
   it("DB に知らない値があれば例外にする", async () => {
-    calls = stubPool(repo, [{ ...kAnnotationRow, looks_nude: 'maybe' }]);
-    await assert.rejects(() => repo.findEntityAnnotation(kID), /Invalid looks_nude/);
+    calls = stubPool(repo, [{ ...kAnnotationRow, role: 'maybe' }]);
+    await assert.rejects(() => repo.findEntityAnnotation(kID), /Invalid role/);
   });
 
   it("upsertEntityAnnotation はすべての項目を、null も含めてそのまま渡す", async () => {
@@ -319,9 +316,6 @@ describe("Repo の entity の注釈", () => {
       tags: ['海', 'a,"b"'],
       palette: 'color',
       characters: [],
-      looksNude: 'partial',
-      looksChild: 'adult',
-      looksNote: null,
       humanVerified: false,
       role: 'grab',
       roleGroup: null,
@@ -332,7 +326,7 @@ describe("Repo の entity の注釈", () => {
     const q = calls[0].q;
     assert.ok(q.includes(`on conflict ("entity_id") do update set`), q);
     assert.deepStrictEqual(calls[0].args, [
-      kID, 'camera', ['pencil', 'digital'], '海', null, ['海', 'a,"b"'], 'color', [], 'partial', 'adult', null, false, 'grab', null, true, null,
+      kID, 'camera', ['pencil', 'digital'], '海', null, ['海', 'a,"b"'], 'color', [], false, 'grab', null, true, null,
     ]);
   });
 });

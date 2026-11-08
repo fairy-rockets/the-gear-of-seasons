@@ -89,7 +89,7 @@ The schema is defined by the Flyway migrations `db/flyway_data/sql/V*__*.sql`:
 | --- | --- |
 | `moments` | Keyed by timestamp; title, author and body text; `status` (draft/published); curation fields `tier` and `series`; `intent` (the aim of the work, an interpretation or a look back; NULL means not entered), which only ura and the curation export/import handle and omote never shows. |
 | `entities` | Media keyed by md5 hash; image/video/audio type and medium/icon derivative ids. `location` is `internal` (the original is in `_storage/original`) or `external` (kept outside the server, e.g. a video on YouTube; only videos can be external); it has no default, so every INSERT sets it. `mime_type` is the type of the original, so it is non-NULL exactly for internal entities. `external_ref` (jsonb) is non-NULL exactly for external entities and holds what that platform needs to point at it, at least `platform` (YouTube: `{"platform": "youtube", "id": "<11-character video ID>"}`); the app validates the rest per platform. For external videos `width`/`height` are the embed size, used only as the aspect ratio. |
-| `entity_annotations` | One row per entity: alt, `looks_*`, role, `materials` (the materials used, a free `text[]`) and the other per-media curation fields. NULL means "not entered". |
+| `entity_annotations` | One row per entity: alt, role, `materials` (the materials used, a free `text[]`) and the other per-media curation fields. NULL means "not entered". |
 
 ### External videos
 

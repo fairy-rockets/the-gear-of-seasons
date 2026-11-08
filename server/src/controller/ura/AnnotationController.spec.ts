@@ -23,7 +23,7 @@ const kEntities: Entity[] = [
 
 const kEmpty: protocol.AnnotationValues = {
   medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
-  looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
+  humanVerified: false,
   role: null, roleGroup: null, roleStar: null, roleNote: null,
 };
 
@@ -101,9 +101,9 @@ describe("POST /annotation", () => {
 
   it("保存すると 204 を返す", async () => {
     const { repo, save } = setup();
-    const r = await save(request({ looksNude: 'nude', looksChild: 'child' }));
+    const r = await save(request({ medium: 'drawing', palette: 'color' }));
     assert.strictEqual(r.statusCode, 204);
-    assert.deepStrictEqual(repo.annotations.get(kImage), { entityID: kImage, ...kEmpty, looksNude: 'nude', looksChild: 'child' });
+    assert.deepStrictEqual(repo.annotations.get(kImage), { entityID: kImage, ...kEmpty, medium: 'drawing', palette: 'color' });
   });
 
   it("空の文字列と空のリストは、null に変えずにそのまま書く", async () => {
@@ -122,7 +122,7 @@ describe("POST /annotation", () => {
     ['roleStar が文字列', request({ roleStar: 'true' as any })],
     ['medium が定義に無い', request({ medium: 'oil' as any })],
     ['項目が欠けている', { ...request({}), annotation: (({ alt: _, ...rest }) => rest)(kEmpty) }],
-    ['定義に無い項目がある', { ...request({}), annotation: { ...kEmpty, looks_nude: 'nude' } }],
+    ['定義に無い項目がある', { ...request({}), annotation: { ...kEmpty, colour: 'red' } }],
     ['annotation が無い', { entityID: kImage }],
     ['entityID の形が違う', { ...request({}), entityID: 'img' }],
     ['本文が無い', null],
@@ -139,7 +139,7 @@ describe("POST /annotation", () => {
 
   it("その種類が持たない項目を送ると例外になり、何も書かない", async () => {
     const { repo, save } = setup();
-    await assert.rejects(() => save({ ...request({ looksNude: 'none' }), entityID: kAudio }), /cannot have looksNude/);
+    await assert.rejects(() => save({ ...request({ palette: 'color' }), entityID: kAudio }), /cannot have palette/);
     await assert.rejects(() => save({ ...request({ materials: ['digital'] }), entityID: kAudio }), /cannot have materials/);
     assert.strictEqual(repo.annotations.size, 0);
   });

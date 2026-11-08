@@ -90,7 +90,7 @@ describe("momentListItem", () => {
       annotations(
         annotation(kImage, { alt: 'a', humanVerified: true }),
         annotation(kImage2, { alt: 'a' }),
-        annotation(kVideo, { looksNude: 'none' }),
+        annotation(kVideo, { palette: 'color' }),
         annotation(kAudio, { alt: 'a' }),
       ));
     assert.deepStrictEqual([it.media, it.unentered, it.unverified], [4, 0, 2]);

@@ -20,7 +20,7 @@ const html = `<!doctype html><meta charset="utf-8"><div class="editor-wrapper">
 <button id="upload">UPLOAD</button></div><div id="preview"></div><a id="leave" href="/other">移動</a>
 <script src="/js/editor.js"></script>`;
 const empty = { medium: null, materials: null, alt: null, description: null, tags: null, palette: null,
-  characters: null, looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
+  characters: null, humanVerified: false,
   role: null, roleGroup: null, roleStar: null, roleNote: null };
 const browser = await puppeteer.launch({ executablePath: '/usr/bin/chromium', headless: true,
   args: ['--no-sandbox', '--disable-dev-shm-usage'] });

@@ -100,10 +100,10 @@ describe("Shelf のメソッド", () => {
 const kA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const kB = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
-function annotation(entityID: string, looksNude: EntityAnnotation['looksNude'], looksChild: EntityAnnotation['looksChild']): EntityAnnotation {
+function annotation(entityID: string, palette: EntityAnnotation['palette']): EntityAnnotation {
   return {
-    entityID, medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude, looksChild, looksNote: null, humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
+    entityID, medium: null, materials: null, alt: null, description: null, tags: null, palette, characters: null,
+    humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
   };
 }
 
@@ -140,22 +140,22 @@ const kAudioB: Entity = {
 describe("Shelf.saveEntityAnnotation", () => {
   it("注釈を書く", async () => {
     const repo = new FakeRepo([kImageA], []);
-    await new Shelf(repo as unknown as Repo).saveEntityAnnotation(annotation(kA, 'nude', 'child'));
-    assert.deepStrictEqual(repo.annotations.get(kA), annotation(kA, 'nude', 'child'));
+    await new Shelf(repo as unknown as Repo).saveEntityAnnotation(annotation(kA, 'color'));
+    assert.deepStrictEqual(repo.annotations.get(kA), annotation(kA, 'color'));
   });
 
   it("種類に合わない項目があれば、何も書かずに例外にする", async () => {
     const repo = new FakeRepo([kAudioB], []);
     await assert.rejects(
-      () => new Shelf(repo as unknown as Repo).saveEntityAnnotation(annotation(kB, 'none', null)),
-      /cannot have looksNude/);
+      () => new Shelf(repo as unknown as Repo).saveEntityAnnotation(annotation(kB, 'color')),
+      /cannot have palette/);
     assert.strictEqual(repo.annotations.size, 0);
   });
 
   it("無い entity の注釈は例外にする", async () => {
     const repo = new FakeRepo([], []);
     await assert.rejects(
-      () => new Shelf(repo as unknown as Repo).saveEntityAnnotation(annotation(kA, null, null)),
+      () => new Shelf(repo as unknown as Repo).saveEntityAnnotation(annotation(kA, null)),
       /Entity not found/);
   });
 });

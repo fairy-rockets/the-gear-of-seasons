@@ -38,7 +38,7 @@ const kAudioC: Entity = {
 function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): EntityAnnotation {
   return {
     entityID, medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude: null, looksChild: null, looksNote: null, humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
+    humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
     ...values,
   };
 }
@@ -93,8 +93,8 @@ moments:
     series: [夏]
     media:
       - entity: ${kA}
-        looks_nude: none
-        looks_note: ""
+        palette: color
+        role_note: ""
         human_verified: true
         tags: []
 `);
@@ -108,8 +108,8 @@ moments:
     assert.deepStrictEqual(m.media, [{
       entityID: kA,
       fields: [
-        { key: 'looks_nude', field: 'looksNude', value: 'none' },
-        { key: 'looks_note', field: 'looksNote', value: '' },
+        { key: 'palette', field: 'palette', value: 'color' },
+        { key: 'role_note', field: 'roleNote', value: '' },
         { key: 'human_verified', field: 'humanVerified', value: true },
         { key: 'tags', field: 'tags', value: [] },
       ],
@@ -162,7 +162,7 @@ moments:
     series: 夏
     media:
       - entity: ${kA}
-        looks_nude: naked
+        palette: sepia
         human_verified: yes
         role_star: null
         colour: red
@@ -173,7 +173,7 @@ moments:
       '知らないキーです: version',
       `moment ${kT1}: tier: 定義に無い値です: "featured"`,
       `moment ${kT1}: series: 文字列のリストではありません: "夏"`,
-      `moment ${kT1} entity ${kA}: looks_nude: 定義に無い値です: "naked"`,
+      `moment ${kT1} entity ${kA}: palette: 定義に無い値です: "sepia"`,
       `moment ${kT1} entity ${kA}: human_verified: true か false ではありません: "yes"`,
       `moment ${kT1} entity ${kA}: role_star が null です`,
       `moment ${kT1} entity ${kA}: 知らないキーです: colour`,
@@ -281,7 +281,7 @@ moments:
   - moment: ${kT1}
     media:
       - { entity: ${kB}, alt: 動画 }
-      - { entity: ${kC}, alt: 音, looks_nude: none, human_verified: true }
+      - { entity: ${kC}, alt: 音, palette: color, human_verified: true }
   - moment: ${kT2}
     media:
       - { entity: ${kB}, alt: 動画 }
@@ -289,7 +289,7 @@ moments:
     assert.deepStrictEqual(p.errors, [
       `moment ${kT3}: DB にありません`,
       `moment ${kT1} entity ${kB}: その moment の本文の [image]・[video]・[audio] にありません`,
-      `moment ${kT1} entity ${kC}: audio の entity が持たない項目です: looks_nude, human_verified`,
+      `moment ${kT1} entity ${kC}: audio の entity が持たない項目です: palette, human_verified`,
       `moment ${kT2} entity ${kB}: entities にありません`,
     ]);
   });
@@ -322,14 +322,14 @@ describe("makeCurationPlan の計画", () => {
     const p = plan(`
 moments:
   - moment: ${kT1}
-    media: [{ entity: ${kA}, medium: drawing, looks_note: "" }]
+    media: [{ entity: ${kA}, medium: drawing, role_note: "" }]
 `, s);
     assert.deepStrictEqual(p.errors, []);
     assert.deepStrictEqual(p.entities[0].changes, [
       { key: 'medium', from: null, to: 'drawing', overwrite: false },
-      { key: 'looks_note', from: null, to: '', overwrite: false },
+      { key: 'role_note', from: null, to: '', overwrite: false },
     ]);
-    assert.deepStrictEqual(p.entities[0].annotation, annotation(kA, { alt: '海', role: 'grab', humanVerified: true, medium: 'drawing', looksNote: '' }));
+    assert.deepStrictEqual(p.entities[0].annotation, annotation(kA, { alt: '海', role: 'grab', humanVerified: true, medium: 'drawing', roleNote: '' }));
   });
   it("値があって違うものは衝突にして書かず、ほかの項目は書く", () => {
     const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [
@@ -460,11 +460,11 @@ moments:
     assert.deepStrictEqual(p.conflicts, [{ momentLabel: kT1, entityID: kB, key: 'human_verified', current: true, file: false }]);
   });
   it("値の変わらない entity は計画に入れない", () => {
-    const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [annotation(kA, { looksNude: 'nude', looksChild: 'child' })]);
+    const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [annotation(kA, { palette: 'color', role: 'grab' })]);
     const p = plan(`
 moments:
   - moment: ${kT1}
-    media: [{ entity: ${kA}, looks_nude: nude }]
+    media: [{ entity: ${kA}, palette: color }]
 `, s);
     assert.deepStrictEqual(p.entities, []);
   });
@@ -479,7 +479,7 @@ moments:
     tier: pickup
     series: [夏, 海]
     media:
-      - { entity: ${kA}, medium: drawing, tags: [海], looks_nude: nude, looks_child: child, human_verified: true, role_star: false }
+      - { entity: ${kA}, medium: drawing, tags: [海], palette: color, human_verified: true, role_star: false }
       - { entity: ${kB}, role: deep, alt: 波 }
   - moment: ${kT2}
     tier: sketch
@@ -623,17 +623,17 @@ describe("applyCurationPlan で書いた結果", () => {
       // 保存されている icon_id（なし）が、本文から求めた値（C）と食い違っている moment。
       // 注釈は書かないが、tier を書くと SAVE と同じ口を通るので、求め直される。
       moment(kT4, `[audio entity="${kC}"]`, { iconID: undefined }),
-    ], [annotation(kD, { looksChild: 'child' })]);
+    ], [annotation(kD, { alt: '星' })]);
     const src = `
 moments:
   - moment: ${kT1}
     tier: pickup
     media:
-      - { entity: ${kA}, looks_nude: nude, looks_child: child }
+      - { entity: ${kA}, palette: color, characters: [ナギ] }
       - { entity: ${kB}, alt: 波 }
   - moment: ${kT3}
     media:
-      - { entity: ${kD}, looks_nude: nude }
+      - { entity: ${kD}, palette: monochrome }
   - moment: ${kT4}
     tier: sketch
 `;

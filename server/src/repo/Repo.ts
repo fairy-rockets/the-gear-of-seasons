@@ -10,8 +10,6 @@ import {
   parseAnnotationMedium,
   parseAnnotationPalette,
   parseAnnotationRole,
-  parseLooksChild,
-  parseLooksNude,
 } from '../shelf/EntityAnnotation.js';
 import Config from '../Config.js';
 import {
@@ -458,7 +456,7 @@ delete from moments where "timestamp" = $1;
     const q = `
 select
   "entity_id", "medium", "materials", "alt", "description", "tags", "palette", "characters",
-  "looks_nude", "looks_child", "looks_note", "human_verified",
+  "human_verified",
   "role", "role_group", "role_star", "role_note"
 from entity_annotations
   where "entity_id" = any($1::text[]);
@@ -477,10 +475,10 @@ from entity_annotations
     const q = `
 insert into entity_annotations (
   "entity_id", "medium", "materials", "alt", "description", "tags", "palette", "characters",
-  "looks_nude", "looks_child", "looks_note", "human_verified",
+  "human_verified",
   "role", "role_group", "role_star", "role_note"
 ) values (
-  $1, $2, $3::text[], $4, $5, $6::text[], $7, $8::text[], $9, $10, $11, $12, $13, $14, $15, $16
+  $1, $2, $3::text[], $4, $5, $6::text[], $7, $8::text[], $9, $10, $11, $12, $13
 ) on conflict ("entity_id") do update set
   "medium" = excluded."medium",
   "materials" = excluded."materials",
@@ -489,9 +487,6 @@ insert into entity_annotations (
   "tags" = excluded."tags",
   "palette" = excluded."palette",
   "characters" = excluded."characters",
-  "looks_nude" = excluded."looks_nude",
-  "looks_child" = excluded."looks_child",
-  "looks_note" = excluded."looks_note",
   "human_verified" = excluded."human_verified",
   "role" = excluded."role",
   "role_group" = excluded."role_group",
@@ -507,9 +502,6 @@ insert into entity_annotations (
       a.tags,
       a.palette,
       a.characters,
-      a.looksNude,
-      a.looksChild,
-      a.looksNote,
       a.humanVerified,
       a.role,
       a.roleGroup,
@@ -546,9 +538,6 @@ function decodeEntityAnnotation(row: pg.QueryResultRow): EntityAnnotation {
     tags: row['tags'] as (string[] | null),
     palette: parseAnnotationPalette(row['palette']),
     characters: row['characters'] as (string[] | null),
-    looksNude: parseLooksNude(row['looks_nude']),
-    looksChild: parseLooksChild(row['looks_child']),
-    looksNote: row['looks_note'] as (string | null),
     humanVerified: row['human_verified'] as boolean,
     role: parseAnnotationRole(row['role']),
     roleGroup: row['role_group'] as (string | null),

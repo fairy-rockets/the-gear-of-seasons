@@ -8,8 +8,6 @@ import {
   parseAnnotationMedium,
   parseAnnotationPalette,
   parseAnnotationRole,
-  parseLooksChild,
-  parseLooksNude,
 } from './EntityAnnotation.js';
 
 // エクスポートの hexe.yaml（CurationExport.ts）と、studio の投入用ファイル（CurationImport.ts）が共有する形式。
@@ -58,9 +56,6 @@ export const kMediaKeys: Record<string, [AnnotationField, (v: unknown) => Annota
   tags: ['tags', parseStrings],
   palette: ['palette', parseEnum(parseAnnotationPalette)],
   characters: ['characters', parseStrings],
-  looks_nude: ['looksNude', parseEnum(parseLooksNude)],
-  looks_child: ['looksChild', parseEnum(parseLooksChild)],
-  looks_note: ['looksNote', parseString],
   human_verified: ['humanVerified', parseBoolean],
   role: ['role', parseEnum(parseAnnotationRole)],
   role_group: ['roleGroup', parseString],

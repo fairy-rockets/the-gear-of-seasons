@@ -41,7 +41,7 @@ const kAudioC: Entity = {
 function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): EntityAnnotation {
   return {
     entityID, medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude: null, looksChild: null, looksNote: null, humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
+    humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
     ...values,
   };
 }
@@ -131,7 +131,7 @@ describe("hexeYamlObject", () => {
   it("注釈は種類が持つ項目だけを #2 の順に出し、null は出さず、空の文字列・空のリスト・false は出す", () => {
     const full: Partial<EntityAnnotation> = {
       medium: 'drawing', materials: ['pencil', 'digital'], alt: '海', description: '一行目\n二行目\n', tags: ['海', '船'], palette: 'color', characters: [],
-      looksNude: 'none', looksChild: 'child', looksNote: '', humanVerified: true,
+      humanVerified: true,
       role: 'grab', roleGroup: '空の青', roleStar: false, roleNote: '',
     };
     const text = `[image entity="${kA}"][audio entity="${kC}"][video entity="${kB}"]`;
@@ -139,22 +139,22 @@ describe("hexeYamlObject", () => {
       annotation(kA, full),
       // 音声の注釈の行には humanVerified = false が入っているが、音声は humanVerified を持たないので出さない。
       annotation(kC, { alt: '', tags: [] }),
-      annotation(kB, { alt: '波', looksNude: 'partial', materials: [] }),
+      annotation(kB, { alt: '波', palette: 'monochrome', materials: [] }),
     ]))['media'] as Record<string, unknown>[];
     assert.deepStrictEqual(Object.keys(media[0]), [
       'entity', 'type', 'width', 'height',
-      'medium', 'materials', 'alt', 'description', 'tags', 'palette', 'characters', 'looks_nude', 'looks_child', 'looks_note', 'human_verified',
+      'medium', 'materials', 'alt', 'description', 'tags', 'palette', 'characters', 'human_verified',
       'role', 'role_group', 'role_star', 'role_note',
     ]);
     assert.deepStrictEqual(media[0], {
       entity: kA, type: 'image', width: 1200, height: 1600,
       medium: 'drawing', materials: ['pencil', 'digital'], alt: '海', description: '一行目\n二行目\n', tags: ['海', '船'], palette: 'color', characters: [],
-      looks_nude: 'none', looks_child: 'child', looks_note: '', human_verified: true,
+      human_verified: true,
       role: 'grab', role_group: '空の青', role_star: false, role_note: '',
     });
     assert.deepStrictEqual(media[1], { entity: kC, type: 'audio', duration: 61.25, alt: '', tags: [] });
     assert.deepStrictEqual(media[2], {
-      entity: kB, type: 'video', width: 1920, height: 1080, duration: 19.5, materials: [], alt: '波', looks_nude: 'partial', human_verified: false,
+      entity: kB, type: 'video', width: 1920, height: 1080, duration: 19.5, materials: [], alt: '波', palette: 'monochrome', human_verified: false,
     });
   });
 
@@ -314,7 +314,7 @@ describe("exportEntries", () => {
   it("hexe.yaml は先頭にコメントがあり、core スキーマで読み直すと同じ値に戻る（紛らわしい文字列も文字列のまま）", () => {
     const tricky = ['', 'true', 'null', '2017-07-26', '12e34', '0123', ' 先頭が空白', '末尾が改行\n', '一行目\n二行目', '#コメントではない', 'a: b'];
     const m = moment('2017-07-26T02:46:00+09:00', `[image entity="${kA}"]`, { title: '12e34', series: tricky });
-    const src = source([m], [kImageA], [annotation(kA, { tags: tricky, alt: '2017-07-26', looksNote: '', description: '一行目\n二行目\n' })]);
+    const src = source([m], [kImageA], [annotation(kA, { tags: tricky, alt: '2017-07-26', roleNote: '', description: '一行目\n二行目\n' })]);
     const yaml = exportEntries(src).find((e) => e.name.endsWith('hexe.yaml'))!!.content;
     assert.ok(yaml.startsWith('# hexe からエクスポートしたもの。手で編集しない\n'), yaml);
     const doc = parseDocument(yaml, { schema: 'core', uniqueKeys: true });

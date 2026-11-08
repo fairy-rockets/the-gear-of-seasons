@@ -9,8 +9,6 @@ import {
   parseAnnotationMedium,
   parseAnnotationPalette,
   parseAnnotationRole,
-  parseLooksChild,
-  parseLooksNude,
 } from '../../shelf/EntityAnnotation.js';
 
 // entity の id は元ファイルの md5（Storage）。
@@ -31,9 +29,6 @@ const kParsers: Record<AnnotationField, (v: unknown) => AnnotationValue> = {
   tags: nullable(parseStrings),
   palette: parseAnnotationPalette,
   characters: nullable(parseStrings),
-  looksNude: parseLooksNude,
-  looksChild: parseLooksChild,
-  looksNote: nullable(parseString),
   humanVerified: parseBoolean,
   role: parseAnnotationRole,
   roleGroup: nullable(parseString),
