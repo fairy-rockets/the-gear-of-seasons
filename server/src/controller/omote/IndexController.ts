@@ -11,7 +11,7 @@ export type StaticPage = 'index' | 'about-us' | 'shop' | 'pickup';
 
 // サイト共通の OGP 画像。「太陽と帽子とお月さま」(/2018/12/17/18:18:29/) の絵で、
 // この entity はその moment の iconID そのもの。medium(長辺2048px)を使う。
-// alt はこの entity の注釈から引き、注釈が無いときだけ題で埋める。
+// alt はこの entity の注釈から引き、注釈が無いときと引けないときは題で埋める。
 export const kSiteImageID = '84c23994da70378209994c29880fd1ba';
 const kSiteImage = absoluteURL(`/entity/${kSiteImageID}/medium`);
 const kSiteImageAlt = '太陽と帽子とお月さま';
@@ -82,7 +82,8 @@ export default class IndexController {
   private async siteImageAlt(): Promise<string> {
     try {
       return displayAlt(await this.shelf.findEntityAnnotation(kSiteImageID)) ?? kSiteImageAlt;
-    } catch {
+    } catch (err) {
+      console.warn('Failed to load the site image annotation: ', err);
       return kSiteImageAlt;
     }
   }
