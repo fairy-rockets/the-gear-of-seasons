@@ -4,7 +4,7 @@
 
 ## Image descriptions
 
-Images in omote and the ura preview use the entity annotation's `alt` text when it is nonblank, whether or not `human_verified` is true. Other images use `an image.`. Empty or whitespace-only descriptions do not mark an image as decorative. Video and audio annotations are not rendered as labels. The same alt text goes into `og:image:alt` and `twitter:image:alt` for a page's OGP image (the moment's icon, or the site image on the fixed pages); when the image has none, or the icon is a video or audio thumbnail, those use the title instead.
+Images in omote and the ura preview use the entity annotation's `alt` text when it is nonblank, whether or not `human_verified` is true. Other images use `an image.`. Empty or whitespace-only descriptions do not mark an image as decorative. Video and audio annotations are not rendered as labels. The same alt text goes into `og:image:alt` and `twitter:image:alt` for a page's OGP image (the moment's icon, or the site image on the fixed pages); when the image has none, or the icon is a video or audio thumbnail, those use the title of the moment the image comes from instead (on the fixed pages, 「太陽と帽子とお月さま」, not the page's own title).
 
 ## Pre-requirements
 

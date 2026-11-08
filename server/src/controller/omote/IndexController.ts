@@ -12,11 +12,12 @@ export type StaticPage = 'index' | 'about-us' | 'shop' | 'pickup';
 // サイト共通の OGP 画像。「太陽と帽子とお月さま」(/2018/12/17/18:18:29/) の絵で、
 // この entity はその moment の iconID そのもの。medium(長辺2048px)を使う。
 // alt はこの entity の注釈から引き、注釈が無いときだけ題で埋める。
-const kSiteImageID = '84c23994da70378209994c29880fd1ba';
+export const kSiteImageID = '84c23994da70378209994c29880fd1ba';
 const kSiteImage = absoluteURL(`/entity/${kSiteImageID}/medium`);
 const kSiteImageAlt = '太陽と帽子とお月さま';
 
-const kPages: { [key in StaticPage]: PageMeta } = {
+// ogImageAlt は注釈から引くので、ハンドラで足す。
+const kPages: { [key in StaticPage]: Omit<PageMeta, 'ogImageAlt'> } = {
   'index': {
     siteTitle: kSiteTitle,
     title: kSiteTitle,
@@ -24,7 +25,6 @@ const kPages: { [key in StaticPage]: PageMeta } = {
     canonical: absoluteURL('/'),
     ogType: 'website',
     ogImage: kSiteImage,
-    ogImageAlt: kSiteImageAlt,
     publishedTime: undefined,
   },
   'about-us': {
@@ -34,7 +34,6 @@ const kPages: { [key in StaticPage]: PageMeta } = {
     canonical: absoluteURL('/about-us/'),
     ogType: 'website',
     ogImage: kSiteImage,
-    ogImageAlt: kSiteImageAlt,
     publishedTime: undefined,
   },
   'shop': {
@@ -44,7 +43,6 @@ const kPages: { [key in StaticPage]: PageMeta } = {
     canonical: absoluteURL('/shop/'),
     ogType: 'website',
     ogImage: kSiteImage,
-    ogImageAlt: kSiteImageAlt,
     publishedTime: undefined,
   },
   'pickup': {
@@ -54,7 +52,6 @@ const kPages: { [key in StaticPage]: PageMeta } = {
     canonical: absoluteURL('/pickup/'),
     ogType: 'website',
     ogImage: kSiteImage,
-    ogImageAlt: kSiteImageAlt,
     publishedTime: undefined,
   },
 };
@@ -75,10 +72,18 @@ export default class IndexController {
   handlerOf(page: StaticPage): (req: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply> {
     const meta = kPages[page];
     return async (_req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
-      const ogImageAlt = displayAlt(await this.shelf.findEntityAnnotation(kSiteImageID)) ?? kSiteImageAlt;
+      const ogImageAlt = await this.siteImageAlt();
       return reply.code(200)
         .type('text/html;charset=UTF-8')
         .send(this.template({ ...meta, ogImageAlt }));
     };
+  }
+  // 固定ページ(特にトップ)は注釈が引けなくても出したいので、DB の失敗は題に落とす。
+  private async siteImageAlt(): Promise<string> {
+    try {
+      return displayAlt(await this.shelf.findEntityAnnotation(kSiteImageID)) ?? kSiteImageAlt;
+    } catch {
+      return kSiteImageAlt;
+    }
   }
 }

@@ -9,14 +9,13 @@ import { Entity } from '../../shelf/Entity.js';
 import { EntityAnnotation } from '../../shelf/EntityAnnotation.js';
 import { Moment, formatMomentPath } from '../../shelf/Moment.js';
 
-import IndexController from './IndexController.js';
+import IndexController, { kSiteImageID } from './IndexController.js';
 import MomentController from './MomentController.js';
 
 // og:image:alt と twitter:image:alt に、題ではなく画像の注釈の alt を出す。
 
 const kTimestamp = dayjs('2024-11-10T10:00:00+09:00');
 const kPath = formatMomentPath(kTimestamp);
-const kSiteImageID = '84c23994da70378209994c29880fd1ba';
 
 function annotation(entityID: string, alt: string | null, humanVerified = false): EntityAnnotation {
   return { entityID, alt, humanVerified } as unknown as EntityAnnotation;
@@ -26,6 +25,7 @@ class StubShelf {
   constructor(
     private readonly iconType: Entity['type'],
     private readonly annotations: EntityAnnotation[],
+    private readonly failAnnotation = false,
   ) {}
   async findMoment(_timestamp: dayjs.Dayjs): Promise<Moment> {
     return {
@@ -44,6 +44,9 @@ class StubShelf {
     return { id, type: this.iconType } as unknown as Entity;
   }
   async findEntityAnnotation(id: string): Promise<EntityAnnotation | null> {
+    if (this.failAnnotation) {
+      throw new Error('DB is down');
+    }
     return this.annotations.find((a) => a.entityID === id) ?? null;
   }
   asShelf(): Shelf {
@@ -94,6 +97,11 @@ describe("OGP 画像の alt", () => {
     });
   }
 
+  it("moment: alt を属性としてエスケープする", async () => {
+    const html = await momentPage('image', [annotation('icon', '"<冷蔵庫>" & 道')]);
+    assertImageAlt(html, '&quot;&lt;冷蔵庫&gt;&quot; &amp; 道');
+  });
+
   it("moment: 動画のサムネイルには題を出す", async () => {
     const html = await momentPage('video', [annotation('icon', '動画の説明')]);
     assertImageAlt(html, '野生の冷蔵庫');
@@ -104,5 +112,10 @@ describe("OGP 画像の alt", () => {
     assertImageAlt(await call(annotated.handlerOf('index'), {}), '帽子をかぶった太陽と月');
     const bare = await IndexController.create(asset, new StubShelf('image', []).asShelf());
     assertImageAlt(await call(bare.handlerOf('about-us'), {}), '太陽と帽子とお月さま');
+  });
+
+  it("固定ページ: 注釈を引けなくても題でページを出す", async () => {
+    const c = await IndexController.create(asset, new StubShelf('image', [], true).asShelf());
+    assertImageAlt(await call(c.handlerOf('index'), {}), '太陽と帽子とお月さま');
   });
 });
