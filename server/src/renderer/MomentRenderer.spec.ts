@@ -140,13 +140,17 @@ describe("MomentRenderer.render", () => {
     },
   } as unknown as Shelf);
 
-  it("確認済みの画像注釈の alt を元の空白を保って表示する", async () => {
+  it("画像注釈の alt を元の空白を保って表示する", async () => {
     const html = await render('[image entity="img"]', annotatedRenderer([annotation('  季節の絵  ')]));
     assert.ok(html.includes('alt="  季節の絵  "'), html);
   });
 
+  it("未確認の画像注釈の alt も表示する", async () => {
+    const html = await render('[image entity="img"]', annotatedRenderer([annotation('未確認の説明', false)]));
+    assert.ok(html.includes('alt="未確認の説明"'), html);
+  });
+
   for (const [name, values] of [
-    ['未確認', [annotation('非公開の説明', false)]],
     ['null', [annotation(null)]],
     ['空文字', [annotation('')]],
     ['空白のみ', [annotation(' \t\n　')]],
@@ -155,7 +159,6 @@ describe("MomentRenderer.render", () => {
     it(`${name}の場合は従来の alt を使う`, async () => {
       const html = await render('[image entity="img"]', annotatedRenderer(values));
       assert.ok(html.includes('alt="an image."'), html);
-      assert.ok(!html.includes('非公開の説明'), html);
     });
   }
 

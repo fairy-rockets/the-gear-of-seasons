@@ -8,7 +8,7 @@ import { externalVideoPresentation } from '../lib/ExternalVideoRef.js';
 
 import Shelf from '../shelf/Shelf.js';
 import { ExternalVideoEntity } from '../shelf/Entity.js';
-import { EntityAnnotation } from '../shelf/EntityAnnotation.js';
+import { EntityAnnotation, displayAlt } from '../shelf/EntityAnnotation.js';
 import { Moment, MomentSummary, formatMomentPath } from '../shelf/Moment.js';
 
 class MomentRenderer {
@@ -103,9 +103,7 @@ class MomentRenderer {
       height = Math.min(2048, entity.height);
       width = entity.width * height / entity.height;
     }
-    const alt = annotation?.humanVerified === true && annotation.alt !== null && annotation.alt.trim() !== ''
-      ? annotation.alt
-      : 'an image.';
+    const alt = displayAlt(annotation) ?? 'an image.';
     const img = `<img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="${escapeAttribute(alt)}" data-entity="${escapeAttribute(entity.id)}" data-type="image">`;
     // 元画像は表示にもリンクにも使わない。entity の元ファイルへのリンクは [link] ブロックで貼れる。
     if (!block.link) {

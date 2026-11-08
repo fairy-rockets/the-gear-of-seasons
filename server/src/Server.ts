@@ -104,7 +104,7 @@ class Server {
     // Routing
     // -----------
     { // (omote,ura)/
-      const omote = await OmoteIndexController.create(this.asset);
+      const omote = await OmoteIndexController.create(this.asset, this.shelf);
       const ura = await UraIndexController.create(this.asset);
       this.each.get('/', {
         omote: omote.handlerOf('index'),
