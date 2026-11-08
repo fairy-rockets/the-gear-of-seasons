@@ -81,7 +81,7 @@ const annotationInput = async value => {
   const selector = await page.evaluate(() => {
     const label = [...document.querySelectorAll('.annotation-field')]
       .find(el => el.querySelector('.annotation-label').textContent === 'alt');
-    label.querySelector('input').id = 'annotation-alt';
+    label.querySelector('textarea').id = 'annotation-alt';
     return '#annotation-alt';
   });
   await input(selector, value);
