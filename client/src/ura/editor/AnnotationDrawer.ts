@@ -14,7 +14,8 @@ type Entry = {
 // 入力欄の種類。項目と種類の対応は kKinds。
 type Kind =
   { kind: 'enum', values: readonly string[] } |
-  { kind: 'string', multiline: boolean } |
+  // rows があれば、その行数の textarea。無ければ 1 行の input。
+  { kind: 'string', rows?: number } |
   // suggestions は、押すと欄にその値を足したり外したりするボタン。候補に無い値も欄に書ける。
   { kind: 'list', suggestions?: readonly string[] } |
   { kind: 'tristate' } |
@@ -24,19 +25,19 @@ type Kind =
 const kKinds: Record<AnnotationField, Kind> = {
   medium: { kind: 'enum', values: protocol.kAnnotationMedia },
   materials: { kind: 'list', suggestions: protocol.kMaterialSuggestions },
-  alt: { kind: 'string', multiline: false },
-  description: { kind: 'string', multiline: true },
+  alt: { kind: 'string', rows: 5 },
+  description: { kind: 'string', rows: 6 },
   tags: { kind: 'list' },
   palette: { kind: 'enum', values: protocol.kAnnotationPalettes },
   characters: { kind: 'list' },
   looksNude: { kind: 'enum', values: protocol.kLooksNude },
   looksChild: { kind: 'enum', values: protocol.kLooksChild },
-  looksNote: { kind: 'string', multiline: false },
+  looksNote: { kind: 'string' },
   humanVerified: { kind: 'checkbox' },
   role: { kind: 'enum', values: protocol.kAnnotationRoles },
-  roleGroup: { kind: 'string', multiline: false },
+  roleGroup: { kind: 'string' },
   roleStar: { kind: 'tristate' },
-  roleNote: { kind: 'string', multiline: false },
+  roleNote: { kind: 'string' },
 };
 
 // 欄の見出し。DB とキュレーションのファイルと同じ名前にする。
@@ -557,11 +558,13 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
     }
     case 'string': {
       // 空欄は null（未入力）。読んだ値が '' なら、触らない限り '' のまま送る。
-      const text = kind.multiline ? document.createElement('textarea') : document.createElement('input');
-      if (text instanceof HTMLInputElement) {
+      let text: HTMLInputElement | HTMLTextAreaElement;
+      if (kind.rows === undefined) {
+        text = document.createElement('input');
         text.type = 'text';
       } else {
-        text.rows = 6;
+        text = document.createElement('textarea');
+        text.rows = kind.rows;
       }
       text.value = (value as string | null) ?? '';
       text.placeholder = value === '' ? '（空の文字列）' : '（未入力）';
