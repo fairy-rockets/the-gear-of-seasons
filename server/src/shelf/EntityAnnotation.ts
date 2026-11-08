@@ -5,15 +5,11 @@ import {
   AnnotationPalette,
   AnnotationRole,
   AnnotationValues,
-  LooksChild,
-  LooksNude,
   kAnnotationFields,
   kAnnotationFieldsByType,
   kAnnotationMedia,
   kAnnotationPalettes,
   kAnnotationRoles,
-  kLooksChild,
-  kLooksNude,
 } from '../lib/protocol.js';
 
 // メディア（entity）ごとの注釈。entity_annotations の1行で、entities と1対1。
@@ -27,8 +23,6 @@ export {
   AnnotationMedium,
   AnnotationPalette,
   AnnotationRole,
-  LooksChild,
-  LooksNude,
 };
 
 // 不正な値は例外にする（parseMomentStatus と同じ）。null は「値なし」としてそのまま通す。
@@ -50,14 +44,6 @@ export function parseAnnotationPalette(v: unknown): AnnotationPalette | null {
   return parseNullable('palette', kAnnotationPalettes, v);
 }
 
-export function parseLooksNude(v: unknown): LooksNude | null {
-  return parseNullable('looks_nude', kLooksNude, v);
-}
-
-export function parseLooksChild(v: unknown): LooksChild | null {
-  return parseNullable('looks_child', kLooksChild, v);
-}
-
 export function parseAnnotationRole(v: unknown): AnnotationRole | null {
   return parseNullable('role', kAnnotationRoles, v);
 }
@@ -74,8 +60,6 @@ export function validateEntityAnnotation(entity: Entity, annotation: EntityAnnot
   }
   parseAnnotationMedium(annotation.medium);
   parseAnnotationPalette(annotation.palette);
-  parseLooksNude(annotation.looksNude);
-  parseLooksChild(annotation.looksChild);
   parseAnnotationRole(annotation.role);
   const fields = kFieldsByType[entity.type];
   for (const key of kAnnotationFields) {

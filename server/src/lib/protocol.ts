@@ -10,8 +10,6 @@ export type EntityType = 'image' | 'video' | 'audio';
 // 項目の意味は #2 のコメント（issuecomment-3603）の「1. DB に足すもの」の表。
 export const kAnnotationMedia = ['drawing', 'camera', '3d', 'generated', 'graphic'] as const;
 export const kAnnotationPalettes = ['color', 'monochrome'] as const;
-export const kLooksNude = ['nude', 'partial', 'unclear', 'none'] as const;
-export const kLooksChild = ['child', 'ambiguous', 'adult', 'none'] as const;
 export const kAnnotationRoles = ['grab', 'both', 'deep', 'none'] as const;
 
 // materials（使った画材）は値を決めていないので、どんな文字列でも入る。これは注釈の引き出しに出す、よく使う画材の候補（#80）。
@@ -20,8 +18,6 @@ export const kMaterialSuggestions = ['digital', 'pencil', 'colored_pencil', 'pas
 
 export type AnnotationMedium = typeof kAnnotationMedia[number];
 export type AnnotationPalette = typeof kAnnotationPalettes[number];
-export type LooksNude = typeof kLooksNude[number];
-export type LooksChild = typeof kLooksChild[number];
 export type AnnotationRole = typeof kAnnotationRoles[number];
 
 // 注釈の項目。entity_annotations の1行から entity_id を除いたもの。
@@ -34,9 +30,6 @@ export type AnnotationValues = {
   tags: string[] | null;
   palette: AnnotationPalette | null;
   characters: string[] | null;
-  looksNude: LooksNude | null;
-  looksChild: LooksChild | null;
-  looksNote: string | null;
   humanVerified: boolean;
   role: AnnotationRole | null;
   roleGroup: string | null;
@@ -47,7 +40,7 @@ export type AnnotationValues = {
 export type AnnotationField = keyof AnnotationValues;
 
 export const kAnnotationFields: readonly AnnotationField[] = [
-  'medium', 'materials', 'alt', 'description', 'tags', 'palette', 'characters', 'looksNude', 'looksChild', 'looksNote',
+  'medium', 'materials', 'alt', 'description', 'tags', 'palette', 'characters',
   'humanVerified', 'role', 'roleGroup', 'roleStar', 'roleNote',
 ];
 
@@ -62,7 +55,7 @@ export const kAnnotationFieldsByType: Record<EntityType, readonly AnnotationFiel
 export function emptyAnnotationValues(): AnnotationValues {
   return {
     medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
+    humanVerified: false,
     role: null, roleGroup: null, roleStar: null, roleNote: null,
   };
 }
@@ -95,8 +88,6 @@ export namespace Moment {
       status: MomentStatus;
       tier: MomentTier;
       series: string[];
-      // null なら本文と注釈から計算した値（自動）。true / false なら手での上書き。
-      sensitiveOverride: boolean | null;
       // ねらい・解釈・振り返り。null は未入力。省略はできない（古いタブからの保存で、黙って null にしないため）。
       intent: string | null;
     };
@@ -104,8 +95,6 @@ export namespace Moment {
       path: string;
       date: string;
       status: MomentStatus;
-      sensitive: boolean;
-      sensitiveManual: boolean;
       body: string;
     };
   }
@@ -135,8 +124,6 @@ export namespace Moment {
       status: MomentStatus;
       tier: MomentTier;
       series: string[];
-      sensitive: boolean;
-      sensitiveManual: boolean;
       media: number;
       mediaByType: Record<EntityType, number>;
       unentered: number;
@@ -167,18 +154,10 @@ export namespace Annotation {
   }
   export namespace Save {
     // POST /annotation。annotation の項目はすべて送る（その種類が持たない項目は null、humanVerified は false）。
+    // 応答は本文なしの 204。
     export type Request = {
       entityID: string;
-      // 開いている moment の日時（Moment.Save.Request の originalDate と同じ形）。新規の moment なら null。
-      originalDate?: string | null;
       annotation: AnnotationValues;
-    };
-    export type Response = {
-      // originalDate の moment の、保存のあとの値。moment が無ければ入らない。
-      moment?: {
-        sensitive: boolean;
-        sensitiveManual: boolean;
-      };
     };
   }
 }

@@ -8,13 +8,11 @@ import Shelf from './Shelf.js';
 import { Entity } from './Entity.js';
 import { AnnotationField, EntityAnnotation, validateEntityAnnotation } from './EntityAnnotation.js';
 import { Moment, MomentTier, formatMomentTime, momentIconID, parseMomentTier } from './Moment.js';
-import { computeSensitive, sensitiveTargetEntityIDs } from './Sensitive.js';
 import {
   AnnotationValue,
   isMomentLabel,
   kMediaKeys,
   kMomentKeys,
-  parseBoolean,
   parseEnum,
   parseString,
   parseStrings,
@@ -47,7 +45,6 @@ export type CurationFileMoment = {
   timestamp: dayjs.Dayjs;
   tier?: MomentTier;
   series?: string[];
-  sensitive?: boolean;
   intent?: string;
   media: CurationFileMedia[];
 };
@@ -122,9 +119,6 @@ export function parseCurationFile(src: string): { file: CurationFile, errors: st
           case 'series':
             moment.series = parseStrings(v);
             break;
-          case 'sensitive':
-            moment.sensitive = parseBoolean(v);
-            break;
           case 'intent':
             moment.intent = parseString(v);
             break;
@@ -197,15 +191,12 @@ export type CurationState = {
   moments: Map<number, Moment>;
   // ファイルの entity のうち、entities に行があったもの。
   entities: Map<string, Entity>;
-  // ファイルの entity と、ファイルの moment・autoSensitiveMoments の [image]・[video] の entity の注釈（行があるものだけ）。
+  // ファイルの entity の注釈（行があるものだけ）。
   annotations: Map<string, EntityAnnotation>;
-  // ファイルの entity を本文に含みうる、sensitive_manual = false の moment（ファイルに無い moment も含む）。
-  // 注釈を書くと saveEntityAnnotation がこれらの sensitive を計算し直すので、計画にもそれを出す。
-  autoSensitiveMoments: Moment[];
 };
 
 export async function loadCurationState(repo: Repo, file: CurationFile): Promise<CurationState> {
-  const state: CurationState = { moments: new Map(), entities: new Map(), annotations: new Map(), autoSensitiveMoments: [] };
+  const state: CurationState = { moments: new Map(), entities: new Map(), annotations: new Map() };
   const entityIDs = new Set<string>();
   for (const m of file.moments) {
     const found = await repo.findMoment(m.timestamp, 'all');
@@ -216,25 +207,13 @@ export async function loadCurationState(repo: Repo, file: CurationFile): Promise
       entityIDs.add(media.entityID);
     }
   }
-  const candidates = new Map<number, Moment>();
   for (const id of entityIDs) {
     const entity = await repo.findEntity(id);
     if (entity !== null) {
       state.entities.set(id, entity);
     }
-    for (const m of await repo.findAutoSensitiveMomentCandidates(id)) {
-      candidates.set(m.timestamp!!.valueOf(), m);
-    }
   }
-  state.autoSensitiveMoments = [...candidates.values()];
-  const annotationIDs = new Set(entityIDs);
-  // ファイルの moment は SAVE と同じ口で書くので、自動なら sensitive が計算し直される。その計算にも要る。
-  for (const m of [...state.moments.values(), ...state.autoSensitiveMoments]) {
-    for (const id of sensitiveTargetEntityIDs(fml.parse(m.text))) {
-      annotationIDs.add(id);
-    }
-  }
-  state.annotations = await repo.findEntityAnnotations([...annotationIDs]);
+  state.annotations = await repo.findEntityAnnotations([...entityIDs]);
   return state;
 }
 
@@ -265,8 +244,6 @@ export type MomentPlan = {
   tier: MomentTier;
   series: string[];
   intent: string | null;
-  // 手で上書きする sensitive の値。書かないなら null。
-  sensitive: boolean | null;
 };
 
 export type EntityPlan = {
@@ -277,19 +254,11 @@ export type EntityPlan = {
   annotation: EntityAnnotation;
 };
 
-export type AutoSensitivePlan = {
-  timestamp: dayjs.Dayjs;
-  from: boolean;
-  to: boolean;
-};
-
 export type CurationPlan = {
   errors: string[];
   // 変更のあるものだけ。
   moments: MomentPlan[];
   entities: EntityPlan[];
-  // 注釈を書いたあとや、moment を書くときに計算し直されて変わる sensitive（手で上書きしない moment のもの）。
-  autoSensitive: AutoSensitivePlan[];
   conflicts: Conflict[];
 };
 
@@ -327,7 +296,7 @@ function emptyAnnotation(entityID: string): EntityAnnotation {
 // 2段目: ファイルと DB の今の値を比べて、書くもの・衝突・エラーを決める。DB は触らない。
 // errors が1つでもあれば、何も書かない（applyCurationPlan を呼ばない）。
 export function makeCurationPlan(file: CurationFile, state: CurationState, opts: { overwrite: boolean }): CurationPlan {
-  const plan: CurationPlan = { errors: [], moments: [], entities: [], autoSensitive: [], conflicts: [] };
+  const plan: CurationPlan = { errors: [], moments: [], entities: [], conflicts: [] };
   const done = new Set<string>();
   for (const fm of file.moments) {
     const where = `moment ${fm.label}`;
@@ -343,7 +312,7 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
     // moment の項目
     const mp: MomentPlan = {
       label: fm.label, timestamp: current.timestamp!!, changes: [],
-      tier: current.tier, series: current.series, intent: current.intent, sensitive: null,
+      tier: current.tier, series: current.series, intent: current.intent,
     };
     // ファイルにある項目だけを、今の値と比べて計画に入れる。
     const planField = <K extends 'tier' | 'series' | 'intent'>(key: K, next: MomentPlan[K] | undefined) => {
@@ -361,21 +330,6 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
     planField('tier', fm.tier);
     planField('series', fm.series);
     planField('intent', fm.intent);
-    // sensitive は、手で上書きされていない（sensitive_manual = false）なら未入力とみなす。
-    // 値が今と同じでも、sensitive_manual を true にするために書く（2回目は変わらない）。
-    if (fm.sensitive !== undefined) {
-      if (!current.sensitiveManual) {
-        mp.changes.push({ key: 'sensitive', from: current.sensitive, to: fm.sensitive, overwrite: false, note: '自動の値を手での上書きにする' });
-        mp.sensitive = fm.sensitive;
-      } else if (fm.sensitive !== current.sensitive) {
-        if (opts.overwrite) {
-          mp.changes.push({ key: 'sensitive', from: current.sensitive, to: fm.sensitive, overwrite: true });
-          mp.sensitive = fm.sensitive;
-        } else {
-          conflict(null, 'sensitive', current.sensitive, fm.sensitive);
-        }
-      }
-    }
     if (mp.changes.length > 0) {
       // SAVE と同じ口で書くので、icon_id は本文から求め直される。変わるなら計画に出す。
       const iconID = momentIconID(fml.parse(current.text));
@@ -443,43 +397,10 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
     }
   }
 
-  // 自動の moment の sensitive が計算し直されるのは、次の2つ。
-  // - 注釈を書くと、その entity を [image]・[video] に含む moment（saveEntityAnnotation）。
-  // - 書く moment（plan.moments）のうち、手で上書きしないもの（SAVE と同じ口で書くので）。
-  //   保存されている値が今の計算と食い違っていれば（Sensitive.ts の規則を変えたあとなど）、注釈を書かなくても変わる。
-  // 手で上書きする moment は、そのあとで上書きの値になるので除く。
-  const written = new Map(state.annotations);
-  for (const e of plan.entities) {
-    written.set(e.entity.id, e.annotation);
-  }
-  const overridden = new Set(plan.moments.filter((m) => m.sensitive !== null).map((m) => m.timestamp.valueOf()));
-  const recomputed = new Map<number, Moment>();
-  for (const m of state.autoSensitiveMoments) {
-    if (sensitiveTargetEntityIDs(fml.parse(m.text)).some((id) => plan.entities.some((e) => e.entity.id === id))) {
-      recomputed.set(m.timestamp!!.valueOf(), m);
-    }
-  }
-  for (const mp of plan.moments) {
-    const m = state.moments.get(mp.timestamp.valueOf())!!;
-    if (!m.sensitiveManual) {
-      recomputed.set(m.timestamp!!.valueOf(), m);
-    }
-  }
-  for (const [key, m] of recomputed) {
-    if (overridden.has(key)) {
-      continue;
-    }
-    const to = computeSensitive(fml.parse(m.text), written);
-    if (to !== m.sensitive) {
-      plan.autoSensitive.push({ timestamp: m.timestamp!!, from: m.sensitive, to });
-    }
-  }
-  plan.autoSensitive.sort((a, b) => a.timestamp.valueOf() - b.timestamp.valueOf());
   return plan;
 }
 
 // 3段目: 計画を書く。1つのトランザクションにするため、shelf は tx で作ったもの（new Shelf(tx)）を渡す。
-// 注釈を先に書き（sensitive が計算し直される）、そのあとで moment を書く。
 // moment は ura の SAVE と同じ Shelf.updateMoment で書く。今の値を読み直し、計画で変わる項目だけを差し替えて渡す。
 export async function applyCurationPlan(shelf: Shelf, plan: CurationPlan) {
   if (plan.errors.length > 0) {
@@ -495,8 +416,6 @@ export async function applyCurationPlan(shelf: Shelf, plan: CurationPlan) {
     }
     const date = formatMomentTime(current.timestamp!!);
     const changed = (key: string) => m.changes.some((c) => c.key === key);
-    // 計画に sensitive が無ければ、今の状態を保つ（手で上書きしてあればその値、そうでなければ自動のまま）。
-    const keep = current.sensitiveManual ? current.sensitive : null;
     await shelf.updateMoment({
       title: current.title,
       originalDate: date,
@@ -506,7 +425,6 @@ export async function applyCurationPlan(shelf: Shelf, plan: CurationPlan) {
       status: current.status,
       tier: changed('tier') ? m.tier : current.tier,
       series: changed('series') ? m.series : current.series,
-      sensitiveOverride: m.sensitive ?? keep,
       intent: changed('intent') ? m.intent : current.intent,
     });
   }

@@ -13,10 +13,6 @@ type EditorData = {
   tier: MomentTier;
   // カンマ区切りで1つの文字列にしたもの。
   series: string;
-  // 'auto' は自動、'true' / 'false' は手での上書き。
-  sensitive: 'auto' | 'true' | 'false';
-  // 本文と注釈から計算した sensitive の値。「自動（今は…）」に出す。
-  autoSensitive: boolean;
   // 未入力（null）は空の文字列。
   intent: string;
 };

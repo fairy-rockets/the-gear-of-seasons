@@ -12,7 +12,7 @@ type Item = protocol.Moment.List.Item & {
   hay: string;
 };
 
-type FilterKey = 'year' | 'status' | 'tier' | 'series' | 'sensitive' | 'annotation';
+type FilterKey = 'year' | 'status' | 'tier' | 'series' | 'annotation';
 type Sort = 'desc' | 'asc';
 
 // 絞り込みの条件。null は「すべて」。
@@ -34,7 +34,7 @@ type Filter = {
 const kStorageKey = 'ura-moments:state';
 
 const kDefaults: State = {
-  year: null, status: null, tier: null, series: null, sensitive: null, annotation: null, media: '', q: '', sort: 'desc',
+  year: null, status: null, tier: null, series: null, annotation: null, media: '', q: '', sort: 'desc',
 };
 
 // 「メディア」の行。ほかの行と違い、複数押せて、押したものをすべて本文に持つ moment を残す。
@@ -93,11 +93,6 @@ function makeFilters(items: Item[]): Filter[] {
       key: 'series', label: 'series',
       options: [...series.map((s): [string, string] => [s, s]), [kNoSeries, '（なし）']],
       match: (it, v) => v === kNoSeries ? it.series.length === 0 : it.series.includes(v),
-    },
-    {
-      key: 'sensitive', label: 'sensitive',
-      options: [['yes', 'はい'], ['no', 'いいえ']],
-      match: (it, v) => it.sensitive === (v === 'yes'),
     },
     {
       // 「未確認あり」と「未入力あり」は、両方を持つ moment がどちらにも入る。
@@ -210,9 +205,6 @@ function cardHTML(it: Item): string {
     badges.push('<span class="moment-badge moment-badge-draft">下書き</span>');
   }
   badges.push(`<span class="moment-badge moment-badge-tier-${it.tier}">${it.tier}</span>`);
-  if (it.sensitive) {
-    badges.push(`<span class="moment-badge moment-badge-sensitive">sensitive${it.sensitiveManual ? '（手）' : ''}</span>`);
-  }
   if (it.unverified > 0) {
     badges.push(`<span class="moment-badge moment-badge-unverified">未確認 ${it.unverified}</span>`);
   }

@@ -25,8 +25,6 @@ export default class NewController {
         status: 'draft',
         tier: 'archive',
         series: '',
-        sensitive: 'auto',
-        autoSensitive: false,
         intent: '',
       }));
   }

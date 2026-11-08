@@ -30,9 +30,7 @@ import {
   parseMomentStatus,
   parseMomentTier,
   parseMomentTime,
-  parseSensitiveOverride,
 } from './Moment.js';
-import { computeSensitive, sensitiveTargetEntityIDs } from './Sensitive.js';
 import { momentListItem, momentMedia } from './MomentList.js';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -407,43 +405,29 @@ class Shelf {
   }
 
   // ura の SAVE。import-curation もこれで書く。Save.Request のすべての項目を書く。
-  // sensitive は、sensitiveOverride が true / false ならその値（手での上書き）、null なら本文と注釈から計算した値（自動）にする。
   async updateMoment(req: protocol.Moment.Save.Request): Promise<Moment> {
-    const fields = await this.makeMomentFromRequest(req);
-    const override = parseSensitiveOverride(req.sensitiveOverride);
-    let oldTimestamp: dayjs.Dayjs | null = null;
-    if (req.originalDate !== null) {
-      oldTimestamp = parseMomentTime(req.originalDate);
+    const m = await this.makeMomentFromRequest(req);
+    if (req.originalDate === null) {
+      // new
+      await this.repo.insertMoment(m);
+    } else {
+      // update
+      const oldTimestamp = parseMomentTime(req.originalDate);
       if (!oldTimestamp.isValid()) {
         throw new Error(`Invalid old date: ${req.originalDate}`);
       }
-    }
-    // 計算に使う注釈と書き込みを、同じトランザクションにする。
-    return await this.repo.transaction(async (tx) => {
-      const m: Moment = {
-        ...fields,
-        sensitive: override ?? await calcSensitive(tx, fields.text),
-        sensitiveManual: override !== null,
-      };
-      if (oldTimestamp === null) {
-        // new
-        await tx.insertMoment(m);
-      } else {
-        // update
-        if (!await tx.updateMoment(oldTimestamp, m)) {
-          throw new Error(`Moment not found: ${req.originalDate}`);
-        }
+      if (!await this.repo.updateMoment(oldTimestamp, m)) {
+        throw new Error(`Moment not found: ${req.originalDate}`);
       }
-      return m;
-    });
+    }
+    return m;
   }
 
   /* ***********************************************************************************************
    * Moment
    ********************************************************************************************** */
 
-  // sensitive 以外の項目。sensitive は updateMoment がトランザクションの中で決める。
-  private async makeMomentFromRequest(req: protocol.Moment.Save.Request): Promise<Omit<Moment, 'sensitive' | 'sensitiveManual'>> {
+  private async makeMomentFromRequest(req: protocol.Moment.Save.Request): Promise<Moment> {
     const status = parseMomentStatus(req.status);
     const tier = parseMomentTier(req.tier);
     const series = parseMomentSeries(req.series);
@@ -525,11 +509,6 @@ class Shelf {
    * Curation
    ********************************************************************************************** */
 
-  // 本文から計算した sensitive の値（sanity-check が保存されている値と比べるのと、ura の編集画面が自動の値を見せるのに使う）。
-  async computeSensitive(text: string): Promise<boolean> {
-    return await calcSensitive(this.repo, text);
-  }
-
   async findEntityAnnotation(entityID: string): Promise<EntityAnnotation | null> {
     return await this.repo.findEntityAnnotation(entityID);
   }
@@ -539,35 +518,14 @@ class Shelf {
     return await this.repo.findEntityAnnotations(entityIDs);
   }
 
-  // 注釈を保存し、同じトランザクションで、その entity を本文の [image]・[video] に含む moment の
-  // sensitive を計算し直す（sensitive_manual = true のものは除く）。
   async saveEntityAnnotation(annotation: EntityAnnotation) {
-    await this.repo.transaction(async (tx) => {
-      const entity = await tx.findEntity(annotation.entityID);
-      if (entity === null) {
-        throw new Error(`Entity not found: ${annotation.entityID}`);
-      }
-      validateEntityAnnotation(entity, annotation);
-      await tx.upsertEntityAnnotation(annotation);
-      for (const moment of await tx.findAutoSensitiveMomentCandidates(entity.id)) {
-        const doc = fml.parse(moment.text);
-        const ids = sensitiveTargetEntityIDs(doc);
-        if (!ids.includes(entity.id)) {
-          continue;
-        }
-        // 保存したばかりの注釈が見えるよう、tx から読む。
-        const annotations = await tx.findEntityAnnotations(ids);
-        await tx.updateMomentAutoSensitive(moment.timestamp!!, computeSensitive(doc, annotations));
-      }
-    });
+    const entity = await this.repo.findEntity(annotation.entityID);
+    if (entity === null) {
+      throw new Error(`Entity not found: ${annotation.entityID}`);
+    }
+    validateEntityAnnotation(entity, annotation);
+    await this.repo.upsertEntityAnnotation(annotation);
   }
-}
-
-// 本文（FML）と、repo から読んだ注釈から sensitive を計算する。トランザクションの中では repo に tx を渡す。
-async function calcSensitive(repo: Repo, text: string): Promise<boolean> {
-  const doc = fml.parse(text);
-  const annotations = await repo.findEntityAnnotations(sensitiveTargetEntityIDs(doc));
-  return computeSensitive(doc, annotations);
 }
 
 export default Shelf;

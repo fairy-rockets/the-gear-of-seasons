@@ -8,8 +8,6 @@ import {
   parseAnnotationMedium,
   parseAnnotationPalette,
   parseAnnotationRole,
-  parseLooksChild,
-  parseLooksNude,
 } from './EntityAnnotation.js';
 
 // エクスポートの hexe.yaml（CurationExport.ts）と、studio の投入用ファイル（CurationImport.ts）が共有する形式。
@@ -58,9 +56,6 @@ export const kMediaKeys: Record<string, [AnnotationField, (v: unknown) => Annota
   tags: ['tags', parseStrings],
   palette: ['palette', parseEnum(parseAnnotationPalette)],
   characters: ['characters', parseStrings],
-  looks_nude: ['looksNude', parseEnum(parseLooksNude)],
-  looks_child: ['looksChild', parseEnum(parseLooksChild)],
-  looks_note: ['looksNote', parseString],
   human_verified: ['humanVerified', parseBoolean],
   role: ['role', parseEnum(parseAnnotationRole)],
   role_group: ['roleGroup', parseString],
@@ -69,7 +64,7 @@ export const kMediaKeys: Record<string, [AnnotationField, (v: unknown) => Annota
 };
 
 // moment の項目のうち、投入用ファイルに書けるもの。
-export const kMomentKeys = ['moment', 'tier', 'series', 'sensitive', 'intent', 'media'];
+export const kMomentKeys = ['moment', 'tier', 'series', 'intent', 'media'];
 
 // moment の時刻の形。オフセット付きの ISO 8601。オフセットの無い時刻は、どの時間帯かが決まらないので通さない。
 export const kMomentFormat = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/;

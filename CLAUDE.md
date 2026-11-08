@@ -87,13 +87,13 @@ The schema is defined by the Flyway migrations `db/flyway_data/sql/V*__*.sql`:
 
 | Table | Contents |
 | --- | --- |
-| `moments` | Keyed by timestamp; title, author and body text; `status` (draft/published); curation fields `tier`, `series`, `sensitive` and `sensitive_manual`; `intent` (the aim of the work, an interpretation or a look back; NULL means not entered), which only ura and the curation export/import handle and omote never shows. |
+| `moments` | Keyed by timestamp; title, author and body text; `status` (draft/published); curation fields `tier` and `series`; `intent` (the aim of the work, an interpretation or a look back; NULL means not entered), which only ura and the curation export/import handle and omote never shows. |
 | `entities` | Media keyed by md5 hash; image/video/audio type and medium/icon derivative ids. `location` is `internal` (the original is in `_storage/original`) or `external` (kept outside the server, e.g. a video on YouTube; only videos can be external); it has no default, so every INSERT sets it. `mime_type` is the type of the original, so it is non-NULL exactly for internal entities. `external_ref` (jsonb) is non-NULL exactly for external entities and holds what that platform needs to point at it, at least `platform` (YouTube: `{"platform": "youtube", "id": "<11-character video ID>"}`); the app validates the rest per platform. For external videos `width`/`height` are the embed size, used only as the aspect ratio. |
-| `entity_annotations` | One row per entity: alt, `looks_*`, role, `materials` (the materials used, a free `text[]`) and the other per-media curation fields. NULL means "not entered". |
+| `entity_annotations` | One row per entity: alt, role, `materials` (the materials used, a free `text[]`) and the other per-media curation fields. NULL means "not entered". |
 
 ### External videos
 
-Long videos are kept outside the server (for now only on YouTube) and shown in moments as an embedded player. Such a video is an ordinary `video` entity with `location = 'external'` (every entity type in `server/src/shelf/Entity.ts` has `location`; `location === 'external'` narrows to `ExternalVideoEntity`, whose `externalRef` is the parsed `external_ref` column), so the body still uses `[video entity="…"]`, and the gear, OGP, the SAVE date fallback, sensitive, annotations, the moment list counts and `export-curation` treat it like any other video.
+Long videos are kept outside the server (for now only on YouTube) and shown in moments as an embedded player. Such a video is an ordinary `video` entity with `location = 'external'` (every entity type in `server/src/shelf/Entity.ts` has `location`; `location === 'external'` narrows to `ExternalVideoEntity`, whose `externalRef` is the parsed `external_ref` column), so the body still uses `[video entity="…"]`, and the gear, OGP, the SAVE date fallback, annotations, the moment list counts and `export-curation` treat it like any other video.
 
 - The id is the md5 (32 hex digits) of `<platform>:<id>` (`youtube:<video ID>`), so every form of URL for the same video gives the same entity. `external_ref` holds `{"platform": "youtube", "id": "<video ID>"}`. Neither the page URL (`/entity/<id>` redirects to `https://www.youtube.com/watch?v=<video ID>`) nor the embed URL is stored; both are built per platform from `externalRef` (`server/src/lib/ExternalVideoRef.ts`). `mime_type` is NULL: it is the type of the original, which an external entity does not have.
 - The only stored file is the icon, made with `makeImageIcon` from the first of `snippet.thumbnails` `maxres` → `standard` → `high`. There is no original or medium.
@@ -137,10 +137,6 @@ Videos kept on YouTube use `liveStreamingDetails.actualStartTime` (when a live s
 
 When SAVE has no date, it uses the first image or video in body order with a capture timestamp. If none has one, it uses the current time. An explicitly entered date takes precedence.
 
-### sensitive calculation
-
-`sensitive` can be set by hand in the editor or by `import-curation` from studio's file (`sensitive_manual = true`). While `sensitive_manual` is false, `shelf/Sensitive.ts` recomputes it from the body and annotations whenever the moment or one of its annotations is saved.
-
 ## Maintenance commands
 
 Maintenance commands in `server/src/cmd/`: `gc.ts` (ask one by one whether to delete each entity that no moment, including drafts, refers to; for an external video it deletes only the icon; it does not look for storage files that no entity refers to), `sanity-check.ts` (checks only the icon of external videos), `regenerate-cache.ts` (re-probe originals and rebuild medium/icon for every entity, or only for the entity IDs given as arguments; for an external video it asks its platform (now only YouTube) again and replaces only the icon, width/height and duration, keeping the id and timestamp; an entity that fails (a missing original, or an external video that cannot be fetched again: no API key, or deleted or private on YouTube) is reported with its id and reason on stderr and the rest continue, then it prints the number of failures and exits with 1 if any failed; the running server keeps entities cached without expiry, so restart the app container afterwards; the medium/icon files it replaces stay in storage and show up in `list-missing`'s `orphan-*.txt`), `list-missing.ts` (list lost media; external videos have no original and are left out of the original lists; see `tools/README.md`) — run as `node server/dist/cmd/<name>.js` inside the production app container (from `7io-org/compose`'s `the-gear-of-seasons/`, `make gc` / `make sanity-check` wrap the first two).
@@ -157,13 +153,13 @@ Run it in production with `-T`, since a TTY would turn `\n` into `\r\n` and brea
 
 `import-curation.ts` loads studio's curation file (the moment- and entity-level fields of #2 and #80; format in #43) into the database. The database is the source of truth, so it is not part of the regular flow; it is for rewriting many values at once, and nothing else depends on it.
 
-By default it only prints the plan (changes, conflicts, counts) and writes nothing; `--apply` writes it in one transaction. It writes moments through the ura SAVE path, so for each moment it writes, the plan also lists `icon_id` and, while `sensitive_manual` is false, `sensitive` when recomputing them from the body (and the annotations) changes them.
+By default it only prints the plan (changes, conflicts, counts) and writes nothing; `--apply` writes it in one transaction. It writes moments through the ura SAVE path, so for each moment it writes, the plan also lists `icon_id` when recomputing it from the body changes it.
 
-Values already in the database that differ from the file are reported as conflicts and left alone unless `--overwrite` is given; database values equal to the defaults (`tier = archive`, `series = []`, `human_verified = false`, and `sensitive` while `sensitive_manual = false`) count as not entered, so the file's value is written without a conflict.
+Values already in the database that differ from the file are reported as conflicts and left alone unless `--overwrite` is given; database values equal to the defaults (`tier = archive`, `series = []` and `human_verified = false`) count as not entered, so the file's value is written without a conflict.
 
 Pass `-` to read the file from stdin, so it need not be copied into the container: `docker compose exec -T the-gear-of-seasons node server/dist/cmd/import-curation.js - [--apply] [--overwrite] < curation.yaml`.
 
-It reads the current values without locking them, so a moment or annotation saved in ura while it runs can be overwritten: do not edit in ura during an import. For the same reason a plan printed without `--apply` is not guaranteed to match what a later `--apply` writes; check what was written in the `--apply` run's own output. Every SAVE also writes the curation fields as the editor shows them, so saving from a tab opened before the import puts back the `tier`, `series`, `sensitive` and `intent` the import changed.
+It reads the current values without locking them, so a moment or annotation saved in ura while it runs can be overwritten: do not edit in ura during an import. For the same reason a plan printed without `--apply` is not guaranteed to match what a later `--apply` writes; check what was written in the `--apply` run's own output. Every SAVE also writes the curation fields as the editor shows them, so saving from a tab opened before the import puts back the `tier`, `series` and `intent` the import changed.
 
 ### Tools
 

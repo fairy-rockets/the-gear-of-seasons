@@ -38,7 +38,7 @@ const kAudioC: Entity = {
 function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): EntityAnnotation {
   return {
     entityID, medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    looksNude: null, looksChild: null, looksNote: null, humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
+    humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
     ...values,
   };
 }
@@ -47,19 +47,17 @@ function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): E
 function moment(t: string, text: string, values: Partial<Moment> = {}): Moment {
   return {
     timestamp: dayjs(t), title: 't', author: 'a', text, iconID: momentIconID(fml.parse(text)), status: 'published',
-    tier: 'archive', series: [], sensitive: false, sensitiveManual: false, intent: null,
+    tier: 'archive', series: [], intent: null,
     ...values,
   };
 }
 
-// loadCurationState の代わり。autoSensitiveMoments は sensitive_manual = false のもの全部にする
-// （本文に entity を含むかどうかは makeCurationPlan が確かめる）。
+// loadCurationState の代わり。
 function state(moments: Moment[], entities: Entity[], annotations: EntityAnnotation[] = []): CurationState {
   return {
     moments: new Map(moments.map((m) => [m.timestamp!!.valueOf(), m])),
     entities: new Map(entities.map((e) => [e.id, e])),
     annotations: new Map(annotations.map((a) => [a.entityID, a])),
-    autoSensitiveMoments: moments.filter((m) => !m.sensitiveManual),
   };
 }
 
@@ -73,25 +71,17 @@ function plan(src: string, s: CurationState, overwrite = false): CurationPlan {
   return makeCurationPlan(parse(src), s, { overwrite });
 }
 
-// 計画を書いたあとの DB を、state の上で作る（applyCurationPlan と saveEntityAnnotation がすることを写したもの）。
+// 計画を書いたあとの DB を、state の上で作る（applyCurationPlan がすることを写したもの）。
 function applyToState(s: CurationState, p: CurationPlan) {
   for (const e of p.entities) {
     s.annotations.set(e.entity.id, e.annotation);
-  }
-  for (const a of p.autoSensitive) {
-    s.moments.get(a.timestamp.valueOf())!!.sensitive = a.to;
   }
   for (const m of p.moments) {
     const cur = s.moments.get(m.timestamp.valueOf())!!;
     cur.tier = m.tier;
     cur.series = m.series;
     cur.intent = m.intent;
-    if (m.sensitive !== null) {
-      cur.sensitive = m.sensitive;
-      cur.sensitiveManual = true;
-    }
   }
-  s.autoSensitiveMoments = [...s.moments.values()].filter((m) => !m.sensitiveManual);
 }
 
 describe("parseCurationFile", () => {
@@ -101,11 +91,10 @@ moments:
   - moment: ${kT1}
     tier: pickup
     series: [夏]
-    sensitive: false
     media:
       - entity: ${kA}
-        looks_nude: none
-        looks_note: ""
+        palette: color
+        role_note: ""
         human_verified: true
         tags: []
 `);
@@ -116,12 +105,11 @@ moments:
     assert.ok(m.timestamp.isSame(dayjs(kT1)));
     assert.strictEqual(m.tier, 'pickup');
     assert.deepStrictEqual(m.series, ['夏']);
-    assert.strictEqual(m.sensitive, false);
     assert.deepStrictEqual(m.media, [{
       entityID: kA,
       fields: [
-        { key: 'looks_nude', field: 'looksNude', value: 'none' },
-        { key: 'looks_note', field: 'looksNote', value: '' },
+        { key: 'palette', field: 'palette', value: 'color' },
+        { key: 'role_note', field: 'roleNote', value: '' },
         { key: 'human_verified', field: 'humanVerified', value: true },
         { key: 'tags', field: 'tags', value: [] },
       ],
@@ -172,10 +160,9 @@ moments:
   - moment: ${kT1}
     tier: featured
     series: 夏
-    sensitive_manual: true
     media:
       - entity: ${kA}
-        looks_nude: naked
+        palette: sepia
         human_verified: yes
         role_star: null
         colour: red
@@ -186,8 +173,7 @@ moments:
       '知らないキーです: version',
       `moment ${kT1}: tier: 定義に無い値です: "featured"`,
       `moment ${kT1}: series: 文字列のリストではありません: "夏"`,
-      `moment ${kT1}: 知らないキーです: sensitive_manual`,
-      `moment ${kT1} entity ${kA}: looks_nude: 定義に無い値です: "naked"`,
+      `moment ${kT1} entity ${kA}: palette: 定義に無い値です: "sepia"`,
       `moment ${kT1} entity ${kA}: human_verified: true か false ではありません: "yes"`,
       `moment ${kT1} entity ${kA}: role_star が null です`,
       `moment ${kT1} entity ${kA}: 知らないキーです: colour`,
@@ -295,7 +281,7 @@ moments:
   - moment: ${kT1}
     media:
       - { entity: ${kB}, alt: 動画 }
-      - { entity: ${kC}, alt: 音, looks_nude: none, human_verified: true }
+      - { entity: ${kC}, alt: 音, palette: color, human_verified: true }
   - moment: ${kT2}
     media:
       - { entity: ${kB}, alt: 動画 }
@@ -303,7 +289,7 @@ moments:
     assert.deepStrictEqual(p.errors, [
       `moment ${kT3}: DB にありません`,
       `moment ${kT1} entity ${kB}: その moment の本文の [image]・[video]・[audio] にありません`,
-      `moment ${kT1} entity ${kC}: audio の entity が持たない項目です: looks_nude, human_verified`,
+      `moment ${kT1} entity ${kC}: audio の entity が持たない項目です: palette, human_verified`,
       `moment ${kT2} entity ${kB}: entities にありません`,
     ]);
   });
@@ -336,14 +322,14 @@ describe("makeCurationPlan の計画", () => {
     const p = plan(`
 moments:
   - moment: ${kT1}
-    media: [{ entity: ${kA}, medium: drawing, looks_note: "" }]
+    media: [{ entity: ${kA}, medium: drawing, role_note: "" }]
 `, s);
     assert.deepStrictEqual(p.errors, []);
     assert.deepStrictEqual(p.entities[0].changes, [
       { key: 'medium', from: null, to: 'drawing', overwrite: false },
-      { key: 'looks_note', from: null, to: '', overwrite: false },
+      { key: 'role_note', from: null, to: '', overwrite: false },
     ]);
-    assert.deepStrictEqual(p.entities[0].annotation, annotation(kA, { alt: '海', role: 'grab', humanVerified: true, medium: 'drawing', looksNote: '' }));
+    assert.deepStrictEqual(p.entities[0].annotation, annotation(kA, { alt: '海', role: 'grab', humanVerified: true, medium: 'drawing', roleNote: '' }));
   });
   it("値があって違うものは衝突にして書かず、ほかの項目は書く", () => {
     const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [
@@ -425,14 +411,13 @@ moments:
     assert.deepStrictEqual(p2.entities, []);
     assert.deepStrictEqual(p2.conflicts, [{ momentLabel: kT1, entityID: kA, key: 'materials', current: [], file: ['digital'] }]);
   });
-  it("書く moment の、本文から求め直される sensitive（自動のとき）と icon_id の変化を計画に出す", () => {
+  it("書く moment の、本文から求め直される icon_id の変化を計画に出す", () => {
     const s = state([
-      // 自動。保存されている sensitive と icon_id が、本文から求めた値と食い違っている。
-      moment(kT1, `[video entity="${kB}"][image entity="${kA}"]`, { sensitive: true, iconID: kB }),
-      // 手で上書き済み。sensitive は書いても変わらない。
-      moment(kT2, '', { sensitive: true, sensitiveManual: true }),
-      // 食い違っているが、書かない moment は計算し直されない。
-      moment(kT3, '', { sensitive: true }),
+      // 保存されている icon_id が、本文から求めた値と食い違っている。
+      moment(kT1, `[video entity="${kB}"][image entity="${kA}"]`, { iconID: kB }),
+      moment(kT2, ''),
+      // 値が変わらないので、書かない。
+      moment(kT3, ''),
     ], [kImageA, kVideoB]);
     const p = plan(`
 moments:
@@ -447,7 +432,6 @@ moments:
       [kT1, [['tier', 'archive', 'pickup'], ['icon_id', kB, kA]]],
       [kT2, [['tier', 'archive', 'pickup']]],
     ]);
-    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.from, a.to]), [[dayjs(kT1).format(), true, false]]);
   });
   it("tier だけ変わるときも、series は今の値で書く", () => {
     const p = plan(`
@@ -475,61 +459,19 @@ moments:
     ]);
     assert.deepStrictEqual(p.conflicts, [{ momentLabel: kT1, entityID: kB, key: 'human_verified', current: true, file: false }]);
   });
-  it("sensitive は、自動の moment なら値が同じでも手での上書きにし、手で上書き済みなら違うときだけ衝突にする", () => {
-    const s = state([
-      moment(kT1, '', { sensitive: false, sensitiveManual: false }),
-      moment(kT2, '', { sensitive: true, sensitiveManual: true }),
-      moment(kT3, '', { sensitive: true, sensitiveManual: true }),
-    ], []);
-    const src = `
-moments:
-  - moment: ${kT1}
-    sensitive: false
-  - moment: ${kT2}
-    sensitive: true
-  - moment: ${kT3}
-    sensitive: false
-`;
-    const p = plan(src, s);
-    assert.deepStrictEqual(p.moments.map((m) => [m.label, m.sensitive, m.changes.map((c) => c.key)]), [[kT1, false, ['sensitive']]]);
-    assert.deepStrictEqual(p.conflicts, [{ momentLabel: kT3, entityID: null, key: 'sensitive', current: true, file: false }]);
-    const o = plan(src, s, true);
-    assert.deepStrictEqual(o.moments.map((m) => [m.label, m.sensitive]), [[kT1, false], [kT3, false]]);
-    assert.deepStrictEqual(o.conflicts, []);
-  });
-  it("looks_* を書くと計算し直される sensitive を出す（ファイルに無い moment も、手で上書きする moment は除く）", () => {
-    const s = state([
-      moment(kT1, `[image entity="${kA}"]`),
-      moment(kT2, `[image entity="${kA}"]`),
-      moment(kT3, `[image entity="${kA}"]`),
-    ], [kImageA]);
+  it("値の変わらない entity は計画に入れない", () => {
+    const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [annotation(kA, { palette: 'color', role: 'grab' })]);
     const p = plan(`
 moments:
   - moment: ${kT1}
-    media: [{ entity: ${kA}, looks_nude: nude, looks_child: child }]
-  - moment: ${kT3}
-    sensitive: false
-`, s);
-    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.from, a.to]), [
-      [dayjs(kT1).format(), false, true],
-      [dayjs(kT2).format(), false, true],
-    ]);
-  });
-  it("値の変わらない entity は計画に入れず、sensitive も計算し直さない", () => {
-    // 保存されている sensitive が食い違っていても、注釈を書かないなら計算し直されない（saveEntityAnnotation と同じ）。
-    const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [annotation(kA, { looksNude: 'nude', looksChild: 'child' })]);
-    const p = plan(`
-moments:
-  - moment: ${kT1}
-    media: [{ entity: ${kA}, looks_nude: nude }]
+    media: [{ entity: ${kA}, palette: color }]
 `, s);
     assert.deepStrictEqual(p.entities, []);
-    assert.deepStrictEqual(p.autoSensitive, []);
   });
   it("同じファイルで2回目は変更 0 件", () => {
     const s = state([
       moment(kT1, `[image entity="${kA}"][video entity="${kB}"]`),
-      moment(kT2, `[audio entity="${kC}"]`, { tier: 'pickup', sensitive: true, sensitiveManual: true }),
+      moment(kT2, `[audio entity="${kC}"]`, { tier: 'pickup' }),
     ], [kImageA, kVideoB, kAudioC], [annotation(kB, { role: 'grab' })]);
     const src = `
 moments:
@@ -537,11 +479,10 @@ moments:
     tier: pickup
     series: [夏, 海]
     media:
-      - { entity: ${kA}, medium: drawing, tags: [海], looks_nude: nude, looks_child: child, human_verified: true, role_star: false }
+      - { entity: ${kA}, medium: drawing, tags: [海], palette: color, human_verified: true, role_star: false }
       - { entity: ${kB}, role: deep, alt: 波 }
   - moment: ${kT2}
     tier: sketch
-    sensitive: false
     media:
       - { entity: ${kC}, alt: 波の音 }
 `;
@@ -551,7 +492,7 @@ moments:
     assert.notStrictEqual(first.conflicts.length, 0);
     applyToState(s, first);
     const second = plan(src, s);
-    assert.deepStrictEqual([second.moments, second.entities, second.autoSensitive], [[], [], []]);
+    assert.deepStrictEqual([second.moments, second.entities], [[], []]);
     // 衝突は書いていないので、2回目も同じものが出る。
     assert.deepStrictEqual(second.conflicts, first.conflicts);
   });
@@ -561,16 +502,14 @@ describe("applyCurationPlan", () => {
   it("注釈を書いてから、moment ごとに今の値を読み、計画で変わる項目だけを差し替えて updateMoment（SAVE と同じ口）で書く", async () => {
     const moments = [
       // intent は計画に無いので、今の値のまま書く。
-      moment(kT1, `[image entity="${kA}"]`, { title: '海', tier: 'pickup', series: ['夏'], intent: 'もとのねらい' }),
-      // 手で上書き済み。計画に sensitive が無ければ、上書きの値のまま書く。
-      moment(kT2, '', { status: 'draft', sensitive: true, sensitiveManual: true }),
-      // 自動。計画に sensitive が無ければ、自動のまま書く。
-      moment(kT3, '', { sensitive: true }),
+      moment(kT1, `[image entity="${kA}"]`, { title: '海', series: ['夏'], intent: 'もとのねらい' }),
+      moment(kT2, '', { status: 'draft' }),
+      moment(kT3, ''),
     ];
     const p = plan(`
 moments:
   - moment: ${kT1}
-    sensitive: true
+    tier: pickup
     media: [{ entity: ${kA}, alt: 海 }]
   - moment: ${kT2}
     series: [冬]
@@ -587,8 +526,6 @@ moments:
         }
       },
     }) as Shelf;
-    // kT3 は自動で、保存されている sensitive（true）が本文から求めた値（false）と食い違っている。SAVE と同じ口で書くと変わるので、計画に出る。
-    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.from, a.to]), [[dayjs(kT3).format(), true, false]]);
     await applyCurationPlan(shelf, p);
     const date = (t: string) => formatMomentTime(dayjs(t));
     assert.deepStrictEqual(calls, [
@@ -596,17 +533,17 @@ moments:
       ['findMoment', dayjs(kT1).format(), 'all'],
       ['updateMoment', {
         title: '海', originalDate: date(kT1), date: date(kT1), author: 'a', text: `[image entity="${kA}"]`, status: 'published',
-        tier: 'pickup', series: ['夏'], sensitiveOverride: true, intent: 'もとのねらい',
+        tier: 'pickup', series: ['夏'], intent: 'もとのねらい',
       }],
       ['findMoment', dayjs(kT2).format(), 'all'],
       ['updateMoment', {
         title: 't', originalDate: date(kT2), date: date(kT2), author: 'a', text: '', status: 'draft',
-        tier: 'archive', series: ['冬'], sensitiveOverride: true, intent: '冬のねらい',
+        tier: 'archive', series: ['冬'], intent: '冬のねらい',
       }],
       ['findMoment', dayjs(kT3).format(), 'all'],
       ['updateMoment', {
         title: 't', originalDate: date(kT3), date: date(kT3), author: 'a', text: '', status: 'published',
-        tier: 'sketch', series: [], sensitiveOverride: null, intent: null,
+        tier: 'sketch', series: [], intent: null,
       }],
     ]);
   });
@@ -630,18 +567,11 @@ moments:
 
 // loadCurationState と applyCurationPlan を、DB の代わりに配列で持つ Repo で見る。
 // Shelf.spec.ts の FakeRepo と同じく必要なメソッドだけを持つが、書いた値を自分の状態に反映する
-// （書いたあとに読み直して、計画の予測と比べるため）。トランザクションは fn に自分を渡すだけ。
+// （書いたあとに読み直して、計画の予測と比べるため）。
 class StateRepo {
   readonly annotations: Map<string, EntityAnnotation>;
-  readonly autoSensitiveWrites: [string, boolean][] = [];
   constructor(readonly entities: Entity[], readonly moments: Moment[], annotations: EntityAnnotation[] = []) {
     this.annotations = new Map(annotations.map((a) => [a.entityID, a]));
-  }
-  private moment(timestamp: dayjs.Dayjs): Moment {
-    return this.moments.find((m) => m.timestamp!!.isSame(timestamp))!!;
-  }
-  async transaction<T>(fn: (tx: Repo) => Promise<T>): Promise<T> {
-    return await fn(this as unknown as Repo);
   }
   async findMoment(timestamp: dayjs.Dayjs) {
     return this.moments.find((m) => m.timestamp!!.isSame(timestamp)) ?? null;
@@ -652,38 +582,22 @@ class StateRepo {
   async findEntityAnnotations(ids: string[]) {
     return new Map([...this.annotations].filter(([id]) => ids.includes(id)));
   }
-  async findAutoSensitiveMomentCandidates(id: string) {
-    return this.moments.filter((m) => !m.sensitiveManual && m.text.includes(id));
-  }
   async upsertEntityAnnotation(a: EntityAnnotation) {
     this.annotations.set(a.entityID, a);
   }
-  // 実物と同じく、手で上書きした moment と、値が変わらない moment には書かない。
-  async updateMomentAutoSensitive(timestamp: dayjs.Dayjs, v: boolean) {
-    const m = this.moment(timestamp);
-    if (!m.sensitiveManual && m.sensitive !== v) {
-      m.sensitive = v;
-      this.autoSensitiveWrites.push([m.timestamp!!.format(), v]);
-    }
-  }
   // 読み直したときに書いた値が見えるよう、置き換えずに今のオブジェクトに重ねる。
   async updateMoment(old: dayjs.Dayjs, m: Moment) {
-    Object.assign(this.moment(old), m);
+    Object.assign((await this.findMoment(old))!!, m);
     return true;
   }
 }
 
 describe("loadCurationState", () => {
-  it("ファイルの moment・entity と、sensitive を計算し直す moment の対象 entity の注釈まで読む", async () => {
-    const kD = 'dddddddddddddddddddddddddddddddd';
-    const kImageD: Entity = { ...kImageA, id: kD };
+  it("ファイルの moment・entity と、その注釈を読む", async () => {
     const inFile = moment(kT1, `[image entity="${kA}"]`);
-    // ファイルに無いが、同じ画像を使う moment。もう1枚の画像 D の注釈も読まないと sensitive を計算できない。
-    const other = moment(kT2, `[image entity="${kA}"][image entity="${kD}"]`);
-    const manual = moment(kT3, `[image entity="${kA}"]`, { sensitiveManual: true });
-    const repo = new StateRepo([kImageA, kImageD], [inFile, other, manual], [
+    const other = moment(kT2, `[image entity="${kA}"]`);
+    const repo = new StateRepo([kImageA], [inFile, other], [
       annotation(kA, { alt: '海' }),
-      annotation(kD, { looksNude: 'nude' }),
       annotation(kB, { alt: '関係ない' }),
     ]);
     const file = parse(`
@@ -695,39 +609,31 @@ moments:
     const s = await loadCurationState(repo as unknown as Repo, file);
     assert.deepStrictEqual([...s.moments.values()], [inFile]);
     assert.deepStrictEqual([...s.entities.keys()], [kA]);
-    assert.deepStrictEqual([...s.annotations.keys()].sort(), [kA, kD]);
-    assert.deepStrictEqual(s.autoSensitiveMoments, [inFile, other]);
+    assert.deepStrictEqual([...s.annotations.keys()], [kA]);
   });
 });
 
 describe("applyCurationPlan で書いた結果", () => {
-  it("Shelf を通して書いた sensitive と項目が、計画の予測と一致し、読み直すと変更 0 件になる", async () => {
+  it("Shelf を通して書いた項目が、計画の予測と一致し、読み直すと変更 0 件になる", async () => {
     const kD = 'dddddddddddddddddddddddddddddddd';
     const kImageD: Entity = { ...kImageA, id: kD };
     const repo = new StateRepo([kImageA, kVideoB, kImageD], [
       moment(kT1, `[image entity="${kA}"][video entity="${kB}"]`),
-      // ファイルに無い moment。A を書くと計算し直される。
-      moment(kT2, `[image entity="${kA}"]`),
-      // D は child だけが入っていて、nude を書くと true になる。
       moment(kT3, `[image entity="${kD}"]`),
-      // 手で上書きする moment。A を含むが、計算し直されたあとに上書きの値になる。
-      moment('2020-01-01T00:00:00+09:00', `[image entity="${kA}"]`),
-      // 保存されている sensitive（true）と icon_id（なし）が、本文から求めた値（false・C）と食い違っている自動の moment。
-      // 注釈は書かないが、tier を書くと SAVE と同じ口を通るので、どちらも求め直される。
-      moment(kT4, `[audio entity="${kC}"]`, { sensitive: true, iconID: undefined }),
-    ], [annotation(kD, { looksChild: 'child' })]);
+      // 保存されている icon_id（なし）が、本文から求めた値（C）と食い違っている moment。
+      // 注釈は書かないが、tier を書くと SAVE と同じ口を通るので、求め直される。
+      moment(kT4, `[audio entity="${kC}"]`, { iconID: undefined }),
+    ], [annotation(kD, { alt: '星' })]);
     const src = `
 moments:
   - moment: ${kT1}
     tier: pickup
     media:
-      - { entity: ${kA}, looks_nude: nude, looks_child: child }
+      - { entity: ${kA}, palette: color, characters: [ナギ] }
       - { entity: ${kB}, alt: 波 }
   - moment: ${kT3}
     media:
-      - { entity: ${kD}, looks_nude: nude }
-  - moment: 2020-01-01T00:00:00+09:00
-    sensitive: false
+      - { entity: ${kD}, palette: monochrome }
   - moment: ${kT4}
     tier: sketch
 `;
@@ -737,22 +643,7 @@ moments:
     const before = new Map(repo.moments.map((m) => [m.timestamp!!.format(), { ...m }]));
     await applyCurationPlan(new Shelf(repo as unknown as Repo), p);
 
-    // 書いたあとに sensitive が変わった moment が、計画の autoSensitive（手で上書きする moment を除く）とちょうど一致する。
-    const changedSensitive = new Map<string, boolean>();
-    for (const m of repo.moments) {
-      const t = m.timestamp!!.format();
-      if (m.sensitive !== before.get(t)!!.sensitive && !m.sensitiveManual) {
-        changedSensitive.set(t, m.sensitive);
-      }
-    }
-    assert.deepStrictEqual(changedSensitive, new Map(p.autoSensitive.map((a) => [a.timestamp.format(), a.to])));
-    assert.deepStrictEqual(p.autoSensitive.map((a) => [a.timestamp.format(), a.from, a.to]), [
-      [dayjs(kT1).format(), false, true],
-      [dayjs(kT2).format(), false, true],
-      [dayjs(kT3).format(), false, true],
-      [dayjs(kT4).format(), true, false],
-    ]);
-    // icon_id が変わった moment も、計画の icon_id の変更とちょうど一致する。
+    // icon_id が変わった moment が、計画の icon_id の変更とちょうど一致する。
     const changedIcon = new Map<string, unknown>();
     for (const m of repo.moments) {
       const t = m.timestamp!!.format();
@@ -768,14 +659,13 @@ moments:
     }
     assert.deepStrictEqual(changedIcon, plannedIcon);
     assert.deepStrictEqual([...plannedIcon.keys()], [dayjs(kT4).format()]);
-    const overridden = (await repo.findMoment(dayjs('2020-01-01T00:00:00+09:00')))!!;
-    assert.deepStrictEqual([overridden.sensitive, overridden.sensitiveManual], [false, true]);
     assert.strictEqual((await repo.findMoment(dayjs(kT1)))!!.tier, 'pickup');
+    assert.strictEqual((await repo.findMoment(dayjs(kT4)))!!.tier, 'sketch');
     for (const e of p.entities) {
       assert.deepStrictEqual(repo.annotations.get(e.entity.id), e.annotation);
     }
 
     const again = makeCurationPlan(file, await loadCurationState(repo as unknown as Repo, file), { overwrite: false });
-    assert.deepStrictEqual([again.errors, again.moments, again.entities, again.autoSensitive, again.conflicts], [[], [], [], [], []]);
+    assert.deepStrictEqual([again.errors, again.moments, again.entities, again.conflicts], [[], [], [], []]);
   });
 });

@@ -16,12 +16,11 @@ const html = `<!doctype html><meta charset="utf-8"><div class="editor-wrapper">
 <select id="status"><option>draft</option><option>published</option></select>
 <select id="tier"><option>archive</option><option>pickup</option></select>
 <input id="series" value="a, b">
-<select id="sensitive"><option value="auto">自動</option><option>true</option><option>false</option></select>
 <textarea id="text">本文</textarea><textarea id="intent"></textarea><button id="save">SAVE</button><button id="delete">DEL</button>
 <button id="upload">UPLOAD</button></div><div id="preview"></div><a id="leave" href="/other">移動</a>
 <script src="/js/editor.js"></script>`;
 const empty = { medium: null, materials: null, alt: null, description: null, tags: null, palette: null,
-  characters: null, looksNude: null, looksChild: null, looksNote: null, humanVerified: false,
+  characters: null, humanVerified: false,
   role: null, roleGroup: null, roleStar: null, roleNote: null };
 const browser = await puppeteer.launch({ executablePath: '/usr/bin/chromium', headless: true,
   args: ['--no-sandbox', '--disable-dev-shm-usage'] });
@@ -51,7 +50,7 @@ page.on('request', async request => {
     if (path === '/save') lastSave = req;
     if (path === '/annotation') lastAnnotation = req;
     const body = path === '/save' ? { date: req.date ?? date, status: req.status,
-      path: '/edit', sensitive: false, sensitiveManual: false, body: media }
+      path: '/edit', body: media }
       : path === '/delete' ? { year: '2026' } : {};
     const respond = () => request.respond({ status: fail ? 500 : 200,
       contentType: 'application/json', body: JSON.stringify(body) });
@@ -99,7 +98,7 @@ try {
     ['#date', '2027/01/01 00:00:00', date, 'input'],
     ['#author', '甚三紅もみじ', '宵宮ナギ', 'change'], ['#status', 'published', 'draft', 'change'],
     ['#tier', 'pickup', 'archive', 'change'], ['#series', 'a,b', 'a, b', 'input'],
-    ['#sensitive', 'true', 'auto', 'change'], ['#intent', 'ねらい', '', 'input'],
+    ['#intent', 'ねらい', '', 'input'],
   ]) {
     await input(selector, changed, event);
     assert.equal(await dirty(), true, `${selector} protects raw changes`);

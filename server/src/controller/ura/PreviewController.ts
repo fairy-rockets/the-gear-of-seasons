@@ -11,7 +11,6 @@ import {
   parseMomentStatus,
   parseMomentTier,
   parseMomentTime,
-  parseSensitiveOverride,
 } from '../../shelf/Moment.js';
 import MomentRenderer from '../../renderer/MomentRenderer.js';
 
@@ -28,8 +27,6 @@ export default class PreviewController {
   async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const raw = req.body as protocol.Moment.Save.Request;
     const now = dayjs();
-    const override = parseSensitiveOverride(raw.sensitiveOverride);
-    // プレビューは sensitive を表示しないので、自動のときも計算しない（false のまま渡す）。
     const moment: Moment = {
       timestamp: (raw.date !== null && raw.date.length > 0) ? parseMomentTime(raw.date) : undefined,
       title: raw.title,
@@ -39,8 +36,6 @@ export default class PreviewController {
       status: parseMomentStatus(raw.status),
       tier: parseMomentTier(raw.tier),
       series: parseMomentSeries(raw.series),
-      sensitive: override ?? false,
-      sensitiveManual: override !== null,
       intent: parseMomentIntent(raw.intent),
     };
     return reply

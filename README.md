@@ -49,3 +49,4 @@ Run the steps below by hand, in the directory holding the `compose.yml` that run
 
 3. Deploy the new application only after the migrations have been applied.
    The application reads the columns the migrations add, so starting it on an older schema breaks every page that reads moments.
+   A migration that drops a column the running application still reads is the exception: deploy the application that no longer reads it first, then apply the migration.

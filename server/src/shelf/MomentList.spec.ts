@@ -28,7 +28,7 @@ function annotations(...list: EntityAnnotation[]): Map<string, EntityAnnotation>
 function moment(text: string, status: Moment['status'] = 'published'): Moment {
   return {
     timestamp: dayjs('2024-11-14T13:18:23+09:00'), title: '題', author: '宵宮ナギ', text, iconID: kImage, status,
-    tier: 'pickup', series: ['癒し'], sensitive: true, sensitiveManual: false, intent: null,
+    tier: 'pickup', series: ['癒し'], intent: null,
   };
 }
 
@@ -90,7 +90,7 @@ describe("momentListItem", () => {
       annotations(
         annotation(kImage, { alt: 'a', humanVerified: true }),
         annotation(kImage2, { alt: 'a' }),
-        annotation(kVideo, { looksNude: 'none' }),
+        annotation(kVideo, { palette: 'color' }),
         annotation(kAudio, { alt: 'a' }),
       ));
     assert.deepStrictEqual([it.media, it.unentered, it.unverified], [4, 0, 2]);
@@ -116,7 +116,7 @@ describe("momentListItem", () => {
     const it = item('ほんぶん', new Map());
     assert.deepStrictEqual({ ...it, media: undefined, mediaByType: undefined, unentered: undefined, unverified: undefined }, {
       path: '/2024/11/14/13:18:23/', date: '2024/11/14 13:18:23', title: '題', author: '宵宮ナギ', bodyText: 'ほんぶん',
-      iconID: kImage, status: 'published', tier: 'pickup', series: ['癒し'], sensitive: true, sensitiveManual: false,
+      iconID: kImage, status: 'published', tier: 'pickup', series: ['癒し'],
       media: undefined, mediaByType: undefined, unentered: undefined, unverified: undefined,
     });
   });

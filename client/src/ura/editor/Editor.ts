@@ -12,7 +12,6 @@ export default class Editor {
   private readonly status_: HTMLSelectElement;
   private readonly tier_: HTMLSelectElement;
   private readonly series_: HTMLInputElement;
-  private readonly sensitive_: HTMLSelectElement;
   private readonly text_: HTMLTextAreaElement;
   private readonly intent_: HTMLTextAreaElement;
   private readonly save_: HTMLButtonElement;
@@ -34,20 +33,19 @@ export default class Editor {
   executePreviewUpdater_: () => void;
   onSaveEventListener_: () => void;
   onDeleteEventListener_: () => void;
-  constructor(title: HTMLInputElement, date: HTMLInputElement, author: HTMLSelectElement, status: HTMLSelectElement, tier: HTMLSelectElement, series: HTMLInputElement, sensitive: HTMLSelectElement, text: HTMLTextAreaElement, intent: HTMLTextAreaElement, save: HTMLButtonElement, del: HTMLButtonElement) {
+  constructor(title: HTMLInputElement, date: HTMLInputElement, author: HTMLSelectElement, status: HTMLSelectElement, tier: HTMLSelectElement, series: HTMLInputElement, text: HTMLTextAreaElement, intent: HTMLTextAreaElement, save: HTMLButtonElement, del: HTMLButtonElement) {
     this.title_ = title;
     this.date_ = date;
     this.author_ = author;
     this.status_ = status;
     this.tier_ = tier;
     this.series_ = series;
-    this.sensitive_ = sensitive;
     this.text_ = text;
     this.intent_ = intent;
     this.save_ = save;
     this.delete_ = del;
     this.originalDate_ = date.value;
-    this.fields_ = [title, date, author, status, tier, series, sensitive, text, intent];
+    this.fields_ = [title, date, author, status, tier, series, text, intent];
     this.savedValues_ = this.formValues_();
     this.guarding_ = false;
     this.onChangeEventListener_ = this.onChange_.bind(this);
@@ -70,7 +68,6 @@ export default class Editor {
     this.status_.addEventListener('change', this.onChangeEventListener_);
     this.tier_.addEventListener('change', this.onChangeEventListener_);
     this.series_.addEventListener('input', this.onChangeEventListener_);
-    this.sensitive_.addEventListener('change', this.onChangeEventListener_);
     // 意図はプレビューに出ないので、未保存の判定だけを更新する。
     this.intent_.addEventListener('input', () => this.updateUnsavedChanges());
     this.save_.addEventListener('click', this.onSaveEventListener_);
@@ -147,16 +144,6 @@ export default class Editor {
     return this.originalDate_.length > 0 ? this.originalDate_ : null;
   }
 
-  // 保存のあとの sensitive を「自動（今は…）」に出す。
-  // 手で上書きしている間は、sensitive は上書きの値なので、「自動（今は…）」は前の表示のまま
-  showAutoSensitive(sensitive: boolean, sensitiveManual: boolean) {
-    if (sensitiveManual) {
-      return;
-    }
-    const auto = this.sensitive_.querySelector('option[value="auto"]') as HTMLOptionElement;
-    auto.textContent = `自動（今は ${sensitive ? 'はい' : 'いいえ'}）`;
-  }
-
   private makeMoment_(): protocol.Moment.Save.Request {
     return {
       title: this.title_.value,
@@ -168,7 +155,6 @@ export default class Editor {
       tier: this.tier_.value as protocol.MomentTier,
       // カンマ区切り。前後の空白と、空の要素は落とす。
       series: this.series_.value.split(',').map((s) => s.trim()).filter((s) => s.length > 0),
-      sensitiveOverride: this.sensitive_.value === 'auto' ? null : this.sensitive_.value === 'true',
       // 空欄は未入力（null）。
       intent: this.intent_.value.length > 0 ? this.intent_.value : null,
     };
@@ -224,7 +210,6 @@ export default class Editor {
     } else {
       this.executePreviewUpdate_();
     }
-    this.showAutoSensitive(result.sensitive, result.sensitiveManual);
     history.replaceState(null, moment.title, result.path);
   }
 

@@ -30,9 +30,6 @@ const kKinds: Record<AnnotationField, Kind> = {
   tags: { kind: 'list' },
   palette: { kind: 'enum', values: protocol.kAnnotationPalettes },
   characters: { kind: 'list' },
-  looksNude: { kind: 'enum', values: protocol.kLooksNude },
-  looksChild: { kind: 'enum', values: protocol.kLooksChild },
-  looksNote: { kind: 'string' },
   humanVerified: { kind: 'checkbox' },
   role: { kind: 'enum', values: protocol.kAnnotationRoles },
   roleGroup: { kind: 'string' },
@@ -49,9 +46,6 @@ const kLabels: Record<AnnotationField, string> = {
   tags: 'tags',
   palette: 'palette',
   characters: 'characters',
-  looksNude: 'looks_nude',
-  looksChild: 'looks_child',
-  looksNote: 'looks_note',
   humanVerified: 'human_verified',
   role: 'role',
   roleGroup: 'role_group',
@@ -62,7 +56,7 @@ const kLabels: Record<AnnotationField, string> = {
 // 引き出しの先頭にまとめる、Ollama が下書きする項目と、それをすべて確かめたかの human_verified（#2）。human_verified は最後。
 // ほかの項目は、このまとまりの後に protocol.ts の kAnnotationFields の順で並べる。
 const kDraftFields: readonly AnnotationField[] = [
-  'medium', 'materials', 'alt', 'description', 'tags', 'palette', 'looksNude', 'looksChild', 'looksNote', 'humanVerified',
+  'medium', 'materials', 'alt', 'description', 'tags', 'palette', 'humanVerified',
 ];
 
 const kTypeLabels: Record<protocol.EntityType, string> = {
@@ -302,10 +296,8 @@ export default class AnnotationDrawer {
     const values = this.values_(opened);
     const req: protocol.Annotation.Save.Request = {
       entityID: opened.id,
-      originalDate: this.editor_!.originalDate(),
       annotation: values,
     };
-    let result: protocol.Annotation.Save.Response;
     this.setSaving_(true);
     try {
       const r = await fetch('/annotation', {
@@ -318,7 +310,6 @@ export default class AnnotationDrawer {
       if (!r.ok) {
         throw new Error(await describeResponseError(r));
       }
-      result = await r.json() as protocol.Annotation.Save.Response;
     } catch (e) {
       // 失敗したときは入力を残す
       console.error(e);
@@ -337,9 +328,6 @@ export default class AnnotationDrawer {
     }
     this.refreshMarks_();
     this.updateStatus_('保存しました');
-    if (result.moment !== undefined) {
-      this.editor_!.showAutoSensitive(result.moment.sensitive, result.moment.sensitiveManual);
-    }
   }
 
   private onPreviewClick_(event: MouseEvent) {
