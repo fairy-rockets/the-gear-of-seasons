@@ -18,6 +18,15 @@ import {
 
 export type EntityAnnotation = { entityID: string } & AnnotationValues;
 
+// 画像の説明として表に出す alt。human_verified は問わない（確認前でも一律の文言よりは説明になる）。
+// 未入力や空白だけのときは null で、呼び出し側がそれぞれの代わりの文言に落とす。
+export function displayAlt(annotation: EntityAnnotation | null | undefined): string | null {
+  if (annotation === null || annotation === undefined || annotation.alt === null || annotation.alt.trim() === '') {
+    return null;
+  }
+  return annotation.alt;
+}
+
 export {
   AnnotationField,
   AnnotationMedium,

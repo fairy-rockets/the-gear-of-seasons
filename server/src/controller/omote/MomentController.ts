@@ -5,6 +5,7 @@ import Asset from '../../lib/Asset.js';
 import {PageMeta, absoluteURL, kSiteTitle, pageTitle, summarizeMomentText} from '../../lib/meta.js';
 
 import Shelf from '../../shelf/Shelf.js';
+import { displayAlt } from '../../shelf/EntityAnnotation.js';
 import { Moment, formatMomentPath, parseMomentPath } from '../../shelf/Moment.js';
 
 export default class MomentController {
@@ -35,14 +36,15 @@ export default class MomentController {
   }
   private async metaOf(moment: Moment): Promise<PageMeta> {
     const path = moment.timestamp !== undefined ? formatMomentPath(moment.timestamp) : '/';
+    const image = await this.ogImageOf(moment);
     return {
       siteTitle: kSiteTitle,
       title: pageTitle(moment.title),
       description: MomentController.descriptionOf(moment),
       canonical: absoluteURL(path),
       ogType: 'article',
-      ogImage: await this.ogImageOf(moment),
-      ogImageAlt: moment.title,
+      ogImage: image?.url,
+      ogImageAlt: image?.alt,
       publishedTime: moment.timestamp?.format(),
     };
   }
@@ -58,7 +60,9 @@ export default class MomentController {
   }
   // 動画・音声の entity には medium が無く /entity/:id/medium が 404 になるので、
   // その場合は icon(256px) に落とす。
-  private async ogImageOf(moment: Moment): Promise<string | undefined> {
+  // alt は画像の注釈の alt。題は og:title に出ているので、注釈が無いときと、
+  // 画像の説明を持たない動画・音声のときだけ題で埋める。
+  private async ogImageOf(moment: Moment): Promise<{ url: string, alt: string } | undefined> {
     if (moment.iconID === undefined) {
       return undefined;
     }
@@ -67,8 +71,9 @@ export default class MomentController {
       return undefined;
     }
     if (entity.type === 'image') {
-      return absoluteURL(`/entity/${entity.id}/medium`);
+      const alt = displayAlt(await this.shelf.findEntityAnnotation(entity.id)) ?? moment.title;
+      return { url: absoluteURL(`/entity/${entity.id}/medium`), alt };
     }
-    return absoluteURL(`/entity/${entity.id}/icon`);
+    return { url: absoluteURL(`/entity/${entity.id}/icon`), alt: moment.title };
   }
 }
