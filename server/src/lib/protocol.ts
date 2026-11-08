@@ -8,7 +8,7 @@ export type EntityType = 'image' | 'video' | 'audio';
 
 // メディア（entity）ごとの注釈の、選べる値。null は「値なし」（未入力）で、'none' とは別の値として扱う。
 // 項目の意味は #2 のコメント（issuecomment-3603）の「1. DB に足すもの」の表。
-export const kAnnotationMedia = ['drawing', 'photo', '3d', 'generated', 'graphic'] as const;
+export const kAnnotationMedia = ['drawing', 'camera', '3d', 'generated', 'graphic'] as const;
 export const kAnnotationPalettes = ['color', 'monochrome'] as const;
 export const kLooksNude = ['nude', 'partial', 'unclear', 'none'] as const;
 export const kLooksChild = ['child', 'ambiguous', 'adult', 'none'] as const;

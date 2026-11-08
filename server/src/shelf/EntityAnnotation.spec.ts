@@ -46,7 +46,7 @@ describe("validateEntityAnnotation", () => {
   });
   it("音声が持たない項目があれば例外にする", () => {
     const cases: Partial<EntityAnnotation>[] = [
-      { medium: 'photo' }, { palette: 'monochrome' }, { characters: [] },
+      { medium: 'camera' }, { palette: 'monochrome' }, { characters: [] },
       { looksNude: 'none' }, { looksChild: 'none' }, { looksNote: '' },
       { role: 'none' }, { roleGroup: '' }, { roleStar: false }, { roleNote: '' },
       { humanVerified: true },
