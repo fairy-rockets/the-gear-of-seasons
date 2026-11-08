@@ -161,6 +161,7 @@ export namespace Annotation {
   }
   export namespace Save {
     // POST /annotation。annotation の項目はすべて送る（その種類が持たない項目は null、humanVerified は false）。
+    // 応答は本文なしの 204。
     export type Request = {
       entityID: string;
       annotation: AnnotationValues;

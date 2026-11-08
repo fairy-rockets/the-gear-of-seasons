@@ -113,7 +113,7 @@ img.emoji {
 .editor-container .editor-wrapper .editor-curation .editor-series {
   flex: 1 1 0;
   min-width: 0;
-  margin: 0 0.5em;
+  margin-left: 0.5em;
 }
 
 .editor-container .editor-wrapper input,
