@@ -64,8 +64,6 @@ export function momentListItem(m: Moment, doc: fml.Document, annotations: Readon
     status: m.status,
     tier: m.tier,
     series: m.series,
-    sensitive: m.sensitive,
-    sensitiveManual: m.sensitiveManual,
     media: media.length,
     mediaByType,
     unentered,

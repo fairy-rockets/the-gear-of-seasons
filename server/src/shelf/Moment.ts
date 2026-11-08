@@ -15,9 +15,6 @@ type Moment = {
   // 以下、キュレーションの項目。
   tier: MomentTier;
   series: string[];
-  // sensitiveManual が false の間は、本文と entity_annotations から計算した値（Sensitive.ts）を書き込むたびに保つ。
-  sensitive: boolean;
-  sensitiveManual: boolean;
   // ねらい・解釈・振り返り（#80）。ura とエクスポートでだけ扱い、omote には出さない。null は未入力。
   intent: string | null;
 };
@@ -63,14 +60,6 @@ export function parseMomentIntent(v: unknown): string | null {
     return v;
   }
   throw new Error(`Invalid moment intent: ${JSON.stringify(v)}`);
-}
-
-// sensitive の手での上書き。null は自動。欠けている（undefined）ときも例外にする（自動に読み替えない）。
-export function parseSensitiveOverride(v: unknown): boolean | null {
-  if (v === null || v === true || v === false) {
-    return v;
-  }
-  throw new Error(`Invalid sensitive override: ${v}`);
 }
 
 // moment のアイコンにする entity。本文の最初の [image]、無ければ最初の [video]・[audio]。

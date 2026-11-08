@@ -122,8 +122,6 @@ describe("MomentRenderer.render", () => {
       status: 'published',
       tier: 'archive',
       series: [],
-      sensitive: false,
-      sensitiveManual: false,
       intent,
     };
     return renderer.render(dayjs('2020-01-02 00:00:00'), moment);

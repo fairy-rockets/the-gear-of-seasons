@@ -95,8 +95,6 @@ export namespace Moment {
       status: MomentStatus;
       tier: MomentTier;
       series: string[];
-      // null なら本文と注釈から計算した値（自動）。true / false なら手での上書き。
-      sensitiveOverride: boolean | null;
       // ねらい・解釈・振り返り。null は未入力。省略はできない（古いタブからの保存で、黙って null にしないため）。
       intent: string | null;
     };
@@ -104,8 +102,6 @@ export namespace Moment {
       path: string;
       date: string;
       status: MomentStatus;
-      sensitive: boolean;
-      sensitiveManual: boolean;
       body: string;
     };
   }
@@ -135,8 +131,6 @@ export namespace Moment {
       status: MomentStatus;
       tier: MomentTier;
       series: string[];
-      sensitive: boolean;
-      sensitiveManual: boolean;
       media: number;
       mediaByType: Record<EntityType, number>;
       unentered: number;
@@ -169,16 +163,7 @@ export namespace Annotation {
     // POST /annotation。annotation の項目はすべて送る（その種類が持たない項目は null、humanVerified は false）。
     export type Request = {
       entityID: string;
-      // 開いている moment の日時（Moment.Save.Request の originalDate と同じ形）。新規の moment なら null。
-      originalDate?: string | null;
       annotation: AnnotationValues;
-    };
-    export type Response = {
-      // originalDate の moment の、保存のあとの値。moment が無ければ入らない。
-      moment?: {
-        sensitive: boolean;
-        sensitiveManual: boolean;
-      };
     };
   }
 }

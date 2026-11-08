@@ -40,8 +40,6 @@ const kRow = {
   status: 'draft',
   tier: 'archive',
   series: [],
-  sensitive: false,
-  sensitive_manual: false,
   intent: null,
 };
 
@@ -71,8 +69,6 @@ const kWithoutVisibility: { [name: string]: string } = {
   updateMoment: '書き込みだけ',
   deleteMoment: '書き込みだけ',
   transaction: 'moment を引かない',
-  updateMomentAutoSensitive: '書き込みだけ',
-  findAutoSensitiveMomentCandidates: '注釈の保存で sensitive を計算し直す対象。下書きも含めて全件',
   findEntityAnnotation: 'moment を引かない',
   findEntityAnnotations: 'moment を引かない',
   upsertEntityAnnotation: 'moment を引かない',
@@ -162,8 +158,6 @@ describe("Repo の moment の可視性", () => {
     status: 'published',
     tier: 'archive',
     series: [],
-    sensitive: false,
-    sensitiveManual: false,
     intent: null,
   };
 
@@ -198,23 +192,19 @@ describe("Repo のキュレーションの項目", () => {
     status: 'published',
     tier: 'archive',
     series: [],
-    sensitive: false,
-    sensitiveManual: false,
     intent: null,
   };
 
-  const kCurated: Moment = { ...kMoment, tier: 'sketch', series: ['魔女hexe'], sensitive: true, sensitiveManual: true, intent: 'ねらい' };
+  const kCurated: Moment = { ...kMoment, tier: 'sketch', series: ['魔女hexe'], intent: 'ねらい' };
 
   it("updateMoment（SAVE）はキュレーションの項目も Moment の値をそのまま書く", async () => {
     await repo.updateMoment(kTimestamp, kCurated);
     const q = calls[0].q;
     assert.ok(q.includes(`"tier" = $8`), q);
     assert.ok(q.includes(`"series" = $9::text[]`), q);
-    assert.ok(q.includes(`"sensitive" = $10`), q);
-    assert.ok(q.includes(`"sensitive_manual" = $11`), q);
-    assert.ok(q.includes(`"intent" = $12`), q);
+    assert.ok(q.includes(`"intent" = $10`), q);
     assert.ok(!q.includes('case'), q);
-    assert.deepStrictEqual(calls[0].args.slice(6), [kTimestamp.toDate(), 'sketch', ['魔女hexe'], true, true, 'ねらい']);
+    assert.deepStrictEqual(calls[0].args.slice(6), [kTimestamp.toDate(), 'sketch', ['魔女hexe'], 'ねらい']);
   });
 
   it("updateMoment は moment が無ければ false を返す", async () => {
@@ -225,19 +215,17 @@ describe("Repo のキュレーションの項目", () => {
   it("insertMoment はキュレーションの項目も Moment の値をそのまま書く", async () => {
     await repo.insertMoment(kCurated);
     const q = calls[0].q;
-    assert.ok(q.includes(`"tier", "series", "sensitive", "sensitive_manual", "intent"`), q);
+    assert.ok(q.includes(`"tier", "series", "intent"`), q);
     assert.ok(q.includes(`$8::text[]`), q);
-    assert.deepStrictEqual(calls[0].args.slice(6), ['sketch', ['魔女hexe'], true, true, 'ねらい']);
+    assert.deepStrictEqual(calls[0].args.slice(6), ['sketch', ['魔女hexe'], 'ねらい']);
   });
 
   it("findMoment はキュレーションの項目も読む", async () => {
-    calls = stubPool(repo, [{ ...kRow, tier: 'pickup', series: ['癒し', '季節'], sensitive: true, sensitive_manual: true }]);
+    calls = stubPool(repo, [{ ...kRow, tier: 'pickup', series: ['癒し', '季節'] }]);
     const m = await repo.findMoment(kTimestamp, 'all');
     assert.strictEqual(calls.length, 1);
     assert.strictEqual(m?.tier, 'pickup');
     assert.deepStrictEqual(m?.series, ['癒し', '季節']);
-    assert.strictEqual(m?.sensitive, true);
-    assert.strictEqual(m?.sensitiveManual, true);
   });
 
   it("intent を読む。NULL は null のまま", async () => {
@@ -252,27 +240,9 @@ describe("Repo のキュレーションの項目", () => {
     await assert.rejects(() => repo.findMoment(kTimestamp, 'all'), /Invalid moment tier/);
   });
 
-  it("updateMomentAutoSensitive は手で上書きした moment と、値が変わらない moment には書かない", async () => {
-    await repo.updateMomentAutoSensitive(kTimestamp, true);
-    const q = calls[0].q;
-    assert.ok(q.includes(`not "sensitive_manual"`), q);
-    assert.ok(q.includes(`"sensitive" is distinct from $2`), q);
-    assert.deepStrictEqual(calls[0].args, [kTimestamp.toDate(), true]);
-  });
-
-  it("findAutoSensitiveMomentCandidates は本文に id を含む、自動の moment を下書きも含めて探す", async () => {
-    const got = await repo.findAutoSensitiveMomentCandidates('0123456789abcdef0123456789abcdef');
-    const q = calls[0].q;
-    assert.ok(q.includes(`"text" like '%' || $1::text || '%'`), q);
-    assert.ok(q.includes(`not "sensitive_manual"`), q);
-    assert.ok(!q.includes(kPublishedOnly), q);
-    assert.deepStrictEqual(calls[0].args, ['0123456789abcdef0123456789abcdef']);
-    assert.strictEqual(got.length, 1);
-  });
-
   it("transaction の中の Repo は、pool のトランザクションにクエリを流す", async () => {
     await repo.transaction(async (tx) => {
-      await tx.updateMomentAutoSensitive(kTimestamp, true);
+      await tx.updateMoment(kTimestamp, kMoment);
     });
     assert.deepStrictEqual(calls.map((c) => c.q.trim().split(/\s+/)[0]), ['BEGIN', 'update', 'COMMIT']);
   });

@@ -302,10 +302,8 @@ export default class AnnotationDrawer {
     const values = this.values_(opened);
     const req: protocol.Annotation.Save.Request = {
       entityID: opened.id,
-      originalDate: this.editor_!.originalDate(),
       annotation: values,
     };
-    let result: protocol.Annotation.Save.Response;
     this.setSaving_(true);
     try {
       const r = await fetch('/annotation', {
@@ -318,7 +316,6 @@ export default class AnnotationDrawer {
       if (!r.ok) {
         throw new Error(await describeResponseError(r));
       }
-      result = await r.json() as protocol.Annotation.Save.Response;
     } catch (e) {
       // 失敗したときは入力を残す
       console.error(e);
@@ -337,9 +334,6 @@ export default class AnnotationDrawer {
     }
     this.refreshMarks_();
     this.updateStatus_('保存しました');
-    if (result.moment !== undefined) {
-      this.editor_!.showAutoSensitive(result.moment.sensitive, result.moment.sensitiveManual);
-    }
   }
 
   private onPreviewClick_(event: MouseEvent) {

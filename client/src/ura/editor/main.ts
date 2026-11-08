@@ -10,12 +10,11 @@ function newEditor(): Editor {
   const status = document.getElementById('status') as HTMLSelectElement;
   const tier = document.getElementById('tier') as HTMLSelectElement;
   const series = document.getElementById('series') as HTMLInputElement;
-  const sensitive = document.getElementById('sensitive') as HTMLSelectElement;
   const text = document.getElementById('text') as HTMLTextAreaElement;
   const intent = document.getElementById('intent') as HTMLTextAreaElement;
   const save = document.getElementById('save') as HTMLButtonElement;
   const del = document.getElementById('delete') as HTMLButtonElement;
-  return new Editor(title, date, author, status, tier, series, sensitive, text, intent, save, del);
+  return new Editor(title, date, author, status, tier, series, text, intent, save, del);
 }
 
 function newPreview(): Preview {

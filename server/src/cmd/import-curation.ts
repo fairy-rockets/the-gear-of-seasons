@@ -75,15 +75,6 @@ function printPlan(file: CurationFile, plan: CurationPlan) {
   }
   console.log();
 
-  console.log('[計算し直されて変わる sensitive]（自動の moment。注釈を書いたあとと、moment を書くときに計算し直す）');
-  if (plan.autoSensitive.length === 0) {
-    console.log('(なし)');
-  }
-  for (const s of plan.autoSensitive) {
-    console.log(`${formatMomentPath(s.timestamp)} ${s.from} → ${s.to}`);
-  }
-  console.log();
-
   console.log('[衝突]（DB の値 ≠ ファイルの値。書かない。--overwrite を付けると上書きする）');
   if (plan.conflicts.length === 0) {
     console.log('(なし)');
@@ -97,7 +88,6 @@ function printPlan(file: CurationFile, plan: CurationPlan) {
   const numFields = plan.moments.reduce((n, m) => n + m.changes.length, 0) + plan.entities.reduce((n, e) => n + e.changes.length, 0);
   console.log('[件数]');
   console.log(`  変更: ${numFields} 項目（moment ${plan.moments.length} 件、entity ${plan.entities.length} 件）`);
-  console.log(`  計算し直されて変わる sensitive: ${plan.autoSensitive.length} 件`);
   console.log(`  衝突: ${plan.conflicts.length} 件`);
   console.log();
 }

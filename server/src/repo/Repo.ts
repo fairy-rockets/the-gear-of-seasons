@@ -253,7 +253,7 @@ where
     this.cache.entity.set(entity.id, entity);
   }
 
-  // Moment の値をそのまま書く。sensitive は Shelf が決めて入れる。
+  // Moment の値をそのまま書く。
   async insertMoment(moment: Moment) {
     if (moment.timestamp === undefined) {
       throw new Error('[FIXME] No timestamp!')
@@ -262,9 +262,9 @@ where
     const q = `
 insert into moments(
   "timestamp", "title", "author", "text", "icon_id", "status",
-  "tier", "series", "sensitive", "sensitive_manual", "intent"
+  "tier", "series", "intent"
 ) values (
-  $1, $2, $3, $4, $5, $6, $7, $8::text[], $9, $10, $11
+  $1, $2, $3, $4, $5, $6, $7, $8::text[], $9
 );`;
     await this.pool.query(q, [
       moment.timestamp.toDate(),
@@ -275,8 +275,6 @@ insert into moments(
       moment.status,
       moment.tier,
       moment.series,
-      moment.sensitive,
-      moment.sensitiveManual,
       moment.intent,
     ]);
   }
@@ -297,9 +295,7 @@ update moments set
   "status" = $6,
   "tier" = $8,
   "series" = $9::text[],
-  "sensitive" = $10,
-  "sensitive_manual" = $11,
-  "intent" = $12
+  "intent" = $10
 where "timestamp" = $7;
 `;
     const r = await this.pool.query(q, [
@@ -312,26 +308,9 @@ where "timestamp" = $7;
       oldTimestamp.toDate(),
       moment.tier,
       moment.series,
-      moment.sensitive,
-      moment.sensitiveManual,
       moment.intent,
     ]);
     return r.rowCount === 1;
-  }
-
-  // 計算し直した sensitive を書く。sensitive_manual = true の moment と、値が変わらない moment には書かない
-  // （書くと updated が動くので）。
-  async updateMomentAutoSensitive(timestamp: dayjs.Dayjs, autoSensitive: boolean) {
-    // language=PostgreSQL
-    const q = `
-update moments set
-  "sensitive" = $2
-where
-  "timestamp" = $1
-  and not "sensitive_manual"
-  and "sensitive" is distinct from $2;
-`;
-    await this.pool.query(q, [timestamp.toDate(), autoSensitive]);
   }
 
   // ura の一覧用。visibility で見える全件を、本文も含めて新しい順に返す。
@@ -455,26 +434,6 @@ from moments
     }
   }
 
-  // 本文に entityID を含みうる moment のうち、sensitive_manual = false のもの（注釈を保存したあとに sensitive を計算し直す対象）。
-  // 本文を文字列として探すだけなので、返ったものが本当にその entity を使っているかは fml.parse で確かめること。
-  // 下書きも計算し直すので、visibility では絞らない。
-  async findAutoSensitiveMomentCandidates(entityID: string): Promise<Moment[]> {
-    // language=PostgreSQL
-    const q=`
-select ${kMomentColumns}
-from moments
-  where
-    "text" like '%' || $1::text || '%'
-    and not "sensitive_manual";
-`;
-    const moments: Moment[] = [];
-    const { rows } = await this.pool.query(q, [entityID]);
-    for (const row of rows) {
-      moments.push(decodeMoment(row));
-    }
-    return moments;
-  }
-
   async deleteMoment(timestamp: dayjs.Dayjs): Promise<boolean> {
     // language=PostgreSQL
     const q=`
@@ -561,7 +520,7 @@ insert into entity_annotations (
 }
 
 // decodeMoment が読む列。moment を丸ごと読むクエリはすべてこれを使う（列を読み落とすと、読んだ moment を書き戻したときにその値が消える）。
-const kMomentColumns = `"timestamp", "title", "author", "text", "icon_id", "status", "tier", "series", "sensitive", "sensitive_manual", "intent"`;
+const kMomentColumns = `"timestamp", "title", "author", "text", "icon_id", "status", "tier", "series", "intent"`;
 
 function decodeMoment(row: pg.QueryResultRow): Moment {
   return {
@@ -573,8 +532,6 @@ function decodeMoment(row: pg.QueryResultRow): Moment {
     status: parseMomentStatus(row['status']),
     tier: parseMomentTier(row['tier']),
     series: row['series'] as string[],
-    sensitive: row['sensitive'] as boolean,
-    sensitiveManual: row['sensitive_manual'] as boolean,
     intent: row['intent'] as (string | null),
   };
 }

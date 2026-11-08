@@ -69,7 +69,7 @@ export const kMediaKeys: Record<string, [AnnotationField, (v: unknown) => Annota
 };
 
 // moment の項目のうち、投入用ファイルに書けるもの。
-export const kMomentKeys = ['moment', 'tier', 'series', 'sensitive', 'intent', 'media'];
+export const kMomentKeys = ['moment', 'tier', 'series', 'intent', 'media'];
 
 // moment の時刻の形。オフセット付きの ISO 8601。オフセットの無い時刻は、どの時間帯かが決まらないので通さない。
 export const kMomentFormat = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/;

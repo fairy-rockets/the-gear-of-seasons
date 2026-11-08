@@ -1,11 +1,9 @@
-import dayjs from 'dayjs';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 import * as protocol from '../../lib/protocol.js';
 import { AnnotationField, AnnotationValues, kAnnotationFields } from '../../lib/protocol.js';
 
 import Shelf from '../../shelf/Shelf.js';
-import { parseMomentTime } from '../../shelf/Moment.js';
 import { AnnotationValue, parseBoolean, parseString, parseStrings } from '../../shelf/CurationFormat.js';
 import {
   parseAnnotationMedium,
@@ -125,8 +123,7 @@ export default class AnnotationController {
       .send(resp);
   }
 
-  // POST /annotation。1つの entity の注釈を保存する。その entity を本文に含む moment の sensitive は、
-  // Shelf.saveEntityAnnotation が同じトランザクションで計算し直す。
+  // POST /annotation。1つの entity の注釈を保存する。
   async handleSave(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const raw = req.body as Record<string, unknown> | null;
     if (typeof raw !== 'object' || raw === null) {
@@ -136,14 +133,6 @@ export default class AnnotationController {
     if (typeof entityID !== 'string' || !kEntityID.test(entityID)) {
       return badRequest(reply, `entity の id ではありません: ${JSON.stringify(entityID)}`);
     }
-    let timestamp: dayjs.Dayjs | null = null;
-    const originalDate = raw['originalDate'];
-    if (originalDate !== undefined && originalDate !== null) {
-      timestamp = typeof originalDate === 'string' ? parseMomentTime(originalDate) : null;
-      if (timestamp === null || !timestamp.isValid()) {
-        return badRequest(reply, `originalDate が日時ではありません: ${JSON.stringify(originalDate)}`);
-      }
-    }
     let values: AnnotationValues;
     try {
       values = parseAnnotationValues(raw['annotation']);
@@ -151,16 +140,8 @@ export default class AnnotationController {
       return badRequest(reply, (err as Error).message);
     }
     await this.shelf.saveEntityAnnotation({ entityID, ...values });
-    const resp: protocol.Annotation.Save.Response = {};
-    if (timestamp !== null) {
-      const moment = await this.shelf.findMoment(timestamp, 'all');
-      if (moment !== null) {
-        resp.moment = { sensitive: moment.sensitive, sensitiveManual: moment.sensitiveManual };
-      }
-    }
     return reply
-      .type('application/json;charset=UTF-8')
-      .code(200)
-      .send(resp);
+      .code(204)
+      .send();
   }
 }

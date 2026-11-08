@@ -628,10 +628,6 @@ a.moment {
   background: #555555;
 }
 
-.moment-list .moment-badge-sensitive {
-  background: #b03050;
-}
-
 .moment-list .moment-badge-unverified {
   background: #f0c040;
   color: #080816;
