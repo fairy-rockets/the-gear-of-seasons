@@ -4,7 +4,7 @@
 
 ## Image descriptions
 
-Images in omote and the ura preview use the entity annotation's `alt` text when `human_verified` is true and the text is nonblank. Other images use `an image.`. Empty or whitespace-only descriptions do not mark an image as decorative. Video and audio annotations are not rendered as labels.
+Images in omote and the ura preview use the entity annotation's `alt` text when it is nonblank, whether or not `human_verified` is true. Other images use `an image.`. Empty or whitespace-only descriptions do not mark an image as decorative. Video and audio annotations are not rendered as labels.
 
 ## Pre-requirements
 

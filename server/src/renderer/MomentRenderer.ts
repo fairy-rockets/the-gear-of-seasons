@@ -103,7 +103,7 @@ class MomentRenderer {
       height = Math.min(2048, entity.height);
       width = entity.width * height / entity.height;
     }
-    const alt = annotation?.humanVerified === true && annotation.alt !== null && annotation.alt.trim() !== ''
+    const alt = annotation !== undefined && annotation.alt !== null && annotation.alt.trim() !== ''
       ? annotation.alt
       : 'an image.';
     const img = `<img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="${escapeAttribute(alt)}" data-entity="${escapeAttribute(entity.id)}" data-type="image">`;
