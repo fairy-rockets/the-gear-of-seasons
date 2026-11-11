@@ -34,7 +34,12 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id={{gaMeasurementID}}"></script>
   <script>
     gtag('js', new Date());
+{{#if internalTraffic}}
+    // 運営者の閲覧(ura を開いたブラウザ)。GA のデータフィルタでレポートから除き、DebugView では見る。
+    gtag('config', '{{gaMeasurementID}}', { send_page_view: false, traffic_type: 'internal', debug_mode: true });
+{{else}}
     gtag('config', '{{gaMeasurementID}}', { send_page_view: false });
+{{/if}}
   </script>
 {{/if}}
 </head>

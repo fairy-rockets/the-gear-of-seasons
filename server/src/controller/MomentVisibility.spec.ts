@@ -104,7 +104,7 @@ async function call(
   req: Record<string, unknown>,
 ): Promise<StubReply> {
   const reply = new StubReply();
-  await handler(req as unknown as FastifyRequest, reply as unknown as FastifyReply);
+  await handler({ headers: {}, ...req } as unknown as FastifyRequest, reply as unknown as FastifyReply);
   return reply;
 }
 

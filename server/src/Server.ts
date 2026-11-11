@@ -36,6 +36,7 @@ import AnnotationController from './controller/ura/AnnotationController.js';
 import EntityController, {EntityControllerInterface} from './controller/both/EntityController.js';
 import MomentBodyController from './controller/both/MomentBodyController.js';
 import RobotsController from './controller/both/RobotsController.js';
+import { internalTrafficSetCookie } from './lib/InternalTraffic.js';
 
 type Handler =
   (req: FastifyRequest, reply: FastifyReply) => PromiseLike<FastifyReply>;
@@ -100,6 +101,18 @@ class Server {
     this.http.addContentTypeParser<Buffer>(/^(image|video|audio)\/.*$/, {
       parseAs: 'buffer',
     }, async (_req: any, body: Buffer) => body);
+    // -----------
+    // Hooks
+    // -----------
+    // ura を開いたブラウザに、omote の計測で運営者の閲覧だと分かる印を付ける(lib/InternalTraffic.ts)。
+    const internalCookie = internalTrafficSetCookie(kConfig.omoteHost, kConfig.uraHost, kConfig.omoteOrigin);
+    if (internalCookie !== null) {
+      this.http.addHook('onRequest', async (req, reply) => {
+        if (req.hostname === kConfig.uraHost) {
+          reply.header('Set-Cookie', internalCookie);
+        }
+      });
+    }
     // -----------
     // Routing
     // -----------

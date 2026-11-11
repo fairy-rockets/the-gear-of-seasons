@@ -71,11 +71,13 @@ export default class IndexController {
   // ページごとに <head> が違うので、ハンドラを作る側でどのページかを決める。
   handlerOf(page: StaticPage): (req: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply> {
     const meta = kPages[page];
-    return async (_req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
+    return async (req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
       const ogImageAlt = await this.siteImageAlt();
       return reply.code(200)
         .type('text/html;charset=UTF-8')
-        .send(this.template(shellContext({ ...meta, ogImageAlt })));
+        // 運営者の閲覧の印(Cookie)で中身が変わる。
+        .header('Vary', 'Cookie')
+        .send(this.template(shellContext({ ...meta, ogImageAlt }, req.headers.cookie)));
     };
   }
   // 固定ページ(特にトップ)は注釈が引けなくても出したいので、DB の失敗は題に落とす。

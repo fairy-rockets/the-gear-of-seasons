@@ -12,10 +12,15 @@ const kSiteTitle = '妖精⊸ロケット :: the gear of seasons';
 const bundle = await readFile('/app/client/dist/omote/main.js', 'utf8');
 const css = await readFile('/app/_assets/static/omote/main.css', 'utf8');
 
-// index.hbs をそのまま使う。{{#if}} の塊(OGP と gtag.js)は外し、残りの {{値}} を埋める。
+// index.hbs をそのまま使う。{{#if}} の塊(OGP と gtag.js)は内側から順に外し、残りの {{値}} を埋める。
 // 測定 ID が無いときのシェルになる。
-const shell = (await readFile('/app/_assets/templates/omote/index.hbs', 'utf8'))
-  .replace(/{{#if \w+}}[\s\S]*?{{\/if}}\n?/g, '')
+let template = await readFile('/app/_assets/templates/omote/index.hbs', 'utf8');
+for (let prev = ''; prev !== template;) {
+  prev = template;
+  template = template.replace(/{{#if \w+}}(?:(?!{{#if)[\s\S])*?{{\/if}}\n?/g, '');
+}
+assert.ok(!template.includes('{{#') && !template.includes('{{/') && !template.includes('{{else}}'), template);
+const shell = template
   .replace(/{{(\w+)}}/g, (_, key) => key === 'siteTitle' || key === 'title' ? kSiteTitle : '');
 assert.ok(shell.includes('function gtag()'), 'index.hbs から gtag() の定義が消えている');
 

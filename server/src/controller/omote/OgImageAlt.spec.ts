@@ -58,6 +58,7 @@ class StubReply {
   body: any = undefined;
   code(_c: number) { return this; }
   type(_t: string) { return this; }
+  header(_k: string, _v: string) { return this; }
   send(b: any) { this.body = b; return this; }
 }
 
@@ -66,7 +67,7 @@ async function call(
   req: Record<string, unknown>,
 ): Promise<string> {
   const reply = new StubReply();
-  await handler(req as unknown as FastifyRequest, reply as unknown as FastifyReply);
+  await handler({ headers: {}, ...req } as unknown as FastifyRequest, reply as unknown as FastifyReply);
   return reply.body as string;
 }
 

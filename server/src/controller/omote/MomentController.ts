@@ -32,7 +32,9 @@ export default class MomentController {
     return reply
       .type('text/html;charset=UTF-8')
       .code(200)
-      .send(this.template(shellContext(await this.metaOf(moment))));
+      // 運営者の閲覧の印(Cookie)で中身が変わる。
+      .header('Vary', 'Cookie')
+      .send(this.template(shellContext(await this.metaOf(moment), req.headers.cookie)));
   }
   private async metaOf(moment: Moment): Promise<PageMeta> {
     const path = moment.timestamp !== undefined ? formatMomentPath(moment.timestamp) : '/';
