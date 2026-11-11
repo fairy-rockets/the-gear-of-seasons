@@ -202,6 +202,7 @@ h1 {
 
 .content-wrapper .content audio.embed {
   width: 100%;
+  height: revert;
 }
 
 /* 縦横比（aspect-ratio）と幅の上限（max-width）は、レンダラが埋め込みの大きさから inline で付ける */
