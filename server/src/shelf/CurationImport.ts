@@ -374,11 +374,13 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
       const currentAnnotation = state.annotations.get(entity.id) ?? emptyAnnotation(entity.id);
       const next = { ...currentAnnotation } as Record<AnnotationField, AnnotationValue>;
       const changes: FieldChange[] = [];
+      let methodsConflicted = false;
       for (const f of media.fields) {
         const cur = currentAnnotation[f.field];
         const d = decide(f.key, cur, f.value, opts.overwrite);
         if (d === 'conflict') {
           conflict(entity.id, f.key, cur, f.value);
+          methodsConflicted ||= f.field === 'methods';
         } else if (d !== 'same') {
           changes.push({ key: f.key, from: cur, to: f.value, overwrite: d === 'overwrite' });
           next[f.field] = f.value;
@@ -389,7 +391,8 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
         // 衝突で書かない methods は今の値のまま比べる。
         const written = next as EntityAnnotation;
         if (written.materials !== null && !canHaveMaterials(written.methods)) {
-          plan.errors.push(`${ewhere}: materials は methods に draw を含むときだけ書けます（書いたあとの methods: ${JSON.stringify(written.methods)}）`);
+          const reason = methodsConflicted ? '。ファイルの methods は衝突したので書かない。--overwrite なら書く' : '';
+          plan.errors.push(`${ewhere}: materials は methods に draw を含むときだけ書けます（書いたあとの methods: ${JSON.stringify(written.methods)}${reason}）`);
           continue;
         }
         try {
