@@ -325,7 +325,39 @@ img.emoji {
   border-color: #9ab;
 }
 
-/* 下書きの範囲のまとまり。human_verified が false の間だけ枠を出す（枠の有無で欄が動かないよう、幅は常にとる） */
+/* 集合の欄（methods）。値ごとのチェックを横に並べる */
+.annotation-set {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-flow: row wrap;
+  gap: 0.2em 0.8em;
+  font-family: monospace;
+}
+
+/* materials の欄を包む枠。methods に draw が無く、値も無い間は disabled にする */
+.annotation-fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.annotation-fieldset:disabled .annotation-label {
+  color: #445;
+}
+
+.annotation-warning {
+  margin: 0 0 0.4em 8.5em;
+  font-size: smaller;
+  color: #f0c040;
+}
+
+.annotation-warning[hidden] {
+  display: none;
+}
+
+/* human_verified が確かめる範囲（すべての欄）のまとまり。human_verified が false の間だけ枠を出す（枠の有無で欄が動かないよう、幅は常にとる） */
 .annotation-draft {
   padding: 0 0.4em;
   border: 1px solid transparent;
@@ -370,8 +402,7 @@ img.emoji {
   border-color: #f0c040;
 }
 
-#preview .annotation-mark[data-state="verified"],
-#preview .annotation-mark[data-state="entered"] {
+#preview .annotation-mark[data-state="verified"] {
   background: #0f3a1f;
   border-color: #50b070;
 }
