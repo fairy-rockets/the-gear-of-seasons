@@ -2,9 +2,7 @@ import World from '../World';
 import Texture from '../gl/Texture';
 
 export default class Moment {
-  static get DiscRadius(): number {
-    return 0.2;
-  }
+  static readonly kDiscRadius = 0.2;
   private readonly world_: World;
   private readonly gl_: WebGLRenderingContext;
   private readonly angle_: number;
@@ -65,7 +63,7 @@ export default class Moment {
   }
 
   relocation(moments: Moment[]) {
-    const diameter = Moment.DiscRadius * 2;
+    const diameter = Moment.kDiscRadius * 2;
     const diameter2 = diameter * diameter;
     const c = this.c_;
     const s = this.s_;
@@ -82,7 +80,7 @@ export default class Moment {
       const delta = Math.sqrt(Math.max(0, diameter2 - Math.pow(normLength, 2)));
       range.push([crossRadius - delta, crossRadius + delta]);
     }
-    let radius = 1.05 + Moment.DiscRadius;
+    let radius = 1.05 + Moment.kDiscRadius;
     range.sort((a,b) => a[0]-b[0]);
     for(let r of range) {
       if(r[0] <= radius && radius <= r[1]) {

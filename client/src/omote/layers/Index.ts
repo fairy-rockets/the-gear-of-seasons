@@ -6,16 +6,16 @@ import { mat4, vec4 } from 'gl-matrix';
 import Page from './Page';
 import twemoji from 'twemoji';
 import * as protocol from '../../protocol';
-import { EMOJI_URL_BASE } from '../../constant';
+import { kEmojiUrlBase } from '../../constant';
 
 // タップとドラッグを見分ける移動量のしきい値(px)。これ以下ならタップ扱い。
-const TAP_THRESHOLD_PX = 8;
+const kTapThresholdPx = 8;
 // フリック慣性の摩擦。1ミリ秒ごとに角速度へ掛ける減衰率(値が小さいほど早く止まる)。
-const INERTIA_FRICTION_PER_MS = 0.995;
+const kInertiaFrictionPerMs = 0.995;
 // これ未満の角速度(rad/ms)は止まったとみなす。
-const INERTIA_MIN_VELOCITY = 1e-5;
+const kInertiaMinVelocity = 1e-5;
 // 指を離す直前がこの時間(ms)より前の動きなら、フリックとみなさない(押しっぱなしからの解放)。
-const FLICK_MAX_IDLE_MS = 60;
+const kFlickMaxIdleMs = 60;
 
 export default class Index extends Layer {
   private readonly wheelEventListener_: (ev: WheelEvent) => void;
@@ -68,7 +68,7 @@ export default class Index extends Layer {
     this.lastMoveTime_ = 0;
     this.lastFrameTime_ = 0;
 
-    this.element.innerHTML = htmlSrc;
+    this.element.innerHTML = kHtmlSrc;
     this.selected_ = null;
 
     this.tooltip_ = document.createElement('div');
@@ -137,8 +137,8 @@ export default class Index extends Layer {
       dt = 100; // タブ復帰などで巨大な dt が来ても飛ばないよう上限を設ける。
     }
     this.world.gear.angle += this.angularVelocity_ * dt;
-    this.angularVelocity_ *= Math.pow(INERTIA_FRICTION_PER_MS, dt);
-    if(Math.abs(this.angularVelocity_) < INERTIA_MIN_VELOCITY) {
+    this.angularVelocity_ *= Math.pow(kInertiaFrictionPerMs, dt);
+    if(Math.abs(this.angularVelocity_) < kInertiaMinVelocity) {
       this.angularVelocity_ = 0;
     }
     if(this.selected_) {
@@ -155,7 +155,7 @@ export default class Index extends Layer {
       tooltip.classList.remove('hidden');
 
       // title
-      this.tooltipTitle_.innerHTML = twemoji.parse(m.title, { base: EMOJI_URL_BASE });
+      this.tooltipTitle_.innerHTML = twemoji.parse(m.title, { base: kEmojiUrlBase });
       this.tooltipDate_.innerHTML = m.date;
       this.fixTooltipPosition_();
     }
@@ -308,7 +308,7 @@ export default class Index extends Layer {
     this.world.canvas.releasePointerCapture(ev.pointerId);
     this.pointerId_ = null;
     const dist = Math.hypot(ev.clientX - this.pointerDownX_, ev.clientY - this.pointerDownY_);
-    if(dist <= TAP_THRESHOLD_PX) {
+    if(dist <= kTapThresholdPx) {
       // タップ/クリック: 離した点でヒット判定させ、次フレームで moment を開く。慣性は乗せない。
       this.angularVelocity_ = 0;
       this.updateHitPosition_(ev.clientX, ev.clientY);
@@ -316,7 +316,7 @@ export default class Index extends Layer {
     } else {
       // ドラッグ解放: 離す直前まで動いていればフリック慣性を残す。
       // 止めてから離した(idle が長い)場合は慣性を乗せない。
-      if(ev.timeStamp - this.lastMoveTime_ > FLICK_MAX_IDLE_MS) {
+      if(ev.timeStamp - this.lastMoveTime_ > kFlickMaxIdleMs) {
         this.angularVelocity_ = 0;
       }
       if(this.isTouchInput_) {
@@ -390,7 +390,7 @@ export default class Index extends Layer {
   }
 }
 
-const htmlSrc = `
+const kHtmlSrc = `
 <div class="header">
   <div class="title">
   <h1>妖精⊸ロケット</h1>

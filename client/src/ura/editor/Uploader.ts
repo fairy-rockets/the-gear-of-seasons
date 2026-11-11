@@ -1,7 +1,7 @@
 import Editor from './Editor';
 import { describeError, describeResponseError, getToastContainer, showToast } from './Toast';
 
-const SUPPORTED_TYPES = ['image/', 'video/', 'audio/'];
+const kSupportedTypes = ['image/', 'video/', 'audio/'];
 
 // IME で変換している途中のキーか。Safari は変換を確定する Enter を isComposing = false・keyCode = 229 で送ってくる。
 function isComposing(e: KeyboardEvent): boolean {
@@ -197,7 +197,7 @@ export default class Uploader {
 
   private upload_(files_: FileList) {
     const files: File[] = Array.from(files_);
-    const unsupported = files.filter(file => !SUPPORTED_TYPES.some(type => file.type.startsWith(type)));
+    const unsupported = files.filter(file => !kSupportedTypes.some(type => file.type.startsWith(type)));
     if (unsupported.length > 0) {
       showToast(`アップロードできない形式です: ${unsupported.map(file => file.name).join(', ')}`);
       return;
@@ -238,7 +238,7 @@ export default class Uploader {
       } else if (file.type.startsWith('audio/')) {
         execUpload().then(resolve, reject);
       } else {
-        // SUPPORTED_TYPES で弾いているので来ないはずだが、来ても進捗パネルを出したままにしない
+        // kSupportedTypes で弾いているので来ないはずだが、来ても進捗パネルを出したままにしない
         reject(new Error(`${file.name}: アップロードできない形式です`));
       }
     });

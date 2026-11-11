@@ -3,7 +3,7 @@ import Program from '../gl/Program';
 import ArrayBuffer from '../gl/ArrayBuffer';
 import IndexBuffer from '../gl/IndexBuffer';
 import { mat4, vec4, ReadonlyMat4 } from 'gl-matrix';
-import { Winter, Spring, Summer, Autumn } from './Seasons';
+import { kWinter, kSpring, kSummer, kAutumn } from './Seasons';
 
 export default class Background {
   private readonly world_: World;
@@ -22,8 +22,8 @@ export default class Background {
 
     const gl = this.gl_;
 
-    const vs = world.compileVertexShader(vsSrc);
-    const fs = world.compileFragmentShader(fsSrc);
+    const vs = world.compileVertexShader(kVsSrc);
+    const fs = world.compileFragmentShader(kFsSrc);
     this.program_ = world.linkShaders(vs, fs);
 
     this.vertexes_ = world.createArrayBuffer([
@@ -76,10 +76,10 @@ export default class Background {
 
       gl.uniform1f(this.program_.uniformLoc('time'), time);
 
-      gl.uniform4fv(this.program_.uniformLoc('winterColor'), Winter.color);
-      gl.uniform4fv(this.program_.uniformLoc('springColor'), Spring.color);
-      gl.uniform4fv(this.program_.uniformLoc('summerColor'), Summer.color);
-      gl.uniform4fv(this.program_.uniformLoc('autumnColor'), Autumn.color);
+      gl.uniform4fv(this.program_.uniformLoc('winterColor'), kWinter.color);
+      gl.uniform4fv(this.program_.uniformLoc('springColor'), kSpring.color);
+      gl.uniform4fv(this.program_.uniformLoc('summerColor'), kSummer.color);
+      gl.uniform4fv(this.program_.uniformLoc('autumnColor'), kAutumn.color);
 
       gl.uniform4fv(this.program_.uniformLoc('winterPosition'), world.gear.winterLightPos);
       gl.uniform4fv(this.program_.uniformLoc('springPosition'), world.gear.springLightPos);
@@ -102,7 +102,7 @@ export default class Background {
   }
 }
 
-const vsSrc = `
+const kVsSrc = `
 attribute vec3 position;
 
 uniform mat4 matLocModel;
@@ -115,7 +115,7 @@ void main(void) {
   gl_Position = matrix * vec4(position, 1.0);
 }
 `;
-const fsSrc = `
+const kFsSrc = `
 precision mediump float;
 
 uniform float time;

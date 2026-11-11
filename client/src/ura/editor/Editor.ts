@@ -3,7 +3,7 @@ import Preview from './Preview';
 import * as protocol from '../../protocol';
 import { describeError, describeResponseError, dismissToast, showToast } from './Toast';
 
-const PREVIEW_TOAST_KEY = 'preview';
+const kPreviewToastKey = 'preview';
 
 export default class Editor {
   private readonly title_: HTMLInputElement;
@@ -205,7 +205,7 @@ export default class Editor {
     this.originalDate_ = result.date;
     this.updateUnsavedChanges();
     if (unchanged) {
-      dismissToast(PREVIEW_TOAST_KEY);
+      dismissToast(kPreviewToastKey);
       this.preview_!.onChange(result.body);
     } else {
       this.executePreviewUpdate_();
@@ -269,10 +269,10 @@ export default class Editor {
     } catch (e) {
       // 入力のたびに走るので、トーストは 1 つだけ出したままにして本文を差し替える。直前の正しいプレビューを残す
       console.error(e);
-      showToast(`プレビューを更新できません: ${describeError(e)}`, { key: PREVIEW_TOAST_KEY, sticky: true });
+      showToast(`プレビューを更新できません: ${describeError(e)}`, { key: kPreviewToastKey, sticky: true });
       return;
     }
-    dismissToast(PREVIEW_TOAST_KEY);
+    dismissToast(kPreviewToastKey);
     this.preview_!.onChange(body);
   }
 

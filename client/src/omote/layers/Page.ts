@@ -2,7 +2,7 @@ import World from '../World'
 import Layer from '../Layer';
 import { mat4 } from 'gl-matrix';
 import twemoji from 'twemoji';
-import { EMOJI_URL_BASE } from '../../constant';
+import { kEmojiUrlBase } from '../../constant';
 
 export default class Page extends Layer {
 
@@ -23,7 +23,7 @@ export default class Page extends Layer {
 
     this.closeButton_ = document.createElement('div');
     this.closeButton_.classList.add('close-button');
-    this.closeButton_.innerHTML = closeButtonSrc;
+    this.closeButton_.innerHTML = kCloseButtonSrc;
     this.contentWrapper_.appendChild(this.closeButton_);
 
     this.closeListener_ = this.onClose_.bind(this);
@@ -41,7 +41,7 @@ export default class Page extends Layer {
     // 文字列に対して parse すると、属性値(title="カエル🐸…" など)の絵文字まで
     // <img> に置換されてタグが壊れる。DOM に対して parse すればテキストノードだけが対象になる。
     this.content_.innerHTML = body;
-    twemoji.parse(this.content_, { base: EMOJI_URL_BASE });
+    twemoji.parse(this.content_, { base: kEmojiUrlBase });
 
     const contents = this.content_.getElementsByTagName('script');
     for(let i = 0; i < contents.length; ++i) {
@@ -125,13 +125,13 @@ export default class Page extends Layer {
   }
 }
 
-const htmlSrc = `
+const kHtmlSrc = `
 <div class="content">
 </div>
 `;
 
 // viewBox 基準にして、ボタンの大きさは .close-button の width/height で決める。
-const closeButtonSrc = `
+const kCloseButtonSrc = `
 <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
   <rect
       x="0" y="0"

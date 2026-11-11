@@ -10,7 +10,7 @@ import {
   parseAnnotationMethods,
   parseAnnotationPalette,
 } from '../shelf/EntityAnnotation.js';
-import Config from '../Config.js';
+import kConfig from '../Config.js';
 import {
   Moment,
   MomentSummary,
@@ -40,7 +40,7 @@ export default class Repo {
   };
   // 引数はトランザクション用（transaction() が渡す）。ふだんは引数なしで作る。
   constructor(pool?: Queryable, cache?: { entity: NodeCache }) {
-    this.pool = pool ?? new Pool(Config.dbHostname);
+    this.pool = pool ?? new Pool(kConfig.dbHostname);
     this.cache = cache ?? {
       entity: new NodeCache({
         maxKeys: 8192,

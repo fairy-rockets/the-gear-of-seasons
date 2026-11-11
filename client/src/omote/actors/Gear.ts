@@ -1,11 +1,11 @@
 import World from '../World';
-import { Camera } from '../WorldConstant';
+import { kCamera } from '../WorldConstant';
 import Program from '../gl/Program';
 import ArrayBuffer from '../gl/ArrayBuffer';
 import IndexBuffer from '../gl/IndexBuffer';
 import { mat4, vec4, ReadonlyMat4 } from 'gl-matrix';
 
-import { Winter, Spring, Summer, Autumn } from './Seasons';
+import { kWinter, kSpring, kSummer, kAutumn } from './Seasons';
 
 // matModel のスケール。歯車モデルの外周半径は 1 なので、ワールドでの半径もこの値になる。
 //
@@ -15,20 +15,20 @@ import { Winter, Spring, Summer, Autumn } from './Seasons';
 // matLoc の平行移動(z)でカメラから遠ざける。平行移動は光源と頂点の両方に等しく効くので
 // 距離が変わらず、歯車自身のライティングには影響しない(Background は別。季節ライトだけが
 // 奥へ動くので明るさがわずかに変わるが、視覚上の差は出ていない)。
-const ModelScale = 10;
+const kModelScale = 10;
 
 /* ---- 縦長画面(スマホ)のレイアウト。#6 ---- */
 
 // この値以下のアスペクト比を「縦長」とみなし、歯車を上部中央に置く。境界をまたぐと
 // 構図が切り替わる(CSS のメディアクエリと同じで、そこは不連続になる)。ヘッダーを
 // 中央へ寄せる main.css の @media (max-aspect-ratio: 1/1) と同じく、境界値を含む。
-const PortraitMaxAspect = 1.0;
+const kPortraitMaxAspect = 1.0;
 // 歯車の直径を画面幅の何倍にするか。これを満たす奥行きまで引く。
-const PortraitGearWidthRatio = 1.3;
+const kPortraitGearWidthRatio = 1.3;
 // 歯車の中心を置く高さ(NDC。+1 が画面上端)。1 を超えると上端がはみ出て切れる。
-const PortraitGearCenterY = 0.85;
+const kPortraitGearCenterY = 0.85;
 // 遠ざけすぎて far クリップ面(100)に飲まれないための上限。極端に細長い窓のための保険。
-const MaxGearDistance = 60;
+const kMaxGearDistance = 60;
 
 function calcTodayAngle(): number {
   const now = new Date();
@@ -61,8 +61,8 @@ export default class Gear {
   constructor(world: World) {
     this.world_ = world;
     this.gl_ = world.gl;
-    const vs = world.compileVertexShader(vsSrc);
-    const fs = world.compileFragmentShader(fsSrc);
+    const vs = world.compileVertexShader(kVsSrc);
+    const fs = world.compileFragmentShader(kFsSrc);
     this.program_ = world.linkShaders(vs, fs);
 
     this.matModel_ = mat4.identity(mat4.create());
@@ -85,27 +85,27 @@ export default class Gear {
 
   onSizeChanged(width: number, height: number) {
     const aspect = width / height;
-    const portrait = aspect <= PortraitMaxAspect;
+    const portrait = aspect <= kPortraitMaxAspect;
     const matModel = this.matModel_;
     const matLoc = this.matLoc_;
     mat4.identity(matModel);
     mat4.identity(matLoc);
     //mat4.rotateY(matModel, matModel, -90/180*Math.PI);
-    mat4.scale(matModel, matModel, [ModelScale, ModelScale, ModelScale]);
+    mat4.scale(matModel, matModel, [kModelScale, kModelScale, kModelScale]);
     if (portrait) {
       // 歯車を上部中央に置き、モーメントの弧を画面下に降ろす。
       //
-      // 大きさは奥行きだけで決める。半画面幅 = Camera.TanHalfFovY * dist * aspect なので、
-      // 直径(2 * ModelScale) が画面幅の PortraitGearWidthRatio 倍になる dist は
-      //   2 * ModelScale = ratio * 2 * Camera.TanHalfFovY * dist * aspect
+      // 大きさは奥行きだけで決める。半画面幅 = kCamera.tanHalfFovY * dist * aspect なので、
+      // 直径(2 * kModelScale) が画面幅の kPortraitGearWidthRatio 倍になる dist は
+      //   2 * kModelScale = ratio * 2 * kCamera.tanHalfFovY * dist * aspect
       // を解いて次のとおり。
       const dist = Math.min(
-        ModelScale / (PortraitGearWidthRatio * Camera.TanHalfFovY * aspect),
-        MaxGearDistance);
-      const y = PortraitGearCenterY * Camera.TanHalfFovY * dist;
-      // matLoc の平行移動は matModel(スケール ModelScale)より手前に掛かるので、
-      // ここでの 1 単位はワールドの ModelScale 単位にあたる。
-      mat4.translate(matLoc, matLoc, [0, y / ModelScale, -(dist - Camera.EyeZ) / ModelScale]);
+        kModelScale / (kPortraitGearWidthRatio * kCamera.tanHalfFovY * aspect),
+        kMaxGearDistance);
+      const y = kPortraitGearCenterY * kCamera.tanHalfFovY * dist;
+      // matLoc の平行移動は matModel(スケール kModelScale)より手前に掛かるので、
+      // ここでの 1 単位はワールドの kModelScale 単位にあたる。
+      mat4.translate(matLoc, matLoc, [0, y / kModelScale, -(dist - kCamera.eyeZ) / kModelScale]);
     } else {
       mat4.translate(matLoc, matLoc, [-0.8 * aspect, 0.8, -1.5]);
     }
@@ -162,10 +162,10 @@ export default class Gear {
     // calc final matrix (eye + projection)
     mat4.mul(matTmp, matWorld, matLocModel);
 
-    vec4.transformMat4(this.winterLightPos_, Winter.position, matLocModel);
-    vec4.transformMat4(this.springLightPos_, Spring.position, matLocModel);
-    vec4.transformMat4(this.summerLightPos_, Summer.position, matLocModel);
-    vec4.transformMat4(this.autumnLightPos_, Autumn.position, matLocModel);
+    vec4.transformMat4(this.winterLightPos_, kWinter.position, matLocModel);
+    vec4.transformMat4(this.springLightPos_, kSpring.position, matLocModel);
+    vec4.transformMat4(this.summerLightPos_, kSummer.position, matLocModel);
+    vec4.transformMat4(this.autumnLightPos_, kAutumn.position, matLocModel);
   }
   /**
    * @param {mat4} matWorld 
@@ -190,10 +190,10 @@ export default class Gear {
       gl.uniformMatrix4fv(this.program_.uniformLoc('matLocModel'), false, matLocModel);
       gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, matTmp);
 
-      gl.uniform4fv(this.program_.uniformLoc('winterColor'), Winter.color);
-      gl.uniform4fv(this.program_.uniformLoc('springColor'), Spring.color);
-      gl.uniform4fv(this.program_.uniformLoc('summerColor'), Summer.color);
-      gl.uniform4fv(this.program_.uniformLoc('autumnColor'), Autumn.color);
+      gl.uniform4fv(this.program_.uniformLoc('winterColor'), kWinter.color);
+      gl.uniform4fv(this.program_.uniformLoc('springColor'), kSpring.color);
+      gl.uniform4fv(this.program_.uniformLoc('summerColor'), kSummer.color);
+      gl.uniform4fv(this.program_.uniformLoc('autumnColor'), kAutumn.color);
 
       gl.uniform4fv(this.program_.uniformLoc('winterPosition'), this.winterLightPos_);
       gl.uniform4fv(this.program_.uniformLoc('springPosition'), this.springLightPos_);
@@ -341,7 +341,7 @@ export default class Gear {
   }
 }
 
-const vsSrc = `
+const kVsSrc = `
 attribute vec3 position;
 attribute vec3 norm;
 
@@ -357,7 +357,7 @@ void main(void) {
   gl_Position = matrix * vec4(position, 1.0);
 }`;
 
-const fsSrc = `
+const kFsSrc = `
 precision mediump float;
 
 varying vec3 vPosition;

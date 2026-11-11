@@ -1,4 +1,4 @@
-const DURATION_MS = 5000;
+const kDurationMs = 5000;
 
 type ToastOptions = {
   // 同じ key のトーストが出ていれば、新しく出さずに本文を差し替える
@@ -56,7 +56,7 @@ export function showToast(text: string, options: ToastOptions = {}) {
     entry.timer = null;
   }
   if (!options.sticky) {
-    entry.timer = window.setTimeout(() => dismissToast(key), DURATION_MS);
+    entry.timer = window.setTimeout(() => dismissToast(key), kDurationMs);
   }
 }
 

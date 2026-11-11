@@ -14,6 +14,10 @@ This repository lives on a self-managed **Forgejo** instance at `code.ledyba.org
 
 The default branch is **`main`**.
 
+## Naming
+
+Fixed module constants and static class constants use `kXxx`; properties of constant objects use `camelCase`. Local variables, instance fields and mutable state follow their existing naming.
+
 ## Commands
 
 Server and client are separate npm packages, each built independently (on the development machine, run these inside `make dev-shell`; see "Development environment" below — `app-dev` itself already serves on port 3000 there, so `npm run watch` in `server` collides with it):

@@ -62,7 +62,7 @@ const kMaxFindIDs = 256;
 // entity の id の形（サーバーと同じ、md5）。合わない id には印を付けず、読みにも行かない。
 const kEntityID = /^[0-9a-f]{32}$/;
 
-const LOAD_TOAST_KEY = 'annotation-load';
+const kLoadToastKey = 'annotation-load';
 
 // 1つの項目の入力欄。触っていない項目は、読んだ値のまま送る（import で入った '' などを黙って null にしない）。
 type Input = {
@@ -501,7 +501,7 @@ export default class AnnotationDrawer {
     } catch (e) {
       // 読めなかった id は Map に入らないので、次にプレビューを描き直したときに読み直す
       console.error(e);
-      showToast(`注釈を読めませんでした: ${describeError(e)}`, { key: LOAD_TOAST_KEY });
+      showToast(`注釈を読めませんでした: ${describeError(e)}`, { key: kLoadToastKey });
     } finally {
       for (const id of ids) {
         this.loading_.delete(id);

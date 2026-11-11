@@ -16,7 +16,7 @@ import { formatMomentLabel, kMediaKeys, toJST } from './CurationFormat.js';
 // 同じ DB からは同じバイト列を作る（studio の git の差分を、DB で変わったところだけにするため）。
 // キーとリストの順を固定し、生成日時は入れず、tar のヘッダの時刻・所有者・パーミッションも固定する。
 
-// url の基準。Config.OmoteOrigin は開発環境では http://localhost:8889 になり、同じ DB でも環境で出力が変わるので使わない。
+// url の基準。kConfig.omoteOrigin は開発環境では http://localhost:8889 になり、同じ DB でも環境で出力が変わるので使わない。
 const kOrigin = 'https://hexe.net';
 
 const kHeader = ' hexe からエクスポートしたもの。手で編集しない';

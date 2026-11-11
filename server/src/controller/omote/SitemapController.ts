@@ -71,7 +71,7 @@ export type SitemapEntry = {
  * ここでは現れない)。それがちょうど escapeHTML の仕事なので、
  * MomentRenderer と同じ @wordpress/escape-html を使う。
  *
- * ただし、今の entry.loc は Config.OmoteOrigin + kStaticPaths か
+ * ただし、今の entry.loc は kConfig.omoteOrigin + kStaticPaths か
  * formatMomentPath() の '/YYYY/MM/DD/HH:mm:ss/' で、[0-9/:a-z-] しか
  * 含まないため実際には何も置換されない。
  */
