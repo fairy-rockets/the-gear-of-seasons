@@ -74,3 +74,15 @@ docker rmi gears-shot   # 撮影用のイメージも要らなくなったら
 ```sh
 docker run --rm -v "$PWD:/app:ro" gears-shot node /app/tools/preview/editor-unsaved.mjs
 ```
+
+## omote の計測イベントの確認
+
+`analytics.mjs` は、ビルドした omote の bundle と `index.hbs`（測定 ID が無いときの形）を Chromium で動かし、
+`window.dataLayer` に積まれた GA4 のイベント（page_view とその `nav_via`・`page_referrer`、gear_ready、exception）を
+操作ごとに確かめる。API はスクリプト内で置き換えるので、DB も開発環境も要らず、gtag.js も読み込まない。
+
+`compose.dev.yml` の `app-dev` で client をビルドした後、リポジトリのルートから実行する:
+
+```sh
+docker run --rm -v "$PWD:/app:ro" gears-shot node /app/tools/preview/analytics.mjs
+```

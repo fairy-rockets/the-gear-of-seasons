@@ -3,13 +3,17 @@ import Layer from '../Layer';
 import { mat4 } from 'gl-matrix';
 import twemoji from 'twemoji';
 import { kEmojiURLBase } from '../../constant';
+import * as analytics from '../Analytics';
 
 export default class Page extends Layer {
 
   private readonly contentWrapper_: HTMLDivElement;
   private readonly content_: HTMLDivElement;
   private readonly closeButton_: HTMLDivElement;
-  private readonly closeListener_: () => void;
+  private readonly closeButtonListener_: () => void;
+  private readonly backdropListener_: () => void;
+  // 本文が届いたか(取得に失敗したときも含む)。
+  private loaded_: boolean;
   constructor(world: World, path: string, contentPromise: Promise<string>) {
     super(world, path);
 
@@ -26,10 +30,12 @@ export default class Page extends Layer {
     this.closeButton_.innerHTML = kCloseButtonSrc;
     this.contentWrapper_.appendChild(this.closeButton_);
 
-    this.closeListener_ = this.onClose_.bind(this);
+    this.closeButtonListener_ = () => this.world.openTop('close_button');
+    this.backdropListener_ = () => this.world.openTop('backdrop');
+    this.loaded_ = false;
 
     // タッチでも確実に閉じられるよう click を使う(合成 click が発火する)。
-    this.closeButton_.addEventListener('click', this.closeListener_, false);
+    this.closeButton_.addEventListener('click', this.closeButtonListener_, false);
 
     contentPromise.then(this.onLoad_.bind(this), this.onError_.bind(this));
   }
@@ -61,10 +67,11 @@ export default class Page extends Layer {
     const titles = this.content_.getElementsByClassName("title");
     if(titles.length > 0) {
       this.title_ = `${titles[0].textContent ?? ""} :: the gear of seasons`;
-      this.world.notifyTitleChanged(this);
     }
 
     this.setupFooter_();
+    this.loaded_ = true;
+    this.world.notifyLoaded(this);
   }
 
   // moment 本文の末尾に付く .moment-footer（無ければ何もしない。about-us 等はフッター無し）
@@ -73,7 +80,7 @@ export default class Page extends Layer {
     if(gearLink) {
       gearLink.addEventListener('click', (ev) => {
         ev.preventDefault();
-        this.onClose_();
+        this.world.openTop('footer_gear');
       });
     }
 
@@ -81,7 +88,7 @@ export default class Page extends Layer {
     if(prevLink) {
       prevLink.addEventListener('click', (ev) => {
         ev.preventDefault();
-        this.world.openLayer(prevLink.getAttribute('href')!);
+        this.world.openLayer(prevLink.getAttribute('href')!, 'footer_prev');
       });
     }
 
@@ -89,7 +96,7 @@ export default class Page extends Layer {
     if(nextLink) {
       nextLink.addEventListener('click', (ev) => {
         ev.preventDefault();
-        this.world.openLayer(nextLink.getAttribute('href')!);
+        this.world.openLayer(nextLink.getAttribute('href')!, 'footer_next');
       });
     }
 
@@ -98,26 +105,29 @@ export default class Page extends Layer {
       for(const a of Array.from(links.querySelectorAll<HTMLAnchorElement>('a'))) {
         a.addEventListener('click', (ev) => {
           ev.preventDefault();
-          this.world.openLayer(a.getAttribute('href')!);
+          this.world.openLayer(a.getAttribute('href')!, 'footer_link');
         });
       }
     }
   }
 
-  onClose_() {
-    this.world.openTop();
-  }
-
   onError_(err: any) {
     this.content_.innerHTML = `<h1>エラー！</h1>Error:<strong>${err}</strong>`;
+    analytics.exception(`page_load_failed: ${this.path}`, false);
+    this.loaded_ = true;
+    this.world.notifyLoaded(this);
+  }
+
+  override get titleKnown(): boolean {
+    return this.loaded_;
   }
 
   onAttached() {
-    this.world.canvas.addEventListener('mouseup', this.closeListener_, false);
+    this.world.canvas.addEventListener('mouseup', this.backdropListener_, false);
   }
 
   onDetached() {
-    this.world.canvas.removeEventListener('mouseup', this.closeListener_, false);
+    this.world.canvas.removeEventListener('mouseup', this.backdropListener_, false);
   }
 
   /** @override */

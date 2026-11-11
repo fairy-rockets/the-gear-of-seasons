@@ -54,6 +54,7 @@ make dev-down
 
 - One development environment per machine: container names and the host ports (`127.0.0.1:5432`, `127.0.0.1:8889`) are fixed, so stop the main checkout's environment (`make dev-down`) before bringing one up in a worktree. `dev-var/` belongs to each checkout, so a fresh worktree needs its own first sync. Before that sync, copy the main checkout's storage into the worktree, so the sync fetches only the difference from production instead of the whole storage: `rsync -a "$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")/dev-var/storage/" dev-var/storage/`. Copy only `storage/`: `psql/` belongs to the postgres container's user, and the sync rebuilds the database from the dump anyway.
 - `app-dev` gets `YOUTUBE_API_KEY` from the checkout's `.env` (not tracked); without it, importing YouTube videos fails and everything else works. A worktree needs its own copy of `.env`.
+- `app-dev` sets no `GA_MEASUREMENT_ID`, so the development environment sends nothing to Google Analytics (see "Analytics (omote)").
 - omote is `http://localhost:8889/`, ura is `http://ura.localhost:8889/` (`OMOTE_HOST=localhost`, `URA_HOST=ura.localhost`). From another machine, forward the port first: `ssh -L 8889:127.0.0.1:8889 rinn`.
 - `app-dev` builds once at startup; after changing code, `docker compose -f compose.dev.yml restart app-dev` (or rebuild inside `make dev-shell`, then restart).
 - `make sync-from-prod` (`tools/sync-from-prod.sh`) reads production over `ssh $(PROD)` (default `nodoca`): it takes a `pg_dump` from the production postgres, and only once the dump is complete drops and recreates the development database from it; then it `rsync -a --delete`s the production storage into `dev-var/storage/`. Against production it only reads — nothing is stopped or written there. Running it again gives the same state.
@@ -107,6 +108,16 @@ Long videos are kept outside the server (for now only on YouTube) and shown in m
 - The API key comes from the environment variable `YOUTUBE_API_KEY`. Without it the server still starts; only `/embed` (for videos not yet imported) and `regenerate-cache` of external entities fail (the other entities are still regenerated).
 - Matching an input URL is per platform (`server/src/lib/ExternalVideoURL.ts`; YouTube is the only one, with the URL → video ID extraction in `server/src/lib/youtube.ts`); `/embed` uses it to pick the platform. Reading `external_ref` from the database does not parse URLs: `Repo` dispatches on `platform` and validates the content per platform (`parseExternalVideoRef`; for YouTube, an 11-character video ID), and an unknown platform or invalid content fails to load with the entity id in the error. Fetching is per platform too (`ExternalVideoPlatform` in `server/src/shelf/ExternalVideo.ts`). Tests pass their own platforms to `Shelf` and use neither the network nor a key.
 - `MomentRenderer` renders an external `[video]` as an `<iframe class="embed external <platform>">` (styled through `embed external`, whatever the platform; src and title per platform, for YouTube `youtube-nocookie.com/embed/<video ID>`) with the same `data-entity`/`data-type` as `<video>`, an inline `aspect-ratio` from width/height and the embed width as `max-width`, so Shorts show portrait.
+
+### Analytics (omote)
+
+omote sends Google Analytics 4 events through `client/src/omote/Analytics.ts`, which only calls `gtag()`. `index.hbs` always defines `window.dataLayer` and `gtag()`; it loads gtag.js, with `send_page_view: false`, only when the environment variable `GA_MEASUREMENT_ID` (`Config.gaMeasurementID`, a `G-…` ID; any other value stops the server at startup) is set. The development environment does not set it, so events only pile up in `window.dataLayer`.
+
+- `page_view` is sent by the client for every layer that becomes the top of the stack (`World.viewTop_`), once its title is known (`World.notifyLoaded`); a layer left before its body arrives sends none. `nav_via` says how the page was reached (`NavVia` in `Analytics.ts`), `page_referrer` is the previous page, and the first `page_view` carries the URL as opened, query included. Enhanced measurement's "Page changes based on browser history events" must stay off in the GA admin; with it on, every SPA transition is counted twice.
+- `exception`: `webgl_unsupported` (fatal), `moments_load_failed`, `page_load_failed: <path>`.
+- `gear_ready`: the first frame in which the gear draws a moment, with `load_ms` since the gear layer was created.
+
+`tools/preview/analytics.mjs` checks these events in Chromium against the built bundle (see `tools/preview/README.md`).
 
 ### ura moment list
 

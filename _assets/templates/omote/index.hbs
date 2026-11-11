@@ -24,18 +24,22 @@
   <meta property="article:published_time" content="{{publishedTime}}">
 {{/if}}
   <link rel="stylesheet" href="/static/main.css">
+  <!-- イベントは client/src/omote/Analytics.ts が gtag() で送る。測定 ID が無いときは dataLayer に溜まるだけ。 -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+  </script>
+{{#if gaMeasurementID}}
+  <!-- Google tag (gtag.js)。SPA の遷移ごとに Analytics.ts が page_view を送るので、自動の page_view は止める。 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{gaMeasurementID}}"></script>
+  <script>
+    gtag('js', new Date());
+    gtag('config', '{{gaMeasurementID}}', { send_page_view: false });
+  </script>
+{{/if}}
 </head>
 <body data-site-title="{{siteTitle}}">
   <canvas id="background"></canvas>
   <script src="/js/main.js"></script>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0F6HPJ1L2Y"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-0F6HPJ1L2Y');
-  </script>
 </body>
 </html>

@@ -20,6 +20,8 @@ export default class Moments {
   private readonly mouseTmpVec_: vec4;
   private readonly momentPosTmpVec_: vec4;
   private models_: Moment[] | null;
+  // 直前の render で描いた(テクスチャが読み込めていた) moment の数。
+  private drawnCount_: number;
   constructor(world: World) {
     this.world_ = world;
     this.gl_ = world.gl;
@@ -58,6 +60,11 @@ export default class Moments {
     this.momentPosTmpVec_ = vec4.create();
 
     this.models_ = null;
+    this.drawnCount_ = 0;
+  }
+
+  get drawnCount(): number {
+    return this.drawnCount_;
   }
   set models(ms: Moment[]) {
     if(this.models_) {
@@ -84,6 +91,7 @@ export default class Moments {
     }
 
     let selected: Moment | null = null;
+    let drawn = 0;
 
     try {
       gl.enable(gl.BLEND);
@@ -129,8 +137,10 @@ export default class Moments {
         gl.uniformMatrix4fv(this.program_.uniformLoc('matrix'), false, mat);
         gl.uniform1i(this.program_.uniformLoc('hovered'), hovered ? 1 : 0);
         this.indices_.render();
+        ++drawn;
       }
       world.cursor = hit;
+      this.drawnCount_ = drawn;
     } finally {
       gl.disable(gl.BLEND);
       this.vertexes_.unbind();

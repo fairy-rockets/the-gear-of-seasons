@@ -7,6 +7,7 @@ import Page from './Page';
 import twemoji from 'twemoji';
 import * as protocol from '../../protocol';
 import { kEmojiURLBase } from '../../constant';
+import * as analytics from '../Analytics';
 
 // タップとドラッグを見分ける移動量のしきい値(px)。これ以下ならタップ扱い。
 const kTapThresholdPx = 8;
@@ -33,6 +34,9 @@ export default class Index extends Layer {
   private readonly tooltipDate_: HTMLDivElement;
   private readonly aboutUsLink_: HTMLElement;
   private loaded_: boolean;
+  // gear_ready の起点(このレイヤを作った時刻)と、もう送ったか。
+  private readonly createdAt_: number;
+  private readyReported_: boolean;
   // ポインタ操作の状態
   private pointerId_: number | null;
   private pointerLastX_: number;
@@ -86,23 +90,29 @@ export default class Index extends Layer {
     this.aboutUsLink_ = this.element_.querySelector<HTMLElement>('#about-us-link')!;
     this.aboutUsLink_.addEventListener('click', (e) => {
       e.preventDefault();
-      world.openLayer('/about-us/');
+      world.openLayer('/about-us/', 'header');
     });
     this.element_.querySelector<HTMLElement>('#pickup-link')!.addEventListener('click', (e) => {
       e.preventDefault();
-      world.openLayer('/pickup/');
+      world.openLayer('/pickup/', 'header');
     });
     this.element_.querySelector<HTMLElement>('#shop-link')!.addEventListener('click', (e) => {
       e.preventDefault();
-      world.openLayer('/shop/');
+      world.openLayer('/shop/', 'header');
     });
 
     this.loaded_ = false;
+    this.createdAt_ = performance.now();
+    this.readyReported_ = false;
   }
 
   render(time: number, matWorld: mat4) {
     this.applyInertia_(time);
     const m = this.moments_.render(time, matWorld, this.pointerX_, this.pointerY_);
+    if(!this.readyReported_ && this.moments_.drawnCount > 0) {
+      this.readyReported_ = true;
+      analytics.gearReady(performance.now() - this.createdAt_);
+    }
     if(m !== this.selected_) {
       this.selected_ = m;
       this.onSelectionChanged_(m);
@@ -217,7 +227,7 @@ export default class Index extends Layer {
 
   private openMoment_(m: Moment) {
     const content = fetch(m.bodyURL).then(resp => resp.text());
-    this.world.pushLayer(new Page(this.world, m.path, content));
+    this.world.pushLayer(new Page(this.world, m.path, content), 'gear');
   }
 
   // 歯車の中心(モデル原点)を現在のスクリーン座標(px)に投影して返す。
@@ -382,7 +392,11 @@ export default class Index extends Layer {
   fetch(size: number) {
     fetch(`/moments/random?size=${size}`)
       .then(resp => resp.json())
-      .then(this.onLoadMoments_.bind(this));
+      .then(this.onLoadMoments_.bind(this))
+      .catch((err) => {
+        console.error('Failed to load moments: ', err);
+        analytics.exception('moments_load_failed', false);
+      });
   }
 
   destroy() {

@@ -2,7 +2,7 @@ import Handlebars from 'handlebars';
 import {FastifyReply, FastifyRequest} from 'fastify';
 
 import Asset from '../../lib/Asset.js';
-import {PageMeta, absoluteURL, kSiteTitle, pageTitle, summarizeMomentText} from '../../lib/meta.js';
+import {PageMeta, absoluteURL, kSiteTitle, pageTitle, shellContext, summarizeMomentText} from '../../lib/meta.js';
 
 import Shelf from '../../shelf/Shelf.js';
 import { displayAlt } from '../../shelf/EntityAnnotation.js';
@@ -32,7 +32,7 @@ export default class MomentController {
     return reply
       .type('text/html;charset=UTF-8')
       .code(200)
-      .send(this.template(await this.metaOf(moment)));
+      .send(this.template(shellContext(await this.metaOf(moment))));
   }
   private async metaOf(moment: Moment): Promise<PageMeta> {
     const path = moment.timestamp !== undefined ? formatMomentPath(moment.timestamp) : '/';

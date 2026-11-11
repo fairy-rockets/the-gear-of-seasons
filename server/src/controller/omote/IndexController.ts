@@ -2,7 +2,7 @@ import {FastifyReply, FastifyRequest} from 'fastify';
 import Handlebars from 'handlebars';
 
 import Asset from '../../lib/Asset.js';
-import {PageMeta, absoluteURL, kSiteTitle, pageTitle} from '../../lib/meta.js';
+import {PageMeta, absoluteURL, kSiteTitle, pageTitle, shellContext} from '../../lib/meta.js';
 import { displayAlt } from '../../shelf/EntityAnnotation.js';
 import Shelf from '../../shelf/Shelf.js';
 
@@ -75,7 +75,7 @@ export default class IndexController {
       const ogImageAlt = await this.siteImageAlt();
       return reply.code(200)
         .type('text/html;charset=UTF-8')
-        .send(this.template({ ...meta, ogImageAlt }));
+        .send(this.template(shellContext({ ...meta, ogImageAlt })));
     };
   }
   // 固定ページ(特にトップ)は注釈が引けなくても出したいので、DB の失敗は題に落とす。

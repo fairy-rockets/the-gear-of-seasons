@@ -40,6 +40,11 @@ export default abstract class Layer {
   get title(): string {
     return this.title_;
   }
+
+  /** 題が決まったか。決まるまで page_view を待つ(World.notifyLoaded)。 */
+  get titleKnown(): boolean {
+    return true;
+  }
   abstract render(time: number, matWorld: mat4): void;
   abstract onAttached(): void;
   abstract onDetached(): void;

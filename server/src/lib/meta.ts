@@ -18,6 +18,15 @@ export type PageMeta = {
   publishedTime: string | undefined;
 };
 
+// index.hbs に渡す値。ページごとの <head> の中身に、どのページでも同じ設定を足したもの。
+export type ShellContext = PageMeta & {
+  gaMeasurementID: string | null;
+};
+
+export function shellContext(meta: PageMeta): ShellContext {
+  return { ...meta, gaMeasurementID: kConfig.gaMeasurementID };
+}
+
 export const kSiteTitle = '妖精⊸ロケット :: the gear of seasons';
 
 // Page.ts (client) が本文から組み立てるタイトルと同じ形にすること。

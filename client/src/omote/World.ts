@@ -10,6 +10,7 @@ import Background from './actors/Background';
 import Layer from './Layer';
 import Index from './layers/Index';
 import Page from './layers/Page';
+import * as analytics from './Analytics';
 
 export default class World {
   private readonly canvas_ : HTMLCanvasElement;
@@ -26,6 +27,8 @@ export default class World {
   private readonly initialPath_: string;
   private readonly siteTitle_: string;
   private readonly ssrHead_: Element[];
+  // まだ page_view を送っていない最上位のレイヤ。本文が届いて題が決まったら送る。
+  private pendingView_: { layer: Layer, via: analytics.NavVia } | null;
   static fromCanvas(canvas: HTMLCanvasElement): World | null {
     const gl = canvas.getContext('webgl2');
     if(!gl) {
@@ -55,6 +58,8 @@ export default class World {
     this.ssrHead_ = Array.from(document.head.querySelectorAll(
       'meta[property^="og:"], meta[name^="twitter:"], meta[name="description"], link[rel="canonical"]'
     ));
+
+    this.pendingView_ = null;
 
     window.onpopstate = this.onPopState_.bind(this);
   }
@@ -193,19 +198,44 @@ export default class World {
     }
   }
 
-  /** 本文は非同期に届くので、届いた時点でまだ最上位なら反映する。 */
-  notifyTitleChanged(layer: Layer) {
+  /** 本文は非同期に届くので、届いた時点でまだ最上位なら <head> に反映し、page_view を送る。 */
+  notifyLoaded(layer: Layer) {
     const layers = this.layers_;
     if (layers.length > 0 && layers[layers.length-1] === layer) {
       this.applyHead_();
     }
+    this.flushPageView_();
+  }
+
+  /****************************************************************************
+   *                                Analytics                                 *
+   ****************************************************************************/
+
+  /**
+   * 最上位になったレイヤの page_view を送る。読み込み中なら notifyLoaded まで待つ。
+   * 待っている間に別のレイヤへ移ったら、そのレイヤの page_view は送らない(見られていない)。
+   */
+  private viewTop_(via: analytics.NavVia) {
+    const layers = this.layers_;
+    this.pendingView_ = { layer: layers[layers.length-1], via };
+    this.flushPageView_();
+  }
+
+  private flushPageView_() {
+    const pending = this.pendingView_;
+    const layers = this.layers_;
+    if (pending === null || !pending.layer.titleKnown || layers[layers.length-1] !== pending.layer) {
+      return;
+    }
+    this.pendingView_ = null;
+    analytics.pageView(pending.layer.path, pending.layer.title, pending.via);
   }
 
   /****************************************************************************
    *                            Layer  Transitions                            *
    ****************************************************************************/
-  openLayer(path: string) {
-    this.pushLayer(this.createLayer_(path));
+  openLayer(path: string, via: analytics.NavVia) {
+    this.pushLayer(this.createLayer_(path), via);
   }
 
   private createLayer_(path: string): Layer {
@@ -226,7 +256,7 @@ export default class World {
     }
   }
 
-  pushLayer(next: Layer) {
+  pushLayer(next: Layer, via: analytics.NavVia) {
     this.pushLayer_(next);
     const layers = this.layers_;
     const state = history.state;
@@ -236,6 +266,7 @@ export default class World {
     } else if (layers.length !== 1) {
       history.pushState(state+1, '', next.path);
     }
+    this.viewTop_(via);
   }
 
   pushLayer_(next: Layer) {
@@ -258,12 +289,12 @@ export default class World {
    * 前のページに戻りたいときはブラウザの戻るを使う(#24)。
    * スタックに Index があれば作り直さずにそこまで下ろす(歯車の回転位置を保つ)。
    */
-  openTop() {
+  openTop(via: analytics.NavVia) {
     const layers = this.layers_;
     const idx = layers.map(layer => layer.path).lastIndexOf('/');
     if (idx < 0) {
       // モーメントの URL に直接来たときは、スタックに Index が無い。
-      this.openLayer('/');
+      this.openLayer('/', via);
       return;
     }
     if (idx === layers.length-1) {
@@ -273,6 +304,7 @@ export default class World {
       this.popLayer_();
     }
     history.pushState((history.state ?? 0)+1, '', '/');
+    this.viewTop_(via);
   }
 
   private popLayer_() {
@@ -333,9 +365,11 @@ export default class World {
       while(layers.length > idx+1) {
         this.popLayer_();
       }
+      this.viewTop_('history');
       return;
     }
     this.pushLayer_(this.createLayer_(path));
+    this.viewTop_('history');
   }
 
   /****************************************************************************

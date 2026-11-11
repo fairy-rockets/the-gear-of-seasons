@@ -1,4 +1,5 @@
 import World from './World';
+import * as analytics from './Analytics';
 
 let world: World | null = null;
 
@@ -11,11 +12,12 @@ function main() {
   world = World.fromCanvas(canvas);
   if(!world) {
     document.body.innerHTML='<h1>WebGL not supported</h1>';
+    analytics.exception('webgl_unsupported', true);
     return;
   }
   world.start();
 
-  world.openLayer(location.pathname);
+  world.openLayer(location.pathname, 'landing');
 }
 
 document.addEventListener('DOMContentLoaded', main, false);
