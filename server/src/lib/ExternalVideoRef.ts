@@ -7,7 +7,7 @@
 // - lib/ExternalVideoURL.ts: 入力された URL の matcher
 // - shelf/ExternalVideo.ts: ExternalVideoPlatform の実装（URL の判定と取得）・defaultExternalVideoPlatforms
 // - shelf/Shelf.ts: insertExternalVideo の、対応していない URL のエラー文（「今は YouTube の動画だけ」）
-import { youtubeEmbedURL, youtubeWatchURL } from './youtube.js';
+import { youTubeEmbedURL, youTubeWatchURL } from './youtube.js';
 
 export type ExternalVideoPlatformName = 'youtube';
 
@@ -65,8 +65,8 @@ export function externalVideoPresentation(video: ExternalVideoRef): ExternalVide
   switch (video.platform) {
     case 'youtube':
       return {
-        pageURL: youtubeWatchURL(video.id),
-        embedURL: youtubeEmbedURL(video.id),
+        pageURL: youTubeWatchURL(video.id),
+        embedURL: youTubeEmbedURL(video.id),
         playerTitle: 'YouTube video player',
       };
   }

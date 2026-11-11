@@ -18,7 +18,7 @@ const kYouTubeHosts = new Set([
 ]);
 
 // YouTube の URL か（動画 ID を取り出せるかは問わない）。
-export function isYoutubeURL(url: string): boolean {
+export function isYouTubeURL(url: string): boolean {
   let u: URL;
   try {
     u = new URL(url);
@@ -31,7 +31,7 @@ export function isYoutubeURL(url: string): boolean {
 
 // watch?v=<id> / youtu.be/<id> / shorts|embed|live/<id> のどれかから動画 ID を取り出す。
 // iframe の src などには、ここを通った ID だけを入れる。
-export function parseYoutubeId(url: string | undefined): string {
+export function parseYouTubeID(url: string | undefined): string {
   if (url === undefined) {
     throw new YouTubeURLError(`youtube: url is not set`);
   }
@@ -62,11 +62,11 @@ export function parseYoutubeId(url: string | undefined): string {
 }
 
 // 動画のページ（/entity/<id> のリダイレクト先）。
-export function youtubeWatchURL(id: string): string {
+export function youTubeWatchURL(id: string): string {
   return `https://www.youtube.com/watch?v=${id}`;
 }
 
 // 本文に埋め込む iframe の src。
-export function youtubeEmbedURL(id: string): string {
+export function youTubeEmbedURL(id: string): string {
   return `https://www.youtube-nocookie.com/embed/${id}`;
 }

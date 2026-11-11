@@ -8,7 +8,7 @@ import {
   YouTubePlatform,
   externalVideoEntityID,
   parseISODuration,
-  youtubeVideoInfo,
+  youTubeVideoInfo,
 } from './ExternalVideo.js';
 
 function thumbnails(id: string, names: string[]) {
@@ -54,9 +54,9 @@ const kLiveArchive: YouTubeVideoResource = {
   liveStreamingDetails: { actualStartTime: '2025-01-04T06:14:49Z' },
 };
 
-describe("youtubeVideoInfo", () => {
+describe("youTubeVideoInfo", () => {
   it("Shorts は縦長の埋め込みの大きさになる", () => {
-    const info = youtubeVideoInfo(kShorts);
+    const info = youTubeVideoInfo(kShorts);
     assert.strictEqual(info.timestamp.toISOString(), '2026-08-29T07:05:52.000Z');
     assert.strictEqual(info.width, 508);
     assert.strictEqual(info.height, 720);
@@ -64,18 +64,18 @@ describe("youtubeVideoInfo", () => {
     assert.strictEqual(info.thumbnailURL, 'https://i.ytimg.com/vi/jLfOrvniehM/maxresdefault.jpg');
   });
   it("配信でなければ publishedAt を時刻にする", () => {
-    const info = youtubeVideoInfo(kLong);
+    const info = youTubeVideoInfo(kLong);
     assert.strictEqual(info.timestamp.toISOString(), '2026-07-06T03:30:40.000Z');
     assert.strictEqual(info.duration, 2 * 3600 + 18 * 60 + 35);
     assert.deepStrictEqual([info.width, info.height], [1280, 720]);
   });
   it("生放送のアーカイブは、publishedAt ではなく配信開始の時刻にする", () => {
-    const info = youtubeVideoInfo(kLiveArchive);
+    const info = youTubeVideoInfo(kLiveArchive);
     assert.strictEqual(info.timestamp.toISOString(), '2025-01-04T06:14:49.000Z');
     assert.strictEqual(info.duration, 3600 + 4 * 60 + 16);
   });
   it("サムネイルは maxres → standard → high の順で、最初にあるもの", () => {
-    const pick = (names: string[]) => youtubeVideoInfo({
+    const pick = (names: string[]) => youTubeVideoInfo({
       ...kLong, snippet: { ...kLong.snippet, thumbnails: thumbnails('x', names) },
     }).thumbnailURL;
     assert.strictEqual(pick(['high', 'standard', 'maxres']), 'https://i.ytimg.com/vi/x/maxresdefault.jpg');
@@ -84,13 +84,13 @@ describe("youtubeVideoInfo", () => {
     assert.throws(() => pick(['default', 'medium']), ExternalVideoError);
   });
   it("埋め込みの大きさは文字列（int64。実際の応答）でも数でも読む", () => {
-    const info = youtubeVideoInfo({ ...kLong, player: { embedWidth: 1280, embedHeight: 720 } });
+    const info = youTubeVideoInfo({ ...kLong, player: { embedWidth: 1280, embedHeight: 720 } });
     assert.deepStrictEqual([info.width, info.height], [1280, 720]);
   });
   for (const [live, why] of [['live', '配信中'], ['upcoming', '配信予定']]) {
     it(`${why}（liveBroadcastContent = ${live}）は取り込まない`, () => {
       assert.throws(
-        () => youtubeVideoInfo({ ...kLiveArchive, snippet: { ...kLiveArchive.snippet, liveBroadcastContent: live } }),
+        () => youTubeVideoInfo({ ...kLiveArchive, snippet: { ...kLiveArchive.snippet, liveBroadcastContent: live } }),
         (e: unknown) => e instanceof ExternalVideoError && e.statusCode === 400 && e.message.includes(why));
     });
   }
@@ -100,16 +100,16 @@ describe("youtubeVideoInfo", () => {
     ['snippet が無い', { ...kLong, snippet: undefined }],
   ] as [string, YouTubeVideoResource][]) {
     it(`${name}なら、応答の問題として 502 で取り込まない`, () => {
-      assert.throws(() => youtubeVideoInfo(resource),
+      assert.throws(() => youTubeVideoInfo(resource),
         (e: unknown) => e instanceof ExternalVideoError && e.statusCode === 502);
     });
   }
   it("長さ・大きさ・時刻が読めなければ取り込まない", () => {
-    assert.throws(() => youtubeVideoInfo({ ...kLong, contentDetails: { duration: 'xx' } }), ExternalVideoError);
-    assert.throws(() => youtubeVideoInfo({ ...kLong, player: {} }), ExternalVideoError);
-    assert.throws(() => youtubeVideoInfo({ ...kLong, player: { embedWidth: '0', embedHeight: '720' } }), ExternalVideoError);
-    assert.throws(() => youtubeVideoInfo({ ...kLong, player: { embedWidth: '12.5', embedHeight: '720' } }), ExternalVideoError);
-    assert.throws(() => youtubeVideoInfo({ ...kLong, snippet: { ...kLong.snippet, publishedAt: undefined } }), ExternalVideoError);
+    assert.throws(() => youTubeVideoInfo({ ...kLong, contentDetails: { duration: 'xx' } }), ExternalVideoError);
+    assert.throws(() => youTubeVideoInfo({ ...kLong, player: {} }), ExternalVideoError);
+    assert.throws(() => youTubeVideoInfo({ ...kLong, player: { embedWidth: '0', embedHeight: '720' } }), ExternalVideoError);
+    assert.throws(() => youTubeVideoInfo({ ...kLong, player: { embedWidth: '12.5', embedHeight: '720' } }), ExternalVideoError);
+    assert.throws(() => youTubeVideoInfo({ ...kLong, snippet: { ...kLong.snippet, publishedAt: undefined } }), ExternalVideoError);
   });
 });
 
