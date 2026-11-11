@@ -7,8 +7,8 @@ import {
   canHaveMaterials,
   kAnnotationFields,
   kAnnotationFieldsByType,
+  kAnnotationMethods,
   kAnnotationPalettes,
-  normalizeAnnotationMethods,
 } from '../lib/protocol.js';
 
 // メディア（entity）ごとの注釈。entity_annotations の1行で、entities と1対1。
@@ -43,9 +43,27 @@ function parseNullable<T extends string>(name: string, values: readonly T[], v: 
   throw new Error(`Invalid ${name}: ${v}`);
 }
 
-// 空・重複・定義に無い値は例外にし、並びは kAnnotationMethods の順にそろえる。
+// methods を、空でなく重複の無い kAnnotationMethods の値の集合として読み、kAnnotationMethods の順に並べて返す。
+// 合わなければ例外にする。null は「値なし」としてそのまま通す。
 export function parseAnnotationMethods(v: unknown): AnnotationMethod[] | null {
-  return normalizeAnnotationMethods(v);
+  if (v === null) {
+    return null;
+  }
+  if (!Array.isArray(v)) {
+    throw new Error(`Invalid methods: ${JSON.stringify(v)}`);
+  }
+  if (v.length === 0) {
+    throw new Error('Invalid methods: empty');
+  }
+  for (const m of v) {
+    if (!(kAnnotationMethods as readonly unknown[]).includes(m)) {
+      throw new Error(`Invalid methods: ${JSON.stringify(m)}`);
+    }
+  }
+  if (new Set(v).size !== v.length) {
+    throw new Error(`Invalid methods: duplicated: ${JSON.stringify(v)}`);
+  }
+  return kAnnotationMethods.filter((m) => v.includes(m));
 }
 
 export function parseAnnotationPalette(v: unknown): AnnotationPalette | null {

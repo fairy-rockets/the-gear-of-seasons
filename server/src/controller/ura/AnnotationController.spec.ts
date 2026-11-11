@@ -157,6 +157,8 @@ describe("POST /annotation", () => {
     ['methods が重複している', request({ methods: ['draw', 'draw'] })],
     ['methods が定義に無い', request({ methods: ['oil'] as any })],
     ['古い項目 medium がある', { ...request({}), annotation: { ...kEmpty, medium: 'drawing' } }],
+    ['methods に draw が無いのに materials がある', request({ methods: ['capture'], materials: ['digital'] })],
+    ['methods が無いのに materials が空のリスト', request({ materials: [] })],
     ['項目が欠けている', { ...request({}), annotation: (({ alt: _, ...rest }) => rest)(kEmpty) }],
     ['定義に無い項目がある', { ...request({}), annotation: { ...kEmpty, colour: 'red' } }],
     ['annotation が無い', { entityID: kImage }],
@@ -180,12 +182,6 @@ describe("POST /annotation", () => {
     assert.strictEqual(repo.annotations.size, 0);
   });
 
-  it("methods に draw が無いのに materials を送ると例外になり、何も書かない", async () => {
-    const { repo, save } = setup();
-    await assert.rejects(() => save(request({ methods: ['capture'], materials: ['digital'] })), /unless methods includes draw/);
-    await assert.rejects(() => save(request({ materials: [] })), /unless methods includes draw/);
-    assert.strictEqual(repo.annotations.size, 0);
-  });
 
   it("無い entity の注釈は例外になる", async () => {
     const { repo, save } = setup();

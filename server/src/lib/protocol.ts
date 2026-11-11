@@ -10,7 +10,7 @@ export type EntityType = 'image' | 'video' | 'audio';
 // 項目の意味は #2 のコメント（issuecomment-3603）の「1. DB に足すもの」の表と #95。
 // methods（どうやって作ったか）は順序のない集合。draw は手描き（アナログ・デジタル、スライドで描いた図も含む）、
 // capture はカメラやマイクで現実を写し取ったもの、render は 3DCG、generate は生成モデル、compose は作曲・演奏。
-// 集合は空にせず、重複させず、この順に並べて持つ（normalizeAnnotationMethods）。
+// 集合は空にせず、重複させず、この順に並べて持つ（EntityAnnotation.ts の parseAnnotationMethods）。
 export const kAnnotationMethods = ['draw', 'capture', 'render', 'generate', 'compose'] as const;
 export const kAnnotationPalettes = ['color', 'monochrome'] as const;
 
@@ -55,29 +55,6 @@ export const kAnnotationFieldsByType: Record<EntityType, readonly AnnotationFiel
 // materials を書けるのは、methods に draw を含むときだけ（描いたものの画材）。
 export function canHaveMaterials(methods: readonly AnnotationMethod[] | null): boolean {
   return methods !== null && methods.includes('draw');
-}
-
-// methods の値を、空でなく重複の無い kAnnotationMethods の値の集合として、kAnnotationMethods の順に並べて返す。
-// 合わなければ例外にする。null は「値なし」としてそのまま通す。
-export function normalizeAnnotationMethods(v: unknown): AnnotationMethod[] | null {
-  if (v === null) {
-    return null;
-  }
-  if (!Array.isArray(v)) {
-    throw new Error(`Invalid methods: ${JSON.stringify(v)}`);
-  }
-  if (v.length === 0) {
-    throw new Error('Invalid methods: empty');
-  }
-  for (const m of v) {
-    if (!(kAnnotationMethods as readonly unknown[]).includes(m)) {
-      throw new Error(`Invalid methods: ${JSON.stringify(m)}`);
-    }
-  }
-  if (new Set(v).size !== v.length) {
-    throw new Error(`Invalid methods: duplicated: ${JSON.stringify(v)}`);
-  }
-  return kAnnotationMethods.filter((m) => v.includes(m));
 }
 
 // 注釈の行が無い entity の値。列の既定値（humanVerified は false、ほかは null）。呼ぶたびに新しいオブジェクトを返す。

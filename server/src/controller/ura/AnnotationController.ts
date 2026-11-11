@@ -57,6 +57,11 @@ export function parseAnnotationValues(v: unknown): AnnotationValues {
       throw new Error(`annotation の ${key}: ${(err as Error).message}`);
     }
   }
+  // 種類によらない決まりなので、ここで 400 にする（引き出しは、draw を外しても入っている materials を残すので届く）。
+  // 種類ごとの項目は、保存するときに validateEntityAnnotation が確かめる。
+  if (values.materials !== null && !protocol.canHaveMaterials(values.methods as AnnotationValues['methods'])) {
+    throw new Error('materials は methods に draw を含むときだけ書けます');
+  }
   return values as AnnotationValues;
 }
 
