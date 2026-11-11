@@ -6,9 +6,8 @@ import { AnnotationField, AnnotationValues, kAnnotationFields } from '../../lib/
 import Shelf from '../../shelf/Shelf.js';
 import { AnnotationValue, parseBoolean, parseString, parseStrings } from '../../shelf/CurationFormat.js';
 import {
-  parseAnnotationMedium,
+  parseAnnotationMethods,
   parseAnnotationPalette,
-  parseAnnotationRole,
 } from '../../shelf/EntityAnnotation.js';
 
 // entity の id は元ファイルの md5（Storage）。
@@ -22,18 +21,16 @@ function nullable<T>(parse: (v: unknown) => T): (v: unknown) => T | null {
 
 // 項目ごとの値の形。Record にしてあるので、項目を足すと、ここに足すまでコンパイルが通らない。
 const kParsers: Record<AnnotationField, (v: unknown) => AnnotationValue> = {
-  medium: parseAnnotationMedium,
+  methods: parseAnnotationMethods,
   materials: nullable(parseStrings),
+  subject: nullable(parseString),
   alt: nullable(parseString),
   description: nullable(parseString),
   tags: nullable(parseStrings),
   palette: parseAnnotationPalette,
   characters: nullable(parseStrings),
+  note: nullable(parseString),
   humanVerified: parseBoolean,
-  role: parseAnnotationRole,
-  roleGroup: nullable(parseString),
-  roleStar: nullable(parseBoolean),
-  roleNote: nullable(parseString),
 };
 
 // POST /annotation の annotation。すべての項目が要り、定義に無い項目は通さない。
@@ -59,6 +56,11 @@ export function parseAnnotationValues(v: unknown): AnnotationValues {
     } catch (err) {
       throw new Error(`annotation の ${key}: ${(err as Error).message}`);
     }
+  }
+  // 種類によらない決まりなので、ここで 400 にする（引き出しは、draw を外しても入っている materials を残すので届く）。
+  // 種類ごとの項目は、保存するときに validateEntityAnnotation が確かめる。
+  if (values.materials !== null && !protocol.canHaveMaterials(values.methods as AnnotationValues['methods'])) {
+    throw new Error('materials は methods に draw を含むときだけ書けます');
   }
   return values as AnnotationValues;
 }

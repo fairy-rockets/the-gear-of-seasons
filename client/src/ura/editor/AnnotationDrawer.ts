@@ -18,46 +18,37 @@ type Kind =
   { kind: 'string', rows?: number } |
   // suggestions は、押すと欄にその値を足したり外したりするボタン。候補に無い値も欄に書ける。
   { kind: 'list', suggestions?: readonly string[] } |
-  { kind: 'tristate' } |
+  // 順序のない集合。値ごとのチェックで、どれも付いていなければ null（未入力）。読む値は values の順に並べる。
+  { kind: 'set', values: readonly string[] } |
   { kind: 'checkbox' };
 
 // Record にしてあるので、protocol.ts に項目を足すと、ここに足すまでコンパイルが通らない。
 const kKinds: Record<AnnotationField, Kind> = {
-  medium: { kind: 'enum', values: protocol.kAnnotationMedia },
+  methods: { kind: 'set', values: protocol.kAnnotationMethods },
   materials: { kind: 'list', suggestions: protocol.kMaterialSuggestions },
+  subject: { kind: 'string' },
   alt: { kind: 'string', rows: 5 },
   description: { kind: 'string', rows: 6 },
   tags: { kind: 'list' },
   palette: { kind: 'enum', values: protocol.kAnnotationPalettes },
   characters: { kind: 'list' },
+  note: { kind: 'string', rows: 3 },
   humanVerified: { kind: 'checkbox' },
-  role: { kind: 'enum', values: protocol.kAnnotationRoles },
-  roleGroup: { kind: 'string' },
-  roleStar: { kind: 'tristate' },
-  roleNote: { kind: 'string' },
 };
 
 // 欄の見出し。DB とキュレーションのファイルと同じ名前にする。
 const kLabels: Record<AnnotationField, string> = {
-  medium: 'medium',
+  methods: 'methods',
   materials: 'materials',
+  subject: 'subject',
   alt: 'alt',
   description: 'description',
   tags: 'tags',
   palette: 'palette',
   characters: 'characters',
+  note: 'note',
   humanVerified: 'human_verified',
-  role: 'role',
-  roleGroup: 'role_group',
-  roleStar: 'role_star',
-  roleNote: 'role_note',
 };
-
-// 引き出しの先頭にまとめる、Ollama が下書きする項目と、それをすべて確かめたかの human_verified（#2）。human_verified は最後。
-// ほかの項目は、このまとまりの後に protocol.ts の kAnnotationFields の順で並べる。
-const kDraftFields: readonly AnnotationField[] = [
-  'medium', 'materials', 'alt', 'description', 'tags', 'palette', 'humanVerified',
-];
 
 const kTypeLabels: Record<protocol.EntityType, string> = {
   image: '画像',
@@ -90,12 +81,10 @@ type Opened = {
 
 type Mark = { state: 'loading' | protocol.AnnotationState, label: string };
 
-// 音声は human_verified を持たないので、入力の有無だけを出す（entered）。
 const kMarkLabels: Record<protocol.AnnotationState, string> = {
   unentered: '注釈：未入力',
   unverified: '注釈：未確認',
   verified: '注釈：確認済み',
-  entered: '注釈：入力済み',
 };
 
 function markOf(entry: Entry | undefined): Mark {
@@ -402,24 +391,28 @@ export default class AnnotationDrawer {
     this.refreshMarks_();
     const fields = protocol.kAnnotationFieldsByType[entry.type];
     const inputs = new Map<AnnotationField, Input>();
-    // 下書きの範囲のまとまり。human_verified が false の間だけ枠で囲む（human_verified を持たない種類には出さない）。
+    // human_verified が確かめる範囲（その種類が持つ項目すべて）。human_verified が false の間だけ枠で囲む。
+    // 欄は protocol.ts の kAnnotationFields の順に並べ、human_verified は最後。
     const draft = document.createElement('div');
     draft.classList.add('annotation-draft');
     this.form_.appendChild(draft);
-    for (const field of [...kDraftFields, ...protocol.kAnnotationFields.filter((f) => !kDraftFields.includes(f))]) {
+    for (const field of protocol.kAnnotationFields) {
       if (!fields.includes(field)) {
         continue;
       }
       const input = makeInput(field, entry.annotation[field]);
       inputs.set(field, input);
-      (kDraftFields.includes(field) ? draft : this.form_).appendChild(input.elem);
+      draft.appendChild(input.elem);
     }
-    const verified = inputs.get('humanVerified');
-    if (verified !== undefined) {
-      // 付けた・外した時点で、保存の前でも枠を切り替える。
-      const update = () => draft.classList.toggle('annotation-unverified', verified.read() === false);
-      verified.elem.addEventListener('change', update);
-      update();
+    const verified = inputs.get('humanVerified')!;
+    // 付けた・外した時点で、保存の前でも枠を切り替える。
+    const updateVerified = () => draft.classList.toggle('annotation-unverified', verified.read() === false);
+    verified.elem.addEventListener('change', updateVerified);
+    updateVerified();
+    const methods = inputs.get('methods');
+    const materials = inputs.get('materials');
+    if (methods !== undefined && materials !== undefined) {
+      linkMaterials(methods, materials);
     }
     this.opened_ = { id, entry, original: entry.annotation, inputs };
     this.icon_.src = `/entity/${encodeURIComponent(id)}/icon`;
@@ -521,8 +514,9 @@ export default class AnnotationDrawer {
 // 項目の入力欄を、項目の種類（kKinds）から組み立てる。
 function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationField]): Input {
   const kind = kKinds[field];
-  // リストの欄は「なし」のチェックを別の label で持つので、行を label にしない（label は入れ子にできない）。
-  const row = document.createElement(kind.kind === 'list' ? 'div' : 'label');
+  // リストの欄は「なし」のチェックを、集合の欄は値ごとのチェックを別の label で持つので、行を label にしない
+  // （label は入れ子にできない）。
+  const row = document.createElement(kind.kind === 'list' || kind.kind === 'set' ? 'div' : 'label');
   row.classList.add('annotation-field');
   const name = document.createElement('span');
   name.classList.add('annotation-label');
@@ -652,15 +646,29 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
       row.appendChild(column);
       break;
     }
-    case 'tristate': {
-      const select = document.createElement('select');
-      select.appendChild(new Option('（未入力）', ''));
-      select.appendChild(new Option('はい', 'true'));
-      select.appendChild(new Option('いいえ', 'false'));
-      select.value = value === null ? '' : String(value);
-      select.addEventListener('change', touch);
-      input.read = () => select.value === '' ? null : select.value === 'true';
-      row.appendChild(select);
+    case 'set': {
+      // 値ごとのチェック。どれも付いていなければ null（未入力）。
+      const set = value as string[] | null;
+      const box = document.createElement('div');
+      box.classList.add('annotation-set');
+      const checks: HTMLInputElement[] = [];
+      for (const v of kind.values) {
+        const label = document.createElement('label');
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.value = v;
+        check.checked = set !== null && set.includes(v);
+        check.addEventListener('change', touch);
+        checks.push(check);
+        label.appendChild(check);
+        label.appendChild(document.createTextNode(v));
+        box.appendChild(label);
+      }
+      input.read = () => {
+        const list = checks.filter((c) => c.checked).map((c) => c.value);
+        return (list.length === 0 ? null : list) as AnnotationValues[AnnotationField];
+      };
+      row.appendChild(box);
       break;
     }
     case 'checkbox': {
@@ -674,4 +682,28 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
     }
   }
   return input;
+}
+
+// materials を書けるのは methods に draw を含むときだけ（protocol.canHaveMaterials。サーバーも同じ条件で弾く）。
+// draw が無い間は materials の欄を無効にする。ただし値が入っているときは、空にできるよう無効にせず、
+// そのままでは保存できないことを出す（無効にして値を黙って捨てない）。
+function linkMaterials(methods: Input, materials: Input) {
+  const fieldset = document.createElement('fieldset');
+  fieldset.classList.add('annotation-fieldset');
+  materials.elem.replaceWith(fieldset);
+  fieldset.appendChild(materials.elem);
+  const warning = document.createElement('div');
+  warning.classList.add('annotation-warning');
+  warning.textContent = 'methods に draw が無いので、materials を空にしないと保存できません';
+  fieldset.appendChild(warning);
+  const update = () => {
+    const allowed = protocol.canHaveMaterials(methods.read() as protocol.AnnotationMethod[] | null);
+    const filled = materials.read() !== null;
+    fieldset.disabled = !allowed && !filled;
+    warning.hidden = allowed || !filled;
+  };
+  methods.elem.addEventListener('change', update);
+  fieldset.addEventListener('input', update);
+  fieldset.addEventListener('change', update);
+  update();
 }

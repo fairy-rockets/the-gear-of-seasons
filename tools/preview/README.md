@@ -67,7 +67,7 @@ docker rmi gears-shot   # 撮影用のイメージも要らなくなったら
 
 `editor-unsaved.mjs` は、ビルドした editor bundle を Chromium で動かし、初期状態・各入力欄・
 再読み込み／移動／タブを閉じる際の確認・保存の成功／失敗／通信中の追加入力・moment と注釈の
-独立した保存・注釈の materials の候補のボタン・DELETE の確認と一覧への移動を検証する。API はスクリプト内で置き換え、DB に書き込まない。
+独立した保存・注釈の欄の並び・methods のチェックと materials の欄の有効／無効・materials の候補のボタン・DELETE の確認と一覧への移動を検証する。API はスクリプト内で置き換え、DB に書き込まない。
 
 `compose.dev.yml` の `app-dev` で client をビルドした後、リポジトリのルートから実行する:
 

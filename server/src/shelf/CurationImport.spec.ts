@@ -20,6 +20,7 @@ import {
 const kA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const kB = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 const kC = 'cccccccccccccccccccccccccccccccc';
+const kD = 'dddddddddddddddddddddddddddddddd';
 const kT1 = '2017-07-26T02:46:00+09:00';
 const kT2 = '2018-01-02T03:04:05+09:00';
 const kT3 = '2019-05-06T07:08:09+09:00';
@@ -34,11 +35,12 @@ const kVideoB: Entity = {
 const kAudioC: Entity = {
   type: 'audio', location: 'internal', id: kC, iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 1,
 };
+const kImageD: Entity = { ...kImageA, id: kD };
 
 function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): EntityAnnotation {
   return {
-    entityID, medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
-    humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
+    entityID, methods: null, materials: null, subject: null, alt: null, description: null, tags: null, palette: null,
+    characters: null, note: null, humanVerified: false,
     ...values,
   };
 }
@@ -94,9 +96,11 @@ moments:
     media:
       - entity: ${kA}
         palette: color
-        role_note: ""
+        note: ""
         human_verified: true
         tags: []
+        methods: [generate, draw]
+        subject: 海
 `);
     assert.deepStrictEqual(errors, []);
     assert.strictEqual(file.moments.length, 1);
@@ -109,9 +113,12 @@ moments:
       entityID: kA,
       fields: [
         { key: 'palette', field: 'palette', value: 'color' },
-        { key: 'role_note', field: 'roleNote', value: '' },
+        { key: 'note', field: 'note', value: '' },
         { key: 'human_verified', field: 'humanVerified', value: true },
         { key: 'tags', field: 'tags', value: [] },
+        // methods は並びを問わず読み、kAnnotationMethods の順にそろえる。
+        { key: 'methods', field: 'methods', value: ['draw', 'generate'] },
+        { key: 'subject', field: 'subject', value: '海' },
       ],
     }]);
   });
@@ -164,7 +171,10 @@ moments:
       - entity: ${kA}
         palette: sepia
         human_verified: yes
-        role_star: null
+        note: null
+        methods: []
+        medium: drawing
+        role_note: 主題
         colour: red
         toString: x
         checked: true
@@ -175,7 +185,11 @@ moments:
       `moment ${kT1}: series: 文字列のリストではありません: "夏"`,
       `moment ${kT1} entity ${kA}: palette: 定義に無い値です: "sepia"`,
       `moment ${kT1} entity ${kA}: human_verified: true か false ではありません: "yes"`,
-      `moment ${kT1} entity ${kA}: role_star が null です`,
+      `moment ${kT1} entity ${kA}: note が null です`,
+      `moment ${kT1} entity ${kA}: methods: 定義に無い値です: []`,
+      // medium・role_*（#95 で methods・subject・note にした）も、読み替えずに弾く。
+      `moment ${kT1} entity ${kA}: 知らないキーです: medium`,
+      `moment ${kT1} entity ${kA}: 知らないキーです: role_note`,
       `moment ${kT1} entity ${kA}: 知らないキーです: colour`,
       `moment ${kT1} entity ${kA}: 知らないキーです: toString`,
       // human_verified の古い名前（#58）も、読み替えずに弾く。
@@ -281,7 +295,7 @@ moments:
   - moment: ${kT1}
     media:
       - { entity: ${kB}, alt: 動画 }
-      - { entity: ${kC}, alt: 音, palette: color, human_verified: true }
+      - { entity: ${kC}, alt: 音, palette: color, characters: [], human_verified: true }
   - moment: ${kT2}
     media:
       - { entity: ${kB}, alt: 動画 }
@@ -289,7 +303,7 @@ moments:
     assert.deepStrictEqual(p.errors, [
       `moment ${kT3}: DB にありません`,
       `moment ${kT1} entity ${kB}: その moment の本文の [image]・[video]・[audio] にありません`,
-      `moment ${kT1} entity ${kC}: audio の entity が持たない項目です: palette, human_verified`,
+      `moment ${kT1} entity ${kC}: audio の entity が持たない項目です: palette, characters`,
       `moment ${kT2} entity ${kB}: entities にありません`,
     ]);
   });
@@ -298,67 +312,109 @@ moments:
     const p = plan(`
 moments:
   - moment: ${kT1}
-    media: [{ entity: ${kC}, materials: [digital] }]
+    media: [{ entity: ${kC}, methods: [draw], materials: [digital] }]
 `, s);
     assert.deepStrictEqual(p.errors, [`moment ${kT1} entity ${kC}: audio の entity が持たない項目です: materials`]);
   });
-  it("音声の alt・description・tags と、human_verified: false は通す", () => {
+  it("音声の methods・subject・alt・description・tags・note・human_verified は通す", () => {
     const s = state([moment(kT1, `[audio entity="${kC}"]`)], [kAudioC]);
     const p = plan(`
 moments:
   - moment: ${kT1}
-    media: [{ entity: ${kC}, alt: 波の音, description: 浜辺, tags: [海], human_verified: false }]
+    media:
+      - { entity: ${kC}, methods: [capture], subject: 波, alt: 波の音, description: 浜辺, tags: [海], note: 夜, human_verified: true }
 `, s);
     assert.deepStrictEqual(p.errors, []);
-    assert.deepStrictEqual(p.entities[0].changes.map((c) => c.key), ['alt', 'description', 'tags']);
+    assert.deepStrictEqual(p.entities[0].changes.map((c) => c.key), ['methods', 'subject', 'alt', 'description', 'tags', 'note', 'human_verified']);
+  });
+  it("materials は、書いたあとの methods に draw を含むときだけ通す", () => {
+    const s = state([
+      moment(kT1, `[image entity="${kA}"][video entity="${kB}"]`),
+      moment(kT2, `[image entity="${kD}"]`),
+    ], [kImageA, kVideoB, kImageD], [
+      annotation(kB, { methods: ['draw'] }),
+      annotation(kD, { methods: ['capture'] }),
+    ]);
+    const p = plan(`
+moments:
+  - moment: ${kT1}
+    media:
+      - { entity: ${kA}, methods: [draw, generate], materials: [digital] }
+      - { entity: ${kB}, materials: [pencil] }
+  - moment: ${kT2}
+    media:
+      - { entity: ${kD}, methods: [draw], materials: [pencil] }
+`, s);
+    // kD の methods は衝突で書かないので、書いたあとも [capture] のまま。
+    assert.deepStrictEqual(p.errors, [
+      `moment ${kT2} entity ${kD}: materials は methods に draw を含むときだけ書けます（書いたあとの methods: ["capture"]。ファイルの methods は衝突したので書かない。--overwrite なら書く）`,
+    ]);
+    assert.deepStrictEqual(p.entities.map((e) => e.entity.id), [kA, kB]);
+    // ファイルの methods にも draw が無ければ、--overwrite でも通らないので、そうは書かない。
+    const p3 = plan(`
+moments:
+  - moment: ${kT2}
+    media: [{ entity: ${kD}, methods: [render], materials: [pencil] }]
+`, s);
+    assert.deepStrictEqual(p3.errors, [
+      `moment ${kT2} entity ${kD}: materials は methods に draw を含むときだけ書けます（書いたあとの methods: ["capture"]）`,
+    ]);
+    const p2 = plan(`
+moments:
+  - moment: ${kT1}
+    media: [{ entity: ${kA}, materials: [digital] }]
+`, s);
+    assert.deepStrictEqual(p2.errors, [
+      `moment ${kT1} entity ${kA}: materials は methods に draw を含むときだけ書けます（書いたあとの methods: null）`,
+    ]);
   });
 });
 
 describe("makeCurationPlan の計画", () => {
   it("書いていない項目は今の値のまま残す", () => {
     const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [
-      annotation(kA, { alt: '海', role: 'grab', humanVerified: true }),
+      annotation(kA, { alt: '海', subject: '船', humanVerified: true }),
     ]);
     const p = plan(`
 moments:
   - moment: ${kT1}
-    media: [{ entity: ${kA}, medium: drawing, role_note: "" }]
+    media: [{ entity: ${kA}, methods: [draw], note: "" }]
 `, s);
     assert.deepStrictEqual(p.errors, []);
     assert.deepStrictEqual(p.entities[0].changes, [
-      { key: 'medium', from: null, to: 'drawing', overwrite: false },
-      { key: 'role_note', from: null, to: '', overwrite: false },
+      { key: 'methods', from: null, to: ['draw'], overwrite: false },
+      { key: 'note', from: null, to: '', overwrite: false },
     ]);
-    assert.deepStrictEqual(p.entities[0].annotation, annotation(kA, { alt: '海', role: 'grab', humanVerified: true, medium: 'drawing', roleNote: '' }));
+    assert.deepStrictEqual(p.entities[0].annotation, annotation(kA, { alt: '海', subject: '船', humanVerified: true, methods: ['draw'], note: '' }));
   });
   it("値があって違うものは衝突にして書かず、ほかの項目は書く", () => {
     const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [
-      annotation(kA, { role: 'grab', tags: [] }),
+      annotation(kA, { subject: '船', tags: [] }),
     ]);
     const p = plan(`
 moments:
   - moment: ${kT1}
-    media: [{ entity: ${kA}, role: deep, tags: [海], alt: 海 }]
+    media: [{ entity: ${kA}, subject: 海, tags: [海], alt: 海 }]
 `, s);
     assert.deepStrictEqual(p.conflicts, [
-      { momentLabel: kT1, entityID: kA, key: 'role', current: 'grab', file: 'deep' },
+      { momentLabel: kT1, entityID: kA, key: 'subject', current: '船', file: '海' },
       // 空のリストは series と違って既定値ではなく、値として扱う。
       { momentLabel: kT1, entityID: kA, key: 'tags', current: [], file: ['海'] },
     ]);
-    assert.deepStrictEqual(p.entities[0].annotation, annotation(kA, { role: 'grab', tags: [], alt: '海' }));
+    assert.deepStrictEqual(p.entities[0].annotation, annotation(kA, { subject: '船', tags: [], alt: '海' }));
   });
   it("--overwrite なら衝突も上書きする", () => {
-    const s = state([moment(kT1, `[image entity="${kA}"]`, { tier: 'pickup' })], [kImageA], [annotation(kA, { role: 'grab' })]);
+    const s = state([moment(kT1, `[image entity="${kA}"]`, { tier: 'pickup' })], [kImageA], [annotation(kA, { methods: ['capture'] })]);
     const p = plan(`
 moments:
   - moment: ${kT1}
     tier: sketch
-    media: [{ entity: ${kA}, role: deep }]
+    media: [{ entity: ${kA}, methods: [capture, draw] }]
 `, s, true);
     assert.deepStrictEqual(p.conflicts, []);
     assert.deepStrictEqual(p.moments[0].changes, [{ key: 'tier', from: 'pickup', to: 'sketch', overwrite: true }]);
-    assert.deepStrictEqual(p.entities[0].changes, [{ key: 'role', from: 'grab', to: 'deep', overwrite: true }]);
-    assert.strictEqual(p.entities[0].annotation.role, 'deep');
+    assert.deepStrictEqual(p.entities[0].changes, [{ key: 'methods', from: ['capture'], to: ['draw', 'capture'], overwrite: true }]);
+    assert.deepStrictEqual(p.entities[0].annotation.methods, ['draw', 'capture']);
   });
   it("tier = archive と series = [] は未入力とみなす", () => {
     const p1 = plan(`
@@ -405,9 +461,9 @@ moments:
   - moment: ${kT1}
     media: [{ entity: ${kA}, materials: [digital] }]
 `;
-    const p1 = plan(src, state([moment(kT1, `[image entity="${kA}"]`)], [kImageA]));
+    const p1 = plan(src, state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [annotation(kA, { methods: ['draw'] })]));
     assert.deepStrictEqual(p1.entities[0].changes, [{ key: 'materials', from: null, to: ['digital'], overwrite: false }]);
-    const p2 = plan(src, state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [annotation(kA, { materials: [] })]));
+    const p2 = plan(src, state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [annotation(kA, { methods: ['draw'], materials: [] })]));
     assert.deepStrictEqual(p2.entities, []);
     assert.deepStrictEqual(p2.conflicts, [{ momentLabel: kT1, entityID: kA, key: 'materials', current: [], file: ['digital'] }]);
   });
@@ -460,7 +516,7 @@ moments:
     assert.deepStrictEqual(p.conflicts, [{ momentLabel: kT1, entityID: kB, key: 'human_verified', current: true, file: false }]);
   });
   it("値の変わらない entity は計画に入れない", () => {
-    const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [annotation(kA, { palette: 'color', role: 'grab' })]);
+    const s = state([moment(kT1, `[image entity="${kA}"]`)], [kImageA], [annotation(kA, { palette: 'color', subject: '海' })]);
     const p = plan(`
 moments:
   - moment: ${kT1}
@@ -472,15 +528,15 @@ moments:
     const s = state([
       moment(kT1, `[image entity="${kA}"][video entity="${kB}"]`),
       moment(kT2, `[audio entity="${kC}"]`, { tier: 'pickup' }),
-    ], [kImageA, kVideoB, kAudioC], [annotation(kB, { role: 'grab' })]);
+    ], [kImageA, kVideoB, kAudioC], [annotation(kB, { subject: '船' })]);
     const src = `
 moments:
   - moment: ${kT1}
     tier: pickup
     series: [夏, 海]
     media:
-      - { entity: ${kA}, medium: drawing, tags: [海], palette: color, human_verified: true, role_star: false }
-      - { entity: ${kB}, role: deep, alt: 波 }
+      - { entity: ${kA}, methods: [generate, draw], materials: [digital], tags: [海], palette: color, human_verified: true }
+      - { entity: ${kB}, subject: 波, alt: 波 }
   - moment: ${kT2}
     tier: sketch
     media:

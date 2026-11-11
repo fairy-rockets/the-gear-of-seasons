@@ -255,18 +255,16 @@ describe("Repo の entity の注釈", () => {
   const kID = '0123456789abcdef0123456789abcdef';
   const kAnnotationRow = {
     entity_id: kID,
-    medium: 'drawing',
+    methods: ['draw', 'generate'],
     materials: null,
+    subject: '',
     alt: null,
     description: null,
     tags: [],
     palette: null,
     characters: null,
+    note: null,
     human_verified: true,
-    role: 'none',
-    role_group: null,
-    role_star: null,
-    role_note: null,
   };
 
   beforeEach(() => {
@@ -277,6 +275,8 @@ describe("Repo の entity の注釈", () => {
   it("findEntityAnnotations は id の配列を1つの引数で渡す", async () => {
     await repo.findEntityAnnotations([kID, 'fedcba9876543210fedcba9876543210']);
     assert.strictEqual(calls.length, 1);
+    // ENUM の配列は pg が JS の配列にしないので、text[] にして読む。
+    assert.ok(calls[0].q.includes(`"methods"::text[] as "methods"`), calls[0].q);
     assert.ok(calls[0].q.includes(`"entity_id" = any($1::text[])`), calls[0].q);
     assert.deepStrictEqual(calls[0].args, [[kID, 'fedcba9876543210fedcba9876543210']]);
   });
@@ -287,47 +287,48 @@ describe("Repo の entity の注釈", () => {
     assert.strictEqual(got.size, 0);
   });
 
-  // NULL（値なし）と 'none'・空のリストは別の値
-  it("読んだ注釈の null と 'none'・空のリストを区別する", async () => {
+  // NULL（値なし）と空の文字列・空のリストは別の値
+  it("読んだ注釈の null と空の文字列・空のリストを区別する", async () => {
     const a = await repo.findEntityAnnotation(kID);
     assert.ok(a !== null);
-    assert.strictEqual(a.medium, 'drawing');
+    assert.deepStrictEqual(a.methods, ['draw', 'generate']);
     assert.strictEqual(a.materials, null);
+    assert.strictEqual(a.subject, '');
     assert.deepStrictEqual(a.tags, []);
     assert.strictEqual(a.characters, null);
-    assert.strictEqual(a.role, 'none');
+    assert.strictEqual(a.note, null);
     assert.strictEqual(a.palette, null);
     assert.strictEqual(a.humanVerified, true);
-    assert.strictEqual(a.roleStar, null);
   });
 
   it("DB に知らない値があれば例外にする", async () => {
-    calls = stubPool(repo, [{ ...kAnnotationRow, role: 'maybe' }]);
-    await assert.rejects(() => repo.findEntityAnnotation(kID), /Invalid role/);
+    calls = stubPool(repo, [{ ...kAnnotationRow, methods: ['paint'] }]);
+    await assert.rejects(() => repo.findEntityAnnotation(kID), /Invalid methods/);
+    calls = stubPool(repo, [{ ...kAnnotationRow, palette: 'sepia' }]);
+    await assert.rejects(() => repo.findEntityAnnotation(kID), /Invalid palette/);
   });
 
   it("upsertEntityAnnotation はすべての項目を、null も含めてそのまま渡す", async () => {
     const a: EntityAnnotation = {
       entityID: kID,
-      medium: 'camera',
+      methods: ['draw', 'capture'],
       materials: ['pencil', 'digital'],
+      subject: '海',
       alt: '海',
       description: null,
       tags: ['海', 'a,"b"'],
       palette: 'color',
       characters: [],
+      note: null,
       humanVerified: false,
-      role: 'grab',
-      roleGroup: null,
-      roleStar: true,
-      roleNote: null,
     };
     await repo.upsertEntityAnnotation(a);
     const q = calls[0].q;
     assert.ok(q.includes(`on conflict ("entity_id") do update set`), q);
     assert.deepStrictEqual(calls[0].args, [
-      kID, 'camera', ['pencil', 'digital'], '海', null, ['海', 'a,"b"'], 'color', [], false, 'grab', null, true, null,
+      kID, ['draw', 'capture'], ['pencil', 'digital'], '海', '海', null, ['海', 'a,"b"'], 'color', [], null, false,
     ]);
+    assert.ok(q.includes(`$2::annotation_method[]`), q);
   });
 });
 

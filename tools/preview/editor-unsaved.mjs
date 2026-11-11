@@ -19,9 +19,8 @@ const html = `<!doctype html><meta charset="utf-8"><div class="editor-wrapper">
 <textarea id="text">本文</textarea><textarea id="intent"></textarea><button id="save">SAVE</button><button id="delete">DEL</button>
 <button id="upload">UPLOAD</button></div><div id="preview"></div><a id="leave" href="/other">移動</a>
 <script src="/js/editor.js"></script>`;
-const empty = { medium: null, materials: null, alt: null, description: null, tags: null, palette: null,
-  characters: null, humanVerified: false,
-  role: null, roleGroup: null, roleStar: null, roleNote: null };
+const empty = { methods: null, materials: null, subject: null, alt: null, description: null, tags: null, palette: null,
+  characters: null, note: null, humanVerified: false };
 const browser = await puppeteer.launch({ executablePath: '/usr/bin/chromium', headless: true,
   args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 const page = await browser.newPage();
@@ -167,6 +166,19 @@ try {
   await annotationInput('通信中に変更'); await release(); await idle();
   assert.equal(await dirty(), true, 'annotation edits during save survive');
   await page.click('.annotation-save'); await idle(); assert.equal(await dirty(), false);
+  // 欄はすべて human_verified の枠の中に kAnnotationFields の順で並び、human_verified は最後。
+  assert.deepEqual(await page.$$eval('.annotation-draft .annotation-field > .annotation-label', els => els.map(el => el.textContent)),
+    ['methods', 'materials', 'subject', 'alt', 'description', 'tags', 'palette', 'characters', 'note', 'human_verified']);
+  assert.equal(await page.$eval('.annotation-draft', el => el.classList.contains('annotation-unverified')), true);
+  // methods は値ごとのチェックで、kAnnotationMethods の順に送る。draw が無い間、空の materials の欄は無効。
+  const fieldset = () => page.$eval('.annotation-fieldset', el => ({ disabled: el.disabled,
+    warning: !el.querySelector('.annotation-warning').hidden }));
+  const method = v => page.click(`.annotation-set input[value="${v}"]`);
+  assert.deepEqual(await fieldset(), { disabled: true, warning: false }, 'materials is disabled without draw');
+  await method('generate'); await method('draw');
+  assert.deepEqual(await fieldset(), { disabled: false, warning: false }, 'draw enables materials');
+  await page.click('.annotation-save'); await idle();
+  assert.deepEqual(lastAnnotation.annotation.methods, ['draw', 'generate'], 'methods are sent in kAnnotationMethods order');
   // materials の候補のボタンは、押すと欄に足し、もう一度押すと外す。候補に無い値も欄に書ける。
   const materials = () => page.evaluate(() => [...document.querySelectorAll('.annotation-field')]
     .find(el => el.querySelector('.annotation-label').textContent === 'materials')
@@ -203,12 +215,20 @@ try {
   await suggestion('pencil');
   await page.click('.annotation-save'); await idle();
   assert.equal(lastAnnotation.annotation.materials, null, 'removing typed values back to empty is null');
+  // 値のある materials は、draw を外しても無効にせず（空にできるように）、保存できないことを出す。
+  await suggestion('pastel'); await method('draw');
+  assert.deepEqual(await fieldset(), { disabled: false, warning: true }, 'filled materials without draw warns');
+  await suggestion('pastel');
+  assert.deepEqual(await fieldset(), { disabled: true, warning: false }, 'emptied materials without draw is disabled');
+  await method('generate');
+  await page.click('.annotation-save'); await idle();
+  assert.equal(lastAnnotation.annotation.methods, null, 'no checked methods is null');
   await annotationInput('一時変更'); await annotationInput('通信中に変更');
   assert.equal(await dirty(), false, 'annotation revert is clean');
   await input('#title', 'moment だけ未保存');
   await page.click('.annotation-save'); await idle(); assert.equal(await dirty(), true);
   await page.click('.annotation-close');
-  console.log('ok: independent saves, failed/pending annotation save, materials suggestions, edits and revert');
+  console.log('ok: independent saves, failed/pending annotation save, methods, materials suggestions, edits and revert');
 
   let confirmed = '';
   page.once('dialog', async dialog => { confirmed = dialog.message(); await dialog.dismiss(); });
