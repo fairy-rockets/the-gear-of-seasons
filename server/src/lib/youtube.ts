@@ -7,7 +7,7 @@ export class YouTubeURLError extends Error {
   }
 }
 
-const kYouTubeID = /^[A-Za-z0-9_-]{11}$/;
+export const kYouTubeID = /^[A-Za-z0-9_-]{11}$/;
 const kYouTubeHosts = new Set([
   'youtube.com',
   'www.youtube.com',
