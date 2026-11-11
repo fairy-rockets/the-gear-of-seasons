@@ -16,7 +16,9 @@ The default branch is **`main`**.
 
 ## Naming
 
-Fixed module constants and static class constants use `kXxx`; properties of constant objects use `camelCase`. Local variables, instance fields and mutable state follow their existing naming.
+In server/client TypeScript, fixed module constants and static class constants use `kXxx`; properties of constant objects use `camelCase`. Fixed constants include settings, lookup tables and rendering parameters, including values read from the environment. Computational intermediates such as `dirname`, local variables, instance fields and mutable state retain their existing naming, even when declared with `const`.
+
+Preserve established acronym spellings such as `URL`, `ID` and `HTML`, and the capitalization of `YouTube`.
 
 ## Commands
 

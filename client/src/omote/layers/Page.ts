@@ -2,7 +2,7 @@ import World from '../World'
 import Layer from '../Layer';
 import { mat4 } from 'gl-matrix';
 import twemoji from 'twemoji';
-import { kEmojiUrlBase } from '../../constant';
+import { kEmojiURLBase } from '../../constant';
 
 export default class Page extends Layer {
 
@@ -41,7 +41,7 @@ export default class Page extends Layer {
     // 文字列に対して parse すると、属性値(title="カエル🐸…" など)の絵文字まで
     // <img> に置換されてタグが壊れる。DOM に対して parse すればテキストノードだけが対象になる。
     this.content_.innerHTML = body;
-    twemoji.parse(this.content_, { base: kEmojiUrlBase });
+    twemoji.parse(this.content_, { base: kEmojiURLBase });
 
     const contents = this.content_.getElementsByTagName('script');
     for(let i = 0; i < contents.length; ++i) {
@@ -125,7 +125,7 @@ export default class Page extends Layer {
   }
 }
 
-const kHtmlSrc = `
+const kHTMLSrc = `
 <div class="content">
 </div>
 `;

@@ -1,7 +1,7 @@
 import twemoji from 'twemoji';
 import AnnotationDrawer from './AnnotationDrawer';
 import Editor from './Editor';
-import { kEmojiUrlBase } from '../../constant';
+import { kEmojiURLBase } from '../../constant';
 
 export default class Preview {
   private readonly container_: HTMLDivElement;
@@ -21,7 +21,7 @@ export default class Preview {
     // 文字列に対して parse すると属性値の絵文字まで <img> に置換されて壊れるので、DOM に対して parse する。
     this.container_.innerHTML = body;
     twemoji.parse(this.container_, {
-      base: kEmojiUrlBase,
+      base: kEmojiURLBase,
     });
     this.drawer_!.decorate();
   }

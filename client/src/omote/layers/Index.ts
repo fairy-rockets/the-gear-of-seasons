@@ -6,7 +6,7 @@ import { mat4, vec4 } from 'gl-matrix';
 import Page from './Page';
 import twemoji from 'twemoji';
 import * as protocol from '../../protocol';
-import { kEmojiUrlBase } from '../../constant';
+import { kEmojiURLBase } from '../../constant';
 
 // タップとドラッグを見分ける移動量のしきい値(px)。これ以下ならタップ扱い。
 const kTapThresholdPx = 8;
@@ -68,7 +68,7 @@ export default class Index extends Layer {
     this.lastMoveTime_ = 0;
     this.lastFrameTime_ = 0;
 
-    this.element.innerHTML = kHtmlSrc;
+    this.element.innerHTML = kHTMLSrc;
     this.selected_ = null;
 
     this.tooltip_ = document.createElement('div');
@@ -155,7 +155,7 @@ export default class Index extends Layer {
       tooltip.classList.remove('hidden');
 
       // title
-      this.tooltipTitle_.innerHTML = twemoji.parse(m.title, { base: kEmojiUrlBase });
+      this.tooltipTitle_.innerHTML = twemoji.parse(m.title, { base: kEmojiURLBase });
       this.tooltipDate_.innerHTML = m.date;
       this.fixTooltipPosition_();
     }
@@ -390,7 +390,7 @@ export default class Index extends Layer {
   }
 }
 
-const kHtmlSrc = `
+const kHTMLSrc = `
 <div class="header">
   <div class="title">
   <h1>妖精⊸ロケット</h1>
