@@ -262,11 +262,11 @@ export type CurationPlan = {
   conflicts: Conflict[];
 };
 
-// 今の値が「未入力」か。既定値（tier = archive・series = []・human_verified = false）も未入力とみなし、衝突にしない。
+// 今の値が「未入力」か。既定値（tier = normal・series = []・human_verified = false）も未入力とみなし、衝突にしない。
 function isUnset(key: string, v: unknown): boolean {
   switch (key) {
     case 'tier':
-      return v === 'archive';
+      return v === 'normal';
     case 'series':
       return Array.isArray(v) && v.length === 0;
     case 'human_verified':

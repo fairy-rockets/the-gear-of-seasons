@@ -178,7 +178,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
     author: 'a',
     text: `[image entity="${kA}"]`,
     status: 'published',
-    tier: 'sketch',
+    tier: 'rough',
     series: ['魔女hexe', '癒し'],
     intent: 'ねらい\n振り返り',
   };
@@ -186,7 +186,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
   function repoWithMoment(): FakeRepo {
     return new FakeRepo([kImageA], [{
       timestamp: kOld, title: 't', author: 'a', text: '', iconID: undefined, status: 'draft',
-      tier: 'pickup', series: ['癒し'], intent: null,
+      tier: 'favorite', series: ['癒し'], intent: null,
     }]);
   }
 
@@ -200,7 +200,7 @@ describe("Shelf.updateMoment（SAVE）", () => {
       text: `[image entity="${kA}"]`,
       iconID: kA,
       status: 'published',
-      tier: 'sketch',
+      tier: 'rough',
       series: ['魔女hexe', '癒し'],
       intent: 'ねらい\n振り返り',
     }]]);
@@ -213,15 +213,15 @@ describe("Shelf.updateMoment（SAVE）", () => {
     assert.strictEqual((repo.saved[0][2] as Moment).intent, null);
   });
 
-  it("新しい moment は insertMoment で書く。新規の画面の既定値（archive・空）もそのまま書く", async () => {
+  it("新しい moment は insertMoment で書く。新規の画面の既定値（normal・空）もそのまま書く", async () => {
     const repo = new FakeRepo([kImageA], []);
     await new Shelf(repo as unknown as Repo).updateMoment({
-      ...kReq, originalDate: null, tier: 'archive', series: [],
+      ...kReq, originalDate: null, tier: 'normal', series: [],
     });
     assert.strictEqual(repo.saved.length, 1);
     const [name, m] = repo.saved[0] as [string, Moment];
     assert.strictEqual(name, 'insertMoment');
-    assert.deepStrictEqual([m.tier, m.series], ['archive', []]);
+    assert.deepStrictEqual([m.tier, m.series], ['normal', []]);
   });
 
   it("日時が空なら、画像の撮影日時を引いて使う", async () => {
@@ -365,7 +365,7 @@ describe("Shelf の外部の動画", () => {
     const repo = new FakeRepo([kExternal], []);
     const m = await new Shelf(repo as unknown as Repo, []).updateMoment({
       title: 't', originalDate: null, date: '', author: 'a', text: `[video entity="${kA}"]`,
-      status: 'draft', tier: 'archive', series: [], intent: null,
+      status: 'draft', tier: 'normal', series: [], intent: null,
     });
     assert.ok(m.timestamp!!.isSame(dayjs('2025-01-04T06:14:49Z')));
     assert.strictEqual(m.iconID, kA);

@@ -2,7 +2,7 @@
 // draft は ura でだけ見える。omote に出るのは published だけ。
 export type MomentStatus = 'draft' | 'published';
 
-export type MomentTier = 'pickup' | 'archive' | 'sketch' | 'hidden';
+export type MomentTier = 'favorite' | 'normal' | 'rough';
 
 export type EntityType = 'image' | 'video' | 'audio';
 

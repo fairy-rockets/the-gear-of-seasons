@@ -14,7 +14,7 @@ const html = `<!doctype html><meta charset="utf-8"><div class="editor-wrapper">
 <input id="title" value="タイトル"><input id="date" value="${date}">
 <select id="author"><option>宵宮ナギ</option><option>甚三紅もみじ</option></select>
 <select id="status"><option>draft</option><option>published</option></select>
-<select id="tier"><option>archive</option><option>pickup</option></select>
+<select id="tier"><option>normal</option><option>favorite</option></select>
 <input id="series" value="a, b">
 <textarea id="text">本文</textarea><textarea id="intent"></textarea><button id="save">SAVE</button><button id="delete">DEL</button>
 <button id="upload">UPLOAD</button></div><div id="preview"></div><a id="leave" href="/other">移動</a>
@@ -96,7 +96,7 @@ try {
     ['#title', '編集', 'タイトル', 'input'], ['#text', '変更', '本文', 'input'],
     ['#date', '2027/01/01 00:00:00', date, 'input'],
     ['#author', '甚三紅もみじ', '宵宮ナギ', 'change'], ['#status', 'published', 'draft', 'change'],
-    ['#tier', 'pickup', 'archive', 'change'], ['#series', 'a,b', 'a, b', 'input'],
+    ['#tier', 'favorite', 'normal', 'change'], ['#series', 'a,b', 'a, b', 'input'],
     ['#intent', 'ねらい', '', 'input'],
   ]) {
     await input(selector, changed, event);

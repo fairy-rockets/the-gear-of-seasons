@@ -35,7 +35,7 @@ function moment(timestamp: dayjs.Dayjs, status: Moment['status']): Moment {
     text: 'ほんぶん',
     iconID: `icon-${timestamp.date()}`,
     status,
-    tier: 'archive',
+    tier: 'normal',
     series: [],
     intent: null,
   };

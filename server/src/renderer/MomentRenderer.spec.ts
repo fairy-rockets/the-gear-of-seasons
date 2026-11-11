@@ -120,7 +120,7 @@ describe("MomentRenderer.render", () => {
       text: text,
       iconID: undefined,
       status: 'published',
-      tier: 'archive',
+      tier: 'normal',
       series: [],
       intent,
     };

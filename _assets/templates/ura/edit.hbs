@@ -20,10 +20,9 @@
     </div>
     <div class="editor-bar editor-curation">
       <select name="tier" id="tier" title="tier">
-        <option value="pickup" {{#if (eq tier "pickup")}}selected{{/if}}>pickup</option>
-        <option value="archive" {{#if (eq tier "archive")}}selected{{/if}}>archive</option>
-        <option value="sketch" {{#if (eq tier "sketch")}}selected{{/if}}>sketch</option>
-        <option value="hidden" {{#if (eq tier "hidden")}}selected{{/if}}>hidden</option>
+        <option value="favorite" {{#if (eq tier "favorite")}}selected{{/if}}>favorite</option>
+        <option value="normal" {{#if (eq tier "normal")}}selected{{/if}}>normal</option>
+        <option value="rough" {{#if (eq tier "rough")}}selected{{/if}}>rough</option>
       </select>
       <input class="editor-series" type="text" name="series" id="series" title="series" placeholder="series（カンマ区切り）" {{#if series}}value="{{series}}"{{/if}} />
     </div>

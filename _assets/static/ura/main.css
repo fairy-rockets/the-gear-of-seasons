@@ -647,16 +647,12 @@ a.moment {
   background: #d9822b;
 }
 
-.moment-list .moment-badge-tier-pickup {
+.moment-list .moment-badge-tier-favorite {
   background: #3a8a50;
 }
 
-.moment-list .moment-badge-tier-sketch {
+.moment-list .moment-badge-tier-rough {
   background: #5a6aa0;
-}
-
-.moment-list .moment-badge-tier-hidden {
-  background: #555555;
 }
 
 .moment-list .moment-badge-unverified {

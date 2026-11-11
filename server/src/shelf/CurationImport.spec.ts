@@ -49,7 +49,7 @@ function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): E
 function moment(t: string, text: string, values: Partial<Moment> = {}): Moment {
   return {
     timestamp: dayjs(t), title: 't', author: 'a', text, iconID: momentIconID(fml.parse(text)), status: 'published',
-    tier: 'archive', series: [], intent: null,
+    tier: 'normal', series: [], intent: null,
     ...values,
   };
 }
@@ -91,7 +91,7 @@ describe("parseCurationFile", () => {
     const { file, errors } = parseCurationFile(`
 moments:
   - moment: ${kT1}
-    tier: pickup
+    tier: favorite
     series: [夏]
     media:
       - entity: ${kA}
@@ -107,7 +107,7 @@ moments:
     const m = file.moments[0];
     assert.strictEqual(m.label, kT1);
     assert.ok(m.timestamp.isSame(dayjs(kT1)));
-    assert.strictEqual(m.tier, 'pickup');
+    assert.strictEqual(m.tier, 'favorite');
     assert.deepStrictEqual(m.series, ['夏']);
     assert.deepStrictEqual(m.media, [{
       entityID: kA,
@@ -155,8 +155,8 @@ moments:
     const { errors } = parseCurationFile(`
 moments:
   - moment: ${kT1}
-    tier: pickup
-    tier: sketch
+    tier: favorite
+    tier: rough
 `);
     assert.strictEqual(errors.length, 1);
   });
@@ -404,36 +404,36 @@ moments:
     assert.deepStrictEqual(p.entities[0].annotation, annotation(kA, { subject: '船', tags: [], alt: '海' }));
   });
   it("--overwrite なら衝突も上書きする", () => {
-    const s = state([moment(kT1, `[image entity="${kA}"]`, { tier: 'pickup' })], [kImageA], [annotation(kA, { methods: ['capture'] })]);
+    const s = state([moment(kT1, `[image entity="${kA}"]`, { tier: 'favorite' })], [kImageA], [annotation(kA, { methods: ['capture'] })]);
     const p = plan(`
 moments:
   - moment: ${kT1}
-    tier: sketch
+    tier: rough
     media: [{ entity: ${kA}, methods: [capture, draw] }]
 `, s, true);
     assert.deepStrictEqual(p.conflicts, []);
-    assert.deepStrictEqual(p.moments[0].changes, [{ key: 'tier', from: 'pickup', to: 'sketch', overwrite: true }]);
+    assert.deepStrictEqual(p.moments[0].changes, [{ key: 'tier', from: 'favorite', to: 'rough', overwrite: true }]);
     assert.deepStrictEqual(p.entities[0].changes, [{ key: 'methods', from: ['capture'], to: ['draw', 'capture'], overwrite: true }]);
     assert.deepStrictEqual(p.entities[0].annotation.methods, ['draw', 'capture']);
   });
-  it("tier = archive と series = [] は未入力とみなす", () => {
+  it("tier = normal と series = [] は未入力とみなす", () => {
     const p1 = plan(`
 moments:
   - moment: ${kT1}
-    tier: pickup
+    tier: favorite
     series: [夏]
 `, state([moment(kT1, '')], []));
     assert.deepStrictEqual(p1.conflicts, []);
     assert.deepStrictEqual(p1.moments[0].changes.map((c) => c.key), ['tier', 'series']);
-    assert.strictEqual(p1.moments[0].tier, 'pickup');
+    assert.strictEqual(p1.moments[0].tier, 'favorite');
     assert.deepStrictEqual(p1.moments[0].series, ['夏']);
 
     const p2 = plan(`
 moments:
   - moment: ${kT1}
-    tier: archive
+    tier: normal
     series: []
-`, state([moment(kT1, '', { tier: 'pickup', series: ['夏'] })], []));
+`, state([moment(kT1, '', { tier: 'favorite', series: ['夏'] })], []));
     assert.deepStrictEqual(p2.moments, []);
     assert.deepStrictEqual(p2.conflicts.map((c) => c.key), ['tier', 'series']);
   });
@@ -478,24 +478,24 @@ moments:
     const p = plan(`
 moments:
   - moment: ${kT1}
-    tier: pickup
+    tier: favorite
   - moment: ${kT2}
-    tier: pickup
+    tier: favorite
   - moment: ${kT3}
-    tier: archive
+    tier: normal
 `, s);
     assert.deepStrictEqual(p.moments.map((m) => [m.label, m.changes.map((c) => [c.key, c.from, c.to])]), [
-      [kT1, [['tier', 'archive', 'pickup'], ['icon_id', kB, kA]]],
-      [kT2, [['tier', 'archive', 'pickup']]],
+      [kT1, [['tier', 'normal', 'favorite'], ['icon_id', kB, kA]]],
+      [kT2, [['tier', 'normal', 'favorite']]],
     ]);
   });
   it("tier だけ変わるときも、series は今の値で書く", () => {
     const p = plan(`
 moments:
   - moment: ${kT1}
-    tier: pickup
+    tier: favorite
 `, state([moment(kT1, '', { series: ['夏'] })], []));
-    assert.strictEqual(p.moments[0].tier, 'pickup');
+    assert.strictEqual(p.moments[0].tier, 'favorite');
     assert.deepStrictEqual(p.moments[0].series, ['夏']);
   });
   it("human_verified は false を未入力とみなし、true → false だけを衝突にする", () => {
@@ -527,18 +527,18 @@ moments:
   it("同じファイルで2回目は変更 0 件", () => {
     const s = state([
       moment(kT1, `[image entity="${kA}"][video entity="${kB}"]`),
-      moment(kT2, `[audio entity="${kC}"]`, { tier: 'pickup' }),
+      moment(kT2, `[audio entity="${kC}"]`, { tier: 'favorite' }),
     ], [kImageA, kVideoB, kAudioC], [annotation(kB, { subject: '船' })]);
     const src = `
 moments:
   - moment: ${kT1}
-    tier: pickup
+    tier: favorite
     series: [夏, 海]
     media:
       - { entity: ${kA}, methods: [generate, draw], materials: [digital], tags: [海], palette: color, human_verified: true }
       - { entity: ${kB}, subject: 波, alt: 波 }
   - moment: ${kT2}
-    tier: sketch
+    tier: rough
     media:
       - { entity: ${kC}, alt: 波の音 }
 `;
@@ -565,13 +565,13 @@ describe("applyCurationPlan", () => {
     const p = plan(`
 moments:
   - moment: ${kT1}
-    tier: pickup
+    tier: favorite
     media: [{ entity: ${kA}, alt: 海 }]
   - moment: ${kT2}
     series: [冬]
     intent: 冬のねらい
   - moment: ${kT3}
-    tier: sketch
+    tier: rough
 `, state(moments, [kImageA]));
     const calls: unknown[][] = [];
     const shelf = new Proxy({}, {
@@ -589,17 +589,17 @@ moments:
       ['findMoment', dayjs(kT1).format(), 'all'],
       ['updateMoment', {
         title: '海', originalDate: date(kT1), date: date(kT1), author: 'a', text: `[image entity="${kA}"]`, status: 'published',
-        tier: 'pickup', series: ['夏'], intent: 'もとのねらい',
+        tier: 'favorite', series: ['夏'], intent: 'もとのねらい',
       }],
       ['findMoment', dayjs(kT2).format(), 'all'],
       ['updateMoment', {
         title: 't', originalDate: date(kT2), date: date(kT2), author: 'a', text: '', status: 'draft',
-        tier: 'archive', series: ['冬'], intent: '冬のねらい',
+        tier: 'normal', series: ['冬'], intent: '冬のねらい',
       }],
       ['findMoment', dayjs(kT3).format(), 'all'],
       ['updateMoment', {
         title: 't', originalDate: date(kT3), date: date(kT3), author: 'a', text: '', status: 'published',
-        tier: 'sketch', series: [], intent: null,
+        tier: 'rough', series: [], intent: null,
       }],
     ]);
   });
@@ -607,7 +607,7 @@ moments:
     const p = plan(`
 moments:
   - moment: ${kT1}
-    tier: pickup
+    tier: favorite
 `, state([moment(kT1, '')], []));
     const shelf = new Proxy({}, { get: () => async () => null }) as Shelf;
     await assert.rejects(applyCurationPlan(shelf, p), /Moment not found/);
@@ -683,7 +683,7 @@ describe("applyCurationPlan で書いた結果", () => {
     const src = `
 moments:
   - moment: ${kT1}
-    tier: pickup
+    tier: favorite
     media:
       - { entity: ${kA}, palette: color, characters: [ナギ] }
       - { entity: ${kB}, alt: 波 }
@@ -691,7 +691,7 @@ moments:
     media:
       - { entity: ${kD}, palette: monochrome }
   - moment: ${kT4}
-    tier: sketch
+    tier: rough
 `;
     const file = parse(src);
     const p = makeCurationPlan(file, await loadCurationState(repo as unknown as Repo, file), { overwrite: false });
@@ -715,8 +715,8 @@ moments:
     }
     assert.deepStrictEqual(changedIcon, plannedIcon);
     assert.deepStrictEqual([...plannedIcon.keys()], [dayjs(kT4).format()]);
-    assert.strictEqual((await repo.findMoment(dayjs(kT1)))!!.tier, 'pickup');
-    assert.strictEqual((await repo.findMoment(dayjs(kT4)))!!.tier, 'sketch');
+    assert.strictEqual((await repo.findMoment(dayjs(kT1)))!!.tier, 'favorite');
+    assert.strictEqual((await repo.findMoment(dayjs(kT4)))!!.tier, 'rough');
     for (const e of p.entities) {
       assert.deepStrictEqual(repo.annotations.get(e.entity.id), e.annotation);
     }
