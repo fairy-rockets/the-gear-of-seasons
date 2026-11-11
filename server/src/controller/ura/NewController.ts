@@ -23,7 +23,7 @@ export default class NewController {
         date: '',
         text: '',
         status: 'draft',
-        tier: 'archive',
+        tier: 'normal',
         series: '',
         intent: '',
       }));

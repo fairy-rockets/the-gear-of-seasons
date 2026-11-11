@@ -49,7 +49,7 @@ function annotation(entityID: string, values: Partial<EntityAnnotation> = {}): E
 function moment(t: string, text: string, values: Partial<Moment> = {}): Moment {
   return {
     timestamp: dayjs(t), title: '常夏の世界一周', author: '宵宮ナギ', text, iconID: kA, status: 'published',
-    tier: 'archive', series: [], intent: null,
+    tier: 'normal', series: [], intent: null,
     ...values,
   };
 }
@@ -65,7 +65,7 @@ describe("hexeYamlObject", () => {
   it("moment の項目をこの順に出し、時刻はサーバの時間帯によらず JST で書く", () => {
     // UTC では前の日。JST では 2017-07-26 05:00:00。
     const m = moment('2017-07-25T20:00:00Z', `[image entity="${kA}"]`, {
-      status: 'published', tier: 'pickup', series: ['夏', '海'], intent: '海の青',
+      status: 'published', tier: 'favorite', series: ['夏', '海'], intent: '海の青',
     });
     const obj = hexeYamlObject(m, ...maps([kImageA]));
     assert.deepStrictEqual(Object.keys(obj), [
@@ -78,7 +78,7 @@ describe("hexeYamlObject", () => {
       created: '2017-07-26',
       author: '宵宮ナギ',
       status: 'published',
-      tier: 'pickup',
+      tier: 'favorite',
       series: ['夏', '海'],
       intent: '海の青',
       icon: kA,

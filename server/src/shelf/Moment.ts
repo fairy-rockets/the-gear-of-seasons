@@ -41,7 +41,7 @@ export function parseMomentStatus(str: unknown): MomentStatus {
 }
 
 export function parseMomentTier(str: unknown): MomentTier {
-  if (str === 'pickup' || str === 'archive' || str === 'sketch' || str === 'hidden') {
+  if (str === 'favorite' || str === 'normal' || str === 'rough') {
     return str;
   }
   throw new Error(`Invalid moment tier: ${str}`);

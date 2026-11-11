@@ -45,7 +45,7 @@ const kStatusLabels: Record<protocol.MomentStatus, string> = {
   published: '公開',
 };
 
-const kTiers: protocol.MomentTier[] = ['pickup', 'archive', 'sketch', 'hidden'];
+const kTiers: protocol.MomentTier[] = ['favorite', 'normal', 'rough'];
 
 // series が空の moment を選ぶ値。
 const kNoSeries = '';

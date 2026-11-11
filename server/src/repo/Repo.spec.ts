@@ -38,7 +38,7 @@ const kRow = {
   text: 'x',
   icon_id: null,
   status: 'draft',
-  tier: 'archive',
+  tier: 'normal',
   series: [],
   intent: null,
 };
@@ -156,7 +156,7 @@ describe("Repo の moment の可視性", () => {
     text: 'x',
     iconID: undefined,
     status: 'published',
-    tier: 'archive',
+    tier: 'normal',
     series: [],
     intent: null,
   };
@@ -190,12 +190,12 @@ describe("Repo のキュレーションの項目", () => {
     text: 'x',
     iconID: undefined,
     status: 'published',
-    tier: 'archive',
+    tier: 'normal',
     series: [],
     intent: null,
   };
 
-  const kCurated: Moment = { ...kMoment, tier: 'sketch', series: ['魔女hexe'], intent: 'ねらい' };
+  const kCurated: Moment = { ...kMoment, tier: 'rough', series: ['魔女hexe'], intent: 'ねらい' };
 
   it("updateMoment（SAVE）はキュレーションの項目も Moment の値をそのまま書く", async () => {
     await repo.updateMoment(kTimestamp, kCurated);
@@ -204,7 +204,7 @@ describe("Repo のキュレーションの項目", () => {
     assert.ok(q.includes(`"series" = $9::text[]`), q);
     assert.ok(q.includes(`"intent" = $10`), q);
     assert.ok(!q.includes('case'), q);
-    assert.deepStrictEqual(calls[0].args.slice(6), [kTimestamp.toDate(), 'sketch', ['魔女hexe'], 'ねらい']);
+    assert.deepStrictEqual(calls[0].args.slice(6), [kTimestamp.toDate(), 'rough', ['魔女hexe'], 'ねらい']);
   });
 
   it("updateMoment は moment が無ければ false を返す", async () => {
@@ -217,14 +217,14 @@ describe("Repo のキュレーションの項目", () => {
     const q = calls[0].q;
     assert.ok(q.includes(`"tier", "series", "intent"`), q);
     assert.ok(q.includes(`$8::text[]`), q);
-    assert.deepStrictEqual(calls[0].args.slice(6), ['sketch', ['魔女hexe'], 'ねらい']);
+    assert.deepStrictEqual(calls[0].args.slice(6), ['rough', ['魔女hexe'], 'ねらい']);
   });
 
   it("findMoment はキュレーションの項目も読む", async () => {
-    calls = stubPool(repo, [{ ...kRow, tier: 'pickup', series: ['癒し', '季節'] }]);
+    calls = stubPool(repo, [{ ...kRow, tier: 'favorite', series: ['癒し', '季節'] }]);
     const m = await repo.findMoment(kTimestamp, 'all');
     assert.strictEqual(calls.length, 1);
-    assert.strictEqual(m?.tier, 'pickup');
+    assert.strictEqual(m?.tier, 'favorite');
     assert.deepStrictEqual(m?.series, ['癒し', '季節']);
   });
 

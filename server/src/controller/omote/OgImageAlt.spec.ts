@@ -35,7 +35,7 @@ class StubShelf {
       text: 'at Ushiku, Ibaraki.',
       iconID: 'icon',
       status: 'published',
-      tier: 'archive',
+      tier: 'normal',
       series: [],
       intent: null,
     };
