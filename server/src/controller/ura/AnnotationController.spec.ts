@@ -15,17 +15,18 @@ import AnnotationController from './AnnotationController.js';
 const kImage = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const kAudio = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 const kMissing = 'cccccccccccccccccccccccccccccccc';
+const kExternal = 'dddddddddddddddddddddddddddddddd';
 
 const kEntities: Entity[] = [
   { type: 'image', location: 'internal', id: kImage, mediumID: 'm', iconID: 'i', timestamp: undefined, mimeType: 'image/png', width: 1, height: 1 },
   { type: 'audio', location: 'internal', id: kAudio, iconID: 'i', timestamp: undefined, mimeType: 'audio/mpeg', duration: 1 },
+  {
+    type: 'video', location: 'external', id: kExternal, iconID: 'i', timestamp: undefined, width: 1280, height: 720, duration: 60,
+    externalRef: { platform: 'youtube', id: 'dQw4w9WgXcQ' },
+  },
 ];
 
-const kEmpty: protocol.AnnotationValues = {
-  medium: null, materials: null, alt: null, description: null, tags: null, palette: null, characters: null,
-  humanVerified: false,
-  role: null, roleGroup: null, roleStar: null, roleNote: null,
-};
+const kEmpty: protocol.AnnotationValues = protocol.emptyAnnotationValues();
 
 class FakeRepo {
   readonly annotations = new Map<string, EntityAnnotation>();
@@ -101,14 +102,44 @@ describe("POST /annotation", () => {
 
   it("保存すると 204 を返す", async () => {
     const { repo, save } = setup();
-    const r = await save(request({ medium: 'drawing', palette: 'color' }));
+    const r = await save(request({ methods: ['draw'], subject: '海', note: '補足', palette: 'color' }));
     assert.strictEqual(r.statusCode, 204);
-    assert.deepStrictEqual(repo.annotations.get(kImage), { entityID: kImage, ...kEmpty, medium: 'drawing', palette: 'color' });
+    assert.deepStrictEqual(repo.annotations.get(kImage), {
+      entityID: kImage, ...kEmpty, methods: ['draw'], subject: '海', note: '補足', palette: 'color',
+    });
+  });
+
+  it("methods は kAnnotationMethods の順にそろえて書く", async () => {
+    const { repo, save } = setup();
+    assert.strictEqual((await save(request({ methods: ['generate', 'draw'] }))).statusCode, 204);
+    assert.deepStrictEqual(repo.annotations.get(kImage)!!.methods, ['draw', 'generate']);
+  });
+
+  it("音声にも methods・subject・note・human_verified を書ける", async () => {
+    const { repo, save } = setup();
+    const values = { methods: ['capture', 'compose'], subject: '雨音', note: 'n', humanVerified: true } as const;
+    const r = await save({ ...request({ ...values, methods: [...values.methods] }), entityID: kAudio });
+    assert.strictEqual(r.statusCode, 204);
+    assert.deepStrictEqual(repo.annotations.get(kAudio), { entityID: kAudio, ...kEmpty, ...values, methods: ['capture', 'compose'] });
+  });
+
+  it("外部の動画（YouTube）にも注釈を書けて、読み直せる", async () => {
+    const { repo, save, find } = setup();
+    const values: Partial<protocol.AnnotationValues> = {
+      methods: ['capture'], subject: '夕暮れ', alt: 'a', tags: ['空'], palette: 'color', note: 'n', humanVerified: true,
+    };
+    const r = await save({ ...request(values), entityID: kExternal });
+    assert.strictEqual(r.statusCode, 204);
+    assert.deepStrictEqual(repo.annotations.get(kExternal), { entityID: kExternal, ...kEmpty, ...values });
+    const found = await find({ ids: kExternal });
+    assert.deepStrictEqual(found.body as protocol.Annotation.Find.Response, {
+      entities: [{ entityID: kExternal, type: 'video', annotation: { ...kEmpty, ...values } }],
+    });
   });
 
   it("空の文字列と空のリストは、null に変えずにそのまま書く", async () => {
     const { repo, save } = setup();
-    await save(request({ alt: '', tags: [], characters: ['a'], materials: [] }));
+    await save(request({ alt: '', tags: [], characters: ['a'], methods: ['draw'], materials: [] }));
     const a = repo.annotations.get(kImage)!!;
     assert.deepStrictEqual([a.alt, a.tags, a.characters, a.materials, a.description], ['', [], ['a'], [], null]);
   });
@@ -119,8 +150,13 @@ describe("POST /annotation", () => {
     ['materials が文字列', request({ materials: 'digital' as any })],
     ['materials が欠けている', { ...request({}), annotation: (({ materials: _, ...rest }) => rest)(kEmpty) }],
     ['humanVerified が null', request({ humanVerified: null as any })],
-    ['roleStar が文字列', request({ roleStar: 'true' as any })],
-    ['medium が定義に無い', request({ medium: 'oil' as any })],
+    ['subject が数', request({ subject: 1 as any })],
+    ['note がリスト', request({ note: ['a'] as any })],
+    ['methods が文字列', request({ methods: 'draw' as any })],
+    ['methods が空', request({ methods: [] })],
+    ['methods が重複している', request({ methods: ['draw', 'draw'] })],
+    ['methods が定義に無い', request({ methods: ['oil'] as any })],
+    ['古い項目 medium がある', { ...request({}), annotation: { ...kEmpty, medium: 'drawing' } }],
     ['項目が欠けている', { ...request({}), annotation: (({ alt: _, ...rest }) => rest)(kEmpty) }],
     ['定義に無い項目がある', { ...request({}), annotation: { ...kEmpty, colour: 'red' } }],
     ['annotation が無い', { entityID: kImage }],
@@ -140,7 +176,14 @@ describe("POST /annotation", () => {
   it("その種類が持たない項目を送ると例外になり、何も書かない", async () => {
     const { repo, save } = setup();
     await assert.rejects(() => save({ ...request({ palette: 'color' }), entityID: kAudio }), /cannot have palette/);
-    await assert.rejects(() => save({ ...request({ materials: ['digital'] }), entityID: kAudio }), /cannot have materials/);
+    await assert.rejects(() => save({ ...request({ methods: ['draw'], materials: ['digital'] }), entityID: kAudio }), /cannot have materials/);
+    assert.strictEqual(repo.annotations.size, 0);
+  });
+
+  it("methods に draw が無いのに materials を送ると例外になり、何も書かない", async () => {
+    const { repo, save } = setup();
+    await assert.rejects(() => save(request({ methods: ['capture'], materials: ['digital'] })), /unless methods includes draw/);
+    await assert.rejects(() => save(request({ materials: [] })), /unless methods includes draw/);
     assert.strictEqual(repo.annotations.size, 0);
   });
 

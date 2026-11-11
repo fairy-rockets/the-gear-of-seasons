@@ -2,11 +2,11 @@ import dayjs from 'dayjs';
 import { parseDocument } from 'yaml';
 
 import * as fml from '../lib/fml.js';
-import { emptyAnnotationValues } from '../lib/protocol.js';
+import { canHaveMaterials, emptyAnnotationValues } from '../lib/protocol.js';
 import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { Entity } from './Entity.js';
-import { AnnotationField, EntityAnnotation, validateEntityAnnotation } from './EntityAnnotation.js';
+import { AnnotationField, EntityAnnotation, kFieldsByType, validateEntityAnnotation } from './EntityAnnotation.js';
 import { Moment, MomentTier, formatMomentTime, momentIconID, parseMomentTier } from './Moment.js';
 import {
   AnnotationValue,
@@ -359,16 +359,9 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
         continue;
       }
       // その種類が持たない項目がファイルにあれば止める。項目ごとに確かめ、合わないものを全部挙げる。
-      const rejected = media.fields.filter((f) => {
-        const one = emptyAnnotation(entity.id) as Record<AnnotationField, AnnotationValue>;
-        one[f.field] = f.value;
-        try {
-          validateEntityAnnotation(entity, one as EntityAnnotation);
-          return false;
-        } catch (_err) {
-          return true;
-        }
-      });
+      // 値そのものは parseCurationFile が確かめている。materials と methods の組み合わせは、書いたあとの値で下で確かめる。
+      const fieldsOfType = kFieldsByType[entity.type];
+      const rejected = media.fields.filter((f) => !fieldsOfType.includes(f.field));
       if (rejected.length > 0) {
         plan.errors.push(`${ewhere}: ${entity.type} の entity が持たない項目です: ${rejected.map((f) => f.key).join(', ')}`);
         continue;
@@ -392,7 +385,20 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
         }
       }
       if (changes.length > 0) {
-        plan.entities.push({ momentLabel: fm.label, entity, changes, annotation: next as EntityAnnotation });
+        // 書いたあとの注釈が、materials は methods に draw を含むときだけ、を満たすか。
+        // 衝突で書かない methods は今の値のまま比べる。
+        const written = next as EntityAnnotation;
+        if (written.materials !== null && !canHaveMaterials(written.methods)) {
+          plan.errors.push(`${ewhere}: materials は methods に draw を含むときだけ書けます（書いたあとの methods: ${JSON.stringify(written.methods)}）`);
+          continue;
+        }
+        try {
+          validateEntityAnnotation(entity, written);
+        } catch (err) {
+          plan.errors.push(`${ewhere}: ${(err as Error).message}`);
+          continue;
+        }
+        plan.entities.push({ momentLabel: fm.label, entity, changes, annotation: written });
       }
     }
   }

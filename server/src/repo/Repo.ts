@@ -7,9 +7,8 @@ import { Entity, EntityLocation, ExternalVideoRef } from '../shelf/Entity.js';
 import { parseExternalVideoRef } from '../lib/ExternalVideoRef.js';
 import {
   EntityAnnotation,
-  parseAnnotationMedium,
+  parseAnnotationMethods,
   parseAnnotationPalette,
-  parseAnnotationRole,
 } from '../shelf/EntityAnnotation.js';
 import Config from '../Config.js';
 import {
@@ -455,9 +454,8 @@ delete from moments where "timestamp" = $1;
     // language=PostgreSQL
     const q = `
 select
-  "entity_id", "medium", "materials", "alt", "description", "tags", "palette", "characters",
-  "human_verified",
-  "role", "role_group", "role_star", "role_note"
+  "entity_id", "methods"::text[] as "methods", "materials", "subject", "alt", "description", "tags", "palette", "characters",
+  "note", "human_verified"
 from entity_annotations
   where "entity_id" = any($1::text[]);
 `;
@@ -474,39 +472,34 @@ from entity_annotations
     // language=PostgreSQL
     const q = `
 insert into entity_annotations (
-  "entity_id", "medium", "materials", "alt", "description", "tags", "palette", "characters",
-  "human_verified",
-  "role", "role_group", "role_star", "role_note"
+  "entity_id", "methods", "materials", "subject", "alt", "description", "tags", "palette", "characters",
+  "note", "human_verified"
 ) values (
-  $1, $2, $3::text[], $4, $5, $6::text[], $7, $8::text[], $9, $10, $11, $12, $13
+  $1, $2::annotation_method[], $3::text[], $4, $5, $6, $7::text[], $8, $9::text[], $10, $11
 ) on conflict ("entity_id") do update set
-  "medium" = excluded."medium",
+  "methods" = excluded."methods",
   "materials" = excluded."materials",
+  "subject" = excluded."subject",
   "alt" = excluded."alt",
   "description" = excluded."description",
   "tags" = excluded."tags",
   "palette" = excluded."palette",
   "characters" = excluded."characters",
-  "human_verified" = excluded."human_verified",
-  "role" = excluded."role",
-  "role_group" = excluded."role_group",
-  "role_star" = excluded."role_star",
-  "role_note" = excluded."role_note";
+  "note" = excluded."note",
+  "human_verified" = excluded."human_verified";
 `;
     await this.pool.query(q, [
       a.entityID,
-      a.medium,
+      a.methods,
       a.materials,
+      a.subject,
       a.alt,
       a.description,
       a.tags,
       a.palette,
       a.characters,
+      a.note,
       a.humanVerified,
-      a.role,
-      a.roleGroup,
-      a.roleStar,
-      a.roleNote,
     ]);
   }
 }
@@ -531,18 +524,17 @@ function decodeMoment(row: pg.QueryResultRow): Moment {
 function decodeEntityAnnotation(row: pg.QueryResultRow): EntityAnnotation {
   return {
     entityID: row['entity_id'] as string,
-    medium: parseAnnotationMedium(row['medium']),
+    // ENUM の配列は pg が配列にしないので、select で text[] にしてから読む。
+    methods: parseAnnotationMethods(row['methods']),
     materials: row['materials'] as (string[] | null),
+    subject: row['subject'] as (string | null),
     alt: row['alt'] as (string | null),
     description: row['description'] as (string | null),
     tags: row['tags'] as (string[] | null),
     palette: parseAnnotationPalette(row['palette']),
     characters: row['characters'] as (string[] | null),
+    note: row['note'] as (string | null),
     humanVerified: row['human_verified'] as boolean,
-    role: parseAnnotationRole(row['role']),
-    roleGroup: row['role_group'] as (string | null),
-    roleStar: row['role_star'] as (boolean | null),
-    roleNote: row['role_note'] as (string | null),
   };
 }
 

@@ -102,8 +102,8 @@ const kB = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
 function annotation(entityID: string, palette: EntityAnnotation['palette']): EntityAnnotation {
   return {
-    entityID, medium: null, materials: null, alt: null, description: null, tags: null, palette, characters: null,
-    humanVerified: false, role: null, roleGroup: null, roleStar: null, roleNote: null,
+    entityID, methods: null, materials: null, subject: null, alt: null, description: null, tags: null, palette, characters: null,
+    note: null, humanVerified: false,
   };
 }
 

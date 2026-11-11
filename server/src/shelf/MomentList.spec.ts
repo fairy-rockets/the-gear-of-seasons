@@ -42,18 +42,18 @@ describe("annotationState", () => {
     assert.strictEqual(protocol.annotationState('image', kEmpty), 'unentered');
     assert.strictEqual(protocol.annotationState('audio', kEmpty), 'unentered');
   });
-  it("画像・動画は、何か入っていれば human_verified で未確認か確認済み", () => {
+  it("何か入っていれば human_verified で未確認か確認済み", () => {
     assert.strictEqual(protocol.annotationState('image', { ...kEmpty, alt: '' }), 'unverified');
     assert.strictEqual(protocol.annotationState('video', { ...kEmpty, alt: 'a', humanVerified: true }), 'verified');
+    assert.strictEqual(protocol.annotationState('audio', { ...kEmpty, tags: [] }), 'unverified');
+    assert.strictEqual(protocol.annotationState('audio', { ...kEmpty, methods: ['compose'], humanVerified: true }), 'verified');
   });
   it("human_verified だけが true でも、未入力ではない", () => {
     assert.strictEqual(protocol.annotationState('image', { ...kEmpty, humanVerified: true }), 'verified');
-  });
-  it("音声は、何か入っていれば入力済み", () => {
-    assert.strictEqual(protocol.annotationState('audio', { ...kEmpty, tags: [] }), 'entered');
+    assert.strictEqual(protocol.annotationState('audio', { ...kEmpty, humanVerified: true }), 'verified');
   });
   it("音声が持たない項目だけが入っていても、音声は未入力", () => {
-    assert.strictEqual(protocol.annotationState('audio', { ...kEmpty, medium: 'camera' }), 'unentered');
+    assert.strictEqual(protocol.annotationState('audio', { ...kEmpty, palette: 'color' }), 'unentered');
   });
 });
 
@@ -84,7 +84,7 @@ describe("momentListItem", () => {
     const it = item(`[image entity="${kImage}"]\n[video entity="${kVideo}"]\n[audio entity="${kAudio}"]`, new Map());
     assert.deepStrictEqual([it.media, it.unentered, it.unverified], [3, 3, 0]);
   });
-  it("未確認は画像・動画だけ。入力済みの音声と確認済みの画像は、どちらにも数えない", () => {
+  it("何か入っていて human_verified が false なら、音声も未確認と数える。確認済みはどちらにも数えない", () => {
     const it = item(
       `[image entity="${kImage}"]\n[image entity="${kImage2}"]\n[video entity="${kVideo}"]\n[audio entity="${kAudio}"]`,
       annotations(
@@ -93,7 +93,7 @@ describe("momentListItem", () => {
         annotation(kVideo, { palette: 'color' }),
         annotation(kAudio, { alt: 'a' }),
       ));
-    assert.deepStrictEqual([it.media, it.unentered, it.unverified], [4, 0, 2]);
+    assert.deepStrictEqual([it.media, it.unentered, it.unverified], [4, 0, 3]);
   });
   it("同じ entity が2回出てきても1回だけ数える", () => {
     const it = item(`[image entity="${kImage}"]\n[image entity="${kImage}"]`, new Map());

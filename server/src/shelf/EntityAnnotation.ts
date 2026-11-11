@@ -1,15 +1,14 @@
 import { Entity } from './Entity.js';
 import {
   AnnotationField,
-  AnnotationMedium,
+  AnnotationMethod,
   AnnotationPalette,
-  AnnotationRole,
   AnnotationValues,
+  canHaveMaterials,
   kAnnotationFields,
   kAnnotationFieldsByType,
-  kAnnotationMedia,
   kAnnotationPalettes,
-  kAnnotationRoles,
+  normalizeAnnotationMethods,
 } from '../lib/protocol.js';
 
 // メディア（entity）ごとの注釈。entity_annotations の1行で、entities と1対1。
@@ -29,9 +28,8 @@ export function displayAlt(annotation: EntityAnnotation | null | undefined): str
 
 export {
   AnnotationField,
-  AnnotationMedium,
+  AnnotationMethod,
   AnnotationPalette,
-  AnnotationRole,
 };
 
 // 不正な値は例外にする（parseMomentStatus と同じ）。null は「値なし」としてそのまま通す。
@@ -45,16 +43,13 @@ function parseNullable<T extends string>(name: string, values: readonly T[], v: 
   throw new Error(`Invalid ${name}: ${v}`);
 }
 
-export function parseAnnotationMedium(v: unknown): AnnotationMedium | null {
-  return parseNullable('medium', kAnnotationMedia, v);
+// 空・重複・定義に無い値は例外にし、並びは kAnnotationMethods の順にそろえる。
+export function parseAnnotationMethods(v: unknown): AnnotationMethod[] | null {
+  return normalizeAnnotationMethods(v);
 }
 
 export function parseAnnotationPalette(v: unknown): AnnotationPalette | null {
   return parseNullable('palette', kAnnotationPalettes, v);
-}
-
-export function parseAnnotationRole(v: unknown): AnnotationRole | null {
-  return parseNullable('role', kAnnotationRoles, v);
 }
 
 // 種類ごとに持つ項目。Record にしてあるので、entity の種類を足すと、protocol.ts の kAnnotationFieldsByType に
@@ -67,18 +62,19 @@ export function validateEntityAnnotation(entity: Entity, annotation: EntityAnnot
   if (annotation.entityID !== entity.id) {
     throw new Error(`Annotation for ${annotation.entityID} does not belong to entity ${entity.id}`);
   }
-  parseAnnotationMedium(annotation.medium);
+  const methods = parseAnnotationMethods(annotation.methods);
+  // 並びをそろえていない methods は、parseAnnotationMethods を通していない値なので弾く（書いた値と読む値を同じにする）。
+  if (JSON.stringify(methods) !== JSON.stringify(annotation.methods)) {
+    throw new Error(`methods is not in the order of kAnnotationMethods: ${JSON.stringify(annotation.methods)}`);
+  }
   parseAnnotationPalette(annotation.palette);
-  parseAnnotationRole(annotation.role);
   const fields = kFieldsByType[entity.type];
   for (const key of kAnnotationFields) {
-    if (fields.includes(key)) {
-      continue;
-    }
-    // humanVerified は列が NOT NULL なので null にはできない。持たない種類では false（既定値）だけを通す。
-    const absent = key === 'humanVerified' ? annotation[key] === false : annotation[key] === null;
-    if (!absent) {
+    if (!fields.includes(key) && annotation[key] !== null) {
       throw new Error(`${entity.type} entity ${entity.id} cannot have ${key}`);
     }
+  }
+  if (annotation.materials !== null && !canHaveMaterials(annotation.methods)) {
+    throw new Error(`${entity.type} entity ${entity.id} cannot have materials unless methods includes draw`);
   }
 }

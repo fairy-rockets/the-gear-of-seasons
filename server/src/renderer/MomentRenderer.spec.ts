@@ -128,9 +128,8 @@ describe("MomentRenderer.render", () => {
   };
 
   const annotation = (alt: string | null, humanVerified = true): EntityAnnotation => ({
-    entityID: 'img', medium: null, materials: null, alt, description: null, tags: null, palette: null,
-    characters: null, humanVerified,
-    role: null, roleGroup: null, roleStar: null, roleNote: null,
+    entityID: 'img', methods: null, materials: null, subject: null, alt, description: null, tags: null, palette: null,
+    characters: null, note: null, humanVerified,
   });
   const annotatedRenderer = (values: EntityAnnotation[], calls: string[][] = []) => new MomentRenderer({
     ...shelf,

@@ -5,13 +5,12 @@ dayjs.extend(utc);
 import {
   AnnotationField,
   EntityAnnotation,
-  parseAnnotationMedium,
+  parseAnnotationMethods,
   parseAnnotationPalette,
-  parseAnnotationRole,
 } from './EntityAnnotation.js';
 
 // エクスポートの hexe.yaml（CurationExport.ts）と、studio の投入用ファイル（CurationImport.ts）が共有する形式。
-// 項目の名前と値は #2 のコメント（issuecomment-3603）の「1. DB に足すもの」。
+// 項目の名前と値は #2 のコメント（issuecomment-3603）の「1. DB に足すもの」と #95。
 
 export type AnnotationValue = EntityAnnotation[AnnotationField];
 
@@ -47,20 +46,19 @@ export function parseEnum<T>(parse: (v: unknown) => T): (v: unknown) => T {
   };
 }
 
-// メディアごとの項目。キーはファイル（hexe.yaml）の名前で、並びはエクスポートが書く順。
+// メディアごとの項目。キーはファイル（hexe.yaml）の名前で、並びはエクスポートが書く順（protocol.ts の kAnnotationFields と同じ）。
+// methods はリストで書き、エクスポートは kAnnotationMethods の順に書く。読むときは並びを問わず、その順にそろえる。
 export const kMediaKeys: Record<string, [AnnotationField, (v: unknown) => AnnotationValue]> = {
-  medium: ['medium', parseEnum(parseAnnotationMedium)],
+  methods: ['methods', parseEnum(parseAnnotationMethods)],
   materials: ['materials', parseStrings],
+  subject: ['subject', parseString],
   alt: ['alt', parseString],
   description: ['description', parseString],
   tags: ['tags', parseStrings],
   palette: ['palette', parseEnum(parseAnnotationPalette)],
   characters: ['characters', parseStrings],
+  note: ['note', parseString],
   human_verified: ['humanVerified', parseBoolean],
-  role: ['role', parseEnum(parseAnnotationRole)],
-  role_group: ['roleGroup', parseString],
-  role_star: ['roleStar', parseBoolean],
-  role_note: ['roleNote', parseString],
 };
 
 // moment の項目のうち、投入用ファイルに書けるもの。
