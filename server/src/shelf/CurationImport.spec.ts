@@ -350,6 +350,15 @@ moments:
       `moment ${kT2} entity ${kD}: materials は methods に draw を含むときだけ書けます（書いたあとの methods: ["capture"]。ファイルの methods は衝突したので書かない。--overwrite なら書く）`,
     ]);
     assert.deepStrictEqual(p.entities.map((e) => e.entity.id), [kA, kB]);
+    // ファイルの methods にも draw が無ければ、--overwrite でも通らないので、そうは書かない。
+    const p3 = plan(`
+moments:
+  - moment: ${kT2}
+    media: [{ entity: ${kD}, methods: [render], materials: [pencil] }]
+`, s);
+    assert.deepStrictEqual(p3.errors, [
+      `moment ${kT2} entity ${kD}: materials は methods に draw を含むときだけ書けます（書いたあとの methods: ["capture"]）`,
+    ]);
     const p2 = plan(`
 moments:
   - moment: ${kT1}
