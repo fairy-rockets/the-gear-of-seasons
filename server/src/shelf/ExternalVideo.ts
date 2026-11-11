@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import dayjs from 'dayjs';
 
 import kConfig from '../Config.js';
-import { ExternalVideoURLError, matchYoutubeVideoURL } from '../lib/ExternalVideoURL.js';
+import { ExternalVideoURLError, matchYouTubeVideoURL } from '../lib/ExternalVideoURL.js';
 import { YouTubeDataAPI, YouTubeDataAPIClient, YouTubeVideoResource } from '../lib/YouTubeDataAPI.js';
 import { ExternalVideoRef } from './Entity.js';
 
@@ -78,7 +78,7 @@ function positiveInteger(v: number | string | undefined): number | null {
 }
 
 // videos.list の結果を entity に入れる値にする。取り込まない動画（配信中・配信予定）なら例外を投げる。
-export function youtubeVideoInfo(resource: YouTubeVideoResource): ExternalVideoInfo {
+export function youTubeVideoInfo(resource: YouTubeVideoResource): ExternalVideoInfo {
   const snippet = resource.snippet;
   const live = snippet?.liveBroadcastContent;
   if (live === 'live' || live === 'upcoming') {
@@ -124,7 +124,7 @@ export class YouTubePlatform implements ExternalVideoPlatform {
   }
   match(url: string): ExternalVideoRef | null {
     try {
-      return matchYoutubeVideoURL(url);
+      return matchYouTubeVideoURL(url);
     } catch (e) {
       if (e instanceof ExternalVideoURLError) {
         throw new ExternalVideoError(400, e.message);
@@ -145,7 +145,7 @@ export class YouTubePlatform implements ExternalVideoPlatform {
     if (resource === null) {
       throw new ExternalVideoError(400, `YouTube の動画 ${video.id} が見つかりません（非公開か、存在しません）`);
     }
-    const info = youtubeVideoInfo(resource);
+    const info = youTubeVideoInfo(resource);
     let thumbnail: Buffer;
     try {
       thumbnail = await this.api.fetchImage(info.thumbnailURL);
