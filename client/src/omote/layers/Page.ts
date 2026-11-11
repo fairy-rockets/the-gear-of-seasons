@@ -40,6 +40,16 @@ export default class Page extends Layer {
     contentPromise.then(this.onLoad_.bind(this), this.onError_.bind(this));
   }
 
+  /** 本文を取る。HTTP のエラー(404 など)も失敗にして、onError_ に回す。 */
+  static fetchBody(url: string): Promise<string> {
+    return fetch(url).then(resp => {
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+      return resp.text();
+    });
+  }
+
   render(time: number, matWorld: mat4) {
   }
 

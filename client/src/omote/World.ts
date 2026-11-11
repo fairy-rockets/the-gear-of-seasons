@@ -214,8 +214,14 @@ export default class World {
   /**
    * 最上位になったレイヤの page_view を送る。読み込み中なら notifyLoaded まで待つ。
    * 待っている間に別のレイヤへ移ったら、そのレイヤの page_view は送らない(見られていない)。
+   * ただし開いた URL(landing)の page_view は、その時点の題で送る。流入元(UTM)は
+   * 最初の page_view の URL からしか数えられず、replaceState でアドレスバーのクエリも消えるため。
    */
   private viewTop_(via: analytics.NavVia) {
+    const pending = this.pendingView_;
+    if (pending !== null && pending.via === 'landing') {
+      analytics.pageView(pending.layer.path, pending.layer.title, pending.via);
+    }
     const layers = this.layers_;
     this.pendingView_ = { layer: layers[layers.length-1], via };
     this.flushPageView_();
@@ -242,16 +248,16 @@ export default class World {
     if (path === '/') {
       return new Index(this);
     } else if (path.startsWith('/about-us/')) {
-      const content = fetch('/static/about-us.html').then(resp => resp.text());
+      const content = Page.fetchBody('/static/about-us.html');
       return new Page(this, '/about-us/', content);
     } else if (path.startsWith('/pickup/')) {
-      const content = fetch('/pickup/body').then(resp => resp.text());
+      const content = Page.fetchBody('/pickup/body');
       return new Page(this, '/pickup/', content);
     } else if (path.startsWith('/shop/')) {
-      const content = fetch('/static/shop.html').then(resp => resp.text());
+      const content = Page.fetchBody('/static/shop.html');
       return new Page(this, '/shop/', content);
     } else {
-      const content = fetch(`/moment${path}`).then(resp => resp.text());
+      const content = Page.fetchBody(`/moment${path}`);
       return new Page(this, path, content);
     }
   }

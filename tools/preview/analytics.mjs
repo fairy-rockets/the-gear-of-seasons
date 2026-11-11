@@ -22,7 +22,7 @@ assert.ok(shell.includes('function gtag()'), 'index.hbs から gtag() の定義�
 const kIcon = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
-// まえ/つぎ の順に並べた moment。3 番目の本文は取得に失敗させる。
+// まえ/つぎ の順に並べた moment。3 番目の本文は HTTP 500 で失敗させる。
 const kMoments = ['/2020/01/01/00:00:00/', '/2020/01/02/00:00:00/', '/2020/01/03/00:00:00/'];
 const kTitles = ['ひとつめ', 'ふたつめ', 'みっつめ'];
 
@@ -77,7 +77,8 @@ async function openPage({ failMoments = false, noWebGL = false } = {}) {
       if (path === '/pickup/body') return request.respond({ body: '<h1>えらんだ絵</h1>' });
       if (path.startsWith('/moment/')) {
         const i = kMoments.indexOf(path.slice('/moment'.length));
-        return i === 2 ? request.abort() : request.respond({ contentType: 'text/html', body: momentBody(i) });
+        return i === 2 ? request.respond({ status: 500, body: 'Internal Server Error' })
+          : request.respond({ contentType: 'text/html', body: momentBody(i) });
       }
       return request.respond({ contentType: 'text/html', body: shell });
     };
@@ -204,7 +205,25 @@ await momentPage.click('.moment-footer-links a[href="/shop/"]');
 views = await waitPageViews(momentPage, 8);
 assert.deepEqual(views[7], { name: 'page_view', page_location: `${kOrigin}/shop/`, page_title: kSiteTitle,
   page_referrer: `${kOrigin}${kMoments[1]}`, nav_via: 'footer_link' });
+await settle(500);
+assert.equal(pageViews(await events(momentPage)).length, 8);
 await momentPage.close();
+
+// 8') 開いた URL の本文が届く前に閉じても、landing の page_view は UTM ごと送る。
+const earlyClose = await openPage();
+earlyClose.held.set(`/moment${kMoments[0]}`, null);
+await earlyClose.goto(`${kOrigin}${kMoments[0]}?utm_source=test`, { waitUntil: 'domcontentloaded' });
+await earlyClose.waitForSelector('.close-button');
+await earlyClose.click('.close-button');
+views = await waitPageViews(earlyClose, 2);
+assert.deepEqual(views[0], { name: 'page_view', page_location: `${kOrigin}${kMoments[0]}?utm_source=test`,
+  page_title: kSiteTitle, nav_via: 'landing' });
+assert.deepEqual(views[1], { name: 'page_view', page_location: `${kOrigin}/`, page_title: kSiteTitle,
+  page_referrer: `${kOrigin}${kMoments[0]}?utm_source=test`, nav_via: 'close_button' });
+await earlyClose.held.get(`/moment${kMoments[0]}`)();
+await settle(500);
+assert.equal(pageViews(await events(earlyClose)).length, 2);
+await earlyClose.close();
 
 // 9) moment の一覧を取れなければ exception を送る。
 const failPage = await openPage({ failMoments: true });
@@ -212,6 +231,20 @@ await failPage.goto(`${kOrigin}/`, { waitUntil: 'domcontentloaded' });
 assert.deepEqual(await waitEvent(failPage, 'exception'),
   [{ name: 'exception', description: 'moments_load_failed', fatal: false }]);
 await failPage.close();
+
+// 9') 歯車が出る前に別のページを開いたら、gear_ready は戻っても送らない。
+const notReady = await openPage();
+notReady.held.set('/moments/random', null);
+await notReady.goto(`${kOrigin}/`, { waitUntil: 'domcontentloaded' });
+await waitPageViews(notReady, 1);
+await notReady.click('#about-us-link');
+await waitPageViews(notReady, 2);
+await notReady.held.get('/moments/random')();
+await notReady.click('.close-button');
+await waitPageViews(notReady, 3);
+await settle(3000);
+assert.deepEqual((await events(notReady)).filter(e => e.name === 'gear_ready'), []);
+await notReady.close();
 
 // 10) WebGL が使えなければ、fatal の exception だけを送る。
 const noGL = await openPage({ noWebGL: true });

@@ -34,7 +34,7 @@ export default class Index extends Layer {
   private readonly tooltipDate_: HTMLDivElement;
   private readonly aboutUsLink_: HTMLElement;
   private loaded_: boolean;
-  // gear_ready の起点(このレイヤを作った時刻)と、もう送ったか。
+  // gear_ready の起点(このレイヤを作った時刻)と、もう送ったか(送らないと決めたときも true)。
   private readonly createdAt_: number;
   private readyReported_: boolean;
   // ポインタ操作の状態
@@ -209,6 +209,8 @@ export default class Index extends Layer {
   }
 
   override onDetached() {
+    // 歯車が出る前に別のページへ移ったら送らない。戻るまでの時間が load_ms に入ってしまう。
+    this.readyReported_ = true;
     this.pointerX_ = NaN;
     this.pointerY_ = NaN;
     this.pointerId_ = null;
@@ -226,7 +228,7 @@ export default class Index extends Layer {
   }
 
   private openMoment_(m: Moment) {
-    const content = fetch(m.bodyURL).then(resp => resp.text());
+    const content = Page.fetchBody(m.bodyURL);
     this.world.pushLayer(new Page(this.world, m.path, content), 'gear');
   }
 

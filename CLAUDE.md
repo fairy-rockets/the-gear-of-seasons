@@ -113,9 +113,9 @@ Long videos are kept outside the server (for now only on YouTube) and shown in m
 
 omote sends Google Analytics 4 events through `client/src/omote/Analytics.ts`, which only calls `gtag()`. `index.hbs` always defines `window.dataLayer` and `gtag()`; it loads gtag.js, with `send_page_view: false`, only when the environment variable `GA_MEASUREMENT_ID` (`Config.gaMeasurementID`, a `G-…` ID; any other value stops the server at startup) is set. The development environment does not set it, so events only pile up in `window.dataLayer`.
 
-- `page_view` is sent by the client for every layer that becomes the top of the stack (`World.viewTop_`), once its title is known (`World.notifyLoaded`); a layer left before its body arrives sends none. `nav_via` says how the page was reached (`NavVia` in `Analytics.ts`), `page_referrer` is the previous page, and the first `page_view` carries the URL as opened, query included. Enhanced measurement's "Page changes based on browser history events" must stay off in the GA admin; with it on, every SPA transition is counted twice.
-- `exception`: `webgl_unsupported` (fatal), `moments_load_failed`, `page_load_failed: <path>`.
-- `gear_ready`: the first frame in which the gear draws a moment, with `load_ms` since the gear layer was created.
+- `page_view` is sent by the client for every layer that becomes the top of the stack (`World.viewTop_`), once its title is known (`World.notifyLoaded`); a layer left before its body arrives sends none, except the page opened first (`landing`), which is then sent with the title it has. `nav_via` says how the page was reached (`NavVia` in `Analytics.ts`), `page_referrer` is the previous page, and the first `page_view` carries the URL as opened, query included. Enhanced measurement's "Page changes based on browser history events" must stay off in the GA admin; with it on, every SPA transition is counted twice.
+- `exception`: `webgl_unsupported` (fatal), `moments_load_failed`, `page_load_failed: <path>` (a network error or an HTTP error status; the page then shows the error instead of the body).
+- `gear_ready`: the first frame in which the gear draws a moment, with `load_ms` since the gear layer was created. It is not sent if another page is opened over the gear before that.
 
 `tools/preview/analytics.mjs` checks these events in Chromium against the built bundle (see `tools/preview/README.md`).
 
