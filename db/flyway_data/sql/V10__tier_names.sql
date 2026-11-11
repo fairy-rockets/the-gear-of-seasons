@@ -11,6 +11,8 @@ ALTER TABLE "moments"
     WHEN 'pickup' THEN 'favorite'
     WHEN 'archive' THEN 'normal'
     WHEN 'sketch' THEN 'rough'
+    -- 想定外の値（hidden など）は、そのまま変換させて、値の名前の入ったエラーで止める。
+    ELSE "tier"::text
   END)::"moment_tier_new",
   ALTER COLUMN "tier" SET DEFAULT 'normal';
 
