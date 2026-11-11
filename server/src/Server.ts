@@ -10,7 +10,7 @@ import fastifyStatic from '@fastify/static';
 
 import Asset from './lib/Asset.js';
 
-import Config from './Config.js';
+import kConfig from './Config.js';
 import Shelf from './shelf/Shelf.js';
 
 // Omote Controllers
@@ -256,9 +256,9 @@ class Server {
   private readonly each = {
     get: (path: string, handlerSet: HandlerSet) => {
       this.http.get(path, async (req, reply) => {
-        if (req.hostname === Config.OmoteHost && handlerSet.omote !== undefined) {
+        if (req.hostname === kConfig.omoteHost && handlerSet.omote !== undefined) {
           return handlerSet.omote(req as FastifyRequest, reply);
-        } else if (req.hostname === Config.UraHost && handlerSet.ura !== undefined) {
+        } else if (req.hostname === kConfig.uraHost && handlerSet.ura !== undefined) {
           return handlerSet.ura(req as FastifyRequest, reply);
         } else {
           return reply
@@ -272,7 +272,7 @@ class Server {
   private readonly omote = {
     get: (path: string, handler: Handler) => {
       this.http.get(path, async (req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
-        if (req.hostname === Config.OmoteHost) {
+        if (req.hostname === kConfig.omoteHost) {
           return handler(req, reply);
         } else {
           return reply
@@ -286,7 +286,7 @@ class Server {
   private readonly ura = {
     get: (path: string, handler: Handler) => {
       this.http.get(path, async (req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
-        if (req.hostname === Config.UraHost) {
+        if (req.hostname === kConfig.uraHost) {
           return handler(req, reply);
         } else {
           return reply
@@ -298,7 +298,7 @@ class Server {
     },
     post: (path: string, handler: Handler) => {
       this.http.post(path, async (req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> => {
-        if (req.hostname === Config.UraHost) {
+        if (req.hostname === kConfig.uraHost) {
           return handler(req, reply);
         } else {
           return reply

@@ -7,8 +7,8 @@ export class YouTubeURLError extends Error {
   }
 }
 
-const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
-const YOUTUBE_HOSTS = new Set([
+const kYouTubeID = /^[A-Za-z0-9_-]{11}$/;
+const kYouTubeHosts = new Set([
   'youtube.com',
   'www.youtube.com',
   'm.youtube.com',
@@ -26,7 +26,7 @@ export function isYoutubeURL(url: string): boolean {
     return false;
   }
   return (u.protocol === 'https:' || u.protocol === 'http:') &&
-    (u.hostname === 'youtu.be' || YOUTUBE_HOSTS.has(u.hostname));
+    (u.hostname === 'youtu.be' || kYouTubeHosts.has(u.hostname));
 }
 
 // watch?v=<id> / youtu.be/<id> / shorts|embed|live/<id> のどれかから動画 ID を取り出す。
@@ -48,14 +48,14 @@ export function parseYoutubeId(url: string | undefined): string {
   const segments = u.pathname.split('/').filter((s) => s !== '');
   if (u.hostname === 'youtu.be') {
     id = segments[0] ?? null;
-  } else if (YOUTUBE_HOSTS.has(u.hostname)) {
+  } else if (kYouTubeHosts.has(u.hostname)) {
     if (segments[0] === 'watch') {
       id = u.searchParams.get('v');
     } else if (['shorts', 'embed', 'live'].includes(segments[0])) {
       id = segments[1] ?? null;
     }
   }
-  if (id === null || !YOUTUBE_ID.test(id)) {
+  if (id === null || !kYouTubeID.test(id)) {
     throw new YouTubeURLError(`youtube: video id not found: ${url}`);
   }
   return id;

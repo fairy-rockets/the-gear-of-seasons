@@ -2,7 +2,7 @@ import Handlebars, {Template} from 'handlebars';
 import dayjs from 'dayjs';
 
 import Asset from '../../../lib/Asset.js';
-import Config from '../../../Config.js';
+import kConfig from '../../../Config.js';
 
 const kCompileOption: CompileOptions = {
   preventIndent: true,
@@ -17,8 +17,8 @@ export default class UraTemplate<T = any> {
   }
   static async create<T>(asset: Asset, contentFilepath: string): Promise<UraTemplate<T>> {
     const hbs = Handlebars.create();
-    hbs.registerPartial('omote-url', hbs.compile(`//${Config.OmoteHost}/`, kCompileOption));
-    hbs.registerPartial('ura-url', hbs.compile(`//${Config.UraHost}/`, kCompileOption));
+    hbs.registerPartial('omote-url', hbs.compile(`//${kConfig.omoteHost}/`, kCompileOption));
+    hbs.registerPartial('ura-url', hbs.compile(`//${kConfig.uraHost}/`, kCompileOption));
     hbs.registerPartial('content', hbs.compile(await asset.loadString(`templates/ura/${contentFilepath}`), kCompileOption));
     hbs.registerHelper('eq', function (arg1: any, arg2: any):boolean {
       return arg1 === arg2;

@@ -14,6 +14,12 @@ This repository lives on a self-managed **Forgejo** instance at `code.ledyba.org
 
 The default branch is **`main`**.
 
+## Naming
+
+In server/client TypeScript, fixed module constants and static class constants use `kXxx`; properties of constant objects use `camelCase`. Fixed constants include settings, lookup tables and rendering parameters, including values read from the environment. Computational intermediates such as `dirname`, local variables, instance fields and mutable state retain their existing naming, even when declared with `const`.
+
+Preserve established acronym spellings such as `URL`, `ID` and `HTML`, and the capitalization of `YouTube`.
+
 ## Commands
 
 Server and client are separate npm packages, each built independently (on the development machine, run these inside `make dev-shell`; see "Development environment" below — `app-dev` itself already serves on port 3000 there, so `npm run watch` in `server` collides with it):

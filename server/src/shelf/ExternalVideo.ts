@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import dayjs from 'dayjs';
 
-import Config from '../Config.js';
+import kConfig from '../Config.js';
 import { ExternalVideoURLError, matchYoutubeVideoURL } from '../lib/ExternalVideoURL.js';
 import { YouTubeDataAPI, YouTubeDataAPIClient, YouTubeVideoResource } from '../lib/YouTubeDataAPI.js';
 import { ExternalVideoRef } from './Entity.js';
@@ -49,7 +49,7 @@ export function externalVideoEntityID(video: ExternalVideoRef): string {
 
 // 環境変数の設定で作る、サーバーとコマンドが使う platform の一覧。
 export function defaultExternalVideoPlatforms(): ExternalVideoPlatform[] {
-  const key = Config.youtubeApiKey;
+  const key = kConfig.youtubeApiKey;
   return [
     new YouTubePlatform(key !== null ? new YouTubeDataAPIClient(key) : null),
   ];

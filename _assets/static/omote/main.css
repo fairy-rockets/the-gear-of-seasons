@@ -389,7 +389,7 @@ img.emoji {
 }
 
 /* 縦長画面では歯車が上部中央に来るので、タイトルとメニューも中央へ寄せる (#6)。
-   条件は Gear の PortraitMaxAspect と揃えてあり、幅ではなくアスペクト比で切り替える
+   条件は Gear の kPortraitMaxAspect と揃えてあり、幅ではなくアスペクト比で切り替える
    (スマホを横に倒したときは歯車が左上に戻るので、ヘッダーも左上のままにしたい)。 */
 @media (max-aspect-ratio: 1/1) {
   .header {

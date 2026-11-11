@@ -5,7 +5,7 @@ import ArrayBuffer from '../gl/ArrayBuffer';
 import IndexBuffer from '../gl/IndexBuffer';
 import { mat4, vec4, ReadonlyMat4 } from 'gl-matrix';
 
-const Scale = Moment.DiscRadius;
+const kScale = Moment.kDiscRadius;
 
 export default class Moments {
   private readonly world_: World;
@@ -26,8 +26,8 @@ export default class Moments {
 
     const gl = this.gl_;
 
-    const vs = world.compileVertexShader(vsSrc);
-    const fs = world.compileFragmentShader(fsSrc);
+    const vs = world.compileVertexShader(kVsSrc);
+    const fs = world.compileFragmentShader(kFsSrc);
     this.program_ = world.linkShaders(vs, fs);
 
     this.vertexes_ = world.createArrayBuffer([
@@ -50,7 +50,7 @@ export default class Moments {
     this.matModel_ = mat4.identity(mat4.create());
     this.mat_ = mat4.identity(mat4.create());
 
-    mat4.scale(this.matModel_, this.matModel_, [Scale, Scale, Scale]);
+    mat4.scale(this.matModel_, this.matModel_, [kScale, kScale, kScale]);
     
     /** Mouse Handling **/
     this.mouseTmpMat_ = mat4.identity(mat4.create());
@@ -168,7 +168,7 @@ export default class Moments {
   }
 }
 
-const vsSrc = `
+const kVsSrc = `
 attribute vec3 position;
 attribute vec2 textureCoord;
 uniform mat4 matrix;
@@ -180,7 +180,7 @@ void main(void) {
 }
 `;
 
-const fsSrc = `
+const kFsSrc = `
 precision mediump float;
 
 uniform bool hovered;

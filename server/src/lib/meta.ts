@@ -2,7 +2,7 @@ import { decode } from 'html-entities';
 
 import * as fml from './fml.js';
 
-import Config from '../Config.js';
+import kConfig from '../Config.js';
 
 // index.hbs に渡す <head> の中身。SNS のクローラは JS を実行しないので、
 // ここで出す値だけがカードの見た目を決める。
@@ -30,7 +30,7 @@ export function pageTitle(title: string): string {
 }
 
 export function absoluteURL(path: string): string {
-  return `${Config.OmoteOrigin}${path}`;
+  return `${kConfig.omoteOrigin}${path}`;
 }
 
 const kMaxDescriptionLength = 120;
