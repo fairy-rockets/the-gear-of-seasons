@@ -7,7 +7,7 @@
 // - lib/ExternalVideoURL.ts: 入力された URL の matcher
 // - shelf/ExternalVideo.ts: ExternalVideoPlatform の実装（URL の判定と取得）・defaultExternalVideoPlatforms
 // - shelf/Shelf.ts: insertExternalVideo の、対応していない URL のエラー文（「今は YouTube の動画だけ」）
-import { youTubeEmbedURL, youTubeWatchURL } from './youtube.js';
+import { kYouTubeID, youTubeEmbedURL, youTubeWatchURL } from './youtube.js';
 
 export type ExternalVideoPlatformName = 'youtube';
 
@@ -18,8 +18,6 @@ export type YouTubeVideoRef = {
 };
 
 export type ExternalVideoRef = YouTubeVideoRef;
-
-const kYouTubeVideoID = /^[A-Za-z0-9_-]{11}$/;
 
 export class ExternalVideoRefFormatError extends Error {
   constructor(message: string) {
@@ -41,7 +39,7 @@ export function parseExternalVideoRef(value: unknown): ExternalVideoRef {
         throw new ExternalVideoRefFormatError(`external_ref of youtube must have exactly platform and id: ${JSON.stringify(value)}`);
       }
       const id = v['id'];
-      if (typeof id !== 'string' || !kYouTubeVideoID.test(id)) {
+      if (typeof id !== 'string' || !kYouTubeID.test(id)) {
         throw new ExternalVideoRefFormatError(`external_ref of youtube has an invalid video id: ${JSON.stringify(value)}`);
       }
       return { platform: 'youtube', id };
