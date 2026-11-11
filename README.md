@@ -35,6 +35,10 @@ The schema is managed by Flyway (`db/flyway_data/sql/V*__*.sql`).
 The `flyway` service in `compose.yml` belongs to the `tool` profile, so `make up` (`docker compose up`) does not run it.
 Run the steps below by hand, in the directory holding the `compose.yml` that runs the production stack.
 
+Production's `flyway` service reads the migrations from the checkout of this repository that `7io-org/compose` pulls in as a submodule (`src/the-gear-of-seasons/db/flyway_data/sql`).
+So first merge the `7io-org/compose` PR that moves the submodule to a commit containing the new migration, and update the submodule in production; until then, `flyway migrate` finds nothing new to apply.
+Do not restart the application yet (see step 3).
+
 1. Back up the database. The user and database name are the `postgres` service's own `POSTGRES_USER` / `POSTGRES_DB`, read inside the container:
 
    ```sh
