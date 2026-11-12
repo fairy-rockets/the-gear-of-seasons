@@ -1,6 +1,6 @@
 # the gear of seasons (季節の歯車)
 
-[Here is a running gear!](https://hexe.net/)
+[Here is a running gear!](https://hexe.net/?utm_source=github&utm_medium=social&utm_campaign=README.md)
 
 ## Image descriptions
 
