@@ -1,24 +1,22 @@
-import Handlebars from 'handlebars';
 import {FastifyReply, FastifyRequest} from 'fastify';
 
 import Asset from '../../lib/Asset.js';
-import {PageMeta, absoluteURL, kSiteTitle, pageTitle, shellContext, summarizeMomentText} from '../../lib/meta.js';
+import {PageMeta, absoluteURL, kSiteTitle, pageTitle, summarizeMomentText} from '../../lib/meta.js';
 
 import Shelf from '../../shelf/Shelf.js';
 import { displayAlt } from '../../shelf/EntityAnnotation.js';
 import { Moment, formatMomentPath, parseMomentPath } from '../../shelf/Moment.js';
+import OmoteTemplate from './lib/OmoteTemplate.js';
 
 export default class MomentController {
   private readonly shelf: Shelf;
-  private readonly template: Handlebars.TemplateDelegate;
-  private constructor(shelf: Shelf, template: Handlebars.TemplateDelegate) {
+  private readonly template: OmoteTemplate;
+  private constructor(shelf: Shelf, template: OmoteTemplate) {
     this.shelf = shelf;
     this.template = template;
   }
   static async create(asset: Asset, shelf: Shelf): Promise<MomentController> {
-    const src = await asset.loadString('templates/omote/index.hbs');
-    const template = Handlebars.compile(src);
-    return new MomentController(shelf, template);
+    return new MomentController(shelf, await OmoteTemplate.create(asset));
   }
   async handle(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
     const date = parseMomentPath(req.url);
@@ -32,9 +30,7 @@ export default class MomentController {
     return reply
       .type('text/html;charset=UTF-8')
       .code(200)
-      // 運営者の閲覧の印(Cookie)で中身が変わる。
-      .header('Vary', 'Cookie')
-      .send(this.template(shellContext(await this.metaOf(moment), req.headers.cookie)));
+      .send(this.template.render(await this.metaOf(moment)));
   }
   private async metaOf(moment: Moment): Promise<PageMeta> {
     const path = moment.timestamp !== undefined ? formatMomentPath(moment.timestamp) : '/';

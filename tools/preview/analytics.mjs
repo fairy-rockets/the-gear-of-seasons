@@ -104,6 +104,11 @@ async function events(page) {
     .map(([, name, params]) => ({ name, ...params })));
 }
 
+// dataLayer に積まれた gtag(命令, …) のうち、命令が name のものの引数を返す。
+async function commands(page, name) {
+  return page.evaluate(n => (window.dataLayer ?? []).map(args => Array.from(args)).filter(args => args[0] === n), name);
+}
+
 const pageViews = list => list.filter(e => e.name === 'page_view');
 
 // page_view が count 件そろうまで待ち、page_view だけを返す。
@@ -128,6 +133,8 @@ let views = await waitPageViews(page, 1);
 assert.deepEqual(views[0], { name: 'page_view', page_location: `${kOrigin}/?utm_source=test`,
   page_title: kSiteTitle, nav_via: 'landing' });
 const [ready] = await waitEvent(page, 'gear_ready');
+// 運営者の印の Cookie が無ければ、gtag('set') は積まない。
+assert.deepEqual(await commands(page, 'set'), []);
 assert.ok(Number.isInteger(ready.load_ms) && ready.load_ms >= 0, JSON.stringify(ready));
 
 // 2) 見出しから About us へ。題が届いてから送り、page_referrer は前のページ。
@@ -258,6 +265,21 @@ await waitEvent(noGL, 'exception');
 await settle(500);
 assert.deepEqual(await events(noGL), [{ name: 'exception', description: 'webgl_unsupported', fatal: true }]);
 await noGL.close();
+
+// 11) 運営者の印の Cookie があれば、どのイベントよりも先に traffic_type と debug_mode を set する。
+// Cookie はこのブラウザのほかのページにも残るので、最後に試す。
+const internal = await openPage();
+await internal.setCookie({ name: 'xgear_internal', value: '1', url: kOrigin });
+await internal.goto(`${kOrigin}/`, { waitUntil: 'domcontentloaded' });
+await waitPageViews(internal, 1);
+assert.deepEqual(await commands(internal, 'set'), [], '名前の違う Cookie は印にしない');
+await internal.setCookie({ name: 'gear_internal', value: '1', url: kOrigin });
+await internal.goto(`${kOrigin}/`, { waitUntil: 'domcontentloaded' });
+await waitPageViews(internal, 1);
+const layer = await internal.evaluate(() => window.dataLayer.map(args => Array.from(args)));
+assert.deepEqual(layer[0], ['set', { traffic_type: 'internal', debug_mode: true }]);
+assert.equal(layer.filter(args => args[0] === 'set').length, 1);
+await internal.close();
 
 // 測定 ID が無いシェルなので、gtag.js は読み込まない(外へのリクエストは twemoji の画像だけ)。
 assert.deepEqual(outside.filter(href => !href.startsWith('https://cdnjs.cloudflare.com/ajax/libs/twemoji/')), []);

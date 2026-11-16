@@ -3,7 +3,6 @@ import { decode } from 'html-entities';
 import * as fml from './fml.js';
 
 import kConfig from '../Config.js';
-import { isInternalTraffic } from './InternalTraffic.js';
 
 // index.hbs に渡す <head> の中身。SNS のクローラは JS を実行しないので、
 // ここで出す値だけがカードの見た目を決める。
@@ -18,17 +17,6 @@ export type PageMeta = {
   ogImageAlt: string | undefined;
   publishedTime: string | undefined;
 };
-
-// index.hbs に渡す値。ページごとの <head> の中身に、どのページでも同じ設定と、
-// 運営者の閲覧か(lib/InternalTraffic.ts の印が付いているか)を足したもの。
-export type ShellContext = PageMeta & {
-  gaMeasurementID: string | null;
-  internalTraffic: boolean;
-};
-
-export function shellContext(meta: PageMeta, cookieHeader: string | undefined): ShellContext {
-  return { ...meta, gaMeasurementID: kConfig.gaMeasurementID, internalTraffic: isInternalTraffic(cookieHeader) };
-}
 
 export const kSiteTitle = '妖精⊸ロケット :: the gear of seasons';
 

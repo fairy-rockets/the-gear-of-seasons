@@ -28,18 +28,18 @@
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
+    // 運営者の閲覧(ura を開いたブラウザ。server/src/lib/InternalTraffic.ts が Cookie を付ける)。
+    // GA のデータフィルタでレポートから除き、DebugView では見る。どのイベントよりも先に積む。
+    if (document.cookie.split(';').some(function (c) { return c.trim() === 'gear_internal=1'; })) {
+      gtag('set', { traffic_type: 'internal', debug_mode: true });
+    }
   </script>
 {{#if gaMeasurementID}}
   <!-- Google tag (gtag.js)。SPA の遷移ごとに Analytics.ts が page_view を送るので、自動の page_view は止める。 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id={{gaMeasurementID}}"></script>
   <script>
     gtag('js', new Date());
-{{#if internalTraffic}}
-    // 運営者の閲覧(ura を開いたブラウザ)。GA のデータフィルタでレポートから除き、DebugView では見る。
-    gtag('config', '{{gaMeasurementID}}', { send_page_view: false, traffic_type: 'internal', debug_mode: true });
-{{else}}
     gtag('config', '{{gaMeasurementID}}', { send_page_view: false });
-{{/if}}
   </script>
 {{/if}}
 </head>
