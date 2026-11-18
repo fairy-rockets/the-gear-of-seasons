@@ -1,5 +1,5 @@
 import World from '../World'
-import Layer from '../Layer';
+import Layer, { Landing } from '../Layer';
 import Moments from '../actors/Moments';
 import Moment from '../actors/Moment';
 import { mat4, vec4 } from 'gl-matrix';
@@ -50,8 +50,8 @@ export default class Index extends Layer {
   private angularVelocity_: number; // rad/ms
   private lastMoveTime_: number;    // 直近の pointermove の timeStamp(ms)
   private lastFrameTime_: number;   // 直近フレームの時刻(ms)。慣性減衰の dt 算出用
-  constructor(world: World) {
-    super(world, '/');
+  constructor(world: World, landing?: Landing) {
+    super(world, '/', landing);
     this.wheelEventListener_ = this.onWheelEvent_.bind(this);
     this.pointerDownListener_ = this.onPointerDown_.bind(this);
     this.pointerMoveListener_ = this.onPointerMove_.bind(this);

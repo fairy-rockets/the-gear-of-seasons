@@ -7,7 +7,7 @@ import Program from './gl/Program';
 import Gear from './actors/Gear';
 import Background from './actors/Background';
 
-import Layer from './Layer';
+import Layer, { Landing } from './Layer';
 import Index from './layers/Index';
 import Page from './layers/Page';
 import * as analytics from './Analytics';
@@ -27,8 +27,9 @@ export default class World {
   private readonly initialPath_: string;
   private readonly siteTitle_: string;
   private readonly ssrHead_: Element[];
-  // まだ page_view を送っていない最上位のレイヤ。本文が届いて題が決まったら送る。
-  private pendingView_: { layer: Layer, via: analytics.NavVia } | null;
+  // 最後の遷移がまだ page_view を送っていなければ、その遷移の nav_via。
+  // 最上位のレイヤの題が決まったら送る。次の遷移で上書きされたら、そのページは見られていない。
+  private pendingVia_: analytics.NavVia | null;
   static fromCanvas(canvas: HTMLCanvasElement): World | null {
     const gl = canvas.getContext('webgl2');
     if(!gl) {
@@ -59,7 +60,7 @@ export default class World {
       'meta[property^="og:"], meta[name^="twitter:"], meta[name="description"], link[rel="canonical"]'
     ));
 
-    this.pendingView_ = null;
+    this.pendingVia_ = null;
 
     window.onpopstate = this.onPopState_.bind(this);
   }
@@ -162,26 +163,36 @@ export default class World {
       this.cursor_ = on;
     }
   }
-  get initialPath(): string {
-    return this.initialPath_;
-  }
-
   get siteTitle(): string {
     return this.siteTitle_;
   }
 
   /****************************************************************************
-   *                                  <head>                                  *
+   *                           <head> と page_view                            *
    ****************************************************************************/
 
+  /** 遷移の最後に 1 回だけ呼ぶ。新しい最上位のレイヤを反映し、その page_view を送るか待つ。 */
+  private showTop_(via: analytics.NavVia) {
+    this.pendingVia_ = via;
+    this.applyTop_();
+  }
+
+  /** 本文は非同期に届くので、届いた時点でまだ最上位なら反映する。 */
+  notifyLoaded(layer: Layer) {
+    const layers = this.layers_;
+    if (layers.length > 0 && layers[layers.length-1] === layer) {
+      this.applyTop_();
+    }
+  }
+
   /**
-   * <head> をスタック最上位のレイヤから導出する。
+   * <head> をスタック最上位のレイヤから導出し、題が決まっていれば page_view を送る。
    *
    * title はレイヤが持っている値をそのまま使う。SSR の og: や description は、
    * 最初に配信された URL に居る間だけ正しいので、他のレイヤに移ったら外す。
    * (外に出したまま古い値を晒すより、無くて <title> と URL に落ちる方が安全)
    */
-  private applyHead_() {
+  private applyTop_() {
     const layers = this.layers_;
     if (layers.length === 0) {
       return;
@@ -196,69 +207,44 @@ export default class World {
         el.remove();
       }
     }
-  }
-
-  /** 本文は非同期に届くので、届いた時点でまだ最上位なら <head> に反映し、page_view を送る。 */
-  notifyLoaded(layer: Layer) {
-    const layers = this.layers_;
-    if (layers.length > 0 && layers[layers.length-1] === layer) {
-      this.applyHead_();
+    if (this.pendingVia_ !== null && top.titleKnown) {
+      // UTM などのクエリを付けるのは開いたときの 1 回だけ。歯車のレイヤは使い回すので、
+      // 閉じて戻ってきたときにも付けると、流入元をもう一度数えさせてしまう。
+      const location = this.pendingVia_ === 'landing' ? top.landingHref : top.href;
+      analytics.pageView(location, top.title, this.pendingVia_);
+      this.pendingVia_ = null;
     }
-    this.flushPageView_();
-  }
-
-  /****************************************************************************
-   *                                Analytics                                 *
-   ****************************************************************************/
-
-  /**
-   * 最上位になったレイヤの page_view を送る。読み込み中なら notifyLoaded まで待つ。
-   * 待っている間に別のレイヤへ移ったら、そのレイヤの page_view は送らない(見られていない)。
-   * ただし開いた URL(landing)の page_view は、その時点の題で送る。流入元(UTM)は
-   * 最初の page_view の URL からしか数えられず、replaceState でアドレスバーのクエリも消えるため。
-   */
-  private viewTop_(via: analytics.NavVia) {
-    const pending = this.pendingView_;
-    if (pending !== null && pending.via === 'landing') {
-      analytics.pageView(pending.layer.path, pending.layer.title, pending.via);
-    }
-    const layers = this.layers_;
-    this.pendingView_ = { layer: layers[layers.length-1], via };
-    this.flushPageView_();
-  }
-
-  private flushPageView_() {
-    const pending = this.pendingView_;
-    const layers = this.layers_;
-    if (pending === null || !pending.layer.titleKnown || layers[layers.length-1] !== pending.layer) {
-      return;
-    }
-    this.pendingView_ = null;
-    analytics.pageView(pending.layer.path, pending.layer.title, pending.via);
   }
 
   /****************************************************************************
    *                            Layer  Transitions                            *
    ****************************************************************************/
+  /** 開いた URL のレイヤを作る。main から最初に 1 回だけ呼ぶ。 */
+  openLanding() {
+    // pushLayer の replaceState でクエリが消える前に読む。
+    const landing: Landing = { href: location.href, title: document.title };
+    this.pushLayer(this.createLayer_(location.pathname, landing), 'landing');
+  }
+
   openLayer(path: string, via: analytics.NavVia) {
     this.pushLayer(this.createLayer_(path), via);
   }
 
-  private createLayer_(path: string): Layer {
+  private createLayer_(path: string, landing?: Landing): Layer {
     if (path === '/') {
-      return new Index(this);
+      return new Index(this, landing);
     } else if (path.startsWith('/about-us/')) {
       const content = Page.fetchBody('/static/about-us.html');
-      return new Page(this, '/about-us/', content);
+      return new Page(this, '/about-us/', content, landing);
     } else if (path.startsWith('/pickup/')) {
       const content = Page.fetchBody('/pickup/body');
-      return new Page(this, '/pickup/', content);
+      return new Page(this, '/pickup/', content, landing);
     } else if (path.startsWith('/shop/')) {
       const content = Page.fetchBody('/static/shop.html');
-      return new Page(this, '/shop/', content);
+      return new Page(this, '/shop/', content, landing);
     } else {
       const content = Page.fetchBody(`/moment${path}`);
-      return new Page(this, path, content);
+      return new Page(this, path, content, landing);
     }
   }
 
@@ -272,7 +258,7 @@ export default class World {
     } else if (layers.length !== 1) {
       history.pushState(state+1, '', next.path);
     }
-    this.viewTop_(via);
+    this.showTop_(via);
   }
 
   pushLayer_(next: Layer) {
@@ -285,7 +271,6 @@ export default class World {
     layers.push(next);
     document.body.appendChild(next.element);
     next.onAttached();
-    this.applyHead_();
   }
 
   /**
@@ -310,7 +295,7 @@ export default class World {
       this.popLayer_();
     }
     history.pushState((history.state ?? 0)+1, '', '/');
-    this.viewTop_(via);
+    this.showTop_(via);
   }
 
   private popLayer_() {
@@ -326,23 +311,6 @@ export default class World {
     const next = layers[layers.length-1];
     document.body.appendChild(next.element);
     next.onAttached();
-    this.applyHead_();
-  }
-
-  private replaceLayer_(next: Layer) {
-    const layers = this.layers_;
-    if (layers.length <= 1) {
-      throw new Error(`Cannot replace a layer in a layer stack of length ${layers.length}.`);
-    }
-    const current = layers.pop()!;
-    current.onDetached();
-    document.body.removeChild(current.element);
-    current.destroy();
-
-    layers.push(next);
-    document.body.appendChild(next.element);
-    next.onAttached();
-    this.applyHead_();
   }
 
   onPopState_(ev: PopStateEvent) {
@@ -371,11 +339,11 @@ export default class World {
       while(layers.length > idx+1) {
         this.popLayer_();
       }
-      this.viewTop_('history');
+      this.showTop_('history');
       return;
     }
     this.pushLayer_(this.createLayer_(path));
-    this.viewTop_('history');
+    this.showTop_('history');
   }
 
   /****************************************************************************

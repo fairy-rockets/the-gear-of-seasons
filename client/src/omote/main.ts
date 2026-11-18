@@ -17,7 +17,7 @@ function main() {
   }
   world.start();
 
-  world.openLayer(location.pathname, 'landing');
+  world.openLanding();
 }
 
 document.addEventListener('DOMContentLoaded', main, false);

@@ -38,9 +38,6 @@ export type NavVia =
   | 'close_button'
   | 'backdrop';
 
-// 開いた URL。UTM などのクエリは、最初の page_view の page_location に入っていないと流入元に数えられない。
-const kLandingHref = window.location.href;
-
 let lastLocation: string | null = null;
 
 function send(name: string, params: Record<string, unknown>) {
@@ -49,10 +46,11 @@ function send(name: string, params: Record<string, unknown>) {
 
 /**
  * page_view を送る。SPA の遷移ごとに、そのページの題が決まってから呼ぶ。
+ * location は、landing なら開いた URL そのもの(UTM などのクエリは、最初の page_view の
+ * page_location に入っていないと流入元に数えられない)、それ以外はそのページの URL。
  * page_referrer は、遷移の前のページ(最初の page_view では GA が document.referrer を使う)。
  */
-export function pageView(path: string, title: string, via: NavVia) {
-  const location = via === 'landing' ? kLandingHref : window.location.origin + path;
+export function pageView(location: string, title: string, via: NavVia) {
   send('page_view', {
     page_location: location,
     page_title: title,

@@ -80,6 +80,7 @@ docker run --rm -v "$PWD:/app:ro" gears-shot node /app/tools/preview/editor-unsa
 `analytics.mjs` は、ビルドした omote の bundle と `index.hbs`（測定 ID が無いときの形）を Chromium で動かし、
 `window.dataLayer` に積まれた GA4 のイベント（page_view とその `nav_via`・`page_referrer`、gear_ready、exception、運営者の印の Cookie があるときの `gtag('set')`）を
 操作ごとに確かめる。API はスクリプト内で置き換えるので、DB も開発環境も要らず、gtag.js も読み込まない。
+about-us・お店・えらんだ絵の本文は実物のファイルを使うので、本文から `.title` が消えると題の確認で失敗する。
 
 `compose.dev.yml` の `app-dev` で client をビルドした後、リポジトリのルートから実行する:
 

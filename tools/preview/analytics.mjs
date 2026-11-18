@@ -20,9 +20,7 @@ for (let prev = ''; prev !== template;) {
   template = template.replace(/{{#if \w+}}(?:(?!{{#if)[\s\S])*?{{\/if}}\n?/g, '');
 }
 assert.ok(!template.includes('{{#') && !template.includes('{{/') && !template.includes('{{else}}'), template);
-const shell = template
-  .replace(/{{(\w+)}}/g, (_, key) => key === 'siteTitle' || key === 'title' ? kSiteTitle : '');
-assert.ok(shell.includes('function gtag()'), 'index.hbs から gtag() の定義が消えている');
+assert.ok(template.includes('function gtag()'), 'index.hbs から gtag() の定義が消えている');
 
 const kIcon = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
@@ -39,6 +37,24 @@ function momentBody(i) {
 <hr><div class="moment-footer"><nav class="moment-footer-nav">${prev}<a class="moment-footer-gear" href="/">歯車にもどる</a>${next}</nav>
 <nav class="moment-footer-links"><a href="/pickup/">🏮 えらんだ絵をみる</a><a href="/shop/">お店</a></nav></div>`;
 }
+
+// サーバと同じく、シェルの <title> にそのページの題を入れる(server/src/lib/meta.ts の pageTitle)。
+const pageTitle = title => `${title} :: the gear of seasons`;
+function shellFor(path) {
+  const i = kMoments.indexOf(path);
+  const title = i >= 0 ? pageTitle(kTitles[i])
+    : path === '/about-us/' ? pageTitle('「妖精⊸ロケット」について')
+    : path === '/shop/' ? pageTitle('お店')
+    : path === '/pickup/' ? pageTitle('えらんだ絵')
+    : kSiteTitle;
+  return template.replace(/{{(\w+)}}/g, (_, key) => key === 'siteTitle' ? kSiteTitle : key === 'title' ? title : '');
+}
+
+// about-us・お店・えらんだ絵の本文は、実物のファイルを使う(題は本文の .title から取る)。
+const kAboutUs = await readFile('/app/_assets/static/omote/about-us.html', 'utf8');
+const kShop = await readFile('/app/_assets/static/omote/shop.html', 'utf8');
+const kPickup = (await readFile('/app/_assets/templates/omote/pickup.hbs', 'utf8'))
+  .replace(/{{#each moments}}[\s\S]*?{{\/each}}/, '');
 
 const kRandom = kMoments.map((path, i) => ({
   angle: i * 0.3, date: path, title: kTitles[i], path, imageURL: `/entity/${i}/icon`, bodyURL: `/moment${path}`,
@@ -77,15 +93,15 @@ async function openPage({ failMoments = false, noWebGL = false } = {}) {
         return failMoments ? request.abort() : request.respond({ contentType: 'application/json', body: JSON.stringify(kRandom) });
       }
       if (path.startsWith('/entity/')) return request.respond({ contentType: 'image/png', body: kIcon });
-      if (path === '/static/about-us.html') return request.respond({ body: '<h1 class="title">ふたりについて</h1>' });
-      if (path === '/static/shop.html') return request.respond({ body: '<h1>お店</h1>' });
-      if (path === '/pickup/body') return request.respond({ body: '<h1>えらんだ絵</h1>' });
+      if (path === '/static/about-us.html') return request.respond({ body: kAboutUs });
+      if (path === '/static/shop.html') return request.respond({ body: kShop });
+      if (path === '/pickup/body') return request.respond({ body: kPickup });
       if (path.startsWith('/moment/')) {
         const i = kMoments.indexOf(path.slice('/moment'.length));
         return i === 2 ? request.respond({ status: 500, body: 'Internal Server Error' })
           : request.respond({ contentType: 'text/html', body: momentBody(i) });
       }
-      return request.respond({ contentType: 'text/html', body: shell });
+      return request.respond({ contentType: 'text/html', body: shellFor(path) });
     };
     if (page.held.has(path)) {
       page.held.set(path, respond);
@@ -141,7 +157,7 @@ assert.ok(Number.isInteger(ready.load_ms) && ready.load_ms >= 0, JSON.stringify(
 await page.click('#about-us-link');
 views = await waitPageViews(page, 2);
 assert.deepEqual(views[1], { name: 'page_view', page_location: `${kOrigin}/about-us/`,
-  page_title: 'ふたりについて :: the gear of seasons', page_referrer: `${kOrigin}/?utm_source=test`, nav_via: 'header' });
+  page_title: pageTitle('「妖精⊸ロケット」について'), page_referrer: `${kOrigin}/?utm_source=test`, nav_via: 'header' });
 
 // 3) × ボタンで閉じる。
 await page.click('.close-button');
@@ -215,27 +231,48 @@ views = await waitPageViews(momentPage, 7);
 assert.equal(views[6].page_location, `${kOrigin}${kMoments[1]}`);
 await momentPage.click('.moment-footer-links a[href="/shop/"]');
 views = await waitPageViews(momentPage, 8);
-assert.deepEqual(views[7], { name: 'page_view', page_location: `${kOrigin}/shop/`, page_title: kSiteTitle,
+assert.deepEqual(views[7], { name: 'page_view', page_location: `${kOrigin}/shop/`, page_title: pageTitle('お店'),
   page_referrer: `${kOrigin}${kMoments[1]}`, nav_via: 'footer_link' });
 await settle(500);
 assert.equal(pageViews(await events(momentPage)).length, 8);
 await momentPage.close();
 
-// 8') 開いた URL の本文が届く前に閉じても、landing の page_view は UTM ごと送る。
+// 8') 開いた URL の page_view は、本文を待たずに SSR の題と UTM ごと送る(すぐにタブを閉じられても残る)。
 const earlyClose = await openPage();
 earlyClose.held.set(`/moment${kMoments[0]}`, null);
 await earlyClose.goto(`${kOrigin}${kMoments[0]}?utm_source=test`, { waitUntil: 'domcontentloaded' });
+views = await waitPageViews(earlyClose, 1);
+assert.deepEqual(views[0], { name: 'page_view', page_location: `${kOrigin}${kMoments[0]}?utm_source=test`,
+  page_title: pageTitle(kTitles[0]), nav_via: 'landing' });
 await earlyClose.waitForSelector('.close-button');
 await earlyClose.click('.close-button');
 views = await waitPageViews(earlyClose, 2);
-assert.deepEqual(views[0], { name: 'page_view', page_location: `${kOrigin}${kMoments[0]}?utm_source=test`,
-  page_title: kSiteTitle, nav_via: 'landing' });
 assert.deepEqual(views[1], { name: 'page_view', page_location: `${kOrigin}/`, page_title: kSiteTitle,
   page_referrer: `${kOrigin}${kMoments[0]}?utm_source=test`, nav_via: 'close_button' });
 await earlyClose.held.get(`/moment${kMoments[0]}`)();
 await settle(500);
 assert.equal(pageViews(await events(earlyClose)).length, 2);
 await earlyClose.close();
+
+// 8'') 開いたパスに戻るで戻ると、レイヤを作り直して本文から題を取る(直前のページの題を引き継がない)。
+const returnToLanding = await openPage();
+await returnToLanding.goto(`${kOrigin}/shop/`, { waitUntil: 'domcontentloaded' });
+views = await waitPageViews(returnToLanding, 1);
+assert.deepEqual(views[0], { name: 'page_view', page_location: `${kOrigin}/shop/`, page_title: pageTitle('お店'),
+  nav_via: 'landing' });
+await returnToLanding.waitForSelector('.close-button');
+await returnToLanding.click('.close-button');
+await waitPageViews(returnToLanding, 2);
+await returnToLanding.click('#about-us-link');
+await waitPageViews(returnToLanding, 3);
+await returnToLanding.goBack();
+await waitPageViews(returnToLanding, 4);
+await returnToLanding.goBack();
+views = await waitPageViews(returnToLanding, 5);
+assert.deepEqual(views[4], { name: 'page_view', page_location: `${kOrigin}/shop/`, page_title: pageTitle('お店'),
+  page_referrer: `${kOrigin}/`, nav_via: 'history' });
+assert.equal(await returnToLanding.title(), pageTitle('お店'));
+await returnToLanding.close();
 
 // 9) moment の一覧を取れなければ exception を送る。
 const failPage = await openPage({ failMoments: true });

@@ -1,5 +1,5 @@
 import World from '../World'
-import Layer from '../Layer';
+import Layer, { Landing } from '../Layer';
 import { mat4 } from 'gl-matrix';
 import twemoji from 'twemoji';
 import { kEmojiURLBase } from '../../constant';
@@ -14,8 +14,8 @@ export default class Page extends Layer {
   private readonly backdropListener_: () => void;
   // 本文が届いたか(取得に失敗したときも含む)。
   private loaded_: boolean;
-  constructor(world: World, path: string, contentPromise: Promise<string>) {
-    super(world, path);
+  constructor(world: World, path: string, contentPromise: Promise<string>, landing?: Landing) {
+    super(world, path, landing);
 
     this.contentWrapper_ = document.createElement('div');
     this.contentWrapper_.classList.add('content-wrapper');
@@ -128,8 +128,9 @@ export default class Page extends Layer {
     this.world.notifyLoaded(this);
   }
 
+  // landing なら SSR の題がもう正しい。そうでなければ本文の .title から決まる。
   override get titleKnown(): boolean {
-    return this.loaded_;
+    return this.landing_ || this.loaded_;
   }
 
   onAttached() {
