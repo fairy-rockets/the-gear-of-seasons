@@ -358,7 +358,7 @@ let all = await events(gear);
 assert.deepEqual(named(all, 'view_item_list').map(e => [e.item_list_id, e.item_list_name]), [['the-gear-of-seasons', '季節の歯車']]);
 assert.deepEqual(shownPaths(all).sort(), ['k0', 'k1', 'k2', 'k11'].map(dialPath).sort());
 let [leave] = named(all, 'gear_leave');
-assert.equal(leave.exit, 'hidden');
+assert.equal(leave.leave_method, 'hidden');
 assert.equal(leave.shown_count, 4);
 assert.ok(leave.gear_ms >= 1000, JSON.stringify(leave));
 await setHidden(gear, false);
@@ -400,7 +400,7 @@ const secondShown = shownPaths(fresh);
 assert.ok(secondShown.includes(dialPath('k6')), JSON.stringify(secondShown));
 assert.deepEqual(secondShown.filter(p => firstShown.includes(p)), [], '同じ訪問で二度送った');
 [leave] = named(fresh, 'gear_leave');
-assert.equal(leave.exit, 'hidden');
+assert.equal(leave.leave_method, 'hidden');
 assert.equal(leave.rotate_wheel_deg, 210);
 assert.equal(leave.rotate_mouse_deg, 0);
 assert.equal(leave.rotate_pen_deg, 0);
@@ -421,7 +421,7 @@ fresh = all.slice(seen);
 const order = fresh.map(e => e.name).filter(n => n !== 'moment_hover');
 assert.deepEqual(order.slice(-3), ['gear_leave', 'select_item', 'page_view'], JSON.stringify(order));
 [leave] = named(fresh, 'gear_leave');
-assert.equal(leave.exit, 'select');
+assert.equal(leave.leave_method, 'select');
 // 開いたものも、迷った回数と時間には入る。
 assert.equal(leave.hover_count, 1);
 assert.ok(leave.hover_ms >= 500, JSON.stringify(leave));
@@ -442,7 +442,7 @@ await waitPageViews(gear, 4);
 all = await events(gear);
 fresh = all.slice(seen);
 [leave] = named(fresh, 'gear_leave');
-assert.equal(leave.exit, 'header');
+assert.equal(leave.leave_method, 'header');
 assert.ok(shownPaths(fresh).some(p => shownPaths(all.slice(0, seen)).includes(p)), JSON.stringify(shownPaths(fresh)));
 seen = all.length;
 
@@ -452,7 +452,7 @@ await waitPageViews(gear, 5);
 await gear.goForward();
 await waitPageViews(gear, 6);
 [leave] = named((await events(gear)).slice(seen), 'gear_leave');
-assert.equal(leave.exit, 'history');
+assert.equal(leave.leave_method, 'history');
 await gear.close();
 
 // 画面の向きが変わって歯車が構図に合わせて回った分は、回した角度に入らない。

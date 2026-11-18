@@ -82,20 +82,22 @@ export function gearReady(loadMs: number) {
 export type MomentItemList = { id: string, name: string };
 export const kGearItemList: MomentItemList = { id: 'the-gear-of-seasons', name: '季節の歯車' };
 
-export type ListedMoment = { path: string, title: string };
+/** GA の item としての moment。 */
+export type MomentItem = { path: string, title: string };
 
-// items は 1 イベント 200 個までだが、gtag の 1 回のリクエストの大きさの上限は書かれていないので小さく分ける。
-const kItemsPerEvent = 50;
+// GA4 が書いている、1 イベントの items の上限。これを超えたときだけ分ける(分けると、一覧の表示回数
+// itemListViewEvents はイベントの数で数えるので、その分増える)。
+const kItemsPerEvent = 200;
 
 /** GA の items に入れる 1 個分。 */
 type GAItem = { item_id: string, item_name: string };
 
-function itemOf(m: ListedMoment): GAItem {
+function itemOf(m: MomentItem): GAItem {
   return { item_id: m.path, item_name: m.title };
 }
 
 /** 一覧で見せた moment(GA の view_item_list)。空なら送らない。 */
-export function viewMomentList(list: MomentItemList, moments: readonly ListedMoment[]) {
+export function viewMomentList(list: MomentItemList, moments: readonly MomentItem[]) {
   for (let i = 0; i < moments.length; i += kItemsPerEvent) {
     send('view_item_list', {
       item_list_id: list.id,
@@ -117,7 +119,7 @@ export function pointerInputOf(pointerType: string): PointerInput {
 }
 
 /** 一覧から開いた moment(GA の select_item)。 */
-export function selectMoment(list: MomentItemList, moment: ListedMoment, input: PointerInput) {
+export function selectMoment(list: MomentItemList, moment: MomentItem, input: PointerInput) {
   send('select_item', {
     item_list_id: list.id,
     item_list_name: list.name,
@@ -130,18 +132,19 @@ export function selectMoment(list: MomentItemList, moment: ListedMoment, input: 
 export type RotateInput = PointerInput | 'wheel';
 
 /**
- * 歯車を離れた手段(gear_leave の exit)。
+ * 歯車を離れた手段(gear_leave の leave_method)。GA4 の exit(離脱数)はセッションの最後のイベントが
+ * あったページのことで、サイトの中で別のページへ移ることは含まないので、exit とは呼ばない。
  *
  * - select: 歯車の moment を開いた
  * - header: 歯車の上の About us・えらんだ絵・お店
  * - history: ブラウザの戻る・進む
  * - hidden: タブが隠れた(戻ってきたら、その後の分は次の gear_leave に入る)
  */
-export type GearExitMethod = 'select' | 'header' | 'history' | 'hidden';
+export type GearLeaveMethod = 'select' | 'header' | 'history' | 'hidden';
 
 /** gear_leave 1 件分。歯車の engagement 1 回分(GearEngagement)の要約。 */
 export type GearEngagementSummary = {
-  exit: GearExitMethod;
+  leaveMethod: GearLeaveMethod;
   // この engagement で歯車にいた時間。タブが隠れていた時間は含まない。
   gearMs: number;
   // 入力ごとに回した角度(絶対値の合計、ラジアン)。
@@ -155,9 +158,11 @@ export type GearEngagementSummary = {
 
 /** 歯車での過ごし方の要約。engagement ごと(歯車を離れたとき、タブが隠れたとき)に 1 件送る。 */
 export function gearLeave(summary: GearEngagementSummary) {
+  // 1 度単位に丸める(GA が求めているわけではない。読みやすさと送る量のため。engagement ごとの誤差は
+  // 0.5 度未満で、足し合わせても無視できる)。gear_ms・hover_ms も同じくミリ秒単位に丸める。
   const deg = (rad: number) => Math.round(glMatrix.toDegree(rad));
   send('gear_leave', {
-    exit: summary.exit,
+    leave_method: summary.leaveMethod,
     gear_ms: Math.round(summary.gearMs),
     rotate_mouse_deg: deg(summary.rotationByInput.mouse),
     rotate_touch_deg: deg(summary.rotationByInput.touch),

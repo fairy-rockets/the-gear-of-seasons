@@ -19,23 +19,23 @@ export default class MomentsTracker {
   // この訪問で表示した moment のパス(前の engagement で送ったものも含む)。訪問の間 Index が持つ。
   private readonly impressedMomentPaths_: Set<string>;
   // この engagement で表示し、まだ view_item_list で送っていない moment。
-  private readonly unsentImpressions_: analytics.ListedMoment[];
+  private readonly unsentImpressions_: analytics.MomentItem[];
   // 直前のフレームで円の中心がビューポートの中にあった moment と、途切れずに中にあり始めた時刻
   // (ビューポートから出たフレームで消す)。
   private readonly inViewportSince_: Map<Moment, number>;
   // いまマウスが乗っている moment と、乗せ始めた時刻。外れたら null。
   private currentHover_: { moment: Moment, since: number } | null;
-  // 0.5 秒以上乗せた回数と時間の合計。
-  private hoverCount_: number;
-  private hoverMs_: number;
+  // 0.5 秒以上乗せた回数と、その時間の合計(この engagement の分)。
+  private totalHoverCount_: number;
+  private totalHoverMs_: number;
   constructor(momentList: analytics.MomentItemList, impressedMomentPaths: Set<string>) {
     this.momentList_ = momentList;
     this.impressedMomentPaths_ = impressedMomentPaths;
     this.unsentImpressions_ = [];
     this.inViewportSince_ = new Map();
     this.currentHover_ = null;
-    this.hoverCount_ = 0;
-    this.hoverMs_ = 0;
+    this.totalHoverCount_ = 0;
+    this.totalHoverMs_ = 0;
   }
 
   /** 毎フレーム、円の中心がビューポートの中にある moment を渡す。 */
@@ -85,8 +85,8 @@ export default class MomentsTracker {
     this.endHover_(now, false);
     analytics.viewMomentList(this.momentList_, this.unsentImpressions_);
     return {
-      hoverCount: this.hoverCount_,
-      hoverMs: this.hoverMs_,
+      hoverCount: this.totalHoverCount_,
+      hoverMs: this.totalHoverMs_,
       shownCount: this.unsentImpressions_.length,
     };
   }
@@ -109,8 +109,8 @@ export default class MomentsTracker {
     if (ms < kHoverMinMs) {
       return;
     }
-    ++this.hoverCount_;
-    this.hoverMs_ += ms;
+    ++this.totalHoverCount_;
+    this.totalHoverMs_ += ms;
     if (!opened) {
       analytics.momentHover(hover.moment.path, ms);
     }

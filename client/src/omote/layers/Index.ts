@@ -275,13 +275,13 @@ export default class Index extends Layer {
   }
 
   /** いまの engagement を終えて送る(view_item_list と gear_leave)。engagement が無ければ何もしない。 */
-  private leave_(exit: analytics.GearExitMethod) {
+  private leave_(leaveMethod: analytics.GearLeaveMethod) {
     const engagement = this.engagement_;
     if(engagement === null) {
       return;
     }
     this.engagement_ = null;
-    engagement.end(performance.now(), exit);
+    engagement.end(performance.now(), leaveMethod);
   }
 
   private openMoment_(m: Moment) {
