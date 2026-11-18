@@ -102,17 +102,17 @@ export default class Index extends Layer {
     this.aboutUsLink_ = this.element_.querySelector<HTMLElement>('#about-us-link')!;
     this.aboutUsLink_.addEventListener('click', (e) => {
       e.preventDefault();
-      this.leave_('header');
+      this.endEngagement_('header');
       world.openLayer('/about-us/', 'header');
     });
     this.element_.querySelector<HTMLElement>('#pickup-link')!.addEventListener('click', (e) => {
       e.preventDefault();
-      this.leave_('header');
+      this.endEngagement_('header');
       world.openLayer('/pickup/', 'header');
     });
     this.element_.querySelector<HTMLElement>('#shop-link')!.addEventListener('click', (e) => {
       e.preventDefault();
-      this.leave_('header');
+      this.endEngagement_('header');
       world.openLayer('/shop/', 'header');
     });
 
@@ -240,8 +240,8 @@ export default class Index extends Layer {
   }
 
   override onDetached() {
-    // 見出しや moment から離れるときは、もう leave_ を呼んでいる。残るのは戻る・進む。
-    this.leave_('history');
+    // 見出しや moment から離れるときは、もう engagement を終えている。残るのは戻る・進む。
+    this.endEngagement_('history');
     document.removeEventListener('visibilitychange', this.visibilityListener_, false);
     // 歯車が出る前に別のページへ移ったら送らない。戻るまでの時間が load_ms に入ってしまう。
     this.readyReported_ = true;
@@ -264,7 +264,7 @@ export default class Index extends Layer {
   // タブが隠れたら、いまの engagement を終えて送る。戻ってきたら、次の engagement を始める。
   private onVisibilityChange_() {
     if(document.visibilityState === 'hidden') {
-      this.leave_('hidden');
+      this.endEngagement_('hidden');
     } else if(this.engagement_ === null) {
       this.startEngagement_();
     }
@@ -275,7 +275,7 @@ export default class Index extends Layer {
   }
 
   /** いまの engagement を終えて送る(view_item_list と gear_leave)。engagement が無ければ何もしない。 */
-  private leave_(leaveMethod: analytics.GearLeaveMethod) {
+  private endEngagement_(leaveMethod: analytics.GearLeaveMethod) {
     const engagement = this.engagement_;
     if(engagement === null) {
       return;
@@ -286,7 +286,7 @@ export default class Index extends Layer {
 
   private openMoment_(m: Moment) {
     this.engagement_?.moments.open(performance.now(), m);
-    this.leave_('select');
+    this.endEngagement_('select');
     analytics.selectMoment(analytics.kGearItemList, m, this.pointerType_);
     const content = Page.fetchBody(m.bodyURL);
     this.world.pushLayer(new Page(this.world, m.path, content), 'gear');
