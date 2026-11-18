@@ -66,9 +66,10 @@ const browser = await puppeteer.launch({ executablePath: '/usr/bin/chromium', he
 
 const outside = [];
 // failMoments: /moments/random を失敗させる。page.held に入れたパスは、応答を release() まで止める。
-async function openPage({ failMoments = false, noWebGL = false } = {}) {
+// random: /moments/random の代わりに返す moment。touch: タッチの入力も受けられるようにする。
+async function openPage({ failMoments = false, noWebGL = false, random = kRandom, touch = false } = {}) {
   const page = await browser.newPage();
-  await page.setViewport({ width: 844, height: 600 });
+  await page.setViewport({ width: 844, height: 600, hasTouch: touch });
   page.on('pageerror', error => { throw error; });
   page.held = new Map();
   if (noWebGL) {
@@ -91,7 +92,7 @@ async function openPage({ failMoments = false, noWebGL = false } = {}) {
       if (path === '/js/main.js') return request.respond({ contentType: 'application/javascript', body: bundle });
       if (path === '/static/main.css') return request.respond({ contentType: 'text/css', body: css });
       if (path === '/moments/random') {
-        return failMoments ? request.abort() : request.respond({ contentType: 'application/json', body: JSON.stringify(kRandom) });
+        return failMoments ? request.abort() : request.respond({ contentType: 'application/json', body: JSON.stringify(random) });
       }
       if (path.startsWith('/entity/')) return request.respond({ contentType: 'image/png', body: kIcon });
       if (path === '/static/about-us.html') return request.respond({ body: kAboutUs });
@@ -295,6 +296,177 @@ await waitPageViews(notReady, 3);
 await settle(3000);
 assert.deepEqual((await events(notReady)).filter(e => e.name === 'gear_ready'), []);
 await notReady.close();
+
+// 12) 歯車: 見せた moment(view_item_list)、開いた moment(select_item)、過ごし方(gear_leave)、
+// マウスを乗せたのに開かなかった moment(moment_hover)。
+// 歯車は今日の向きを決まった位置に置くので、今日からの角度で置けば、日付によらず同じところに出る。
+function todayAngle() {
+  const now = new Date();
+  const beg = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), 11, 31, 12, 59, 59, 999);
+  return Math.PI * 2 * ((now.getTime() - beg.getTime()) / (end.getTime() - beg.getTime()));
+}
+// 今日から 30 度ずつ 12 個。横長の画面では k0・k1・k2・k11 が見え、k6(反対側)は見えない。
+const kDial = Array.from({ length: 12 }, (_, k) => ({
+  angle: todayAngle() + k * Math.PI / 6, date: `k${k}`, title: `k${k}`, path: `/2020/02/${String(k + 1).padStart(2, '0')}/00:00:00/`,
+  imageURL: `/entity/${k}/icon`, bodyURL: `/moment${kMoments[0]}`,
+}));
+const dialPath = title => kDial.find(m => m.title === title).path;
+// k0・k1・k2・k11 の円が出る位置(844x600)。回した後は、ここになければ格子で探す。
+const kDiscSpots = [[459, 60], [409, 247], [273, 384], [86, 434]];
+const kEmptySpot = [800, 560];
+
+async function setHidden(page, hidden) {
+  await page.evaluate(h => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => h ? 'hidden' : 'visible' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, hidden);
+}
+
+// マウスを (x, y) に置き、ツールチップが出たらその題を返す。出なければ null。
+async function hoverAt(page, x, y) {
+  await page.mouse.move(x, y);
+  try {
+    await page.waitForSelector('.tooltip:not(.hidden)', { timeout: 300 });
+  } catch {
+    return null;
+  }
+  return page.$eval('.tooltip .moment-title', el => el.textContent);
+}
+
+async function findDisc(page) {
+  const grid = [];
+  for (let y = 30; y < 600; y += 60) for (let x = 30; x < 844; x += 60) grid.push([x, y]);
+  for (const [x, y] of [...kDiscSpots, ...grid]) {
+    const title = await hoverAt(page, x, y);
+    if (title !== null) return { x, y, title };
+  }
+  throw new Error('歯車に moment が見つからない');
+}
+
+const named = (list, name) => list.filter(e => e.name === name);
+const shownPaths = list => named(list, 'view_item_list').flatMap(e => e.items.map(i => i.item_id));
+
+const gear = await openPage({ random: kDial, touch: true });
+await gear.goto(`${kOrigin}/`, { waitUntil: 'domcontentloaded' });
+await waitEvent(gear, 'gear_ready');
+await settle(1300);
+
+// タブが隠れたら、そこまでを送る。見えている 4 つだけで、反対側の k6 は入らない。
+await setHidden(gear, true);
+let all = await events(gear);
+assert.deepEqual(named(all, 'view_item_list').map(e => [e.item_list_id, e.item_list_name]), [['gear', '歯車']]);
+assert.deepEqual(shownPaths(all).sort(), ['k0', 'k1', 'k2', 'k11'].map(dialPath).sort());
+let [leave] = named(all, 'gear_leave');
+assert.equal(leave.exit, 'hidden');
+assert.equal(leave.shown_count, 4);
+assert.ok(leave.gear_ms >= 1000, JSON.stringify(leave));
+await setHidden(gear, false);
+let seen = all.length;
+
+// 0.5 秒以上乗せて離れたら moment_hover。0.5 秒未満なら送らない。
+const longHover = await hoverAt(gear, ...kDiscSpots[1]);
+assert.ok(longHover !== null);
+await settle(700);
+await gear.mouse.move(...kEmptySpot);
+const hovers = await waitEvent(gear, 'moment_hover');
+assert.equal(hovers.length, 1);
+assert.equal(hovers[0].moment, dialPath(longHover));
+assert.ok(hovers[0].hover_ms >= 500, JSON.stringify(hovers[0]));
+assert.ok(await hoverAt(gear, ...kDiscSpots[2]) !== null);
+await settle(100);
+await gear.mouse.move(...kEmptySpot);
+await settle(300);
+assert.equal(named(await events(gear), 'moment_hover').length, 1);
+
+// タッチではじいて慣性で回っている間に、マウスを動かしてからホイールで回す。
+// 慣性で回った分はタッチに入り、ホイールの分(600px = 30 度)と混ざらない。
+await gear.touchscreen.touchStart(600, 300);
+for (let i = 1; i <= 5; i++) await gear.touchscreen.touchMove(600, 300 + i * 30);
+await gear.touchscreen.touchEnd();
+await gear.mouse.move(...kEmptySpot);
+await gear.evaluate(() => document.getElementById('background').dispatchEvent(
+  new WheelEvent('wheel', { deltaY: 600, deltaMode: 0, cancelable: true })));
+await settle(2000);
+// 半周回して、反対側の k6 を出す。
+await gear.evaluate(() => document.getElementById('background').dispatchEvent(
+  new WheelEvent('wheel', { deltaY: 3600, deltaMode: 0, cancelable: true })));
+await settle(1300);
+await setHidden(gear, true);
+all = await events(gear);
+let fresh = all.slice(seen);
+const firstShown = shownPaths(all.slice(0, seen));
+const secondShown = shownPaths(fresh);
+assert.ok(secondShown.includes(dialPath('k6')), JSON.stringify(secondShown));
+assert.deepEqual(secondShown.filter(p => firstShown.includes(p)), [], '同じ訪問で二度送った');
+[leave] = named(fresh, 'gear_leave');
+assert.equal(leave.exit, 'hidden');
+assert.equal(leave.rotate_wheel_deg, 210);
+assert.equal(leave.rotate_mouse_deg, 0);
+assert.equal(leave.rotate_pen_deg, 0);
+assert.ok(leave.rotate_touch_deg > 0, JSON.stringify(leave));
+assert.equal(leave.hover_count, 1);
+assert.ok(leave.hover_ms >= 500, JSON.stringify(leave));
+assert.equal(leave.shown_count, secondShown.length);
+await setHidden(gear, false);
+seen = all.length;
+
+// 0.5 秒以上乗せてからマウスで開く: view_item_list → gear_leave → select_item → page_view の順。
+const disc = await findDisc(gear);
+await settle(700);
+await gear.mouse.click(disc.x, disc.y);
+await waitPageViews(gear, 2);
+all = await events(gear);
+fresh = all.slice(seen);
+const order = fresh.map(e => e.name).filter(n => n !== 'moment_hover');
+assert.deepEqual(order.slice(-3), ['gear_leave', 'select_item', 'page_view'], JSON.stringify(order));
+[leave] = named(fresh, 'gear_leave');
+assert.equal(leave.exit, 'select');
+// 開いたものも、迷った回数と時間には入る。
+assert.equal(leave.hover_count, 1);
+assert.ok(leave.hover_ms >= 500, JSON.stringify(leave));
+const [select] = named(fresh, 'select_item');
+assert.deepEqual(select, { name: 'select_item', item_list_id: 'gear', item_list_name: '歯車',
+  items: [{ item_id: dialPath(disc.title), item_name: disc.title }], input: 'mouse' });
+assert.ok(shownPaths(all).includes(dialPath(disc.title)));
+// 乗せてから開いたものは、moment_hover にしない。
+assert.equal(named(all, 'moment_hover').length, 1);
+seen = all.length;
+
+// 閉じて歯車に戻ると、数え直す(前の訪問で送ったものも、また送る)。
+await gear.click('.close-button');
+await waitPageViews(gear, 3);
+await settle(1300);
+await gear.click('#about-us-link');
+await waitPageViews(gear, 4);
+all = await events(gear);
+fresh = all.slice(seen);
+[leave] = named(fresh, 'gear_leave');
+assert.equal(leave.exit, 'header');
+assert.ok(shownPaths(fresh).some(p => shownPaths(all.slice(0, seen)).includes(p)), JSON.stringify(shownPaths(fresh)));
+seen = all.length;
+
+// 戻るで歯車に戻り、進むで離れる。
+await gear.goBack();
+await waitPageViews(gear, 5);
+await gear.goForward();
+await waitPageViews(gear, 6);
+[leave] = named((await events(gear)).slice(seen), 'gear_leave');
+assert.equal(leave.exit, 'history');
+await gear.close();
+
+// 1 秒たつ前にタップで開いたものも、select_item の前に見せたことにする(ほかの見えている moment はまだ入らない)。
+const quick = await openPage({ random: kDial, touch: true });
+await quick.goto(`${kOrigin}/`, { waitUntil: 'domcontentloaded' });
+await waitEvent(quick, 'gear_ready');
+await quick.touchscreen.tap(...kDiscSpots[1]);
+await waitPageViews(quick, 2);
+all = await events(quick);
+const [tapped] = named(all, 'select_item');
+assert.equal(tapped.input, 'touch');
+assert.deepEqual(shownPaths(all), [tapped.items[0].item_id]);
+assert.ok(all.findIndex(e => e.name === 'view_item_list') < all.findIndex(e => e.name === 'select_item'));
+await quick.close();
 
 // 10) WebGL が使えなければ、fatal の exception だけを送る。
 const noGL = await openPage({ noWebGL: true });
