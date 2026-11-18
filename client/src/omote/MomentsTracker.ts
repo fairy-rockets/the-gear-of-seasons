@@ -95,7 +95,7 @@ export default class MomentsTracker {
   }
 
   /**
-   * 溜めた分を送る(歯車を離れたとき、タブが隠れたとき)。乗せている途中の moment は、ここで離れたことにする。
+   * 溜めた分を送る(区切りの終わり: 歯車を離れたとき、タブが隠れたとき)。送ったものは次の begin まで覚えておく(タブが隠れて区切っただけなら、訪問は続くため)。乗せている途中の moment は、ここで離れたことにする。
    * gear_leave に入れる数を返し、数え直す。
    */
   flush(now: number): { hoverCount: number, hoverMs: number, shownCount: number } {

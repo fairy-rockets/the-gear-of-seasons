@@ -130,20 +130,21 @@ export type RotateInput = PointerInput | 'wheel';
  */
 export type GearExit = 'select' | 'header' | 'history' | 'hidden';
 
+/** gear_leave 1 件分。歯車への訪問のうち、タブが隠れるまで(または離れるまで)の区切り。 */
 export type GearVisit = {
   exit: GearExit;
-  // 歯車にいた時間。タブが隠れていた時間は含まない。
+  // この区切りで歯車にいた時間。タブが隠れていた時間は含まない。
   gearMs: number;
   // 入力ごとに回した角度(絶対値の合計、ラジアン)。
   rotated: Record<RotateInput, number>;
-  // 0.5 秒以上マウスを乗せた回数と、その時間の合計。
+  // この区切りで 0.5 秒以上マウスを乗せた回数と、その時間の合計(開いたものも含む)。
   hoverCount: number;
   hoverMs: number;
-  // この gear_leave までに view_item_list で送った moment の数。
+  // この区切りの view_item_list で送った moment の数(前の区切りで送ったものは含まない)。
   shownCount: number;
 };
 
-/** 歯車での過ごし方の要約。歯車を離れたときとタブが隠れたときに 1 件送る。 */
+/** 歯車での過ごし方の要約。区切りごと(歯車を離れたとき、タブが隠れたとき)に 1 件送る。 */
 export function gearLeave(visit: GearVisit) {
   const deg = (rad: number) => Math.round(rad * 180 / Math.PI);
   send('gear_leave', {

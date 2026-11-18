@@ -455,6 +455,25 @@ await waitPageViews(gear, 6);
 assert.equal(leave.exit, 'history');
 await gear.close();
 
+// 画面の向きが変わって歯車が構図に合わせて回った分は、回した角度に入らない。
+// gear_ms には、タブが隠れていた時間が入らない。
+const turn = await openPage({ random: kDial });
+await turn.goto(`${kOrigin}/`, { waitUntil: 'domcontentloaded' });
+await waitEvent(turn, 'gear_ready');
+await turn.setViewport({ width: 390, height: 844 });
+await settle(500);
+await setHidden(turn, true);
+[leave] = named(await events(turn), 'gear_leave');
+assert.deepEqual([leave.rotate_mouse_deg, leave.rotate_touch_deg, leave.rotate_pen_deg, leave.rotate_wheel_deg], [0, 0, 0, 0]);
+await settle(1500);
+await setHidden(turn, false);
+await settle(300);
+await setHidden(turn, true);
+const parts = named(await events(turn), 'gear_leave');
+assert.equal(parts.length, 2);
+assert.ok(parts[1].gear_ms < 1000, JSON.stringify(parts[1]));
+await turn.close();
+
 // 1 秒たつ前にタップで開いたものも、select_item の前に見せたことにする(ほかの見えている moment はまだ入らない)。
 const quick = await openPage({ random: kDial, touch: true });
 await quick.goto(`${kOrigin}/`, { waitUntil: 'domcontentloaded' });

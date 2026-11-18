@@ -42,8 +42,9 @@ export default class Index extends Layer {
   // 歯車で見せた・乗せた moment と、回した角度。gear_leave でまとめて送る。
   private readonly momentsTracker_: MomentsTracker;
   private readonly rotationTracker_: RotationTracker;
-  // いまの訪問(タブが隠れたら、そこで区切る)を始めた時刻。区切ってから再開するまでは null。
-  private visitSince_: number | null;
+  // いまの区切り(gear_leave 1 件分)を始めた時刻。訪問は歯車に来てから離れるまでで、タブが隠れると
+  // そこで区切り、戻ってきたら次の区切りを始める。区切ってから再開するまでは null。
+  private partSince_: number | null;
   private readonly visibilityListener_: () => void;
   // ポインタ操作の状態
   private pointerId_: number | null;
@@ -121,7 +122,7 @@ export default class Index extends Layer {
     this.readyReported_ = false;
     this.momentsTracker_ = new MomentsTracker(analytics.kGearList);
     this.rotationTracker_ = new RotationTracker();
-    this.visitSince_ = null;
+    this.partSince_ = null;
     this.visibilityListener_ = this.onVisibilityChange_.bind(this);
   }
 
@@ -133,7 +134,7 @@ export default class Index extends Layer {
   render(time: number, matWorld: mat4) {
     this.applyInertia_(time);
     const m = this.moments_.render(time, matWorld, this.pointerX_, this.pointerY_);
-    if(this.visitSince_ !== null) {
+    if(this.partSince_ !== null) {
       this.momentsTracker_.frame(performance.now(), this.moments_.onScreen);
     }
     if(!this.readyReported_ && this.moments_.drawnCount > 0) {
@@ -218,7 +219,7 @@ export default class Index extends Layer {
   override onAttached() {
     this.momentsTracker_.begin();
     this.rotationTracker_.take();
-    this.visitSince_ = document.visibilityState === 'hidden' ? null : performance.now();
+    this.partSince_ = document.visibilityState === 'hidden' ? null : performance.now();
     document.addEventListener('visibilitychange', this.visibilityListener_, false);
     this.world.cursor = false;
     this.world.canvas.addEventListener('wheel', this.wheelEventListener_, false);
@@ -267,18 +268,18 @@ export default class Index extends Layer {
   private onVisibilityChange_() {
     if(document.visibilityState === 'hidden') {
       this.leave_('hidden');
-    } else if(this.visitSince_ === null) {
-      this.visitSince_ = performance.now();
+    } else if(this.partSince_ === null) {
+      this.partSince_ = performance.now();
     }
   }
 
-  /** ここまでの訪問を送る(view_item_list と gear_leave)。もう送っていれば何もしない。 */
+  /** いまの区切りを送る(view_item_list と gear_leave)。もう送っていれば何もしない。 */
   private leave_(exit: analytics.GearExit) {
-    const since = this.visitSince_;
+    const since = this.partSince_;
     if(since === null) {
       return;
     }
-    this.visitSince_ = null;
+    this.partSince_ = null;
     const now = performance.now();
     const counts = this.momentsTracker_.flush(now);
     analytics.gearLeave({ exit, gearMs: now - since, rotated: this.rotationTracker_.take(), ...counts });
@@ -378,6 +379,8 @@ export default class Index extends Layer {
       return;
     }
     ev.preventDefault();
+    // 慣性と select_item の input は、離したポインタの種類にする(途中で別のポインタが動いていても)。
+    this.pointerType_ = analytics.pointerInputOf(ev.pointerType);
     this.world.canvas.releasePointerCapture(ev.pointerId);
     this.pointerId_ = null;
     const dist = Math.hypot(ev.clientX - this.pointerDownX_, ev.clientY - this.pointerDownY_);
@@ -392,7 +395,7 @@ export default class Index extends Layer {
       if(ev.timeStamp - this.lastMoveTime_ > kFlickMaxIdleMs) {
         this.angularVelocity_ = 0;
       }
-      this.inertiaInput_ = this.pointerType_;
+      this.inertiaInput_ = this.pointerType_;  // 掴んでいたポインタ(onPointerUp_ の先頭で更新)
       if(this.pointerType_ !== 'mouse') {
         // タッチのドラッグ後は選択を残さない。
         this.pointerX_ = NaN;
