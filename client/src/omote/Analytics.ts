@@ -7,6 +7,8 @@
 // GA の管理画面で、拡張計測の「ブラウザの履歴イベントに基づくページの変更」を OFF にしておくこと。
 // ON だと、ここで送る page_view と重複して数えられる。
 
+import { glMatrix } from 'gl-matrix';
+
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
@@ -74,23 +76,26 @@ export function gearReady(loadMs: number) {
 }
 
 /**
- * moment を並べた一覧。GA の推奨イベント(view_item_list / select_item)の item_list_id と item_list_name。
- * item_id は moment のパス、item_name は題で、どの一覧でも同じ。
+ * moment を商品(item)として並べた一覧。GA の推奨イベント(view_item_list / select_item)の
+ * item_list_id と item_list_name。item_id は moment のパス、item_name は題で、どの一覧でも同じ。
  */
-export type MomentList = { id: string, name: string };
-export const kGearList: MomentList = { id: 'gear', name: '歯車' };
+export type MomentItemList = { id: string, name: string };
+export const kGearItemList: MomentItemList = { id: 'the-gear-of-seasons', name: '季節の歯車' };
 
 export type ListedMoment = { path: string, title: string };
 
 // items は 1 イベント 200 個までだが、gtag の 1 回のリクエストの大きさの上限は書かれていないので小さく分ける。
 const kItemsPerEvent = 50;
 
-function itemOf(m: ListedMoment) {
+/** GA の items に入れる 1 個分。 */
+type GAItem = { item_id: string, item_name: string };
+
+function itemOf(m: ListedMoment): GAItem {
   return { item_id: m.path, item_name: m.title };
 }
 
 /** 一覧で見せた moment(GA の view_item_list)。空なら送らない。 */
-export function viewMomentList(list: MomentList, moments: readonly ListedMoment[]) {
+export function viewMomentList(list: MomentItemList, moments: readonly ListedMoment[]) {
   for (let i = 0; i < moments.length; i += kItemsPerEvent) {
     send('view_item_list', {
       item_list_id: list.id,
@@ -100,7 +105,11 @@ export function viewMomentList(list: MomentList, moments: readonly ListedMoment[
   }
 }
 
-/** ポインタの種類。PointerEvent.pointerType の mouse と pen 以外は touch にまとめる。 */
+/**
+ * ポインタの種類。PointerEvent.pointerType は mouse・pen・touch のほか、機器の種類が分からないと空文字列に、
+ * それ以外の機器ではベンダー接頭辞の付いた値になりうる。その 2 つは touch に含める
+ * (歯車はマウス以外をタッチと同じに扱い、ツールチップを出さずにタップで開くため)。
+ */
 export type PointerInput = 'mouse' | 'touch' | 'pen';
 
 export function pointerInputOf(pointerType: string): PointerInput {
@@ -108,7 +117,7 @@ export function pointerInputOf(pointerType: string): PointerInput {
 }
 
 /** 一覧から開いた moment(GA の select_item)。 */
-export function selectMoment(list: MomentList, moment: ListedMoment, input: PointerInput) {
+export function selectMoment(list: MomentItemList, moment: ListedMoment, input: PointerInput) {
   send('select_item', {
     item_list_id: list.id,
     item_list_name: list.name,
@@ -121,42 +130,42 @@ export function selectMoment(list: MomentList, moment: ListedMoment, input: Poin
 export type RotateInput = PointerInput | 'wheel';
 
 /**
- * どうやって歯車を離れたか。
+ * 歯車を離れた手段(gear_leave の exit)。
  *
  * - select: 歯車の moment を開いた
  * - header: 歯車の上の About us・えらんだ絵・お店
  * - history: ブラウザの戻る・進む
  * - hidden: タブが隠れた(戻ってきたら、その後の分は次の gear_leave に入る)
  */
-export type GearExit = 'select' | 'header' | 'history' | 'hidden';
+export type GearExitMethod = 'select' | 'header' | 'history' | 'hidden';
 
-/** gear_leave 1 件分。歯車への訪問のうち、タブが隠れるまで(または離れるまで)の区切り。 */
-export type GearVisit = {
-  exit: GearExit;
-  // この区切りで歯車にいた時間。タブが隠れていた時間は含まない。
+/** gear_leave 1 件分。歯車の engagement 1 回分(GearEngagement)の要約。 */
+export type GearEngagementSummary = {
+  exit: GearExitMethod;
+  // この engagement で歯車にいた時間。タブが隠れていた時間は含まない。
   gearMs: number;
   // 入力ごとに回した角度(絶対値の合計、ラジアン)。
-  rotated: Record<RotateInput, number>;
-  // この区切りで 0.5 秒以上マウスを乗せた回数と、その時間の合計(開いたものも含む)。
+  rotationByInput: Readonly<Record<RotateInput, number>>;
+  // この engagement で 0.5 秒以上マウスを乗せた回数と、その時間の合計(開いたものも含む)。
   hoverCount: number;
   hoverMs: number;
-  // この区切りの view_item_list で送った moment の数(前の区切りで送ったものは含まない)。
+  // この engagement の view_item_list で送った moment の数(前の engagement で送ったものは含まない)。
   shownCount: number;
 };
 
-/** 歯車での過ごし方の要約。区切りごと(歯車を離れたとき、タブが隠れたとき)に 1 件送る。 */
-export function gearLeave(visit: GearVisit) {
-  const deg = (rad: number) => Math.round(rad * 180 / Math.PI);
+/** 歯車での過ごし方の要約。engagement ごと(歯車を離れたとき、タブが隠れたとき)に 1 件送る。 */
+export function gearLeave(summary: GearEngagementSummary) {
+  const deg = (rad: number) => Math.round(glMatrix.toDegree(rad));
   send('gear_leave', {
-    exit: visit.exit,
-    gear_ms: Math.round(visit.gearMs),
-    rotate_mouse_deg: deg(visit.rotated.mouse),
-    rotate_touch_deg: deg(visit.rotated.touch),
-    rotate_pen_deg: deg(visit.rotated.pen),
-    rotate_wheel_deg: deg(visit.rotated.wheel),
-    hover_count: visit.hoverCount,
-    hover_ms: Math.round(visit.hoverMs),
-    shown_count: visit.shownCount,
+    exit: summary.exit,
+    gear_ms: Math.round(summary.gearMs),
+    rotate_mouse_deg: deg(summary.rotationByInput.mouse),
+    rotate_touch_deg: deg(summary.rotationByInput.touch),
+    rotate_pen_deg: deg(summary.rotationByInput.pen),
+    rotate_wheel_deg: deg(summary.rotationByInput.wheel),
+    hover_count: summary.hoverCount,
+    hover_ms: Math.round(summary.hoverMs),
+    shown_count: summary.shownCount,
   });
 }
 

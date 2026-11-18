@@ -355,7 +355,7 @@ await settle(1300);
 // タブが隠れたら、そこまでを送る。見えている 4 つだけで、反対側の k6 は入らない。
 await setHidden(gear, true);
 let all = await events(gear);
-assert.deepEqual(named(all, 'view_item_list').map(e => [e.item_list_id, e.item_list_name]), [['gear', '歯車']]);
+assert.deepEqual(named(all, 'view_item_list').map(e => [e.item_list_id, e.item_list_name]), [['the-gear-of-seasons', '季節の歯車']]);
 assert.deepEqual(shownPaths(all).sort(), ['k0', 'k1', 'k2', 'k11'].map(dialPath).sort());
 let [leave] = named(all, 'gear_leave');
 assert.equal(leave.exit, 'hidden');
@@ -426,7 +426,7 @@ assert.equal(leave.exit, 'select');
 assert.equal(leave.hover_count, 1);
 assert.ok(leave.hover_ms >= 500, JSON.stringify(leave));
 const [select] = named(fresh, 'select_item');
-assert.deepEqual(select, { name: 'select_item', item_list_id: 'gear', item_list_name: '歯車',
+assert.deepEqual(select, { name: 'select_item', item_list_id: 'the-gear-of-seasons', item_list_name: '季節の歯車',
   items: [{ item_id: dialPath(disc.title), item_name: disc.title }], input: 'mouse' });
 assert.ok(shownPaths(all).includes(dialPath(disc.title)));
 // 乗せてから開いたものは、moment_hover にしない。
@@ -469,9 +469,9 @@ await settle(1500);
 await setHidden(turn, false);
 await settle(300);
 await setHidden(turn, true);
-const parts = named(await events(turn), 'gear_leave');
-assert.equal(parts.length, 2);
-assert.ok(parts[1].gear_ms < 1000, JSON.stringify(parts[1]));
+const engagements = named(await events(turn), 'gear_leave');
+assert.equal(engagements.length, 2);
+assert.ok(engagements[1].gear_ms < 1000, JSON.stringify(engagements[1]));
 await turn.close();
 
 // 1 秒たつ前にタップで開いたものも、select_item の前に見せたことにする(ほかの見えている moment はまだ入らない)。

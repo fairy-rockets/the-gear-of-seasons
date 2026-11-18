@@ -8,8 +8,7 @@ import twemoji from 'twemoji';
 import * as protocol from '../../protocol';
 import { kEmojiURLBase } from '../../constant';
 import * as analytics from '../Analytics';
-import MomentsTracker from '../MomentsTracker';
-import RotationTracker from '../RotationTracker';
+import GearEngagement from '../GearEngagement';
 
 // タップとドラッグを見分ける移動量のしきい値(px)。これ以下ならタップ扱い。
 const kTapThresholdPx = 8;
@@ -39,12 +38,12 @@ export default class Index extends Layer {
   // gear_ready の起点(このレイヤを作った時刻)と、もう送ったか(送らないと決めたときも true)。
   private readonly createdAt_: number;
   private readyReported_: boolean;
-  // 歯車で見せた・乗せた moment と、回した角度。gear_leave でまとめて送る。
-  private readonly momentsTracker_: MomentsTracker;
-  private readonly rotationTracker_: RotationTracker;
-  // いまの区切り(gear_leave 1 件分)を始めた時刻。訪問は歯車に来てから離れるまでで、タブが隠れると
-  // そこで区切り、戻ってきたら次の区切りを始める。区切ってから再開するまでは null。
-  private partSince_: number | null;
+  // いまの engagement(歯車が最上位で、タブが前面にある間)。表示した・乗せた moment と回した角度を数え、
+  // 終わるときに view_item_list と gear_leave を送る。タブが隠れている間と、歯車にいない間は null。
+  private engagement_: GearEngagement | null;
+  // この訪問(歯車に来てから離れるまで)で表示した moment のパス。engagement をまたいで同じ moment を
+  // 二度送らないために使い、歯車に来るたびに空にする。
+  private readonly impressedMomentPaths_: Set<string>;
   private readonly visibilityListener_: () => void;
   // ポインタ操作の状態
   private pointerId_: number | null;
@@ -120,9 +119,8 @@ export default class Index extends Layer {
     this.loaded_ = false;
     this.createdAt_ = performance.now();
     this.readyReported_ = false;
-    this.momentsTracker_ = new MomentsTracker(analytics.kGearList);
-    this.rotationTracker_ = new RotationTracker();
-    this.partSince_ = null;
+    this.engagement_ = null;
+    this.impressedMomentPaths_ = new Set();
     this.visibilityListener_ = this.onVisibilityChange_.bind(this);
   }
 
@@ -134,9 +132,7 @@ export default class Index extends Layer {
   render(time: number, matWorld: mat4) {
     this.applyInertia_(time);
     const m = this.moments_.render(time, matWorld, this.pointerX_, this.pointerY_);
-    if(this.partSince_ !== null) {
-      this.momentsTracker_.frame(performance.now(), this.moments_.onScreen);
-    }
+    this.engagement_?.moments.frame(performance.now(), this.moments_.momentsInViewport);
     if(!this.readyReported_ && this.moments_.drawnCount > 0) {
       this.readyReported_ = true;
       analytics.gearReady(performance.now() - this.createdAt_);
@@ -175,7 +171,7 @@ export default class Index extends Layer {
       dt = 100; // タブ復帰などで巨大な dt が来ても飛ばないよう上限を設ける。
     }
     this.world.gear.angle += this.angularVelocity_ * dt;
-    this.rotationTracker_.add(this.inertiaInput_, this.angularVelocity_ * dt);
+    this.engagement_?.rotation.add(this.inertiaInput_, this.angularVelocity_ * dt);
     this.angularVelocity_ *= Math.pow(kInertiaFrictionPerMs, dt);
     if(Math.abs(this.angularVelocity_) < kInertiaMinVelocity) {
       this.angularVelocity_ = 0;
@@ -186,7 +182,7 @@ export default class Index extends Layer {
   }
 
   private onSelectionChanged_(m: Moment | null) {
-    this.momentsTracker_.hover(performance.now(), this.pointerType_ === 'mouse' ? m : null);
+    this.engagement_?.moments.hover(performance.now(), this.pointerType_ === 'mouse' ? m : null);
     const tooltip = this.tooltip_;
     // タッチ/ペン入力ではホバー相当のツールチップは出さない(即オープンに割り切る)。
     if(m === null || this.pointerType_ !== 'mouse') {
@@ -217,9 +213,10 @@ export default class Index extends Layer {
   }
 
   override onAttached() {
-    this.momentsTracker_.begin();
-    this.rotationTracker_.take();
-    this.partSince_ = document.visibilityState === 'hidden' ? null : performance.now();
+    this.impressedMomentPaths_.clear();
+    if(document.visibilityState !== 'hidden') {
+      this.startEngagement_();
+    }
     document.addEventListener('visibilitychange', this.visibilityListener_, false);
     this.world.cursor = false;
     this.world.canvas.addEventListener('wheel', this.wheelEventListener_, false);
@@ -264,31 +261,33 @@ export default class Index extends Layer {
     this.world.canvas.removeEventListener('pointercancel', this.pointerCancelListener_, false);
   }
 
-  // タブが隠れたら、そこまでを 1 回分として送る。戻ってきたら、その後の分を数え始める。
+  // タブが隠れたら、いまの engagement を終えて送る。戻ってきたら、次の engagement を始める。
   private onVisibilityChange_() {
     if(document.visibilityState === 'hidden') {
       this.leave_('hidden');
-    } else if(this.partSince_ === null) {
-      this.partSince_ = performance.now();
+    } else if(this.engagement_ === null) {
+      this.startEngagement_();
     }
   }
 
-  /** いまの区切りを送る(view_item_list と gear_leave)。もう送っていれば何もしない。 */
-  private leave_(exit: analytics.GearExit) {
-    const since = this.partSince_;
-    if(since === null) {
+  private startEngagement_() {
+    this.engagement_ = new GearEngagement(performance.now(), this.impressedMomentPaths_);
+  }
+
+  /** いまの engagement を終えて送る(view_item_list と gear_leave)。engagement が無ければ何もしない。 */
+  private leave_(exit: analytics.GearExitMethod) {
+    const engagement = this.engagement_;
+    if(engagement === null) {
       return;
     }
-    this.partSince_ = null;
-    const now = performance.now();
-    const counts = this.momentsTracker_.flush(now);
-    analytics.gearLeave({ exit, gearMs: now - since, rotated: this.rotationTracker_.take(), ...counts });
+    this.engagement_ = null;
+    engagement.end(performance.now(), exit);
   }
 
   private openMoment_(m: Moment) {
-    this.momentsTracker_.open(performance.now(), m);
+    this.engagement_?.moments.open(performance.now(), m);
     this.leave_('select');
-    analytics.selectMoment(analytics.kGearList, m, this.pointerType_);
+    analytics.selectMoment(analytics.kGearItemList, m, this.pointerType_);
     const content = Page.fetchBody(m.bodyURL);
     this.world.pushLayer(new Page(this.world, m.path, content), 'gear');
   }
@@ -357,7 +356,7 @@ export default class Index extends Layer {
       this.pointerLastY_ = ev.clientY;
       // +angle は画面上で反時計回り。指の回した向きにそのまま追従させる。
       this.world.gear.angle += dA;
-      this.rotationTracker_.add(this.pointerType_, dA);
+      this.engagement_?.rotation.add(this.pointerType_, dA);
       // フリック慣性用に直近の角速度(rad/ms)を記録。ノイズを抑えるため軽くならす。
       const dt = ev.timeStamp - this.lastMoveTime_;
       this.lastMoveTime_ = ev.timeStamp;
@@ -439,7 +438,7 @@ export default class Index extends Layer {
     
     const dA = (dy - dx) * Math.PI / (360 * 10);
     world.gear.angle += dA;
-    this.rotationTracker_.add('wheel', dA);
+    this.engagement_?.rotation.add('wheel', dA);
     if(this.selected_) {
       this.fixTooltipPosition_();
     }
