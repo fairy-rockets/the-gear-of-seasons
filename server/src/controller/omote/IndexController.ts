@@ -1,10 +1,10 @@
 import {FastifyReply, FastifyRequest} from 'fastify';
-import Handlebars from 'handlebars';
 
 import Asset from '../../lib/Asset.js';
 import {PageMeta, absoluteURL, kSiteTitle, pageTitle} from '../../lib/meta.js';
 import { displayAlt } from '../../shelf/EntityAnnotation.js';
 import Shelf from '../../shelf/Shelf.js';
+import OmoteTemplate from './lib/OmoteTemplate.js';
 
 // 静的な omote のページ。どれも同じ index.hbs のシェルを返すが、<head> だけが違う。
 export type StaticPage = 'index' | 'about-us' | 'shop' | 'pickup';
@@ -57,16 +57,14 @@ const kPages: { [key in StaticPage]: Omit<PageMeta, 'ogImageAlt'> } = {
 };
 
 export default class IndexController {
-  readonly template: Handlebars.TemplateDelegate;
+  private readonly template: OmoteTemplate;
   private readonly shelf: Shelf;
-  private constructor(template: Handlebars.TemplateDelegate, shelf: Shelf) {
+  private constructor(template: OmoteTemplate, shelf: Shelf) {
     this.template = template;
     this.shelf = shelf;
   }
   static async create(asset: Asset, shelf: Shelf): Promise<IndexController> {
-    const src = await asset.loadString('templates/omote/index.hbs');
-    const template = Handlebars.compile(src);
-    return new IndexController(template, shelf);
+    return new IndexController(await OmoteTemplate.create(asset), shelf);
   }
   // ページごとに <head> が違うので、ハンドラを作る側でどのページかを決める。
   handlerOf(page: StaticPage): (req: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply> {
@@ -75,7 +73,7 @@ export default class IndexController {
       const ogImageAlt = await this.siteImageAlt();
       return reply.code(200)
         .type('text/html;charset=UTF-8')
-        .send(this.template({ ...meta, ogImageAlt }));
+        .send(this.template.render({ ...meta, ogImageAlt }));
     };
   }
   // 固定ページ(特にトップ)は注釈が引けなくても出したいので、DB の失敗は題に落とす。

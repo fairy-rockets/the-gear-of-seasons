@@ -1,5 +1,5 @@
 import World from '../World'
-import Layer from '../Layer';
+import Layer, { Landing } from '../Layer';
 import Moments from '../actors/Moments';
 import Moment from '../actors/Moment';
 import { mat4, vec4 } from 'gl-matrix';
@@ -7,6 +7,7 @@ import Page from './Page';
 import twemoji from 'twemoji';
 import * as protocol from '../../protocol';
 import { kEmojiURLBase } from '../../constant';
+import * as analytics from '../Analytics';
 
 // タップとドラッグを見分ける移動量のしきい値(px)。これ以下ならタップ扱い。
 const kTapThresholdPx = 8;
@@ -33,6 +34,9 @@ export default class Index extends Layer {
   private readonly tooltipDate_: HTMLDivElement;
   private readonly aboutUsLink_: HTMLElement;
   private loaded_: boolean;
+  // gear_ready の起点(このレイヤを作った時刻)と、もう送ったか(送らないと決めたときも true)。
+  private readonly createdAt_: number;
+  private readyReported_: boolean;
   // ポインタ操作の状態
   private pointerId_: number | null;
   private pointerLastX_: number;
@@ -46,8 +50,8 @@ export default class Index extends Layer {
   private angularVelocity_: number; // rad/ms
   private lastMoveTime_: number;    // 直近の pointermove の timeStamp(ms)
   private lastFrameTime_: number;   // 直近フレームの時刻(ms)。慣性減衰の dt 算出用
-  constructor(world: World) {
-    super(world, '/');
+  constructor(world: World, landing?: Landing) {
+    super(world, '/', landing);
     this.wheelEventListener_ = this.onWheelEvent_.bind(this);
     this.pointerDownListener_ = this.onPointerDown_.bind(this);
     this.pointerMoveListener_ = this.onPointerMove_.bind(this);
@@ -86,23 +90,34 @@ export default class Index extends Layer {
     this.aboutUsLink_ = this.element_.querySelector<HTMLElement>('#about-us-link')!;
     this.aboutUsLink_.addEventListener('click', (e) => {
       e.preventDefault();
-      world.openLayer('/about-us/');
+      world.openLayer('/about-us/', 'header');
     });
     this.element_.querySelector<HTMLElement>('#pickup-link')!.addEventListener('click', (e) => {
       e.preventDefault();
-      world.openLayer('/pickup/');
+      world.openLayer('/pickup/', 'header');
     });
     this.element_.querySelector<HTMLElement>('#shop-link')!.addEventListener('click', (e) => {
       e.preventDefault();
-      world.openLayer('/shop/');
+      world.openLayer('/shop/', 'header');
     });
 
     this.loaded_ = false;
+    this.createdAt_ = performance.now();
+    this.readyReported_ = false;
+  }
+
+  // 題はいつもサイト名なので、本文を待たない。
+  override get titleKnown(): boolean {
+    return true;
   }
 
   render(time: number, matWorld: mat4) {
     this.applyInertia_(time);
     const m = this.moments_.render(time, matWorld, this.pointerX_, this.pointerY_);
+    if(!this.readyReported_ && this.moments_.drawnCount > 0) {
+      this.readyReported_ = true;
+      analytics.gearReady(performance.now() - this.createdAt_);
+    }
     if(m !== this.selected_) {
       this.selected_ = m;
       this.onSelectionChanged_(m);
@@ -199,6 +214,8 @@ export default class Index extends Layer {
   }
 
   override onDetached() {
+    // 歯車が出る前に別のページへ移ったら送らない。戻るまでの時間が load_ms に入ってしまう。
+    this.readyReported_ = true;
     this.pointerX_ = NaN;
     this.pointerY_ = NaN;
     this.pointerId_ = null;
@@ -216,8 +233,8 @@ export default class Index extends Layer {
   }
 
   private openMoment_(m: Moment) {
-    const content = fetch(m.bodyURL).then(resp => resp.text());
-    this.world.pushLayer(new Page(this.world, m.path, content));
+    const content = Page.fetchBody(m.bodyURL);
+    this.world.pushLayer(new Page(this.world, m.path, content), 'gear');
   }
 
   // 歯車の中心(モデル原点)を現在のスクリーン座標(px)に投影して返す。
@@ -382,7 +399,11 @@ export default class Index extends Layer {
   fetch(size: number) {
     fetch(`/moments/random?size=${size}`)
       .then(resp => resp.json())
-      .then(this.onLoadMoments_.bind(this));
+      .then(this.onLoadMoments_.bind(this))
+      .catch((err) => {
+        console.error('Failed to load moments: ', err);
+        analytics.exception('moments_load_failed', false);
+      });
   }
 
   destroy() {
