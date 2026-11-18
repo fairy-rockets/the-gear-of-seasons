@@ -207,6 +207,8 @@ export default class World {
         el.remove();
       }
     }
+    // 遷移の直後(showTop_)は、Page の本文がまだ届いておらず題が決まっていないことがある。
+    // そのときは送らずに待ち、本文が届いたとき(notifyLoaded)にもう一度ここを通る。
     if (this.pendingVia_ !== null && top.titleKnown) {
       // UTM などのクエリを付けるのは開いたときの 1 回だけ。歯車のレイヤは使い回すので、
       // 閉じて戻ってきたときにも付けると、流入元をもう一度数えさせてしまう。
@@ -220,7 +222,7 @@ export default class World {
    *                            Layer  Transitions                            *
    ****************************************************************************/
   /** 開いた URL のレイヤを作る。main から最初に 1 回だけ呼ぶ。 */
-  openLanding() {
+  openLandingLayer() {
     // pushLayer の replaceState でクエリが消える前に読む。
     const landing: Landing = { href: location.href, title: document.title };
     this.pushLayer(this.createLayer_(location.pathname, landing), 'landing');

@@ -17,7 +17,7 @@ function main() {
   }
   world.start();
 
-  world.openLanding();
+  world.openLandingLayer();
 }
 
 document.addEventListener('DOMContentLoaded', main, false);

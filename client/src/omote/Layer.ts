@@ -69,9 +69,7 @@ export default abstract class Layer {
   }
 
   /** 題が決まったか。決まるまで page_view を待つ(World.applyTop_)。 */
-  get titleKnown(): boolean {
-    return true;
-  }
+  abstract get titleKnown(): boolean;
   abstract render(time: number, matWorld: mat4): void;
   abstract onAttached(): void;
   abstract onDetached(): void;

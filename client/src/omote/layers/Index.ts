@@ -106,6 +106,11 @@ export default class Index extends Layer {
     this.readyReported_ = false;
   }
 
+  // 題はいつもサイト名なので、本文を待たない。
+  override get titleKnown(): boolean {
+    return true;
+  }
+
   render(time: number, matWorld: mat4) {
     this.applyInertia_(time);
     const m = this.moments_.render(time, matWorld, this.pointerX_, this.pointerY_);
