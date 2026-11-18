@@ -27,7 +27,8 @@ const kIcon = Buffer.from(
 
 // まえ/つぎ の順に並べた moment。3 番目の本文は HTTP 500 で失敗させる。
 const kMoments = ['/2020/01/01/00:00:00/', '/2020/01/02/00:00:00/', '/2020/01/03/00:00:00/'];
-const kTitles = ['ひとつめ', 'ふたつめ', 'みっつめ'];
+// 絵文字は本文では twemoji の <img> になるが、題には SSR と同じく文字のまま入る。
+const kTitles = ['ひとつめ🐸', 'ふたつめ', 'みっつめ'];
 
 function momentBody(i) {
   const prev = i > 0 ? `<a class="moment-footer-prev" href="${kMoments[i - 1]}">← まえの絵</a>` : '';
@@ -202,7 +203,7 @@ assert.deepEqual(views[0], { name: 'page_view', page_location: `${kOrigin}${kMom
 await momentPage.click('a.moment-footer-prev');
 views = await waitPageViews(momentPage, 2);
 assert.deepEqual(views[1], { name: 'page_view', page_location: `${kOrigin}${kMoments[0]}`,
-  page_title: 'ひとつめ :: the gear of seasons', page_referrer: `${kOrigin}${kMoments[1]}`, nav_via: 'footer_prev' });
+  page_title: pageTitle(kTitles[0]), page_referrer: `${kOrigin}${kMoments[1]}`, nav_via: 'footer_prev' });
 await momentPage.goBack();
 views = await waitPageViews(momentPage, 3);
 assert.equal(views[2].page_location, `${kOrigin}${kMoments[1]}`);

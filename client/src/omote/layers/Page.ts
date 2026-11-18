@@ -57,6 +57,16 @@ export default class Page extends Layer {
     // 文字列に対して parse すると、属性値(title="カエル🐸…" など)の絵文字まで
     // <img> に置換されてタグが壊れる。DOM に対して parse すればテキストノードだけが対象になる。
     this.content_.innerHTML = body;
+
+    // サーバが SSR した <title> と同じ形にすること(server/src/lib/meta.ts の pageTitle)。
+    // twemoji.parse より前に読む。後だと絵文字が <img> になり、textContent から消える。
+    // TODO: 同じ組み立てをサーバとクライアントで二重に持っている。増えてきたら
+    // protocol.ts のように共有する場所へ移すか考える。
+    const titles = this.content_.getElementsByClassName("title");
+    if(titles.length > 0) {
+      this.title_ = `${titles[0].textContent ?? ""} :: the gear of seasons`;
+    }
+
     twemoji.parse(this.content_, { base: kEmojiURLBase });
 
     const contents = this.content_.getElementsByTagName('script');
@@ -69,14 +79,6 @@ export default class Page extends Layer {
       const p = src.parentNode!;
       p.insertBefore(dst, src);
       p.removeChild(src);
-    }
-
-    // サーバが SSR した <title> と同じ形にすること(server/src/lib/meta.ts の pageTitle)。
-    // TODO: 同じ組み立てをサーバとクライアントで二重に持っている。増えてきたら
-    // protocol.ts のように共有する場所へ移すか考える。
-    const titles = this.content_.getElementsByClassName("title");
-    if(titles.length > 0) {
-      this.title_ = `${titles[0].textContent ?? ""} :: the gear of seasons`;
     }
 
     this.setupFooter_();
