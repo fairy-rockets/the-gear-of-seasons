@@ -295,22 +295,28 @@ export default class World {
     if (idx === layers.length-1) {
       return;
     }
-    while (layers.length > idx+1) {
-      this.popLayer_();
-    }
+    this.popLayersTo_(idx+1);
     history.pushState((history.state ?? 0)+1, '', '/');
     this.showTop_(via);
   }
 
-  private popLayer_() {
+  /**
+   * スタックを length 枚になるまで上から外し、残った最上位を付け直す。
+   * 途中のレイヤは付け直さない(onAttached を呼ばない)。最上位になったときの処理(engagement を
+   * 始めるなど)を、見られていないレイヤでしてしまうため。最上位でないレイヤは document から外れている。
+   */
+  private popLayersTo_(length: number) {
     const layers = this.layers_;
-    if (layers.length < 2) {
-      throw new Error(`Cannot pop a layer from a layer stack of length ${layers.length}.`);
+    if (length < 1 || layers.length <= length) {
+      throw new Error(`Cannot pop a layer stack of length ${layers.length} down to ${length}.`);
     }
     const current = layers.pop()!;
     current.onDetached();
     document.body.removeChild(current.element);
     current.destroy();
+    while (layers.length > length) {
+      layers.pop()!.destroy();
+    }
 
     const next = layers[layers.length-1];
     document.body.appendChild(next.element);
@@ -338,11 +344,8 @@ export default class World {
     }
     if (idx >= 0) {
       // 戻り先のレイヤは作り直さずにそのまま使う(Index なら歯車の回転位置が残る)。
-      // 戻り先まで下ろすと、それがスタックの底のとき popLayer_ が
-      // Error("Cannot pop a layer from a layer stack of length 1.") を投げる(#39)。
-      while(layers.length > idx+1) {
-        this.popLayer_();
-      }
+      // 最上位が戻り先なら上で return しているので、戻り先は最上位より下にある。
+      this.popLayersTo_(idx+1);
       this.showTop_('history');
       return;
     }

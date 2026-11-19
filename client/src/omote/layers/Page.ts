@@ -26,8 +26,9 @@ export default class Page extends Layer {
   private viewItemPendingVia_: analytics.NavVia | null;
   // いまの engagement(最上位で、タブが前面にある間)。タブが隠れている間と、最上位でない間は null。
   private engagement_: PageEngagement | null;
-  // この表示でどこまで読んだか。表示のたびに作り直す。
-  private scrollDepth_: ScrollDepthTracker;
+  // この表示でどこまで読んだか。表示の page_view を送ったときに作り、離れたら null にする。
+  // page_view の前に scroll を送ると、前のページの page_location が付いてしまうので、それまでは測らない。
+  private scrollDepth_: ScrollDepthTracker | null;
   constructor(world: World, path: string, kind: analytics.PageKind, contentPromise: Promise<string>, landing?: Landing) {
     super(world, path, landing);
     this.kind_ = kind;
@@ -59,7 +60,7 @@ export default class Page extends Layer {
     this.momentTitle_ = null;
     this.viewItemPendingVia_ = null;
     this.engagement_ = null;
-    this.scrollDepth_ = new ScrollDepthTracker(kind);
+    this.scrollDepth_ = null;
 
     // タッチでも確実に閉じられるよう click を使う(合成 click が発火する)。
     this.closeButton_.addEventListener('click', this.closeButtonListener_, false);
@@ -121,7 +122,7 @@ export default class Page extends Layer {
     this.bodyShown_ = true;
     // 最上位なら、ここで page_view が送られ、続けて onPageViewSent で view_item が送られる。
     this.world.notifyLoaded(this);
-    // landing では page_view が本文より先に送られているので、ここで view_item を送る。
+    // landing では page_view が本文より先に送られているので、ここで view_item を送り、深さを測る。
     if(this.viewItemPendingVia_ !== null) {
       this.viewMoment_(this.viewItemPendingVia_);
     }
@@ -183,8 +184,10 @@ export default class Page extends Layer {
     return this.landing_ || this.loaded_;
   }
 
-  // moment なら view_item を送る。本文がまだなら、届いたとき(onLoad_)に送る。
+  // この表示の深さを測り始める。moment なら view_item を送る(本文がまだなら、届いたとき(onLoad_)に送る)。
   override onPageViewSent(via: analytics.NavVia) {
+    this.scrollDepth_ = new ScrollDepthTracker(this.kind_);
+    this.measureScroll_();
     if(this.kind_ !== 'moment') {
       return;
     }
@@ -203,13 +206,11 @@ export default class Page extends Layer {
   }
 
   onAttached() {
-    this.scrollDepth_ = new ScrollDepthTracker(this.kind_);
     this.world.canvas.addEventListener('mouseup', this.backdropListener_, false);
     document.addEventListener('visibilitychange', this.visibilityListener_, false);
     if(document.visibilityState !== 'hidden') {
       this.startEngagement_();
     }
-    this.measureScroll_();
   }
 
   onDetached() {
@@ -217,6 +218,7 @@ export default class Page extends Layer {
     this.endEngagement_('history');
     // 本文が届く前に離れたら、view_item は送らない(page_view と同じ)。
     this.viewItemPendingVia_ = null;
+    this.scrollDepth_ = null;
     this.world.canvas.removeEventListener('mouseup', this.backdropListener_, false);
     document.removeEventListener('visibilitychange', this.visibilityListener_, false);
   }
@@ -241,15 +243,14 @@ export default class Page extends Layer {
       return;
     }
     this.engagement_ = null;
-    engagement.end(performance.now(), leaveMethod, this.scrollDepth_.maxPercentScrolled);
+    engagement.end(performance.now(), leaveMethod, this.scrollDepth_?.maxPercentScrolled ?? 0);
   }
 
-  // 本文を表示できているときだけ測る。最上位でないときは、レイヤが document から外れていて
-  // scrollHeight が 0 なので、ScrollDepthTracker.measure が何もしない(離れた後に届いた本文では送らない)。
+  // この表示の page_view を送った後(scrollDepth_ がある間)で、本文を表示できているときだけ測る。
   // 本文の画像がすべて読み込まれる(か失敗する)までも測らない。読み込む前の <img> は高さが 0 で
   // (CSS で width・height を auto にしている)、長い本文でも短く見え、すぐに 100% になってしまう。
   private measureScroll_() {
-    if(!this.bodyShown_) {
+    if(this.scrollDepth_ === null || !this.bodyShown_) {
       return;
     }
     for(const img of Array.from(this.content_.getElementsByTagName('img'))) {
