@@ -290,7 +290,7 @@ export default class Index extends Layer {
     this.endEngagement_('select');
     analytics.selectMoment(analytics.kGearItemList, m, this.pointerType_);
     const content = Page.fetchBody(m.bodyURL);
-    this.world.pushLayer(new Page(this.world, m.path, content), 'gear');
+    this.world.pushLayer(new Page(this.world, m.path, 'moment', content), 'gear');
   }
 
   // 歯車の中心(モデル原点)を現在のスクリーン座標(px)に投影して返す。

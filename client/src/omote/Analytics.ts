@@ -51,6 +51,11 @@ function send(name: string, params: Record<string, unknown>) {
  * location は、landing なら開いた URL そのもの(UTM などのクエリは、最初の page_view の
  * page_location に入っていないと流入元に数えられない)、それ以外はそのページの URL。
  * page_referrer は、遷移の前のページ(最初の page_view では GA が document.referrer を使う)。
+ *
+ * 送った後、page_location と page_title を set し、次の page_view までのイベントをこのページに付ける。
+ * gtag は何もしなければ送った時点の URL を付けるが、戻る・進むで離れたときは、離れたページの
+ * page_leave などを送る時点で URL がもう次のページになっている。set する URL からはクエリを外す
+ * (UTM を後のイベントにまで付けない)。
  */
 export function pageView(location: string, title: string, via: NavVia) {
   send('page_view', {
@@ -60,7 +65,17 @@ export function pageView(location: string, title: string, via: NavVia) {
     nav_via: via,
   });
   lastLocation = location;
+  const url = new URL(location);
+  url.search = '';
+  url.hash = '';
+  window.gtag?.('set', { page_location: url.href, page_title: title });
 }
+
+/**
+ * ページの種類。page_leave と scroll の page_kind に入れる。歯車は Page ではないので入らない
+ * (歯車の過ごし方は gear_leave で送る)。
+ */
+export type PageKind = 'moment' | 'about_us' | 'pickup' | 'shop';
 
 /**
  * GA4 の推奨イベント exception。description は、GA の画面で読める短い識別子(と、あればパス)にする。
@@ -177,4 +192,51 @@ export function gearLeave(summary: GearEngagementSummary) {
 /** マウスを 0.5 秒以上乗せたのに、開かずに離れた moment。 */
 export function momentHover(path: string, hoverMs: number) {
   send('moment_hover', { moment: path, hover_ms: Math.round(hoverMs) });
+}
+
+/** moment を表示した(GA の view_item)。page_view の後に送る。 */
+export function viewMoment(moment: MomentItem, via: NavVia) {
+  send('view_item', { items: [itemOf(moment)], nav_via: via });
+}
+
+/**
+ * ページを離れた手段(page_leave の leave_method)。そのページから移った遷移の NavVia か、
+ * タブが隠れた(hidden。戻ってきたら、その後の分は次の page_leave に入る)。
+ */
+export type PageLeaveMethod =
+  | 'history'
+  | 'footer_prev'
+  | 'footer_next'
+  | 'footer_gear'
+  | 'footer_link'
+  | 'close_button'
+  | 'backdrop'
+  | 'hidden';
+
+/** page_leave 1 件分。ページの engagement 1 回分(PageEngagement)の要約。 */
+export type PageEngagementSummary = {
+  pageKind: PageKind;
+  leaveMethod: PageLeaveMethod;
+  // この engagement でページにいた時間。タブが隠れていた時間は含まない。
+  pageMs: number;
+  // この engagement の終わりまでに届いた、いちばん深いスクロールの位置(0〜100)。この表示の中で数える。
+  maxPercentScrolled: number;
+};
+
+/** ページでの過ごし方の要約。engagement ごと(ページを離れたとき、タブが隠れたとき)に 1 件送る。 */
+export function pageLeave(summary: PageEngagementSummary) {
+  send('page_leave', {
+    page_kind: summary.pageKind,
+    leave_method: summary.leaveMethod,
+    page_ms: Math.round(summary.pageMs),
+    max_percent_scrolled: summary.maxPercentScrolled,
+  });
+}
+
+/**
+ * ページの本文を percent(25・50・75・100)まで読んだ。GA の拡張計測のスクロール数と同じ名前にした
+ * (拡張計測は window のスクロールを見るが、このサイトでは window はスクロールしないので、何も送らない)。
+ */
+export function scroll(pageKind: PageKind, percentScrolled: number) {
+  send('scroll', { percent_scrolled: percentScrolled, page_kind: pageKind });
 }

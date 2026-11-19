@@ -213,8 +213,10 @@ export default class World {
       // UTM などのクエリを付けるのは開いたときの 1 回だけ。歯車のレイヤは使い回すので、
       // 閉じて戻ってきたときにも付けると、流入元をもう一度数えさせてしまう。
       const location = this.pendingVia_ === 'landing' ? top.landingHref : top.href;
-      analytics.pageView(location, top.title, this.pendingVia_);
+      const via = this.pendingVia_;
       this.pendingVia_ = null;
+      analytics.pageView(location, top.title, via);
+      top.onPageViewSent(via);
     }
   }
 
@@ -237,16 +239,16 @@ export default class World {
       return new Index(this, landing);
     } else if (path.startsWith('/about-us/')) {
       const content = Page.fetchBody('/static/about-us.html');
-      return new Page(this, '/about-us/', content, landing);
+      return new Page(this, '/about-us/', 'about_us', content, landing);
     } else if (path.startsWith('/pickup/')) {
       const content = Page.fetchBody('/pickup/body');
-      return new Page(this, '/pickup/', content, landing);
+      return new Page(this, '/pickup/', 'pickup', content, landing);
     } else if (path.startsWith('/shop/')) {
       const content = Page.fetchBody('/static/shop.html');
-      return new Page(this, '/shop/', content, landing);
+      return new Page(this, '/shop/', 'shop', content, landing);
     } else {
       const content = Page.fetchBody(`/moment${path}`);
-      return new Page(this, path, content, landing);
+      return new Page(this, path, 'moment', content, landing);
     }
   }
 

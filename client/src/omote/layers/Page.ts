@@ -4,18 +4,33 @@ import { mat4 } from 'gl-matrix';
 import twemoji from 'twemoji';
 import { kEmojiURLBase } from '../../constant';
 import * as analytics from '../Analytics';
+import PageEngagement from '../PageEngagement';
+import ScrollDepthTracker from '../ScrollDepthTracker';
 
 export default class Page extends Layer {
 
+  private readonly kind_: analytics.PageKind;
   private readonly contentWrapper_: HTMLDivElement;
   private readonly content_: HTMLDivElement;
   private readonly closeButton_: HTMLDivElement;
   private readonly closeButtonListener_: () => void;
   private readonly backdropListener_: () => void;
+  private readonly visibilityListener_: () => void;
   // 本文が届いたか(取得に失敗したときも含む)。
   private loaded_: boolean;
-  constructor(world: World, path: string, contentPromise: Promise<string>, landing?: Landing) {
+  // 本文を表示できたか(取得に失敗したときは false のまま)。スクロールの深さは、表示できた本文だけで測る。
+  private bodyShown_: boolean;
+  // moment の題(本文の .title。「:: the gear of seasons」を付ける前)。本文が届くまでと、moment 以外は null。
+  private momentTitle_: string | null;
+  // page_view は送ったが、本文がまだ届かず view_item を送れていないときの nav_via(landing のとき)。
+  private viewItemPendingVia_: analytics.NavVia | null;
+  // いまの engagement(最上位で、タブが前面にある間)。タブが隠れている間と、最上位でない間は null。
+  private engagement_: PageEngagement | null;
+  // この表示でどこまで読んだか。表示のたびに作り直す。
+  private scrollDepth_: ScrollDepthTracker;
+  constructor(world: World, path: string, kind: analytics.PageKind, contentPromise: Promise<string>, landing?: Landing) {
     super(world, path, landing);
+    this.kind_ = kind;
 
     this.contentWrapper_ = document.createElement('div');
     this.contentWrapper_.classList.add('content-wrapper');
@@ -30,12 +45,28 @@ export default class Page extends Layer {
     this.closeButton_.innerHTML = kCloseButtonSrc;
     this.contentWrapper_.appendChild(this.closeButton_);
 
-    this.closeButtonListener_ = () => this.world.openTop('close_button');
-    this.backdropListener_ = () => this.world.openTop('backdrop');
+    this.closeButtonListener_ = () => {
+      this.endEngagement_('close_button');
+      this.world.openTop('close_button');
+    };
+    this.backdropListener_ = () => {
+      this.endEngagement_('backdrop');
+      this.world.openTop('backdrop');
+    };
+    this.visibilityListener_ = this.onVisibilityChange_.bind(this);
     this.loaded_ = false;
+    this.bodyShown_ = false;
+    this.momentTitle_ = null;
+    this.viewItemPendingVia_ = null;
+    this.engagement_ = null;
+    this.scrollDepth_ = new ScrollDepthTracker(kind);
 
     // タッチでも確実に閉じられるよう click を使う(合成 click が発火する)。
     this.closeButton_.addEventListener('click', this.closeButtonListener_, false);
+    this.content_.addEventListener('scroll', () => this.measureScroll_(), { passive: true });
+    // 画像が読み込まれると本文が伸びるので測り直す(load と error は伝わってこないので、捕捉で受ける)。
+    this.content_.addEventListener('load', () => this.measureScroll_(), true);
+    this.content_.addEventListener('error', () => this.measureScroll_(), true);
 
     contentPromise.then(this.onLoad_.bind(this), this.onError_.bind(this));
   }
@@ -64,7 +95,11 @@ export default class Page extends Layer {
     // protocol.ts のように共有する場所へ移すか考える。
     const titles = this.content_.getElementsByClassName("title");
     if(titles.length > 0) {
-      this.title_ = `${titles[0].textContent ?? ""} :: the gear of seasons`;
+      const title = titles[0].textContent ?? "";
+      this.title_ = `${title} :: the gear of seasons`;
+      if(this.kind_ === 'moment') {
+        this.momentTitle_ = title;
+      }
     }
 
     twemoji.parse(this.content_, { base: kEmojiURLBase });
@@ -83,7 +118,14 @@ export default class Page extends Layer {
 
     this.setupFooter_();
     this.loaded_ = true;
+    this.bodyShown_ = true;
+    // 最上位なら、ここで page_view が送られ、続けて onPageViewSent で view_item が送られる。
     this.world.notifyLoaded(this);
+    // landing では page_view が本文より先に送られているので、ここで view_item を送る。
+    if(this.viewItemPendingVia_ !== null) {
+      this.viewMoment_(this.viewItemPendingVia_);
+    }
+    this.measureScroll_();
   }
 
   // moment 本文の末尾に付く .moment-footer（無ければ何もしない。about-us 等はフッター無し）
@@ -92,6 +134,7 @@ export default class Page extends Layer {
     if(gearLink) {
       gearLink.addEventListener('click', (ev) => {
         ev.preventDefault();
+        this.endEngagement_('footer_gear');
         this.world.openTop('footer_gear');
       });
     }
@@ -100,6 +143,7 @@ export default class Page extends Layer {
     if(prevLink) {
       prevLink.addEventListener('click', (ev) => {
         ev.preventDefault();
+        this.endEngagement_('footer_prev');
         this.world.openLayer(prevLink.getAttribute('href')!, 'footer_prev');
       });
     }
@@ -108,6 +152,7 @@ export default class Page extends Layer {
     if(nextLink) {
       nextLink.addEventListener('click', (ev) => {
         ev.preventDefault();
+        this.endEngagement_('footer_next');
         this.world.openLayer(nextLink.getAttribute('href')!, 'footer_next');
       });
     }
@@ -117,6 +162,7 @@ export default class Page extends Layer {
       for(const a of Array.from(links.querySelectorAll<HTMLAnchorElement>('a'))) {
         a.addEventListener('click', (ev) => {
           ev.preventDefault();
+          this.endEngagement_('footer_link');
           this.world.openLayer(a.getAttribute('href')!, 'footer_link');
         });
       }
@@ -127,6 +173,8 @@ export default class Page extends Layer {
     this.content_.innerHTML = `<h1>エラー！</h1>Error:<strong>${err}</strong>`;
     analytics.exception(`page_load_failed: ${this.path}`, false);
     this.loaded_ = true;
+    // 題が無いので view_item は送らない。
+    this.viewItemPendingVia_ = null;
     this.world.notifyLoaded(this);
   }
 
@@ -135,12 +183,81 @@ export default class Page extends Layer {
     return this.landing_ || this.loaded_;
   }
 
+  // moment なら view_item を送る。本文がまだなら、届いたとき(onLoad_)に送る。
+  override onPageViewSent(via: analytics.NavVia) {
+    if(this.kind_ !== 'moment') {
+      return;
+    }
+    if(this.loaded_) {
+      this.viewMoment_(via);
+    } else {
+      this.viewItemPendingVia_ = via;
+    }
+  }
+
+  private viewMoment_(via: analytics.NavVia) {
+    this.viewItemPendingVia_ = null;
+    if(this.momentTitle_ !== null) {
+      analytics.viewMoment({ path: this.path, title: this.momentTitle_ }, via);
+    }
+  }
+
   onAttached() {
+    this.scrollDepth_ = new ScrollDepthTracker(this.kind_);
     this.world.canvas.addEventListener('mouseup', this.backdropListener_, false);
+    document.addEventListener('visibilitychange', this.visibilityListener_, false);
+    if(document.visibilityState !== 'hidden') {
+      this.startEngagement_();
+    }
+    this.measureScroll_();
   }
 
   onDetached() {
+    // 閉じる・背景・フッターのリンクで離れるときは、もう engagement を終えている。残るのは戻る・進む。
+    this.endEngagement_('history');
+    // 本文が届く前に離れたら、view_item は送らない(page_view と同じ)。
+    this.viewItemPendingVia_ = null;
     this.world.canvas.removeEventListener('mouseup', this.backdropListener_, false);
+    document.removeEventListener('visibilitychange', this.visibilityListener_, false);
+  }
+
+  // タブが隠れたら、いまの engagement を終えて送る。戻ってきたら、次の engagement を始める。
+  private onVisibilityChange_() {
+    if(document.visibilityState === 'hidden') {
+      this.endEngagement_('hidden');
+    } else if(this.engagement_ === null) {
+      this.startEngagement_();
+    }
+  }
+
+  private startEngagement_() {
+    this.engagement_ = new PageEngagement(this.kind_, performance.now());
+  }
+
+  /** いまの engagement を終えて送る(page_leave)。engagement が無ければ何もしない。 */
+  private endEngagement_(leaveMethod: analytics.PageLeaveMethod) {
+    const engagement = this.engagement_;
+    if(engagement === null) {
+      return;
+    }
+    this.engagement_ = null;
+    engagement.end(performance.now(), leaveMethod, this.scrollDepth_.maxPercentScrolled);
+  }
+
+  // 本文を表示できているときだけ測る。最上位でないときは、レイヤが document から外れていて
+  // scrollHeight が 0 なので、ScrollDepthTracker.measure が何もしない(離れた後に届いた本文では送らない)。
+  // 本文の画像がすべて読み込まれる(か失敗する)までも測らない。読み込む前の <img> は高さが 0 で
+  // (CSS で width・height を auto にしている)、長い本文でも短く見え、すぐに 100% になってしまう。
+  private measureScroll_() {
+    if(!this.bodyShown_) {
+      return;
+    }
+    for(const img of Array.from(this.content_.getElementsByTagName('img'))) {
+      if(!img.complete) {
+        return;
+      }
+    }
+    this.scrollDepth_.measure(this.content_);
   }
 
   /** @override */
