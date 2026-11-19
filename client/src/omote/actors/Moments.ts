@@ -22,6 +22,8 @@ export default class Moments {
   private models_: Moment[] | null;
   // 直前の render で描いた(テクスチャが読み込めていた) moment の数。
   private drawnCount_: number;
+  // 直前の render で描いた moment のうち、円の中心がビューポートの中にあったもの。
+  private momentsInViewport_: Moment[];
   constructor(world: World) {
     this.world_ = world;
     this.gl_ = world.gl;
@@ -61,10 +63,15 @@ export default class Moments {
 
     this.models_ = null;
     this.drawnCount_ = 0;
+    this.momentsInViewport_ = [];
   }
 
   get drawnCount(): number {
     return this.drawnCount_;
+  }
+
+  get momentsInViewport(): readonly Moment[] {
+    return this.momentsInViewport_;
   }
   set models(ms: Moment[]) {
     if(this.models_) {
@@ -92,6 +99,7 @@ export default class Moments {
 
     let selected: Moment | null = null;
     let drawn = 0;
+    const momentsInViewport: Moment[] = [];
 
     try {
       gl.enable(gl.BLEND);
@@ -138,9 +146,16 @@ export default class Moments {
         gl.uniform1i(this.program_.uniformLoc('hovered'), hovered ? 1 : 0);
         this.indices_.render();
         ++drawn;
+
+        // 円の中心(モデル原点)を投影した位置。行列の 4 列目がそのまま同次座標になる。
+        const w = mat[15];
+        if (w > 0 && Math.abs(mat[12] / w) <= 1 && Math.abs(mat[13] / w) <= 1) {
+          momentsInViewport.push(m);
+        }
       }
       world.cursor = hit;
       this.drawnCount_ = drawn;
+      this.momentsInViewport_ = momentsInViewport;
     } finally {
       gl.disable(gl.BLEND);
       this.vertexes_.unbind();
