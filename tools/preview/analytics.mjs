@@ -502,6 +502,14 @@ await quick.close();
 // 13) ページ: 表示した moment(view_item)、どこまで読んだか(scroll)、過ごし方(page_leave)。
 // どの scroll も、そのページの page_view より後にある(前にあると、前のページの page_location が付く)。
 // 直前の page_view・page_leave が、page_view か、タブが隠れた page_leave(戻ってきた後のスクロール)であること。
+// view_item は、その moment の page_view のすぐ後にある。
+function assertViewItemsRightAfterPageView(list) {
+  list.forEach((e, i) => {
+    if (e.name === 'view_item') {
+      assert.equal(list[i - 1]?.name, 'page_view', JSON.stringify(list.slice(Math.max(0, i - 3), i + 1).map(x => x.name)));
+    }
+  });
+}
 function assertScrollsAfterPageView(list) {
   let last = null;
   for (const e of list) {
@@ -601,6 +609,7 @@ assert.deepEqual(named(all, 'view_item'), []);
 assert.ok(named(all, 'scroll').every(e => e.page_kind === 'about_us'), JSON.stringify(named(all, 'scroll')));
 assert.deepEqual(named(all, 'page_leave').map(e => [e.page_kind, e.leave_method]), [['about_us', 'backdrop']]);
 assertScrollsAfterPageView(await events(pages));
+assertViewItemsRightAfterPageView(await events(pages));
 await pages.close();
 
 // 13h) 戻るで 2 枚以上を一度に下ろすとき、途中のレイヤは最上位にしない(page_leave・gear_leave・scroll を送らない)。
@@ -623,6 +632,7 @@ all = (await events(stack)).slice(seen);
 assert.deepEqual(all.filter(e => e.name === 'page_leave' || e.name === 'gear_leave').map(e => [e.name, e.page_kind, e.leave_method]),
   [['page_leave', 'about_us', 'history']]);
 assertScrollsAfterPageView(await events(stack));
+assertViewItemsRightAfterPageView(await events(stack));
 await stack.close();
 
 // 13g) 長い本文: 画像が読み込まれるまでは測らない(読み込む前の画像は高さが 0 で、本文が短く見える)。

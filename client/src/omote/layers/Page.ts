@@ -184,18 +184,18 @@ export default class Page extends Layer {
     return this.landing_ || this.loaded_;
   }
 
-  // この表示の深さを測り始める。moment なら view_item を送る(本文がまだなら、届いたとき(onLoad_)に送る)。
+  // moment なら view_item を送り(本文がまだなら、届いたとき(onLoad_)に送る)、この表示の深さを測り始める。
+  // page_view → view_item → scroll の順にする。
   override onPageViewSent(via: analytics.NavVia) {
+    if(this.kind_ === 'moment') {
+      if(this.loaded_) {
+        this.viewMoment_(via);
+      } else {
+        this.viewItemPendingVia_ = via;
+      }
+    }
     this.scrollDepth_ = new ScrollDepthTracker(this.kind_);
     this.measureScroll_();
-    if(this.kind_ !== 'moment') {
-      return;
-    }
-    if(this.loaded_) {
-      this.viewMoment_(via);
-    } else {
-      this.viewItemPendingVia_ = via;
-    }
   }
 
   private viewMoment_(via: analytics.NavVia) {
