@@ -18,10 +18,6 @@ const kInertiaFrictionPerMs = 0.995;
 const kInertiaMinVelocity = 1e-5;
 // 指を離す直前がこの時間(ms)より前の動きなら、フリックとみなさない(押しっぱなしからの解放)。
 const kFlickMaxIdleMs = 60;
-// タブがこれ以上隠れていたら、戻ったときに訪問を数え直す。GA4 のセッションが切れる時間(既定値)に合わせ、
-// 同じセッションの中では同じ moment を二度送らず、新しいセッションではもう一度送る。
-// GA の管理画面でセッションのタイムアウトを変えたら、ここも合わせる。
-const kRevisitAfterHiddenMs = 30 * 60 * 1000;
 
 export default class Index extends Layer {
   private readonly wheelEventListener_: (ev: WheelEvent) => void;
@@ -45,11 +41,10 @@ export default class Index extends Layer {
   // いまの engagement(歯車が最上位で、タブが前面にある間)。表示した・乗せた moment と回した角度を数え、
   // 終わるときに view_item_list と gear_leave を送る。タブが隠れている間と、歯車にいない間は null。
   private engagement_: GearEngagement | null;
-  // この訪問(歯車に来てから離れるまで)で表示した moment のパス。engagement をまたいで同じ moment を
-  // 二度送らないために使い、歯車に来るたびと、タブが長く隠れてから戻ったときに空にする。
+  // この訪問(歯車に来てから離れるまで。歯車の page_view 1 回分)で表示した moment のパス。engagement を
+  // またいで同じ moment を二度送らないために使い、歯車に来るたびに空にする。GA のセッションが途中で
+  // 切れても空にしない(ネットショップの CMS が一覧の表示 1 回につき view_item_list を送るのと同じ単位)。
   private readonly impressedMomentPaths_: Set<string>;
-  // タブが隠れた時刻(Date.now)。見えている間は null。パソコンのスリープ中も進むよう performance.now は使わない。
-  private hiddenAt_: number | null;
   private readonly visibilityListener_: () => void;
   // ポインタ操作の状態
   private pointerId_: number | null;
@@ -127,7 +122,6 @@ export default class Index extends Layer {
     this.readyReported_ = false;
     this.engagement_ = null;
     this.impressedMomentPaths_ = new Set();
-    this.hiddenAt_ = null;
     this.visibilityListener_ = this.onVisibilityChange_.bind(this);
   }
 
@@ -221,7 +215,6 @@ export default class Index extends Layer {
 
   override onAttached() {
     this.impressedMomentPaths_.clear();
-    this.hiddenAt_ = null;
     if(document.visibilityState !== 'hidden') {
       this.startEngagement_();
     }
@@ -270,16 +263,10 @@ export default class Index extends Layer {
   }
 
   // タブが隠れたら、いまの engagement を終えて送る。戻ってきたら、次の engagement を始める。
-  // 長く隠れていたら、訪問も数え直す(kRevisitAfterHiddenMs)。
   private onVisibilityChange_() {
     if(document.visibilityState === 'hidden') {
       this.endEngagement_('hidden');
-      this.hiddenAt_ = Date.now();
     } else if(this.engagement_ === null) {
-      if(this.hiddenAt_ !== null && Date.now() - this.hiddenAt_ >= kRevisitAfterHiddenMs) {
-        this.impressedMomentPaths_.clear();
-      }
-      this.hiddenAt_ = null;
       this.startEngagement_();
     }
   }
