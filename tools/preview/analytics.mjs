@@ -411,6 +411,18 @@ assert.equal(leave.shown_count, secondShown.length);
 await setHidden(gear, false);
 seen = all.length;
 
+// 30 分以上隠れてから戻ると、訪問を数え直す(GA のセッションが切れるため)。前の engagement で送った k6 をまた送る。
+await setHidden(gear, true);
+await gear.evaluate(() => { const now = Date.now; Date.now = () => now() + 31 * 60 * 1000; });
+await setHidden(gear, false);
+await settle(1300);
+await setHidden(gear, true);
+all = await events(gear);
+fresh = all.slice(seen);
+assert.ok(shownPaths(fresh).includes(dialPath('k6')), JSON.stringify(shownPaths(fresh)));
+await setHidden(gear, false);
+seen = all.length;
+
 // 0.5 秒以上乗せてからマウスで開く: view_item_list → gear_leave → select_item → page_view の順。
 const disc = await findDisc(gear);
 await settle(700);
