@@ -150,6 +150,8 @@ Clicking a mark or an image opens a drawer over the text column (`client/src/ura
 
 The editor attaches `beforeunload` only while the moment or annotation has unsaved input, or a SAVE, annotation save or DELETE is in flight. The moment is compared with its initial or last successfully saved raw input values; annotations compare touched field values with the loaded or saved annotation. Initial inputs are clean; failed saves and input added during a save remain protected. Each save clears only its own saved values. DELETE confirms discarding unsaved input before deleting the moment at its saved timestamp, then redirects without another leave confirmation. The browser regression scenarios are in `tools/preview/editor-unsaved.mjs`.
 
+The annotation drawer offers 下書きを生成 for unverified local images and videos when `OLLAMA_URL` is set. Its ura-only `POST /annotation-draft` starts one in-memory job and `GET /annotation-draft/:jobID` reports its state. The server sends a reduced image or up to 12 ordered frames to Ollama. The client fills empty generated fields and tracks those changes as unsaved input. Saving the fields uses the existing annotation endpoint. See "Ollama annotation drafts" in README.md for configuration.
+
 ### Capture timestamps
 
 Images use ImageMagick to read EXIF `DateTimeDigitized` (`CreateDate`), falling back to `DateTimeOriginal`. These timestamps are interpreted as server-local time; EXIF offset and subsecond tags are not used. The Docker image includes `imagemagick-heic` and `libheif-libde265` for HEIC reading and conversion.

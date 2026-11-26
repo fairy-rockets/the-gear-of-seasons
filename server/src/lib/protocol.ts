@@ -143,6 +143,24 @@ export namespace Moment {
 }
 
 export namespace Annotation {
+  export namespace Draft {
+    export type Values = Pick<AnnotationValues,
+      'methods' | 'materials' | 'subject' | 'alt' | 'description' | 'tags' | 'palette' | 'note'>;
+    export type Request = {
+      entityID: string;
+      kind: 'drawing' | 'camera';
+      title: string;
+      body: string;
+      place?: string;
+      note?: string;
+    };
+    export type StartResponse = { jobID: string };
+    export type StatusResponse =
+      | { status: 'pending' }
+      | { status: 'complete'; draft: Values }
+      | { status: 'failed'; message: string };
+  }
+
   export namespace Find {
     // GET /annotations?ids=<id>,<id>,… の応答。entity が無い id は entities に入らない。
     // 注釈の行が無い entity は、未入力の値（humanVerified は false、ほかは null）で返す。
@@ -150,6 +168,7 @@ export namespace Annotation {
       entities: {
         entityID: string;
         type: EntityType;
+        draftAvailable?: boolean;
         annotation: AnnotationValues;
       }[];
     };

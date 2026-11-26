@@ -29,6 +29,14 @@ The server and the client are separate npm packages, each built on its own:
 (cd server && npm test)
 ```
 
+## Ollama annotation drafts
+
+Set `OLLAMA_URL` to the HTTP(S) origin of an Ollama instance reachable from the application container. Set `OLLAMA_MODEL` to an installed vision model if you want to override the default, `qwen3.6:latest`. An empty URL hides the draft controls. The production stack in `7io-org/compose` can pass the same variables to its application service.
+
+In ura, open the annotation drawer for an unverified image or video stored on this server. At the bottom, choose drawing or camera, then select 下書きを生成. The server sends the image or video frames and editor context to the configured Ollama instance. The result fills missing annotation fields in the drawer. Check the result and select 注釈を保存 to persist it.
+
+The server runs one generation at a time. Generation waits up to 10 minutes. A restart clears pending jobs and results, and you can start again from the drawer. Animated image files use their first frame. Audio and externally hosted videos are outside the draft feature.
+
 ## How to migrate the database
 
 The schema is managed by Flyway (`db/flyway_data/sql/V*__*.sql`).

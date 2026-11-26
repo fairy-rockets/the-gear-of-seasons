@@ -35,6 +35,8 @@ services:
       - 'OMOTE_HOST=hexe.net'
       - 'URA_HOST=ura.hexe.net'
       - 'DB_HOST=postgres'
+      - 'OLLAMA_URL=${OLLAMA_URL:-}'
+      - 'OLLAMA_MODEL=${OLLAMA_MODEL:-qwen3.6:latest}'
       - 'TZ=Asia/Tokyo'
     expose:
       - '3000'

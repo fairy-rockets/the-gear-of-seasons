@@ -193,6 +193,8 @@ class Server {
     { // (ura)/annotations, (ura)/annotation
       const ura = await AnnotationController.create(this.shelf);
       this.ura.get('/annotations', ura.handleFind.bind(ura));
+      this.ura.post('/annotation-draft', ura.handleStartDraft.bind(ura));
+      this.ura.get('/annotation-draft/:jobID', ura.handleDraftStatus.bind(ura));
       this.ura.post('/annotation', ura.handleSave.bind(ura));
     }
     { // (ura)/upload
