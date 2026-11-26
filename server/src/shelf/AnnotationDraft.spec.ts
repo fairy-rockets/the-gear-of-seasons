@@ -72,6 +72,41 @@ describe('注釈の下書き', () => {
     }
   });
 
+  it('GIF の先頭から最後までを最大12コマに間引き、1コマなら静止画として扱う', async function () {
+    this.timeout(15000);
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'gear-draft-gif-spec-'));
+    const fetch = globalThis.fetch;
+    const run = promisify(execFile);
+    try {
+      const entity: ImageEntity = { id: 'i', type: 'image', location: 'internal', width: 32, height: 32,
+        timestamp: undefined, mediumID: 'm', iconID: 'i', mimeType: 'image/gif' };
+      // フレームごとに少しずつ明るくなる GIF。storage と同じく拡張子のないファイルから読む。
+      for (const total of [1, 16]) {
+        const colors = Array.from({ length: total }, (_, i) => `xc:gray(${100 * i / 15}%)`);
+        await run('magick', ['-delay', '10', '-size', '32x32', ...colors, '-loop', '0', 'GIF:' + path.join(dir, 'original')]);
+        const shelf = { resolveEntityPath: async () => [dir, 'original'] } as unknown as Shelf;
+        globalThis.fetch = async (_url, init) => {
+          const { images, prompt } = JSON.parse(init!.body as string);
+          assert.equal(images.length, Math.min(12, total));
+          assert.match(prompt, total === 1 ? /手描きの絵/ : /手描きアニメーション/);
+          for (const [i, image] of images.entries()) {
+            const frame = path.join(dir, 'check.jpg');
+            await fs.writeFile(frame, Buffer.from(image as string, 'base64'));
+            const { stdout } = await run('magick', [frame, '-format', '%[fx:mean]', 'info:']);
+            const expected = total === 1 ? 0 : Math.round(i * 15 / 11) / 15;
+            assert.ok(Math.abs(Number(stdout) - expected) < 0.025, `frame ${i}: ${stdout}, expected ${expected}`);
+          }
+          return Response.json({ response: JSON.stringify(kModelValues) });
+        };
+        await generateDraft(shelf, 'http://example.invalid', 'test-model',
+          { entityID: entity.id, kind: 'drawing', title: '', body: '' }, entity, AbortSignal.timeout(10000));
+      }
+    } finally {
+      globalThis.fetch = fetch;
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('動画から複数のコマを時間順に取り出してアニメーションの文脈を渡す', async function () {
     this.timeout(15000);
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'gear-draft-video-'));

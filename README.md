@@ -35,7 +35,7 @@ Set `OLLAMA_URL` to the HTTP(S) origin of an Ollama instance reachable from the 
 
 In ura, open the annotation drawer for an unverified image or video stored on this server. At the bottom, choose drawing or camera, then select 下書きを生成. The server sends the image or video frames and editor context to the configured Ollama instance. The result fills missing annotation fields in the drawer. Check the result and select 注釈を保存 to persist it.
 
-The server runs one generation at a time. Generation waits up to 10 minutes. A restart clears pending jobs and results, and you can start again from the drawer. Animated image files use their first frame. Audio and externally hosted videos are outside the draft feature.
+The server runs one generation at a time. Generation waits up to 10 minutes. A restart clears pending jobs and results, and you can start again from the drawer. Videos and animated GIFs use up to twelve frames in time order. Other image formats use the first frame. Audio and externally hosted videos are outside the draft feature.
 
 ## How to migrate the database
 

@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
@@ -11,6 +13,7 @@ type VisualEntity = ImageEntity | InternalVideoEntity;
 type Draft = Annotation.Draft.Values;
 const kExecFile = promisify(execFile);
 const kMaxFrames = 12;
+const kFrameScale = "scale=w='min(768,iw)':h='min(768,ih)':force_original_aspect_ratio=decrease";
 const kTimeoutMs = 10 * 60_000;
 const kRetentionMs = 15 * 60_000;
 const kMaxJobs = 32;
@@ -64,12 +67,14 @@ export function parseDraft(text: string): Draft {
 
 function prompt(req: Annotation.Draft.Request, entity: VisualEntity, frames: number): string {
   const drawing = req.kind === 'drawing';
-  const moving = entity.type === 'video';
+  const moving = entity.type === 'video' || frames > 1;
+  const length = entity.type === 'video' ? `長さ ${entity.duration} 秒の` : '';
   const what = moving ? (drawing ? '手描きアニメーション' : '撮影動画') : (drawing ? '手描きの絵' : '写真');
   return [
     `添付の${what}のアクセシビリティ用の注釈を日本語で作成してください。`,
-    moving && `長さ ${entity.duration} 秒の映像から採った ${frames} 枚のコマが時間順に並んでいます。時間による変化も説明してください。`,
+    moving && `${length}映像から採った ${frames} 枚のコマが時間順に並んでいます。時間による変化も説明してください。`,
     'alt は見えない読者向けに内容を1〜2文で、description は構図・色・細部を3〜5文で説明してください。',
+    '描写は添付の画像と作者が示した情報に基づけ、確認できない細部や出来事は書かないでください。',
     'subject は題名と作品を照合して主題を短い名詞句で、tags は題材を5〜10語で表してください。',
     'methods は draw（手描き）、capture（撮影）、render（3DCG）、generate（生成AI）から選んでください。',
     `materials は draw の場合の画材（例 ${kMaterialSuggestions.join('、')}）、それ以外は [] としてください。`,
@@ -80,9 +85,33 @@ function prompt(req: Annotation.Draft.Request, entity: VisualEntity, frames: num
   ].filter(Boolean).join('\n');
 }
 
+// GIF の各パケットは1コマ。デコード前に数え、最初と最後を含む等間隔のコマだけを出力する。
+// ffmpeg に GIF を先頭から順に合成させるので、差分だけのコマも正しい絵になる。
+async function gifFrames(file: string, signal: AbortSignal): Promise<string[]> {
+  const options = { signal, maxBuffer: 64 * 1024, killSignal: 'SIGKILL' as const };
+  const input = ['-protocol_whitelist', 'file,pipe', '-ignore_loop', '1', '-f', 'gif', '-i', file];
+  const { stdout } = await kExecFile('ffprobe', ['-v', 'error', ...input, '-select_streams', 'v:0',
+    '-count_packets', '-show_entries', 'stream=nb_read_packets', '-of', 'csv=p=0'], options);
+  const total = Number(stdout.trim());
+  if (!Number.isSafeInteger(total) || total < 1) throw new DraftError('GIF のコマ数を取得できません');
+  const count = Math.min(kMaxFrames, total);
+  const indices = Array.from({ length: count }, (_, i) => count === 1 ? 0 : Math.round(i * (total - 1) / (count - 1)));
+  const select = indices.map(i => `eq(n,${i})`).join('+');
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'gear-draft-gif-'));
+  try {
+    await kExecFile('ffmpeg', ['-nostdin', '-v', 'error', ...input, '-map', '0:v:0',
+      '-vf', `select='${select}',${kFrameScale}`, '-fps_mode', 'vfr', '-frames:v', String(count),
+      '-start_number', '0', path.join(dir, '%d.jpg')], options);
+    return await Promise.all(indices.map((_, i) => fs.readFile(path.join(dir, `${i}.jpg`), 'base64')));
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
+
 async function framesOf(file: string, entity: VisualEntity, signal: AbortSignal): Promise<string[]> {
   const options = { signal, encoding: 'buffer' as const, maxBuffer: 2 * 1024 * 1024, killSignal: 'SIGKILL' as const };
   if (entity.type === 'image') {
+    if (entity.mimeType === 'image/gif') return gifFrames(file, signal);
     const { stdout } = await kExecFile('magick', [`${file}[0]`, '-auto-orient', '-thumbnail', '768x768>',
       '-background', 'white', '-alpha', 'remove', '-strip', '-quality', '82', 'jpeg:-'], options);
     if (!stdout.length) throw new DraftError('画像を読み込めません');
@@ -95,7 +124,7 @@ async function framesOf(file: string, entity: VisualEntity, signal: AbortSignal)
   for (let i = 0; i < count; i++) {
     const { stdout } = await kExecFile('ffmpeg', ['-nostdin', '-v', 'error', '-ss', String(duration * i / count),
       '-protocol_whitelist', 'file,pipe', '-i', file, '-map', '0:v:0', '-frames:v', '1', '-vf',
-      "scale=w='min(768,iw)':h='min(768,ih)':force_original_aspect_ratio=decrease",
+      kFrameScale,
       '-f', 'image2pipe', '-c:v', 'mjpeg', 'pipe:1'], options);
     if (stdout.length) frames.push(stdout.toString('base64'));
   }
