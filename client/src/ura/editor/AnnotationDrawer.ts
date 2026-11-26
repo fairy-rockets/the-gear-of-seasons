@@ -1,4 +1,5 @@
 import * as protocol from '../../protocol';
+import { DraftControls, generateAnnotationDraft, makeDraftControls } from './AnnotationDraft';
 import Editor from './Editor';
 import { describeError, describeResponseError, showToast } from './Toast';
 
@@ -63,12 +64,16 @@ const kMaxFindIDs = 256;
 const kEntityID = /^[0-9a-f]{32}$/;
 
 const kLoadToastKey = 'annotation-load';
+const kGeneratedFields: readonly (keyof protocol.Annotation.Draft.Values)[] = [
+  'methods', 'materials', 'subject', 'alt', 'description', 'tags', 'palette', 'note',
+];
 
 // 1つの項目の入力欄。触っていない項目は、読んだ値のまま送る（import で入った '' などを黙って null にしない）。
 type Input = {
   elem: HTMLElement;
   touched: boolean;
   read: () => AnnotationValues[AnnotationField];
+  writeDraft?: (value: NonNullable<AnnotationValues[AnnotationField]>) => void;
 };
 
 type Opened = {
@@ -77,6 +82,7 @@ type Opened = {
   // 読んだ値（保存したあとは保存した値）。触っていない項目はこの値を送る。
   original: AnnotationValues;
   inputs: Map<AnnotationField, Input>;
+  draftControls: DraftControls | null;
 };
 
 type Mark = { state: 'loading' | protocol.AnnotationState, label: string };
@@ -135,7 +141,7 @@ export default class AnnotationDrawer {
   // 開くたびに1つ増やす番号。読み直しの応答は、最新の番号のものだけを扱う。
   // 同じ entity を開き直したとき、前の読み直しの古い応答で欄を組まないため（opening_ の id では見分けられない）。
   private openSeq_: number;
-  private saving_: boolean;
+  private operation_: 'save' | 'generate' | null;
 
   constructor(column: HTMLElement, preview: HTMLElement) {
     this.column_ = column;
@@ -146,7 +152,7 @@ export default class AnnotationDrawer {
     this.opened_ = null;
     this.opening_ = null;
     this.openSeq_ = 0;
-    this.saving_ = false;
+    this.operation_ = null;
 
     this.drawer_ = document.createElement('div');
     this.drawer_.classList.add('annotation-drawer');
@@ -179,6 +185,7 @@ export default class AnnotationDrawer {
 
     this.status_ = document.createElement('div');
     this.status_.classList.add('annotation-status');
+    this.status_.setAttribute('role', 'status');
     this.drawer_.appendChild(this.status_);
 
     this.form_ = document.createElement('div');
@@ -230,12 +237,12 @@ export default class AnnotationDrawer {
   }
 
   // 保存していない入力があれば、確かめてから閉じる。閉じたら true。
-  // 保存の通信中は閉じない。
+  // 保存と下書き生成の通信中は閉じない。
   close(): boolean {
     if (this.opened_ === null) {
       return true;
     }
-    if (this.saving_ || !this.confirmDiscard_()) {
+    if (this.isBusy() || !this.confirmDiscard_()) {
       return false;
     }
     this.opened_ = null;
@@ -256,15 +263,14 @@ export default class AnnotationDrawer {
     }
   }
 
-  // 保存の通信中は、閉じる・保存のボタンを押せなくする。
-  private setSaving_(saving: boolean) {
-    this.saving_ = saving;
-    this.updateButtons_();
-    this.editor_!.updateUnsavedChanges();
+  private setOperation_(operation: 'save' | 'generate' | null, draftResult?: string) {
+    this.operation_ = operation;
+    this.form_.inert = operation === 'generate';
+    this.updateStatus_({ draftResult });
   }
 
-  isSaving(): boolean {
-    return this.saving_;
+  isBusy(): boolean {
+    return this.operation_ !== null;
   }
 
   // moment の SAVE・削除の通信中は、注釈を保存しない（Editor が通信の始めと終わりに呼ぶ）。
@@ -273,13 +279,22 @@ export default class AnnotationDrawer {
   }
 
   private updateButtons_() {
-    this.save_.disabled = this.saving_ || this.editor_!.isBusy();
-    this.close_.disabled = this.saving_;
+    const busy = this.isBusy();
+    this.save_.disabled = busy || this.editor_!.isBusy();
+    this.close_.disabled = busy;
+    const opened = this.opened_;
+    const controls = opened?.draftControls;
+    if (opened != null && controls != null) {
+      controls.elem.hidden = opened.original.humanVerified;
+      controls.start.textContent = this.operation_ === 'generate' ? '生成中…' : '下書きを生成';
+      controls.start.disabled = this.save_.disabled || controls.elem.hidden ||
+        opened.inputs.get('humanVerified')!.read() === true || controls.options() === null;
+    }
   }
 
   async save() {
     const opened = this.opened_;
-    if (opened === null || this.saving_ || this.editor_!.isBusy()) {
+    if (opened === null || this.save_.disabled) {
       return;
     }
     const values = this.values_(opened);
@@ -287,7 +302,7 @@ export default class AnnotationDrawer {
       entityID: opened.id,
       annotation: values,
     };
-    this.setSaving_(true);
+    this.setOperation_('save');
     try {
       const r = await fetch('/annotation', {
         method: 'POST',
@@ -305,7 +320,7 @@ export default class AnnotationDrawer {
       showToast(`注釈を保存できませんでした: ${describeError(e)}`);
       return;
     } finally {
-      this.setSaving_(false);
+      this.setOperation_(null);
     }
     opened.entry.annotation = values;
     opened.original = values;
@@ -316,7 +331,55 @@ export default class AnnotationDrawer {
       }
     }
     this.refreshMarks_();
-    this.updateStatus_('保存しました');
+    this.updateStatus_({ saved: true });
+  }
+
+  private async generateDraft_() {
+    const opened = this.opened_;
+    const controls = opened?.draftControls;
+    if (opened == null || controls == null || controls.start.disabled) {
+      return;
+    }
+    const options = controls.options();
+    if (options === null) {
+      return;
+    }
+    const req: protocol.Annotation.Draft.Request = {
+      entityID: opened.id,
+      ...this.editor_!.annotationDraftContext(),
+      ...options,
+    };
+    this.setOperation_('generate');
+    let message: string | undefined;
+    try {
+      const draft = await generateAnnotationDraft(req);
+      const changed = this.applyDraft_(opened, draft);
+      message = changed ? '下書きを入力しました。内容を確認して保存してください' : '下書きで補える未入力項目はありませんでした';
+    } catch (e) {
+      console.error(e);
+      showToast(`下書きを生成できませんでした: ${describeError(e)}`);
+    } finally {
+      this.setOperation_(null, message);
+    }
+  }
+
+  private applyDraft_(opened: Opened, draft: protocol.Annotation.Draft.Values): boolean {
+    let changed = false;
+    for (const field of kGeneratedFields) {
+      const input = opened.inputs.get(field);
+      const value = draft[field];
+      // null は未入力。触った欄と、明示的な空文字・空リストはそのままにする。
+      if (input?.writeDraft === undefined || input.touched || opened.original[field] !== null || value === null) {
+        continue;
+      }
+      // methods を先に反映し、残した手入力も含めて材料を書けるか判断する。
+      if (field === 'materials' && !protocol.canHaveMaterials(this.values_(opened).methods)) {
+        continue;
+      }
+      input.writeDraft(value);
+      changed = input.read() !== null || changed;
+    }
+    return changed;
   }
 
   private onPreviewClick_(event: MouseEvent) {
@@ -346,8 +409,8 @@ export default class AnnotationDrawer {
   // 開くたびに、その entity の注釈を読み直して欄を組む。ほかのタブや import で変わった値を、
   // 前に読んだ値のまま保存して黙って戻さないため。読み直せなければ開かない。
   private async open_(id: string) {
-    // 注釈の保存、moment の SAVE・削除の通信中は、別のメディアを開かない。
-    if (this.saving_ || this.editor_!.isBusy()) {
+    // 注釈の保存・下書き生成、moment の SAVE・削除の通信中は、別のメディアを開かない。
+    if (this.isBusy() || this.editor_!.isBusy()) {
       return;
     }
     // 開いているメディアをもう一度選んだら、閉じるボタンと同じく閉じる。
@@ -414,7 +477,11 @@ export default class AnnotationDrawer {
     if (methods !== undefined && materials !== undefined) {
       linkMaterials(methods, materials);
     }
-    this.opened_ = { id, entry, original: entry.annotation, inputs };
+    const draftControls = e.draftAvailable ? makeDraftControls(() => this.generateDraft_()) : null;
+    if (draftControls !== null) {
+      this.form_.appendChild(draftControls.elem);
+    }
+    this.opened_ = { id, entry, original: entry.annotation, inputs, draftControls };
     this.icon_.src = `/entity/${encodeURIComponent(id)}/icon`;
     this.title_.textContent = `${kTypeLabels[entry.type]}  ${id}`;
     this.show_(true);
@@ -465,15 +532,16 @@ export default class AnnotationDrawer {
     return confirm('保存していない注釈の入力があります。捨てますか？');
   }
 
-  private updateStatus_(message?: string) {
+  private updateStatus_({ saved, draftResult }: { saved?: boolean; draftResult?: string } = {}) {
+    this.updateButtons_();
     this.editor_!.updateUnsavedChanges();
-    if (this.hasUnsavedChanges()) {
-      this.status_.textContent = '保存していない入力があります';
-      this.status_.classList.add('annotation-status-dirty');
-    } else {
-      this.status_.textContent = message ?? '';
-      this.status_.classList.remove('annotation-status-dirty');
+    const dirty = this.hasUnsavedChanges();
+    const text = this.operation_ === 'generate' ? '下書きを生成中…' :
+      draftResult ?? (dirty ? '保存していない入力があります' : saved ? '保存しました' : '');
+    if (this.status_.textContent !== text) {
+      this.status_.textContent = text;
     }
+    this.status_.classList.toggle('annotation-status-dirty', dirty);
   }
 
   private refreshMarks_() {
@@ -535,6 +603,10 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
       select.value = (value as string | null) ?? '';
       select.addEventListener('change', touch);
       input.read = () => select.value === '' ? null : select.value as AnnotationValues[AnnotationField];
+      input.writeDraft = value => {
+        select.value = value as string;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      };
       row.appendChild(select);
       break;
     }
@@ -555,6 +627,10 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
         text.placeholder = '（未入力）';
       });
       input.read = () => text.value.length === 0 ? null : text.value;
+      input.writeDraft = value => {
+        text.value = value as string;
+        text.dispatchEvent(new Event('input', { bubbles: true }));
+      };
       row.appendChild(text);
       break;
     }
@@ -585,6 +661,12 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
       input.read = () => {
         const list = items();
         return list.length === 0 && !check.checked ? null : list;
+      };
+      input.writeDraft = value => {
+        const list = value as string[];
+        text.value = list.join(', ');
+        check.checked = list.length === 0;
+        check.dispatchEvent(new Event('change', { bubbles: true }));
       };
       box.appendChild(text);
       box.appendChild(empty);
@@ -667,6 +749,14 @@ function makeInput(field: AnnotationField, value: AnnotationValues[AnnotationFie
       input.read = () => {
         const list = checks.filter((c) => c.checked).map((c) => c.value);
         return (list.length === 0 ? null : list) as AnnotationValues[AnnotationField];
+      };
+      input.writeDraft = value => {
+        const methods = value as protocol.AnnotationMethod[];
+        for (const check of checks) {
+          check.checked = methods.includes(check.value as protocol.AnnotationMethod);
+        }
+        touch();
+        row.dispatchEvent(new Event('change', { bubbles: true }));
       };
       row.appendChild(box);
       break;

@@ -234,9 +234,18 @@ img.emoji {
   border: 1px solid white;
 }
 
-/* 保存の通信中は押せない。見た目は帯のボタンの :disabled に合わせる */
+.annotation-generate {
+  padding: 0.2em 0.6em;
+  font-size: 16px;
+  color: #ddd;
+  background: #111;
+  border: 1px solid white;
+}
+
+/* 保存や下書き生成の通信中は押せない。見た目は帯のボタンの :disabled に合わせる */
 .annotation-close:disabled,
-.annotation-save:disabled {
+.annotation-save:disabled,
+.annotation-generate:disabled {
   color: #444;
   border: 1px solid #333;
 }
@@ -367,7 +376,20 @@ img.emoji {
   border-color: #f0c040;
 }
 
-/* 上の帯の下に出す、保存の状態の1行。空のときも高さを取り、欄の位置を動かさない */
+.annotation-generation {
+  margin: 1em 0 0;
+  padding: 0 0.4em 0.4em;
+  min-width: 0;
+  border: 1px solid #556;
+}
+
+.annotation-generation legend,
+.annotation-generation .annotation-label {
+  font-family: inherit;
+  color: #9ab;
+}
+
+/* 上の帯の下に出す、保存や生成の状態の1行。空のときも高さを取り、欄の位置を動かさない */
 .annotation-status {
   min-height: 1.4em;
   margin-top: 0.3em;

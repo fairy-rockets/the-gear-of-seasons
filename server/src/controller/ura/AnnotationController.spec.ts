@@ -207,7 +207,7 @@ describe("POST /annotation-draft", () => {
   it("確認済み・音声・外部動画・不正な入力では生成も保存もしない", async () => {
     const { repo, find, start } = setup('http://ollama');
     repo.annotations.set(kImage, { entityID: kImage, ...kEmpty, humanVerified: true });
-    assert.equal((await find({ ids: kImage })).body.entities[0].draftAvailable, undefined);
+    assert.equal((await find({ ids: kImage })).body.entities[0].draftAvailable, true);
     assert.equal((await start(request)).statusCode, 409);
     for (const entityID of [kAudio, kExternal]) {
       assert.equal((await start({ ...request, entityID })).statusCode, 400);

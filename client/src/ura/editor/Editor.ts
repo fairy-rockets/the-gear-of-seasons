@@ -122,10 +122,10 @@ export default class Editor {
     return this.formValues_().some((value, i) => value !== this.savedValues_[i]);
   }
 
-  // moment と注釈は別々に保存する。どちらかの未保存入力か、書き込みの通信がある間だけ守る。
+  // moment と注釈は別々に保存する。未保存の入力や、保存・削除・下書き生成の通信がある間だけ守る。
   updateUnsavedChanges() {
     const guard = this.hasUnsavedMoment_() || this.busy_ ||
-      (this.drawer_ !== null && (this.drawer_.hasUnsavedChanges() || this.drawer_.isSaving()));
+      (this.drawer_ !== null && (this.drawer_.hasUnsavedChanges() || this.drawer_.isBusy()));
     if (guard !== this.guarding_) {
       if (guard) {
         window.addEventListener('beforeunload', this.beforeUnload_);
@@ -134,7 +134,7 @@ export default class Editor {
       }
       this.guarding_ = guard;
     }
-    const busy = this.busy_ || (this.drawer_ !== null && this.drawer_.isSaving());
+    const busy = this.busy_ || (this.drawer_ !== null && this.drawer_.isBusy());
     this.save_.disabled = busy || !this.hasUnsavedMoment_();
     this.delete_.disabled = busy || this.originalDate() === null;
   }
@@ -142,6 +142,10 @@ export default class Editor {
   // 開いている moment の、保存されている日時。新規なら null。
   originalDate(): string | null {
     return this.originalDate_.length > 0 ? this.originalDate_ : null;
+  }
+
+  annotationDraftContext(): Pick<protocol.Annotation.Draft.Request, 'title' | 'body'> {
+    return { title: this.title_.value, body: this.text_.value };
   }
 
   private makeMoment_(): protocol.Moment.Save.Request {
@@ -161,7 +165,7 @@ export default class Editor {
   }
 
   private async onSave_() {
-    if (this.busy_ || this.drawer_!.isSaving()) {
+    if (this.busy_ || this.drawer_!.isBusy()) {
       return;
     }
     const submitted = this.formValues_();
@@ -214,7 +218,7 @@ export default class Editor {
   }
 
   private async onDelete_() {
-    if (this.busy_ || this.drawer_!.isSaving() || this.originalDate() === null) {
+    if (this.busy_ || this.drawer_!.isBusy() || this.originalDate() === null) {
       return;
     }
     const message = this.hasUnsavedMoment_() || this.drawer_!.hasUnsavedChanges()

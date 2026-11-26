@@ -168,6 +168,7 @@ export namespace Annotation {
       entities: {
         entityID: string;
         type: EntityType;
+        // Ollama の設定とメディア形式が下書き生成に対応する。確認済みなら annotation.humanVerified で制御する。
         draftAvailable?: boolean;
         annotation: AnnotationValues;
       }[];

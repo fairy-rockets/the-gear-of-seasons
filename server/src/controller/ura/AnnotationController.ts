@@ -115,7 +115,6 @@ export default class AnnotationController {
       if (found !== undefined) {
         const { entityID: _, ...values } = found;
         e.annotation = values;
-        if (values.humanVerified) delete e.draftAvailable;
       }
     }
     const resp: protocol.Annotation.Find.Response = { entities };
