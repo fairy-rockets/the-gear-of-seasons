@@ -25,17 +25,20 @@ const kProperties = {
 };
 const kFormat = { type: 'object', properties: kProperties, required: Object.keys(kProperties), additionalProperties: false };
 
+// ログに出してよい固定の診断（入力内容やファイル名を含めない）。
+class DraftError extends Error {}
+
 export function isDraftMedia(entity: Entity): entity is VisualEntity {
   return entity.location === 'internal' && entity.type !== 'audio';
 }
 
 function stringValue(v: unknown): string {
-  if (typeof v !== 'string') throw new Error('文字列が必要です');
+  if (typeof v !== 'string') throw new DraftError('文字列が必要です');
   return v.trim();
 }
 
 function stringList(v: unknown, splitItems = false): string[] {
-  if (!Array.isArray(v)) throw new Error('文字列の配列が必要です');
+  if (!Array.isArray(v)) throw new DraftError('文字列の配列が必要です');
   const values = v.map(stringValue);
   return [...new Set((splitItems ? values.flatMap(t => t.split(/[,\r\n]/).map(s => s.trim())) : values).filter(Boolean))];
 }
@@ -46,13 +49,13 @@ export function parseDraft(text: string): Draft {
   const methods = kVisualMethods.filter(m => selected.includes(m));
   const materials = stringList(raw.materials);
   if (methods.includes('draw') && materials.some(m => !kMaterialSuggestions.some(material => material === m))) {
-    throw new Error('画材の選択値が不正です');
+    throw new DraftError('画材の選択値が不正です');
   }
   const subject = stringValue(raw.subject), alt = stringValue(raw.alt), description = stringValue(raw.description);
   const tags = stringList(raw.tags, true);
-  if (!subject || !alt || !description || !tags.length) throw new Error('注釈の必須項目が空です');
+  if (!subject || !alt || !description || !tags.length) throw new DraftError('注釈の必須項目が空です');
   if (!methods.length || selected.some(m => !methods.some(method => method === m))
-    || !kAnnotationPalettes.includes(raw.palette)) throw new Error('注釈の選択値が不正です');
+    || !kAnnotationPalettes.includes(raw.palette)) throw new DraftError('注釈の選択値が不正です');
   return {
     methods, materials: methods.includes('draw') && materials.length ? materials : null,
     subject, alt, description, tags, palette: raw.palette, note: raw.note === null ? null : stringValue(raw.note) || null,
@@ -82,11 +85,11 @@ async function framesOf(file: string, entity: VisualEntity, signal: AbortSignal)
   if (entity.type === 'image') {
     const { stdout } = await kExecFile('magick', [`${file}[0]`, '-auto-orient', '-thumbnail', '768x768>',
       '-background', 'white', '-alpha', 'remove', '-strip', '-quality', '82', 'jpeg:-'], options);
-    if (!stdout.length) throw new Error('画像を読み込めません');
+    if (!stdout.length) throw new DraftError('画像を読み込めません');
     return [stdout.toString('base64')];
   }
   const duration = entity.duration;
-  if (!Number.isFinite(duration) || duration <= 0) throw new Error('動画の長さが不明です');
+  if (!Number.isFinite(duration) || duration <= 0) throw new DraftError('動画の長さが不明です');
   const count = Math.min(kMaxFrames, Math.ceil(duration * 4));
   const frames = [];
   for (let i = 0; i < count; i++) {
@@ -96,14 +99,14 @@ async function framesOf(file: string, entity: VisualEntity, signal: AbortSignal)
       '-f', 'image2pipe', '-c:v', 'mjpeg', 'pipe:1'], options);
     if (stdout.length) frames.push(stdout.toString('base64'));
   }
-  if (!frames.length) throw new Error('動画のコマを読み込めません');
+  if (!frames.length) throw new DraftError('動画のコマを読み込めません');
   return frames;
 }
 
 export async function generateDraft(shelf: Shelf, url: string, model: string, req: Annotation.Draft.Request,
                                     entity: VisualEntity, signal: AbortSignal): Promise<Draft> {
   const original = await shelf.resolveEntityPath(entity, 'original');
-  if (!original) throw new Error('元ファイルがありません');
+  if (!original) throw new DraftError('元ファイルがありません');
   const images = await framesOf(path.join(...original), entity, signal);
   const res = await fetch(new URL('/api/generate', url), {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, signal, redirect: 'error',
@@ -112,10 +115,10 @@ export async function generateDraft(shelf: Shelf, url: string, model: string, re
   });
   if (!res.ok) {
     await res.body?.cancel();
-    throw new Error(`Ollama HTTP ${res.status}`);
+    throw new DraftError(`Ollama HTTP ${res.status}`);
   }
   const reader = res.body?.getReader();
-  if (!reader) throw new Error('Ollama の応答が空です');
+  if (!reader) throw new DraftError('Ollama の応答が空です');
   const chunks: Uint8Array[] = [];
   let size = 0;
   for (;;) {
@@ -124,7 +127,7 @@ export async function generateDraft(shelf: Shelf, url: string, model: string, re
     size += value.length;
     if (size > 128 * 1024) {
       await reader.cancel();
-      throw new Error('Ollama の応答が大きすぎます');
+      throw new DraftError('Ollama の応答が大きすぎます');
     }
     chunks.push(value);
   }
@@ -148,7 +151,7 @@ export class DraftJobs {
       job.status = { status: 'complete', draft };
     }).catch((err: unknown) => {
       // execFile の message / stderr と JSON のパースエラーには、ファイル名や生成内容が含まれる。
-      const cause = err instanceof Error ? err.name : 'Error';
+      const cause = err instanceof DraftError ? err.message : err instanceof Error ? err.name : 'Error';
       console.error(`annotation-draft ${jobID}: ${signal.aborted ? 'timeout' : cause}`);
       job.status = { status: 'failed', message: signal.aborted ? '下書きの生成がタイムアウトしました。' : '下書きを生成できませんでした。メディアと Ollama の設定を確認してください。' };
     }).finally(() => {

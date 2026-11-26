@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import os from 'node:os';
+import * as fs from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { setImmediate } from 'node:timers/promises';
 import { describe, it } from 'mocha';
 import Asset from '../lib/Asset.js';
 import { DraftJobs, generateDraft, parseDraft } from './AnnotationDraft.js';
-import { ImageEntity } from './Entity.js';
+import { ImageEntity, InternalVideoEntity } from './Entity.js';
 import Shelf from './Shelf.js';
 
 const kModelValues = {
@@ -65,6 +69,39 @@ describe('注釈の下書き', () => {
       assert.equal(draft.subject, '紅葉');
     } finally {
       globalThis.fetch = fetch;
+    }
+  });
+
+  it('動画から複数のコマを時間順に取り出してアニメーションの文脈を渡す', async function () {
+    this.timeout(15000);
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'gear-draft-video-'));
+    const fetch = globalThis.fetch;
+    try {
+      const file = path.join(dir, 'test.mp4');
+      await promisify(execFile)('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'color=black:s=32x32:r=4:d=1',
+        '-vf', "drawbox=color=white:t=fill:enable='gte(t,0.5)'", '-c:v', 'libx264', file]);
+      const shelf = { resolveEntityPath: async () => [dir, 'test.mp4'] } as unknown as Shelf;
+      const entity: InternalVideoEntity = { id: 'v', type: 'video', location: 'internal', width: 32, height: 32,
+        duration: 1, timestamp: undefined, iconID: 'i', mimeType: 'video/mp4' };
+      globalThis.fetch = async (_url, init) => {
+        const { images, prompt } = JSON.parse(init!.body as string);
+        assert.equal(images.length, 4);
+        assert.match(prompt, /手描きアニメーション/);
+        const pixels: number[] = [];
+        for (const [i, image] of images.entries()) {
+          const frame = path.join(dir, i + '.jpg');
+          await fs.writeFile(frame, Buffer.from(image as string, 'base64'));
+          const { stdout } = await promisify(execFile)('magick', [frame, '-format', '%[fx:mean]', 'info:']);
+          pixels.push(Number(stdout));
+        }
+        assert.ok(pixels[0] < 0.1 && pixels[1] < 0.1 && pixels[2] > 0.9 && pixels[3] > 0.9);
+        return Response.json({ response: JSON.stringify(kModelValues) });
+      };
+      await generateDraft(shelf, 'http://example.invalid', 'test-model',
+        { entityID: entity.id, kind: 'drawing', title: '', body: '' }, entity, AbortSignal.timeout(10000));
+    } finally {
+      globalThis.fetch = fetch;
+      await fs.rm(dir, { recursive: true, force: true });
     }
   });
 });
