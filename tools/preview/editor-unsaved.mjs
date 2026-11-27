@@ -32,6 +32,11 @@ let deletes = 0;
 let lastDelete = null;
 let lastSave = null;
 let lastAnnotation = null;
+let annotationFixture = empty;
+let draftAvailable = false;
+let draftJob = null;
+let rejectDraftStart = false;
+let lastDraftRequest = null;
 page.on('pageerror', error => { throw error; });
 await page.setRequestInterception(true);
 page.on('request', async request => {
@@ -41,7 +46,14 @@ page.on('request', async request => {
   }
   if (path === '/preview') return request.respond({ body: media });
   if (path === '/annotations') return request.respond({ contentType: 'application/json',
-    body: JSON.stringify({ entities: [{ entityID: id, type: 'image', annotation: empty }] }) });
+    body: JSON.stringify({ entities: [{ entityID: id, type: 'image', annotation: annotationFixture, draftAvailable }] }) });
+  if (path === '/annotation-draft') {
+    lastDraftRequest = JSON.parse(request.postData());
+    return request.respond({ status: rejectDraftStart ? 409 : 202, contentType: 'application/json',
+      body: JSON.stringify(rejectDraftStart ? { message: '生成中です' } : { jobID: 'job' }) });
+  }
+  if (path === '/annotation-draft/job') return request.respond({ contentType: 'application/json',
+    body: JSON.stringify(draftJob) });
   if (['/save', '/annotation', '/delete'].includes(path)) {
     const req = JSON.parse(request.postData());
     if (path === '/save') saves++;
@@ -154,6 +166,7 @@ try {
 
   await annotation(); await page.waitForSelector('.annotation-form input');
   assert.equal(await dirty(), false, 'opening annotation is clean');
+  assert.equal(await page.$('.annotation-generation'), null, 'draft controls follow server availability');
   await annotationInput('注釈'); assert.equal(await dirty(), true);
   await input('#title', 'moment も編集');
   // moment SAVE は、開いている注釈を保存しない。
@@ -165,6 +178,8 @@ try {
   assert.equal(await dirty(), true, 'annotation request protects navigation');
   await annotationInput('通信中に変更'); await release(); await idle();
   assert.equal(await dirty(), true, 'annotation edits during save survive');
+  assert.equal(await page.$eval('.annotation-status', el => el.textContent), '保存していない入力があります',
+    'annotation edits during save retain the unsaved status');
   await page.click('.annotation-save'); await idle(); assert.equal(await dirty(), false);
   // 欄はすべて human_verified の枠の中に kAnnotationFields の順で並び、human_verified は最後。
   assert.deepEqual(await page.$$eval('.annotation-draft .annotation-field > .annotation-label', els => els.map(el => el.textContent)),
@@ -246,6 +261,74 @@ try {
   await release(); await page.waitForFunction(() => location.pathname === '/moments/');
   assert.equal(extraDialogs, 0, 'successful DELETE redirects without another dialog');
   console.log('ok: DELETE cancel/failure/pending, saved identity and intentional redirect');
+
+  draftAvailable = true;
+  annotationFixture = { ...empty, methods: ['capture'], subject: '', tags: [], characters: ['既存'], note: '消す補足' };
+  await open();
+  await input('#title', '編集した題');
+  await input('#text', '編集した本文');
+  await annotation(); await page.waitForSelector('.annotation-generation');
+  const start = '.annotation-generate';
+  assert.equal(await page.$eval(start, el => el.disabled), true, 'generation requires explicit media kind');
+  await page.select('.annotation-generation select', 'drawing');
+  assert.equal(await page.$eval('.annotation-generation input', el => el.disabled), true, 'drawing does not use a location');
+  await page.select('.annotation-generation select', 'camera');
+  assert.equal(await page.$eval('.annotation-generation input', el => el.disabled), false);
+  await input('.annotation-generation input', ' 京都 ');
+  await input('.annotation-generation textarea', ' 作者の補足 ');
+  await annotationInput('手入力の alt');
+  await input('.annotation-draft textarea[rows="3"]', '');
+  const verify = '.annotation-draft label.annotation-field > input[type="checkbox"]';
+  await page.click(verify);
+  assert.equal(await page.$eval(start, el => el.disabled), true, 'checking human_verified disables generation before save');
+  await page.click(verify);
+
+  rejectDraftStart = true;
+  await page.click(start);
+  await wait(() => document.querySelector('.toast')?.textContent.includes('生成中です'));
+  await idle();
+  assert.deepEqual(lastDraftRequest,
+    { entityID: id, kind: 'camera', title: '編集した題', body: '編集した本文', place: '京都', note: '作者の補足' });
+  assert.equal(await page.$eval('.annotation-form', el => el.inert), false, 'failed start unlocks form');
+  assert.equal(await page.$eval('#annotation-alt', el => el.value), '手入力の alt');
+  rejectDraftStart = false;
+  await page.select('.annotation-generation select', 'drawing');
+  draftJob = { status: 'pending' };
+  const firstPoll = page.waitForResponse(response => new URL(response.url()).pathname === '/annotation-draft/job');
+  await page.click(start); await firstPoll;
+  assert.deepEqual(lastDraftRequest,
+    { entityID: id, kind: 'drawing', title: '編集した題', body: '編集した本文', note: '作者の補足' });
+  assert.equal(await dirty(), true, 'generation protects navigation');
+  assert.deepEqual(await page.evaluate(() => ({
+    form: document.querySelector('.annotation-form').inert,
+    save: document.querySelector('.annotation-save').disabled,
+    close: document.querySelector('.annotation-close').disabled,
+    momentSave: document.querySelector('#save').disabled,
+    momentDelete: document.querySelector('#delete').disabled,
+    status: document.querySelector('.annotation-status').textContent,
+    start: document.querySelector('.annotation-generate').textContent,
+  })), { form: true, save: true, close: true, momentSave: true, momentDelete: true, status: '下書きを生成中…', start: '生成中…' });
+  lastAnnotation = null;
+  await page.keyboard.down('Control'); await page.keyboard.press('s'); await page.keyboard.up('Control');
+  await annotation();
+  assert.ok(await page.$('.annotation-drawer:not([hidden])'), 'switching annotations while generating is ignored');
+  draftJob = { status: 'complete', draft: { methods: ['draw'], materials: ['pencil'], subject: '候補の題材',
+    alt: '候補の alt', description: '候補の説明', tags: ['候補'], palette: 'color', note: '候補の補足' } };
+  await wait(() => document.querySelector('.annotation-status').textContent.includes('下書きを入力しました'));
+  assert.equal(lastAnnotation, null, 'draft and Ctrl+S during generation do not write an annotation');
+  assert.equal(await dirty(), true, 'completed draft stays unsaved');
+  await page.click('.annotation-save'); await idle();
+  assert.deepEqual(lastAnnotation.annotation, { ...annotationFixture, alt: '手入力の alt', description: '候補の説明',
+    palette: 'color', note: null }, 'draft fills untouched null fields and respects effective methods');
+  await page.click(verify);
+  await page.click('.annotation-save'); await idle();
+  assert.equal(await page.$eval('.annotation-generation', el => el.hidden), true, 'saved verification hides generation');
+  await page.click(verify);
+  assert.equal(await page.$eval('.annotation-generation', el => el.hidden), true, 'unsaved unchecking keeps generation hidden');
+  await page.click('.annotation-save'); await idle();
+  assert.equal(await page.$eval('.annotation-generation', el => el.hidden), false, 'saving as unverified enables generation');
+  console.log('ok: draft availability, context snapshot, busy rejection and retry, lock, merge and explicit save');
+
 } finally {
   await browser.close();
 }

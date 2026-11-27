@@ -49,9 +49,9 @@ class StubReply {
   send(b: any) { this.body = b; return this; }
 }
 
-function setup() {
+function setup(ollamaURL: string | null = null) {
   const repo = new FakeRepo();
-  const c = new AnnotationController(new Shelf(repo as unknown as Repo));
+  const c = new AnnotationController(new Shelf(repo as unknown as Repo), ollamaURL);
   const find = async (query: Record<string, unknown>) => {
     const reply = new StubReply();
     await c.handleFind({ query } as unknown as FastifyRequest, reply as unknown as FastifyReply);
@@ -62,7 +62,12 @@ function setup() {
     await c.handleSave({ body } as unknown as FastifyRequest, reply as unknown as FastifyReply);
     return reply;
   };
-  return { repo, find, save };
+  const start = async (body: unknown) => {
+    const reply = new StubReply();
+    await c.handleStartDraft({ body } as FastifyRequest, reply as unknown as FastifyReply);
+    return reply;
+  };
+  return { repo, find, save, start };
 }
 
 describe("GET /annotations", () => {
@@ -187,5 +192,28 @@ describe("POST /annotation", () => {
     const { repo, save } = setup();
     await assert.rejects(() => save({ ...request({}), entityID: kMissing }), /Entity not found/);
     assert.strictEqual(repo.annotations.size, 0);
+  });
+});
+
+describe("POST /annotation-draft", () => {
+  const request = { entityID: kImage, kind: 'camera', title: '', body: '' };
+  it("Ollama を設定したときだけ使える", async () => {
+    assert.equal((await setup().start(request)).statusCode, 503);
+    const { find } = setup('http://ollama');
+    const { body } = await find({ ids: [kImage, kAudio, kExternal].join(',') });
+    assert.deepEqual(body.entities.map((e: { draftAvailable?: boolean }) => !!e.draftAvailable), [true, false, false]);
+  });
+
+  it("確認済み・音声・外部動画・不正な入力では生成も保存もしない", async () => {
+    const { repo, find, start } = setup('http://ollama');
+    repo.annotations.set(kImage, { entityID: kImage, ...kEmpty, humanVerified: true });
+    assert.equal((await find({ ids: kImage })).body.entities[0].draftAvailable, true);
+    assert.equal((await start(request)).statusCode, 409);
+    for (const entityID of [kAudio, kExternal]) {
+      assert.equal((await start({ ...request, entityID })).statusCode, 400);
+    }
+    assert.equal((await start({ ...request, entityID: kMissing })).statusCode, 404);
+    assert.equal((await start({ ...request, kind: 'other' })).statusCode, 400);
+    assert.equal(repo.annotations.size, 1);
   });
 });

@@ -3,6 +3,8 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import * as protocol from '../../lib/protocol.js';
 import { AnnotationField, AnnotationValues, kAnnotationFields } from '../../lib/protocol.js';
 
+import kConfig from '../../Config.js';
+import { DraftJobs, generateDraft, isDraftMedia } from '../../shelf/AnnotationDraft.js';
 import Shelf from '../../shelf/Shelf.js';
 import { AnnotationValue, parseBoolean, parseString, parseStrings } from '../../shelf/CurationFormat.js';
 import {
@@ -75,7 +77,8 @@ function badRequest(reply: FastifyReply, message: string): FastifyReply {
 // ura の編集画面の、注釈の引き出しが使う口。
 export default class AnnotationController {
   private readonly shelf: Shelf;
-  constructor(shelf: Shelf) {
+  private readonly jobs = new DraftJobs();
+  constructor(shelf: Shelf, private readonly ollamaURL = kConfig.ollamaURL) {
     this.shelf = shelf;
   }
   static async create(shelf: Shelf): Promise<AnnotationController> {
@@ -103,7 +106,8 @@ export default class AnnotationController {
       if (entity === null) {
         continue;
       }
-      entities.push({ entityID: entity.id, type: entity.type, annotation: protocol.emptyAnnotationValues() });
+      entities.push({ entityID: entity.id, type: entity.type, annotation: protocol.emptyAnnotationValues(),
+        ...(this.ollamaURL && isDraftMedia(entity) ? { draftAvailable: true } : {}) });
     }
     const annotations = await this.shelf.findEntityAnnotations(entities.map((e) => e.entityID));
     for (const e of entities) {
@@ -118,6 +122,36 @@ export default class AnnotationController {
       .type('application/json;charset=UTF-8')
       .code(200)
       .send(resp);
+  }
+
+  async handleStartDraft(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    const url = this.ollamaURL;
+    if (!url) return reply.code(503).send({ message: 'Ollama が設定されていません。' });
+    const raw = req.body as Partial<protocol.Annotation.Draft.Request> | null;
+    if (!raw || typeof raw.entityID !== 'string' || !kEntityID.test(raw.entityID)
+      || (raw.kind !== 'drawing' && raw.kind !== 'camera')
+      || typeof raw.title !== 'string' || typeof raw.body !== 'string'
+      || (raw.place !== undefined && typeof raw.place !== 'string')
+      || (raw.note !== undefined && typeof raw.note !== 'string')) {
+      return badRequest(reply, '下書きの入力が不正です。');
+    }
+    const entity = await this.shelf.findEntity(raw.entityID);
+    if (!entity) return reply.code(404).send({ message: 'メディアが見つかりません。' });
+    if (!isDraftMedia(entity)) return badRequest(reply, '元ファイルのある画像・動画だけが対象です。');
+    const annotations = await this.shelf.findEntityAnnotations([entity.id]);
+    if (annotations.get(entity.id)?.humanVerified) {
+      return reply.code(409).send({ message: '確認済みの注釈です。' });
+    }
+    const request = { entityID: entity.id, kind: raw.kind, title: raw.title, body: raw.body, place: raw.place, note: raw.note };
+    const jobID = this.jobs.start(signal => generateDraft(this.shelf, url, kConfig.ollamaModel, request, entity, signal));
+    if (!jobID) return reply.code(409).send({ message: '別の下書きを生成中です。' });
+    return reply.code(202).send({ jobID } satisfies protocol.Annotation.Draft.StartResponse);
+  }
+
+  async handleDraftStatus(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply> {
+    const status = this.jobs.get((req.params as { jobID: string }).jobID);
+    if (!status) return reply.code(404).send({ message: '下書きの生成結果が見つかりません。' });
+    return reply.header('Cache-Control', 'no-store').send(status);
   }
 
   // POST /annotation。1つの entity の注釈を保存する。
