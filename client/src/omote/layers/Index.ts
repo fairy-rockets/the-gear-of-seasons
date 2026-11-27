@@ -3,7 +3,7 @@ import Layer, { Landing } from '../Layer';
 import Moments from '../actors/Moments';
 import Moment from '../actors/Moment';
 import { mat4, vec4 } from 'gl-matrix';
-import Page from './Page';
+import MomentPage from './MomentPage';
 import twemoji from 'twemoji';
 import * as protocol from '../../protocol';
 import { kEmojiURLBase } from '../../constant';
@@ -289,8 +289,8 @@ export default class Index extends Layer {
     this.engagement_?.moments.open(performance.now(), m);
     this.endEngagement_('select');
     analytics.selectMoment(analytics.kGearItemList, m, this.pointerType_);
-    const content = Page.fetchBody(m.bodyURL);
-    this.world.pushLayer(new Page(this.world, m.path, 'moment', content), 'gear');
+    const content = MomentPage.fetchBody(m.bodyURL);
+    this.world.pushLayer(new MomentPage(this.world, m.path, content), 'gear');
   }
 
   // 歯車の中心(モデル原点)を現在のスクリーン座標(px)に投影して返す。

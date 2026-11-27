@@ -72,12 +72,6 @@ export function pageView(location: string, title: string, via: NavVia) {
 }
 
 /**
- * ページの種類。page_leave と scroll の page_kind に入れる。歯車は Page ではないので入らない
- * (歯車の過ごし方は gear_leave で送る)。
- */
-export type PageKind = 'moment' | 'about_us' | 'pickup' | 'shop';
-
-/**
  * GA4 の推奨イベント exception。description は、GA の画面で読める短い識別子(と、あればパス)にする。
  * fatal は、サイトをまったく見られなくなったもの(WebGL が使えない)だけ true にする。
  */
@@ -215,7 +209,6 @@ export type PageLeaveMethod =
 
 /** page_leave 1 件分。ページの engagement 1 回分(PageEngagement)の要約。 */
 export type PageEngagementSummary = {
-  pageKind: PageKind;
   leaveMethod: PageLeaveMethod;
   // この engagement でページにいた時間。タブが隠れていた時間は含まない。
   pageMs: number;
@@ -226,7 +219,6 @@ export type PageEngagementSummary = {
 /** ページでの過ごし方の要約。engagement ごと(ページを離れたとき、タブが隠れたとき)に 1 件送る。 */
 export function pageLeave(summary: PageEngagementSummary) {
   send('page_leave', {
-    page_kind: summary.pageKind,
     leave_method: summary.leaveMethod,
     page_ms: Math.round(summary.pageMs),
     max_percent_scrolled: summary.maxPercentScrolled,
@@ -237,6 +229,6 @@ export function pageLeave(summary: PageEngagementSummary) {
  * ページの本文を percent(25・50・75・100)まで読んだ。GA の拡張計測のスクロール数と同じ名前にした
  * (拡張計測は window のスクロールを見るが、このサイトでは window はスクロールしないので、何も送らない)。
  */
-export function scroll(pageKind: PageKind, percentScrolled: number) {
-  send('scroll', { percent_scrolled: percentScrolled, page_kind: pageKind });
+export function scroll(percentScrolled: number) {
+  send('scroll', { percent_scrolled: percentScrolled });
 }

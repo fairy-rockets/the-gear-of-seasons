@@ -136,6 +136,22 @@ async function commands(page, name) {
   return page.evaluate(n => (window.dataLayer ?? []).map(args => Array.from(args)).filter(args => args[0] === n), name);
 }
 
+// events と同じだが、それぞれに、そのとき gtag('set') で付いていた page_location のパスを at に入れる。
+async function eventsAt(page) {
+  return page.evaluate(() => {
+    let at = null;
+    const list = [];
+    for (const args of (window.dataLayer ?? []).map(a => Array.from(a))) {
+      if (args[0] === 'set' && 'page_location' in args[1]) {
+        at = new URL(args[1].page_location).pathname;
+      } else if (args[0] === 'event') {
+        list.push({ name: args[1], ...args[2], at });
+      }
+    }
+    return list;
+  });
+}
+
 const pageViews = list => list.filter(e => e.name === 'page_view');
 
 // page_view が count 件そろうまで待ち、page_view だけを返す。
@@ -534,15 +550,15 @@ all = await events(pages);
 assert.deepEqual(named(all, 'view_item'), [{ name: 'view_item',
   items: [{ item_id: kMoments[1], item_name: kTitles[1] }], nav_via: 'landing' }]);
 // スクロールしない短い本文は、表示した時点で全部読んだことにする。
-assert.deepEqual(named(all, 'scroll'), [25, 50, 75, 100].map(p => ({ name: 'scroll', percent_scrolled: p, page_kind: 'moment' })));
+assert.deepEqual(named(await eventsAt(pages), 'scroll'), [25, 50, 75, 100].map(p => ({ name: 'scroll', percent_scrolled: p, at: kMoments[1] })));
 
 // 13b) まえの絵へ: page_leave → page_view → view_item の順。題は絵文字を文字のまま入れる。
 await pages.click('a.moment-footer-prev');
 await waitPageViews(pages, 2);
 await waitEvent(pages, 'view_item');
 all = await events(pages);
-let [pageLeave] = named(all, 'page_leave');
-assert.equal(pageLeave.page_kind, 'moment');
+let [pageLeave] = named(await eventsAt(pages), 'page_leave');
+assert.equal(pageLeave.at, kMoments[1]);
 assert.equal(pageLeave.leave_method, 'footer_prev');
 assert.equal(pageLeave.max_percent_scrolled, 100);
 assert.ok(Number.isInteger(pageLeave.page_ms) && pageLeave.page_ms >= 0, JSON.stringify(pageLeave));
@@ -582,7 +598,8 @@ assert.equal(leaves[1].leave_method, 'close_button');
 assert.ok(leaves[1].page_ms < 1000, JSON.stringify(leaves[1]));
 assert.equal(leaves[1].max_percent_scrolled, 100);
 
-// 13e) 本文が届く前に離れたページは、page_leave だけを送り、後から届いても scroll と view_item は送らない。
+// 13e) 本文が届く前に離れたページは page_view を送らないので、page_leave も送らない(送ると下のページの
+// page_location が付く)。後から届いても scroll と view_item は送らない。
 seen = all.length;
 pages.held.set('/static/shop.html', null);
 await pages.click('#shop-link');
@@ -592,22 +609,21 @@ await waitPageViews(pages, 5);
 await pages.held.get('/static/shop.html')();
 await settle(500);
 all = (await events(pages)).slice(seen);
-leaves = named(all, 'page_leave');
-assert.deepEqual(leaves.map(e => [e.page_kind, e.leave_method, e.max_percent_scrolled]), [['shop', 'close_button', 0]]);
+assert.deepEqual(named(all, 'page_leave'), []);
 assert.deepEqual(named(all, 'scroll'), []);
 assert.deepEqual(named(all, 'view_item'), []);
 
-// 13f) moment 以外のページは view_item を送らない。scroll と page_leave の page_kind はそのページの種類。
+// 13f) moment 以外のページは view_item を送らない。scroll と page_leave には、そのページの page_location が付く。
 seen = (await events(pages)).length;
 await pages.click('#about-us-link');
 await waitPageViews(pages, 6);
 await settle(300);
 await pages.evaluate(() => document.getElementById('background').dispatchEvent(new MouseEvent('mouseup')));
 await waitPageViews(pages, 7);
-all = (await events(pages)).slice(seen);
+all = (await eventsAt(pages)).slice(seen);
 assert.deepEqual(named(all, 'view_item'), []);
-assert.ok(named(all, 'scroll').every(e => e.page_kind === 'about_us'), JSON.stringify(named(all, 'scroll')));
-assert.deepEqual(named(all, 'page_leave').map(e => [e.page_kind, e.leave_method]), [['about_us', 'backdrop']]);
+assert.ok(named(all, 'scroll').length > 0 && named(all, 'scroll').every(e => e.at === '/about-us/'), JSON.stringify(named(all, 'scroll')));
+assert.deepEqual(named(all, 'page_leave').map(e => [e.at, e.leave_method]), [['/about-us/', 'backdrop']]);
 assertScrollsAfterPageView(await events(pages));
 assertViewItemsRightAfterPageView(await events(pages));
 await pages.close();
@@ -628,9 +644,9 @@ await stack.evaluate(() => history.go(-3));
 views = await waitPageViews(stack, 5);
 assert.equal(views[4].page_location, `${kOrigin}${kMoments[1]}`);
 await settle(500);
-all = (await events(stack)).slice(seen);
-assert.deepEqual(all.filter(e => e.name === 'page_leave' || e.name === 'gear_leave').map(e => [e.name, e.page_kind, e.leave_method]),
-  [['page_leave', 'about_us', 'history']]);
+all = (await eventsAt(stack)).slice(seen);
+assert.deepEqual(all.filter(e => e.name === 'page_leave' || e.name === 'gear_leave').map(e => [e.name, e.at, e.leave_method]),
+  [['page_leave', '/about-us/', 'history']]);
 assertScrollsAfterPageView(await events(stack));
 assertViewItemsRightAfterPageView(await events(stack));
 await stack.close();

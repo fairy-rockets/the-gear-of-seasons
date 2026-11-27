@@ -7,11 +7,9 @@ import * as analytics from './Analytics';
  * engagement が始まるときに Page が作り、end で page_leave を送って捨てる。
  */
 export default class PageEngagement {
-  private readonly pageKind_: analytics.PageKind;
   private readonly startedAt_: number;
   private ended_: boolean;
-  constructor(pageKind: analytics.PageKind, now: number) {
-    this.pageKind_ = pageKind;
+  constructor(now: number) {
     this.startedAt_ = now;
     this.ended_ = false;
   }
@@ -23,7 +21,6 @@ export default class PageEngagement {
     }
     this.ended_ = true;
     analytics.pageLeave({
-      pageKind: this.pageKind_,
       leaveMethod,
       pageMs: now - this.startedAt_,
       maxPercentScrolled,

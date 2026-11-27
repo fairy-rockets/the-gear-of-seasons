@@ -9,7 +9,8 @@ import Background from './actors/Background';
 
 import Layer, { Landing } from './Layer';
 import Index from './layers/Index';
-import Page from './layers/Page';
+import MomentPage from './layers/MomentPage';
+import StaticPage from './layers/StaticPage';
 import * as analytics from './Analytics';
 
 export default class World {
@@ -238,17 +239,17 @@ export default class World {
     if (path === '/') {
       return new Index(this, landing);
     } else if (path.startsWith('/about-us/')) {
-      const content = Page.fetchBody('/static/about-us.html');
-      return new Page(this, '/about-us/', 'about_us', content, landing);
+      const content = StaticPage.fetchBody('/static/about-us.html');
+      return new StaticPage(this, '/about-us/', content, landing);
     } else if (path.startsWith('/pickup/')) {
-      const content = Page.fetchBody('/pickup/body');
-      return new Page(this, '/pickup/', 'pickup', content, landing);
+      const content = StaticPage.fetchBody('/pickup/body');
+      return new StaticPage(this, '/pickup/', content, landing);
     } else if (path.startsWith('/shop/')) {
-      const content = Page.fetchBody('/static/shop.html');
-      return new Page(this, '/shop/', 'shop', content, landing);
+      const content = StaticPage.fetchBody('/static/shop.html');
+      return new StaticPage(this, '/shop/', content, landing);
     } else {
-      const content = Page.fetchBody(`/moment${path}`);
-      return new Page(this, path, 'moment', content, landing);
+      const content = MomentPage.fetchBody(`/moment${path}`);
+      return new MomentPage(this, path, content, landing);
     }
   }
 

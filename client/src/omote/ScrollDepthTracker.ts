@@ -8,15 +8,13 @@ const kThresholds = [25, 50, 75, 100];
  * 閾値を越えたら、その閾値の scroll を 1 回だけ送る。
  */
 export default class ScrollDepthTracker {
-  private readonly pageKind_: analytics.PageKind;
   // この表示で届いた、いちばん深い位置(0〜100)。
   private maxPercentScrolled_: number;
-  // まだ送っていない閾値のうち、いちばん浅いものの kThresholds での位置。
-  private nextThreshold_: number;
-  constructor(pageKind: analytics.PageKind) {
-    this.pageKind_ = pageKind;
+  // まだ送っていない閾値のうち、いちばん浅いものの kThresholds での添字(送った閾値の数と同じ)。
+  private nextThresholdIndex_: number;
+  constructor() {
     this.maxPercentScrolled_ = 0;
-    this.nextThreshold_ = 0;
+    this.nextThresholdIndex_ = 0;
   }
 
   get maxPercentScrolled(): number {
@@ -40,9 +38,9 @@ export default class ScrollDepthTracker {
       return;
     }
     this.maxPercentScrolled_ = percent;
-    while (this.nextThreshold_ < kThresholds.length && kThresholds[this.nextThreshold_] <= percent) {
-      analytics.scroll(this.pageKind_, kThresholds[this.nextThreshold_]);
-      ++this.nextThreshold_;
+    while (this.nextThresholdIndex_ < kThresholds.length && kThresholds[this.nextThresholdIndex_] <= percent) {
+      analytics.scroll(kThresholds[this.nextThresholdIndex_]);
+      ++this.nextThresholdIndex_;
     }
   }
 }
