@@ -1,8 +1,9 @@
 import * as analytics from './Analytics';
 
 /**
- * ページでの engagement 1 回分。engagement は、そのページが最上位にあり、タブが前面にある間のこと
- * (GearEngagement と同じ区切り)。ページの 1 回の表示は、タブが隠れるたびに engagement が分かれる。
+ * ページでの engagement 1 回分。engagement は、その表示の page_view を送った後で、そのページが最上位にあり、
+ * タブが前面にある間のこと。ページの 1 回の表示は、タブが隠れるたびに engagement が分かれる。
+ * page_view の前は数えない(その間に送ると、下のページの page_location が付くため)。
  *
  * engagement が始まるときに Page が作り、end で page_leave を送って捨てる。
  */

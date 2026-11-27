@@ -20,7 +20,7 @@ export default abstract class Layer {
   private readonly href_: string;
   private readonly landingHref_: string;
   protected readonly element_: HTMLDivElement;
-  protected title_: string;
+  protected readonly title_: string;
   protected readonly landing_: boolean;
   protected constructor(world: World, path: string, landing?: Landing) {
     this.world_ = world;
