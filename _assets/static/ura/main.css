@@ -267,6 +267,7 @@ img.emoji {
 .annotation-label {
   flex: 0 0 8em;
   font-family: monospace;
+  font-size: 13px;
   color: #9ab;
 }
 
