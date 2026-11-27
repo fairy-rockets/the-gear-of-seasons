@@ -7,6 +7,9 @@ import * as analytics from '../Analytics';
 import PageEngagement from '../PageEngagement';
 import ScrollDepthTracker from '../ScrollDepthTracker';
 
+// 本文の状態: 待っている、表示できた、取得に失敗した。
+type BodyState = 'loading' | 'shown' | 'failed';
+
 /**
  * 本文を取ってきて、歯車の上に重ねて見せるページ。moment は MomentPage、それ以外は StaticPage。
  *
@@ -22,7 +25,7 @@ export default abstract class Page extends Layer {
   private readonly backdropListener_: () => void;
   private readonly visibilityListener_: () => void;
   // 本文を待っているか、表示できたか、取得に失敗したか。
-  private body_: 'loading' | 'shown' | 'failed';
+  private bodyState_: BodyState;
   // 本文の題(.title の文字。「:: the gear of seasons」を付ける前)。本文が届くまでと、.title の無い本文では null。
   private contentTitle_: string | null;
   // この表示の page_view を送ったときの nav_via。まだ送っていない間と、最上位でない間は null。
@@ -57,7 +60,7 @@ export default abstract class Page extends Layer {
       this.world.openTop('backdrop');
     };
     this.visibilityListener_ = this.onVisibilityChange_.bind(this);
-    this.body_ = 'loading';
+    this.bodyState_ = 'loading';
     this.contentTitle_ = null;
     this.pageViewVia_ = null;
     this.engagement_ = null;
@@ -103,7 +106,7 @@ export default abstract class Page extends Layer {
 
   // landing なら SSR の題がもう正しい。そうでなければ本文の .title から決まる。
   override get titleKnown(): boolean {
-    return this.landing_ || this.body_ !== 'loading';
+    return this.landing_ || this.bodyState_ !== 'loading';
   }
 
   /**
@@ -138,7 +141,7 @@ export default abstract class Page extends Layer {
     }
 
     this.setupFooter_();
-    this.body_ = 'shown';
+    this.bodyState_ = 'shown';
     // 最上位なら、ここで page_view が送られ、続けて onPageViewSent で見せ始める。
     this.world.notifyLoaded(this);
     // landing では page_view が本文より先に送られているので、ここで見せ始める。
@@ -192,7 +195,7 @@ export default abstract class Page extends Layer {
     this.content_.innerHTML = `<h1>エラー！</h1>Error:<strong>${err}</strong>`;
     analytics.exception(`page_load_failed: ${this.path}`, false);
     // 見せ始めない(onViewed を呼ばず、深さも測らない)。page_leave は送る。
-    this.body_ = 'failed';
+    this.bodyState_ = 'failed';
     this.world.notifyLoaded(this);
   }
 
@@ -202,7 +205,7 @@ export default abstract class Page extends Layer {
     if(document.visibilityState !== 'hidden' && this.engagement_ === null) {
       this.startEngagement_();
     }
-    if(this.body_ === 'shown') {
+    if(this.bodyState_ === 'shown') {
       this.startViewing_(via);
     }
   }
