@@ -32,7 +32,10 @@ export default class ScrollDepthTracker {
     if (height <= 0) {
       return;
     }
-    const percent = Math.min(100, Math.round((scroller.scrollTop + scroller.clientHeight) / height * 100));
+    // scrollTop は小数になることがあり、scrollHeight と clientHeight は整数に丸められるので、
+    // 一番下でも足し算がぴったり一致するとは限らない。1px 以内なら一番下とみなす(MDN の scrollHeight と同じ判定)。
+    const atBottom = height - scroller.clientHeight - scroller.scrollTop <= 1;
+    const percent = atBottom ? 100 : Math.min(100, Math.round((scroller.scrollTop + scroller.clientHeight) / height * 100));
     if (percent <= this.maxPercentScrolled_) {
       return;
     }
