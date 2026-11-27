@@ -9,7 +9,8 @@ import Background from './actors/Background';
 
 import Layer, { Landing } from './Layer';
 import Index from './layers/Index';
-import Page from './layers/Page';
+import MomentPage from './layers/MomentPage';
+import StaticPage from './layers/StaticPage';
 import * as analytics from './Analytics';
 
 export default class World {
@@ -213,8 +214,10 @@ export default class World {
       // UTM などのクエリを付けるのは開いたときの 1 回だけ。歯車のレイヤは使い回すので、
       // 閉じて戻ってきたときにも付けると、流入元をもう一度数えさせてしまう。
       const location = this.pendingVia_ === 'landing' ? top.landingHref : top.href;
-      analytics.pageView(location, top.title, this.pendingVia_);
+      const via = this.pendingVia_;
       this.pendingVia_ = null;
+      analytics.pageView(location, top.title, via);
+      top.onPageViewSent(via);
     }
   }
 
@@ -236,17 +239,17 @@ export default class World {
     if (path === '/') {
       return new Index(this, landing);
     } else if (path.startsWith('/about-us/')) {
-      const content = Page.fetchBody('/static/about-us.html');
-      return new Page(this, '/about-us/', content, landing);
+      const content = StaticPage.fetchBody('/static/about-us.html');
+      return new StaticPage(this, '/about-us/', content, landing);
     } else if (path.startsWith('/pickup/')) {
-      const content = Page.fetchBody('/pickup/body');
-      return new Page(this, '/pickup/', content, landing);
+      const content = StaticPage.fetchBody('/pickup/body');
+      return new StaticPage(this, '/pickup/', content, landing);
     } else if (path.startsWith('/shop/')) {
-      const content = Page.fetchBody('/static/shop.html');
-      return new Page(this, '/shop/', content, landing);
+      const content = StaticPage.fetchBody('/static/shop.html');
+      return new StaticPage(this, '/shop/', content, landing);
     } else {
-      const content = Page.fetchBody(`/moment${path}`);
-      return new Page(this, path, content, landing);
+      const content = MomentPage.fetchBody(`/moment${path}`);
+      return new MomentPage(this, path, content, landing);
     }
   }
 
@@ -293,22 +296,28 @@ export default class World {
     if (idx === layers.length-1) {
       return;
     }
-    while (layers.length > idx+1) {
-      this.popLayer_();
-    }
+    this.popLayersTo_(idx+1);
     history.pushState((history.state ?? 0)+1, '', '/');
     this.showTop_(via);
   }
 
-  private popLayer_() {
+  /**
+   * スタックを length 枚になるまで上から外し、残った最上位を付け直す。
+   * 途中のレイヤは付け直さない(onAttached を呼ばない)。最上位になったときの処理(engagement を
+   * 始めるなど)を、見られていないレイヤでしてしまうため。最上位でないレイヤは document から外れている。
+   */
+  private popLayersTo_(length: number) {
     const layers = this.layers_;
-    if (layers.length < 2) {
-      throw new Error(`Cannot pop a layer from a layer stack of length ${layers.length}.`);
+    if (length < 1 || layers.length <= length) {
+      throw new Error(`Cannot pop a layer stack of length ${layers.length} down to ${length}.`);
     }
     const current = layers.pop()!;
     current.onDetached();
     document.body.removeChild(current.element);
     current.destroy();
+    while (layers.length > length) {
+      layers.pop()!.destroy();
+    }
 
     const next = layers[layers.length-1];
     document.body.appendChild(next.element);
@@ -336,11 +345,8 @@ export default class World {
     }
     if (idx >= 0) {
       // 戻り先のレイヤは作り直さずにそのまま使う(Index なら歯車の回転位置が残る)。
-      // 戻り先まで下ろすと、それがスタックの底のとき popLayer_ が
-      // Error("Cannot pop a layer from a layer stack of length 1.") を投げる(#39)。
-      while(layers.length > idx+1) {
-        this.popLayer_();
-      }
+      // 最上位が戻り先なら上で return しているので、戻り先は最上位より下にある。
+      this.popLayersTo_(idx+1);
       this.showTop_('history');
       return;
     }

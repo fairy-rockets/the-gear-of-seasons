@@ -1,6 +1,7 @@
 import World from './World';
 import { mat4 } from 'gl-matrix';
 import Gear from './actors/Gear';
+import * as analytics from './Analytics';
 
 /**
  * 開いた URL(landing)のレイヤに渡す、そのページの URL と題。
@@ -19,7 +20,7 @@ export default abstract class Layer {
   private readonly href_: string;
   private readonly landingHref_: string;
   protected readonly element_: HTMLDivElement;
-  protected title_: string;
+  protected readonly title_: string;
   protected readonly landing_: boolean;
   protected constructor(world: World, path: string, landing?: Landing) {
     this.world_ = world;
@@ -70,6 +71,9 @@ export default abstract class Layer {
 
   /** 題が決まったか。決まるまで page_view を待つ(World.applyTop_)。 */
   abstract get titleKnown(): boolean;
+  /** このレイヤの page_view を送った直後に、World が呼ぶ。page_view の後に送るイベントはここで送る。 */
+  onPageViewSent(_via: analytics.NavVia) {
+  }
   abstract render(time: number, matWorld: mat4): void;
   abstract onAttached(): void;
   abstract onDetached(): void;

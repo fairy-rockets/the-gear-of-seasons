@@ -57,6 +57,13 @@ const kShop = await readFile('/app/_assets/static/omote/shop.html', 'utf8');
 const kPickup = (await readFile('/app/_assets/templates/omote/pickup.hbs', 'utf8'))
   .replace(/{{#each moments}}[\s\S]*?{{\/each}}/, '');
 
+// 長い本文の moment。画像が読み込まれるまでは、画面に収まるほど短い(画像の高さは本文の欄の高さまで)。
+const kLongMoment = '/2020/02/01/00:00:00/';
+const kLongBody = `<div class="moment-info"><h1 class="moment-title title">ながい</h1></div><hr>
+${'<img class="embed" src="/entity/tall/medium" width="800" height="4000" alt="">'.repeat(6)}
+<p>本文</p>`;
+const kTallImage = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="4000"><rect width="800" height="4000" fill="#888"/></svg>';
+
 const kRandom = kMoments.map((path, i) => ({
   angle: i * 0.3, date: path, title: kTitles[i], path, imageURL: `/entity/${i}/icon`, bodyURL: `/moment${path}`,
 }));
@@ -94,6 +101,8 @@ async function openPage({ failMoments = false, noWebGL = false, random = kRandom
       if (path === '/moments/random') {
         return failMoments ? request.abort() : request.respond({ contentType: 'application/json', body: JSON.stringify(random) });
       }
+      if (path === '/entity/tall/medium') return request.respond({ contentType: 'image/svg+xml', body: kTallImage });
+      if (path === `/moment${kLongMoment}`) return request.respond({ contentType: 'text/html', body: kLongBody });
       if (path.startsWith('/entity/')) return request.respond({ contentType: 'image/png', body: kIcon });
       if (path === '/static/about-us.html') return request.respond({ body: kAboutUs });
       if (path === '/static/shop.html') return request.respond({ body: kShop });
@@ -127,6 +136,22 @@ async function commands(page, name) {
   return page.evaluate(n => (window.dataLayer ?? []).map(args => Array.from(args)).filter(args => args[0] === n), name);
 }
 
+// events と同じだが、それぞれに、そのとき gtag('set') で付いていた page_location のパスを at に入れる。
+async function eventsAt(page) {
+  return page.evaluate(() => {
+    let at = null;
+    const list = [];
+    for (const args of (window.dataLayer ?? []).map(a => Array.from(a))) {
+      if (args[0] === 'set' && 'page_location' in args[1]) {
+        at = new URL(args[1].page_location).pathname;
+      } else if (args[0] === 'event') {
+        list.push({ name: args[1], ...args[2], at });
+      }
+    }
+    return list;
+  });
+}
+
 const pageViews = list => list.filter(e => e.name === 'page_view');
 
 // page_view が count 件そろうまで待ち、page_view だけを返す。
@@ -151,8 +176,9 @@ let views = await waitPageViews(page, 1);
 assert.deepEqual(views[0], { name: 'page_view', page_location: `${kOrigin}/?utm_source=test`,
   page_title: kSiteTitle, nav_via: 'landing' });
 const [ready] = await waitEvent(page, 'gear_ready');
-// 運営者の印の Cookie が無ければ、gtag('set') は積まない。
-assert.deepEqual(await commands(page, 'set'), []);
+// 運営者の印の Cookie が無ければ、traffic_type は set しない。page_view の後は、そのページを set する
+// (次の page_view までのイベントがそのページに付く)。UTM などのクエリは外す。
+assert.deepEqual(await commands(page, 'set'), [['set', { page_location: `${kOrigin}/`, page_title: kSiteTitle }]]);
 assert.ok(Number.isInteger(ready.load_ms) && ready.load_ms >= 0, JSON.stringify(ready));
 
 // 2) 見出しから About us へ。題が届いてから送り、page_referrer は前のページ。
@@ -254,6 +280,8 @@ assert.deepEqual(views[1], { name: 'page_view', page_location: `${kOrigin}/`, pa
 await earlyClose.held.get(`/moment${kMoments[0]}`)();
 await settle(500);
 assert.equal(pageViews(await events(earlyClose)).length, 2);
+// view_item も、本文が届く前に離れたら送らない。
+assert.deepEqual((await events(earlyClose)).filter(e => e.name === 'view_item'), []);
 await earlyClose.close();
 
 // 8'') 開いたパスに戻るで戻ると、レイヤを作り直して本文から題を取る(直前のページの題を引き継がない)。
@@ -411,15 +439,15 @@ assert.equal(leave.shown_count, secondShown.length);
 await setHidden(gear, false);
 seen = all.length;
 
-// 0.5 秒以上乗せてからマウスで開く: view_item_list → gear_leave → select_item → page_view の順。
+// 0.5 秒以上乗せてからマウスで開く: view_item_list → gear_leave → select_item → page_view → view_item の順。
 const disc = await findDisc(gear);
 await settle(700);
 await gear.mouse.click(disc.x, disc.y);
 await waitPageViews(gear, 2);
 all = await events(gear);
 fresh = all.slice(seen);
-const order = fresh.map(e => e.name).filter(n => n !== 'moment_hover');
-assert.deepEqual(order.slice(-3), ['gear_leave', 'select_item', 'page_view'], JSON.stringify(order));
+const order = fresh.map(e => e.name).filter(n => !['moment_hover', 'scroll'].includes(n));
+assert.deepEqual(order.slice(-4), ['gear_leave', 'select_item', 'page_view', 'view_item'], JSON.stringify(order));
 [leave] = named(fresh, 'gear_leave');
 assert.equal(leave.leave_method, 'select');
 // 開いたものも、迷った回数と時間には入る。
@@ -487,6 +515,177 @@ assert.deepEqual(shownPaths(all), [tapped.items[0].item_id]);
 assert.ok(all.findIndex(e => e.name === 'view_item_list') < all.findIndex(e => e.name === 'select_item'));
 await quick.close();
 
+// 13) ページ: 表示した moment(view_item)、どこまで読んだか(scroll)、過ごし方(page_leave)。
+// どの scroll も、そのページの page_view より後にある(前にあると、前のページの page_location が付く)。
+// 直前の page_view・page_leave が、page_view か、タブが隠れた page_leave(戻ってきた後のスクロール)であること。
+// view_item は、その moment の page_view のすぐ後にある。
+function assertViewItemsRightAfterPageView(list) {
+  list.forEach((e, i) => {
+    if (e.name === 'view_item') {
+      assert.equal(list[i - 1]?.name, 'page_view', JSON.stringify(list.slice(Math.max(0, i - 3), i + 1).map(x => x.name)));
+    }
+  });
+}
+function assertScrollsAfterPageView(list) {
+  let last = null;
+  for (const e of list) {
+    if (e.name === 'scroll') {
+      assert.ok(last !== null && (last.name === 'page_view' || last.leave_method === 'hidden'),
+        JSON.stringify(list.map(x => [x.name, x.leave_method ?? x.percent_scrolled ?? x.page_location])));
+    } else if (e.name === 'page_view' || e.name === 'page_leave') {
+      last = e;
+    }
+  }
+}
+// 13a) 開いた moment は、page_view を本文を待たずに送り、view_item は本文が届いてから送る。
+const pages = await openPage();
+pages.held.set(`/moment${kMoments[1]}`, null);
+await pages.goto(`${kOrigin}${kMoments[1]}`, { waitUntil: 'domcontentloaded' });
+await waitPageViews(pages, 1);
+await settle(300);
+assert.deepEqual(named(await events(pages), 'view_item'), []);
+await pages.held.get(`/moment${kMoments[1]}`)();
+await waitEvent(pages, 'view_item');
+all = await events(pages);
+assert.deepEqual(named(all, 'view_item'), [{ name: 'view_item',
+  items: [{ item_id: kMoments[1], item_name: kTitles[1] }], nav_via: 'landing' }]);
+// スクロールしない短い本文は、表示した時点で全部読んだことにする。
+assert.deepEqual(named(await eventsAt(pages), 'scroll'), [25, 50, 75, 100].map(p => ({ name: 'scroll', percent_scrolled: p, at: kMoments[1] })));
+
+// 13b) まえの絵へ: page_leave → page_view → view_item の順。題は絵文字を文字のまま入れる。
+await pages.click('a.moment-footer-prev');
+await waitPageViews(pages, 2);
+await waitEvent(pages, 'view_item');
+all = await events(pages);
+let [pageLeave] = named(await eventsAt(pages), 'page_leave');
+assert.equal(pageLeave.at, kMoments[1]);
+assert.equal(pageLeave.leave_method, 'footer_prev');
+assert.equal(pageLeave.max_percent_scrolled, 100);
+assert.ok(Number.isInteger(pageLeave.page_ms) && pageLeave.page_ms >= 0, JSON.stringify(pageLeave));
+const pageOrder = all.filter(e => ['page_leave', 'page_view', 'view_item'].includes(e.name)).map(e => e.name);
+assert.deepEqual(pageOrder.slice(-3), ['page_leave', 'page_view', 'view_item']);
+assert.deepEqual(named(all, 'view_item')[1], { name: 'view_item',
+  items: [{ item_id: kMoments[0], item_name: kTitles[0] }], nav_via: 'footer_prev' });
+
+// 13c) 戻るで離れたときも、page_leave は離れたページに付く(送る時点で URL はもう次のページ)。
+// 戻った先の moment は、view_item と scroll を数え直す。
+await pages.goBack();
+await waitPageViews(pages, 3);
+let layerLog = await pages.evaluate(() => window.dataLayer.map(args => Array.from(args)));
+const historyLeave = layerLog.findIndex(a => a[0] === 'event' && a[1] === 'page_leave' && a[2].leave_method === 'history');
+assert.ok(historyLeave >= 0);
+assert.deepEqual(layerLog.slice(0, historyLeave).filter(a => a[0] === 'set').at(-1),
+  ['set', { page_location: `${kOrigin}${kMoments[0]}`, page_title: pageTitle(kTitles[0]) }]);
+all = await events(pages);
+assert.deepEqual(named(all, 'view_item').at(-1), { name: 'view_item',
+  items: [{ item_id: kMoments[1], item_name: kTitles[1] }], nav_via: 'history' });
+assert.equal(named(all, 'scroll').filter(e => e.percent_scrolled === 100).length, 3);
+
+// 13d) タブを隠すと engagement を区切り、隠れていた時間は page_ms に入れない。
+seen = all.length;
+await setHidden(pages, true);
+[pageLeave] = named((await events(pages)).slice(seen), 'page_leave');
+assert.equal(pageLeave.leave_method, 'hidden');
+await settle(1500);
+await setHidden(pages, false);
+await settle(300);
+await pages.click('.close-button');
+await waitPageViews(pages, 4);
+all = await events(pages);
+let leaves = named(all.slice(seen), 'page_leave');
+assert.equal(leaves.length, 2);
+assert.equal(leaves[1].leave_method, 'close_button');
+assert.ok(leaves[1].page_ms < 1000, JSON.stringify(leaves[1]));
+assert.equal(leaves[1].max_percent_scrolled, 100);
+
+// 13e) 本文が届く前に離れたページは page_view を送らないので、page_leave も送らない(送ると下のページの
+// page_location が付く)。後から届いても scroll と view_item は送らない。
+seen = all.length;
+pages.held.set('/static/shop.html', null);
+await pages.click('#shop-link');
+await settle(300);
+await pages.click('.close-button');
+await waitPageViews(pages, 5);
+await pages.held.get('/static/shop.html')();
+await settle(500);
+all = (await events(pages)).slice(seen);
+assert.deepEqual(named(all, 'page_leave'), []);
+assert.deepEqual(named(all, 'scroll'), []);
+assert.deepEqual(named(all, 'view_item'), []);
+
+// 13f) moment 以外のページは view_item を送らない。scroll と page_leave には、そのページの page_location が付く。
+seen = (await events(pages)).length;
+await pages.click('#about-us-link');
+await waitPageViews(pages, 6);
+await settle(300);
+await pages.evaluate(() => document.getElementById('background').dispatchEvent(new MouseEvent('mouseup')));
+await waitPageViews(pages, 7);
+all = (await eventsAt(pages)).slice(seen);
+assert.deepEqual(named(all, 'view_item'), []);
+assert.ok(named(all, 'scroll').length > 0 && named(all, 'scroll').every(e => e.at === '/about-us/'), JSON.stringify(named(all, 'scroll')));
+assert.deepEqual(named(all, 'page_leave').map(e => [e.at, e.leave_method]), [['/about-us/', 'backdrop']]);
+assertScrollsAfterPageView(await events(pages));
+assertViewItemsRightAfterPageView(await events(pages));
+await pages.close();
+
+// 13h) 戻るで 2 枚以上を一度に下ろすとき、途中のレイヤは最上位にしない(page_leave・gear_leave・scroll を送らない)。
+const stack = await openPage();
+await stack.goto(`${kOrigin}${kMoments[1]}`, { waitUntil: 'domcontentloaded' });
+await waitPageViews(stack, 1);
+await stack.click('a.moment-footer-prev');
+await waitPageViews(stack, 2);
+await stack.click('.moment-footer-gear');
+await waitPageViews(stack, 3);
+await stack.click('#about-us-link');
+await waitPageViews(stack, 4);
+seen = (await events(stack)).length;
+// スタックは [ふたつめ, ひとつめ, 歯車, About us]。ふたつめまで戻ると、ひとつめと歯車は通るだけ。
+await stack.evaluate(() => history.go(-3));
+views = await waitPageViews(stack, 5);
+assert.equal(views[4].page_location, `${kOrigin}${kMoments[1]}`);
+await settle(500);
+all = (await eventsAt(stack)).slice(seen);
+assert.deepEqual(all.filter(e => e.name === 'page_leave' || e.name === 'gear_leave').map(e => [e.name, e.at, e.leave_method]),
+  [['page_leave', '/about-us/', 'history']]);
+assertScrollsAfterPageView(await events(stack));
+assertViewItemsRightAfterPageView(await events(stack));
+await stack.close();
+
+// 13g) 長い本文: 画像が読み込まれるまでは測らない(読み込む前の画像は高さが 0 で、本文が短く見える)。
+// 閾値は越えたときに 1 回ずつ送る。
+const longPage = await openPage();
+longPage.held.set('/entity/tall/medium', null);
+await longPage.goto(`${kOrigin}${kLongMoment}`, { waitUntil: 'domcontentloaded' });
+await waitEvent(longPage, 'view_item');
+await settle(300);
+assert.deepEqual(named(await events(longPage), 'scroll'), []);
+await longPage.held.get('/entity/tall/medium')();
+await longPage.waitForFunction(() => document.querySelector('.content img.embed').complete);
+await settle(300);
+assert.deepEqual(named(await events(longPage), 'scroll'), [], '画像が読み込まれると本文が伸びる');
+const scrollTo = fraction => longPage.evaluate(f => {
+  const c = document.querySelector('.content');
+  c.scrollTop = (c.scrollHeight - c.clientHeight) * f;
+}, fraction);
+await scrollTo(0.5);
+await settle(300);
+assert.deepEqual(named(await events(longPage), 'scroll').map(e => e.percent_scrolled), [25, 50]);
+await scrollTo(1);
+await settle(300);
+await scrollTo(0);
+await settle(300);
+await scrollTo(1);
+await settle(300);
+assert.deepEqual(named(await events(longPage), 'scroll').map(e => e.percent_scrolled), [25, 50, 75, 100]);
+// 上に戻ってから離れても、いちばん深い位置は 100% のまま。
+await scrollTo(0);
+await settle(300);
+await longPage.click('.close-button');
+await waitPageViews(longPage, 2);
+[pageLeave] = named(await events(longPage), 'page_leave');
+assert.equal(pageLeave.max_percent_scrolled, 100);
+await longPage.close();
+
 // 10) WebGL が使えなければ、fatal の exception だけを送る。
 const noGL = await openPage({ noWebGL: true });
 await noGL.goto(`${kOrigin}/`, { waitUntil: 'domcontentloaded' });
@@ -501,13 +700,14 @@ const internal = await openPage();
 await internal.setCookie({ name: 'xgear_internal', value: '1', url: kOrigin });
 await internal.goto(`${kOrigin}/`, { waitUntil: 'domcontentloaded' });
 await waitPageViews(internal, 1);
-assert.deepEqual(await commands(internal, 'set'), [], '名前の違う Cookie は印にしない');
+const trafficTypeSets = list => list.filter(args => args[0] === 'set' && 'traffic_type' in args[1]);
+assert.deepEqual(trafficTypeSets(await commands(internal, 'set')), [], '名前の違う Cookie は印にしない');
 await internal.setCookie({ name: 'gear_internal', value: '1', url: kOrigin });
 await internal.goto(`${kOrigin}/`, { waitUntil: 'domcontentloaded' });
 await waitPageViews(internal, 1);
 const layer = await internal.evaluate(() => window.dataLayer.map(args => Array.from(args)));
 assert.deepEqual(layer[0], ['set', { traffic_type: 'internal', debug_mode: true }]);
-assert.equal(layer.filter(args => args[0] === 'set').length, 1);
+assert.equal(trafficTypeSets(layer).length, 1);
 await internal.close();
 
 // 測定 ID が無いシェルなので、gtag.js は読み込まない(外へのリクエストは twemoji の画像だけ)。
