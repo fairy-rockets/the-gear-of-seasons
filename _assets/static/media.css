@@ -1,0 +1,9 @@
+.media-figure {
+  margin: 0 0 0.5em;
+}
+
+.media-figure > figcaption {
+  font-size: 0.875em;
+  text-align: center;
+  overflow-wrap: anywhere;
+}

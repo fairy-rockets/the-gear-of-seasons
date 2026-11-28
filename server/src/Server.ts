@@ -206,6 +206,7 @@ class Server {
       this.ura.post('/embed', ura.handle.bind(ura));
     }
 
+    this.both.get('/static/media.css', async (_req, reply) => reply.sendFile('media.css', staticRoot));
     { // (omote/ura)/static/*
       this.each.get('/static/*', {
         omote: async(req, reply) => {
