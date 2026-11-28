@@ -143,9 +143,9 @@ export class Parser {
     const [tag, map] = this.parseBracket();
     switch(tag) {
       case 'image':
-        return makeImage(map.get('entity'), map.get('link'));
+        return makeImage(map.get('entity'), map.get('caption'), map.get('link'));
       case 'video':
-        return makeVideo(map.get('entity'));
+        return makeVideo(map.get('entity'), map.get('caption'));
       case 'audio':
         return makeAudio(map.get('entity'));
       case 'link':
@@ -212,35 +212,39 @@ export function makeText(str: string): Text {
   }
 }
 
-// [image entity="<id>" link="<url>"]: 画像を medium で表示する。link= があればそこへリンクし、
+// [image entity="<id>" caption="<文字列>" link="<url>"]: 画像を medium で表示する。link= があればそこへリンクし、
 // 無ければリンクしない（元画像へはリンクしない）。
 export type Image = {
   type: 'image';
   entity: string | undefined;
+  caption: string | undefined;
   link: string | undefined;
 }
 
-export function makeImage(entity: string | undefined, link?: string | undefined): Image {
+export function makeImage(entity: string | undefined, caption?: string, link?: string): Image {
   return {
     type: 'image',
     entity: entity,
-    link: link,
+    caption,
+    link,
   }
 }
 
-// [video entity="<id>"]: 動画には medium が無いので、元ファイルを再生する。
+// [video entity="<id>" caption="<文字列>"]: 動画には medium が無いので、元ファイルを再生する。
 // <video> を再生できないブラウザ向けに、元ファイルへのリンクも置く。
 // YouTube などの外部に置いた動画（external）は、その platform の埋め込みの iframe（YouTube なら
 // youtube-nocookie.com/embed/<動画ID>）で見せ、リンクは置かない。その entity の /entity/<id> は外部の動画のページへリダイレクトする。
 export type Video = {
   type: 'video';
   entity: string | undefined;
+  caption: string | undefined;
 }
 
-export function makeVideo(entity: string | undefined): Video {
+export function makeVideo(entity: string | undefined, caption?: string): Video {
   return {
     type: 'video',
     entity: entity,
+    caption,
   }
 }
 

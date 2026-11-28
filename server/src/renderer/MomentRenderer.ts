@@ -1,4 +1,4 @@
-import {escapeAttribute, escapeHTML} from '@wordpress/escape-html';
+import {escapeAttribute, escapeEditableHTML, escapeHTML} from '@wordpress/escape-html';
 import axios, { ResponseType } from 'axios';
 import {marked} from 'marked';
 import dayjs from 'dayjs';
@@ -107,13 +107,14 @@ class MomentRenderer {
     const img = `<img class="embed" src="/entity/${escapeAttribute(block.entity)}/medium" width="${width}" height="${height}" alt="${escapeAttribute(alt)}" data-entity="${escapeAttribute(entity.id)}" data-type="image">`;
     // 元画像は表示にもリンクにも使わない。entity の元ファイルへのリンクは [link] ブロックで貼れる。
     if (!block.link) {
-      return img;
+      return renderMediaFigure(img, block.caption);
     }
-    return `
+    const linkedImage = `
 <a href="${escapeAttribute(block.link)}" target="_blank" rel="noopener noreferrer">
   ${img}
 </a>
 `.trim();
+    return renderMediaFigure(linkedImage, block.caption);
   }
   private async renderVideo(block: fml.Video) {
     if (block.entity === undefined) {
@@ -127,15 +128,17 @@ class MomentRenderer {
       return `<p>!!id=${escapeHTML(block.entity)} is not a video!!</p>`
     }
     switch (entity.location) {
-      case 'internal':
-        return `
+      case 'internal': {
+        const video = `
 <video class="embed" preload="metadata" loop controls="controls" width="${entity.width}" height="${entity.height}" data-entity="${escapeAttribute(entity.id)}" data-type="video">
   <source type="${escapeAttribute(entity.mimeType)}" src="/entity/${escapeAttribute(entity.id)}">
   <a href="/entity/${escapeAttribute(entity.id)}">Click to play.</a>
 </video>
 `.trim();
+        return renderMediaFigure(video, block.caption);
+      }
       case 'external':
-        return MomentRenderer.renderExternalVideo(entity);
+        return renderMediaFigure(MomentRenderer.renderExternalVideo(entity), block.caption);
     }
   }
   // 外部（今は YouTube だけ）の動画は埋め込みのプレイヤーで見せる。縦横比は entity の埋め込みの大きさから取り、
@@ -187,6 +190,13 @@ class MomentRenderer {
     }
     return marked(text);
   }
+}
+
+function renderMediaFigure(mediaHTML: string, caption: string | undefined): string {
+  if (caption === undefined || caption.trim() === '') {
+    return mediaHTML;
+  }
+  return `<figure class="media-figure">${mediaHTML}<figcaption>${escapeEditableHTML(caption)}</figcaption></figure>`;
 }
 
 function renderTime(time: dayjs.Dayjs | undefined, now: dayjs.Dayjs): string {

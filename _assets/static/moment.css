@@ -1,0 +1,19 @@
+.media-figure {
+  margin: 0 0 0.5em;
+}
+
+.media-figure > figcaption {
+  font-size: 0.875em;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.content-wrapper .content,
+#preview {
+  container-type: size;
+}
+
+/* figure の高さはキャプションを含むため、メディアの上限は本文の表示領域を基準にする。 */
+:is(.content-wrapper .content, #preview) .media-figure .embed {
+  max-height: 100cqh;
+}

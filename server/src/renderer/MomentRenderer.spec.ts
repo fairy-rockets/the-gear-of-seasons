@@ -226,6 +226,36 @@ describe("MomentRenderer.render", () => {
     assert.ok(html.includes('src="/entity/img/medium"'));
   });
 
+  it("画像のキャプションはリンクの外にプレーンテキストとして表示する", async () => {
+    const block = 'image entity="img" link="https://example.com/"';
+    const original = await render(`[${block}]`);
+    const html = await render(`[${block} caption="<b>雪</b> & 氷 &lt;"]`);
+    const linkedImage = original.slice(original.indexOf('<a href='));
+    assert.ok(linkedImage.startsWith('<a href='));
+    assert.ok(html.endsWith(`<figure class="media-figure">${linkedImage}<figcaption>&lt;b>雪&lt;/b> &amp; 氷 &amp;lt;</figcaption></figure>`));
+  });
+
+  it("保存した動画と外部動画の両方にキャプションを表示する", async () => {
+    for (const [id, tag] of [['vid', 'video'], ['yt', 'iframe']]) {
+      const original = await render(`[video entity="${id}"]`);
+      const captioned = await render(`[video entity="${id}" caption="雪の動画"]`);
+      const media = original.slice(original.indexOf(`<${tag} `));
+      assert.ok(media.startsWith(`<${tag} `));
+      assert.ok(captioned.endsWith(`<figure class="media-figure">${media}<figcaption>雪の動画</figcaption></figure>`));
+    }
+  });
+
+  it("空文字と空白のみのキャプションは省略する", async () => {
+    const blocks = ['image entity="img"', 'video entity="vid"', 'video entity="yt"'];
+    for (const block of blocks) {
+      const original = await render(`[${block}]`);
+      assert.ok(!original.includes('<figure'));
+      for (const caption of ['', ' \t\n　']) {
+        assert.strictEqual(await render(`[${block} caption="${caption}"]`), original);
+      }
+    }
+  });
+
   it("画像の link= はエスケープされる", async () => {
     const html = await render('[image entity="img" link="https://example.com/?a=1&b=2"]');
     assert.ok(html.includes('<a href="https://example.com/?a=1&amp;b=2"'));
