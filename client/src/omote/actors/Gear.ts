@@ -129,10 +129,11 @@ export default class Gear {
     const halfWidth = kModelScale / kIconGearWidthRatio;
     const distance = halfWidth / kCamera.tanHalfFovY;
     mat4.fromScaling(this.matModel_, [kModelScale, kModelScale, kModelScale]);
+    // matLoc の移動量には、描画時に matModel のスケールが掛かる。
     mat4.fromTranslation(this.matLoc_, [
-      2 * halfWidth * offsetX,
-      -2 * halfWidth * offsetY,
-      kCamera.eyeZ - distance,
+      2 * halfWidth * offsetX / kModelScale,
+      -2 * halfWidth * offsetY / kModelScale,
+      (kCamera.eyeZ - distance) / kModelScale,
     ]);
   }
 
