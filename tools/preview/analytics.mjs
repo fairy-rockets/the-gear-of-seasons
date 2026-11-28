@@ -64,6 +64,24 @@ ${'<img class="embed" src="/entity/tall/medium" width="800" height="4000" alt=""
 <p>本文</p>`;
 const kTallImage = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="4000"><rect width="800" height="4000" fill="#888"/></svg>';
 
+// メディアの moment。音声と loop の動画(どちらも 1.2 秒の無音の WAV)を置く。
+const kMediaMoment = '/2020/03/01/00:00:00/';
+const kMediaBody = `<div class="moment-info"><h1 class="moment-title title">おと</h1></div><hr>
+<audio class="embed" src="/entity/aud" controls="controls" data-entity="aud" data-type="audio"></audio>
+<video class="embed" preload="metadata" loop controls="controls" src="/entity/vid" data-entity="vid" data-type="video"></video>
+<hr><div class="moment-footer"><nav class="moment-footer-nav"><a class="moment-footer-gear" href="/">歯車にもどる</a></nav></div>`;
+function silentWAV(seconds) {
+  const rate = 8000;
+  const samples = Math.round(rate * seconds);
+  const buf = Buffer.alloc(44 + samples * 2);
+  buf.write('RIFF', 0); buf.writeUInt32LE(36 + samples * 2, 4); buf.write('WAVE', 8);
+  buf.write('fmt ', 12); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22);
+  buf.writeUInt32LE(rate, 24); buf.writeUInt32LE(rate * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34);
+  buf.write('data', 36); buf.writeUInt32LE(samples * 2, 40);
+  return buf;
+}
+const kSilentWAV = silentWAV(1.2);
+
 const kRandom = kMoments.map((path, i) => ({
   angle: i * 0.3, date: path, title: kTitles[i], path, imageURL: `/entity/${i}/icon`, bodyURL: `/moment${path}`,
 }));
@@ -90,6 +108,10 @@ async function openPage({ failMoments = false, noWebGL = false, random = kRandom
   await page.setRequestInterception(true);
   page.on('request', request => {
     const url = new URL(request.url());
+    // data: は外へのリクエストではない(<audio>・<video> の操作ボタンの絵を Chromium がこれで読む)。
+    if (url.protocol === 'data:') {
+      return request.continue();
+    }
     if (url.origin !== kOrigin) {
       outside.push(url.href);
       return request.abort();
@@ -103,6 +125,8 @@ async function openPage({ failMoments = false, noWebGL = false, random = kRandom
       }
       if (path === '/entity/tall/medium') return request.respond({ contentType: 'image/svg+xml', body: kTallImage });
       if (path === `/moment${kLongMoment}`) return request.respond({ contentType: 'text/html', body: kLongBody });
+      if (path === `/moment${kMediaMoment}`) return request.respond({ contentType: 'text/html', body: kMediaBody });
+      if (path === '/entity/aud' || path === '/entity/vid') return request.respond({ contentType: 'audio/wav', body: kSilentWAV });
       if (path.startsWith('/entity/')) return request.respond({ contentType: 'image/png', body: kIcon });
       if (path === '/static/about-us.html') return request.respond({ body: kAboutUs });
       if (path === '/static/shop.html') return request.respond({ body: kShop });
@@ -685,6 +709,69 @@ await waitPageViews(longPage, 2);
 [pageLeave] = named(await events(longPage), 'page_leave');
 assert.equal(pageLeave.max_percent_scrolled, 100);
 await longPage.close();
+
+// 14) メディア: 表示ごと・メディアごとに、初めての再生(media_start)、25/50/75 %(media_progress)、
+// 最後まで(media_complete)を 1 回ずつ送る。
+const mediaPage = await openPage();
+const mediaEvents = async () => (await eventsAt(mediaPage)).filter(e => e.name.startsWith('media_'));
+const mediaLog = list => list.map(e => [e.name, e.entity, e.media_percent].filter(x => x !== undefined));
+const play = (selector, from = 0) => mediaPage.evaluate(async (sel, t) => {
+  const el = document.querySelector(sel);
+  el.muted = true;
+  el.currentTime = t;
+  await el.play();
+}, selector, from);
+const kAudioLog = [['media_start', 'aud'], ['media_progress', 'aud', 25], ['media_progress', 'aud', 50],
+  ['media_progress', 'aud', 75], ['media_complete', 'aud']];
+const kVideoLog = kAudioLog.map(([name, , pct]) => [name, 'vid', pct].filter(x => x !== undefined));
+await mediaPage.goto(`${kOrigin}${kMediaMoment}`, { waitUntil: 'domcontentloaded' });
+await waitPageViews(mediaPage, 1);
+await mediaPage.waitForFunction(() => document.querySelector('.content audio')?.readyState >= 1 && document.querySelector('.content video')?.readyState >= 1);
+// 14a) 再生する前に位置を動かしても送らない。
+await mediaPage.evaluate(() => { document.querySelector('.content audio').currentTime = 1.1; });
+await settle(300);
+assert.deepEqual(await mediaEvents(), []);
+// 14b) 音声: 最後まで再生すると、start → 25・50・75 → complete。もう一度再生しても送らない。
+await play('.content audio');
+await mediaPage.waitForFunction(() => window.dataLayer.some(a => a[1] === 'media_complete'), { timeout: 5000 });
+assert.deepEqual(mediaLog(await mediaEvents()), kAudioLog);
+assert.ok((await mediaEvents()).every(e => e.platform === 'internal' && e.media_type === 'audio' && e.at === kMediaMoment));
+await play('.content audio');
+await settle(1600);
+assert.deepEqual(mediaLog(await mediaEvents()), kAudioLog, 'もう一度再生しても送らない');
+// 14c) loop の動画は ended が来ないので、終わりの手前で complete にする。2 周目は送らない。
+await play('.content video');
+await settle(3000);
+await mediaPage.evaluate(() => document.querySelector('.content video').pause());
+assert.deepEqual(mediaLog(await mediaEvents()), [...kAudioLog, ...kVideoLog]);
+assert.ok((await mediaEvents()).slice(kAudioLog.length).every(e => e.media_type === 'video'));
+// 14d) 戻るで同じページに戻ると数え直す。タブが隠れても(engagement が分かれても)、その表示の中では続きから数える。
+let mediaSeen = (await mediaEvents()).length;
+await mediaPage.click('.moment-footer-gear');
+await waitPageViews(mediaPage, 2);
+await mediaPage.goBack();
+await waitPageViews(mediaPage, 3);
+await play('.content audio');
+await mediaPage.waitForFunction(() => window.dataLayer.filter(a => a[1] === 'media_progress').length >= 7, { timeout: 5000 });
+await setHidden(mediaPage, true);
+await setHidden(mediaPage, false);
+await mediaPage.waitForFunction(() => window.dataLayer.filter(a => a[1] === 'media_complete').length >= 3, { timeout: 5000 });
+assert.deepEqual(mediaLog((await mediaEvents()).slice(mediaSeen)), kAudioLog);
+assert.ok((await mediaEvents()).every(e => e.at === kMediaMoment));
+// 14e) 見せ始める前(page_view の前)と、離れた後は送らない。
+// 離れたページの要素は DOM から外れるが、本文の中にあるので、イベントは Page に届く。
+// この表示でまだ再生していない動画で確かめる(音声は、この表示でもう送り終えている)。
+mediaSeen = (await mediaEvents()).length;
+await mediaPage.evaluate(() => { window.detachedVideo = document.querySelector('.content video'); });
+await mediaPage.click('.close-button');
+await waitPageViews(mediaPage, 4);
+await mediaPage.evaluate(async () => {
+  const el = window.detachedVideo;
+  el.muted = true; el.currentTime = 0; await el.play();
+});
+await settle(1600);
+assert.deepEqual((await mediaEvents()).slice(mediaSeen), [], '離れたページのメディアは送らない');
+await mediaPage.close();
 
 // 10) WebGL が使えなければ、fatal の exception だけを送る。
 const noGL = await openPage({ noWebGL: true });

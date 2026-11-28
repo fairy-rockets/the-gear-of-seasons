@@ -232,3 +232,36 @@ export function pageLeave(summary: PageEngagementSummary) {
 export function scroll(percentScrolled: number) {
   send('scroll', { percent_scrolled: percentScrolled });
 }
+
+/**
+ * 再生を数えるメディア 1 つ。entity は entity の id、platform は置き場所(internal は中のファイル、
+ * それ以外は外の動画の external_ref.platform)。GA の動画のイベントの video_provider に当たるが、
+ * 音声も入るので media_ にし、DB と同じ platform の名前にした。
+ */
+export type PlayedMedia = {
+  entity: string;
+  mediaType: 'video' | 'audio';
+  platform: 'internal' | 'youtube';
+};
+
+function mediaParams(media: PlayedMedia) {
+  return { entity: media.entity, media_type: media.mediaType, platform: media.platform };
+}
+
+/** メディアを、その表示で初めて再生した。 */
+export function mediaStart(media: PlayedMedia) {
+  send('media_start', mediaParams(media));
+}
+
+/**
+ * メディアを、その表示で percent(25・50・75)まで初めて再生した。
+ * GA の拡張計測の video_progress(video_percent)に合わせた名前。
+ */
+export function mediaProgress(media: PlayedMedia, percent: number) {
+  send('media_progress', { ...mediaParams(media), media_percent: percent });
+}
+
+/** メディアを、その表示で初めて最後まで再生した。 */
+export function mediaComplete(media: PlayedMedia) {
+  send('media_complete', mediaParams(media));
+}

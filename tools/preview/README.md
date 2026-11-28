@@ -78,7 +78,7 @@ docker run --rm -v "$PWD:/app:ro" gears-shot node /app/tools/preview/editor-unsa
 ## omote の計測イベントの確認
 
 `analytics.mjs` は、ビルドした omote の bundle と `index.hbs`（測定 ID が無いときの形）を Chromium で動かし、
-`window.dataLayer` に積まれた GA4 のイベント（page_view とその `nav_via`・`page_referrer`、gear_ready、exception、歯車の view_item_list・select_item・gear_leave・moment_hover、ページの view_item・scroll・page_leave、運営者の印の Cookie があるときの `gtag('set')`）を
+`window.dataLayer` に積まれた GA4 のイベント（page_view とその `nav_via`・`page_referrer`、gear_ready、exception、歯車の view_item_list・select_item・gear_leave・moment_hover、ページの view_item・scroll・page_leave・media_start・media_progress・media_complete、運営者の印の Cookie があるときの `gtag('set')`）を
 操作ごとに確かめる。API はスクリプト内で置き換えるので、DB も開発環境も要らず、gtag.js も読み込まない。
 about-us・お店・えらんだ絵の本文は実物のファイルを使うので、本文から `.title` が消えると題の確認で失敗する。
 歯車の確かめでは、moment を今日から 30 度ずつ置く。歯車は今日の向きを決まった位置に出すので、どの日に走らせても同じ円が同じ位置に出る。
