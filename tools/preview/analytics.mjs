@@ -64,11 +64,14 @@ ${'<img class="embed" src="/entity/tall/medium" width="800" height="4000" alt=""
 <p>本文</p>`;
 const kTallImage = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="4000"><rect width="800" height="4000" fill="#888"/></svg>';
 
-// メディアの moment。音声と loop の動画(どちらも 1.2 秒の無音の WAV)を置く。
+// メディアの moment。音声(同じ entity を 2 つ)と loop の動画(1.2 秒の無音の WAV)、倍速で回す loop の動画
+// (4 秒の無音の WAV)を置く。
 const kMediaMoment = '/2020/03/01/00:00:00/';
 const kMediaBody = `<div class="moment-info"><h1 class="moment-title title">おと</h1></div><hr>
 <audio class="embed" src="/entity/aud" controls="controls" data-entity="aud" data-type="audio"></audio>
 <video class="embed" preload="metadata" loop controls="controls" src="/entity/vid" data-entity="vid" data-type="video"></video>
+<audio class="embed" src="/entity/aud" controls="controls" data-entity="aud" data-type="audio"></audio>
+<video class="embed" preload="metadata" loop controls="controls" src="/entity/fast" data-entity="fast" data-type="video"></video>
 <hr><div class="moment-footer"><nav class="moment-footer-nav"><a class="moment-footer-gear" href="/">歯車にもどる</a></nav></div>`;
 function silentWAV(seconds) {
   const rate = 8000;
@@ -80,7 +83,18 @@ function silentWAV(seconds) {
   buf.write('data', 36); buf.writeUInt32LE(samples * 2, 40);
   return buf;
 }
-const kSilentWAV = silentWAV(1.2);
+const kMediaFiles = new Map([['/entity/aud', silentWAV(1.2)], ['/entity/vid', silentWAV(1.2)], ['/entity/fast', silentWAV(4)]]);
+// Range に応える(応えないと、Chromium は位置を動かせず、currentTime が 0 に戻る)。
+function respondMedia(request, body) {
+  const m = /^bytes=(\d+)-(\d*)$/.exec(request.headers().range ?? '');
+  if (m === null) {
+    return request.respond({ contentType: 'audio/wav', headers: { 'Accept-Ranges': 'bytes' }, body });
+  }
+  const start = Number(m[1]);
+  const end = m[2] === '' ? body.length - 1 : Math.min(Number(m[2]), body.length - 1);
+  return request.respond({ status: 206, contentType: 'audio/wav', body: body.subarray(start, end + 1),
+    headers: { 'Accept-Ranges': 'bytes', 'Content-Range': `bytes ${start}-${end}/${body.length}` } });
+}
 
 const kRandom = kMoments.map((path, i) => ({
   angle: i * 0.3, date: path, title: kTitles[i], path, imageURL: `/entity/${i}/icon`, bodyURL: `/moment${path}`,
@@ -126,7 +140,7 @@ async function openPage({ failMoments = false, noWebGL = false, random = kRandom
       if (path === '/entity/tall/medium') return request.respond({ contentType: 'image/svg+xml', body: kTallImage });
       if (path === `/moment${kLongMoment}`) return request.respond({ contentType: 'text/html', body: kLongBody });
       if (path === `/moment${kMediaMoment}`) return request.respond({ contentType: 'text/html', body: kMediaBody });
-      if (path === '/entity/aud' || path === '/entity/vid') return request.respond({ contentType: 'audio/wav', body: kSilentWAV });
+      if (kMediaFiles.has(path)) return respondMedia(request, kMediaFiles.get(path));
       if (path.startsWith('/entity/')) return request.respond({ contentType: 'image/png', body: kIcon });
       if (path === '/static/about-us.html') return request.respond({ body: kAboutUs });
       if (path === '/static/shop.html') return request.respond({ body: kShop });
@@ -715,54 +729,100 @@ await longPage.close();
 const mediaPage = await openPage();
 const mediaEvents = async () => (await eventsAt(mediaPage)).filter(e => e.name.startsWith('media_'));
 const mediaLog = list => list.map(e => [e.name, e.entity, e.media_percent].filter(x => x !== undefined));
-const play = (selector, from = 0) => mediaPage.evaluate(async (sel, t) => {
+const logOf = entity => [['media_start', entity], ['media_progress', entity, 25], ['media_progress', entity, 50],
+  ['media_progress', entity, 75], ['media_complete', entity]];
+const kAudio = '.content audio:nth-of-type(1)';
+const kAudioTwin = '.content audio:nth-of-type(2)';
+const kVideo = '.content video[data-entity="vid"]';
+const kFastVideo = '.content video[data-entity="fast"]';
+// from を渡すとそこから、渡さなければ今の位置から再生する。
+const play = (selector, from) => mediaPage.evaluate(async (sel, t) => {
   const el = document.querySelector(sel);
   el.muted = true;
-  el.currentTime = t;
+  if (t !== null) {
+    el.currentTime = t;
+  }
   await el.play();
-}, selector, from);
-const kAudioLog = [['media_start', 'aud'], ['media_progress', 'aud', 25], ['media_progress', 'aud', 50],
-  ['media_progress', 'aud', 75], ['media_complete', 'aud']];
-const kVideoLog = kAudioLog.map(([name, , pct]) => [name, 'vid', pct].filter(x => x !== undefined));
+}, selector, from ?? null);
+const pause = selector => mediaPage.evaluate(sel => document.querySelector(sel).pause(), selector);
+// 止めたまま位置を動かし、動いた位置を返す。
+const seek = (selector, t) => mediaPage.evaluate(async (sel, t) => {
+  const el = document.querySelector(sel);
+  el.currentTime = t;
+  await new Promise(r => el.addEventListener('seeked', r, { once: true }));
+  return el.currentTime;
+}, selector, t);
+// 表示を数え直した後の分も数えられるよう、通算の件数で待つ。
+const waitMedia = (name, entity, count = 1) => mediaPage.waitForFunction(
+  (n, e, k) => window.dataLayer.filter(a => a[0] === 'event' && a[1] === n && a[2].entity === e).length >= k,
+  { timeout: 10000 }, name, entity, count);
 await mediaPage.goto(`${kOrigin}${kMediaMoment}`, { waitUntil: 'domcontentloaded' });
 await waitPageViews(mediaPage, 1);
-await mediaPage.waitForFunction(() => document.querySelector('.content audio')?.readyState >= 1 && document.querySelector('.content video')?.readyState >= 1);
+await mediaPage.waitForFunction(() => Array.from(document.querySelectorAll('.content audio, .content video')).every(el => el.readyState >= 1));
 // 14a) 再生する前に位置を動かしても送らない。
-await mediaPage.evaluate(() => { document.querySelector('.content audio').currentTime = 1.1; });
+assert.ok(Math.abs(await seek(kAudio, 1.1) - 1.1) < 0.05, '位置を動かせていない');
 await settle(300);
 assert.deepEqual(await mediaEvents(), []);
-// 14b) 音声: 最後まで再生すると、start → 25・50・75 → complete。もう一度再生しても送らない。
-await play('.content audio');
-await mediaPage.waitForFunction(() => window.dataLayer.some(a => a[1] === 'media_complete'), { timeout: 5000 });
-assert.deepEqual(mediaLog(await mediaEvents()), kAudioLog);
+// 14b) 音声: 最後まで再生すると、start → 25・50・75 → complete。もう一度再生しても、
+// 同じ entity のもう 1 つを再生しても送らない。
+await play(kAudio, 0);
+await waitMedia('media_complete', 'aud');
+assert.deepEqual(mediaLog(await mediaEvents()), logOf('aud'));
 assert.ok((await mediaEvents()).every(e => e.platform === 'internal' && e.media_type === 'audio' && e.at === kMediaMoment));
-await play('.content audio');
+await play(kAudio, 0);
+await play(kAudioTwin, 0);
 await settle(1600);
-assert.deepEqual(mediaLog(await mediaEvents()), kAudioLog, 'もう一度再生しても送らない');
-// 14c) loop の動画は ended が来ないので、終わりの手前で complete にする。2 周目は送らない。
-await play('.content video');
-await settle(3000);
-await mediaPage.evaluate(() => document.querySelector('.content video').pause());
-assert.deepEqual(mediaLog(await mediaEvents()), [...kAudioLog, ...kVideoLog]);
-assert.ok((await mediaEvents()).slice(kAudioLog.length).every(e => e.media_type === 'video'));
-// 14d) 戻るで同じページに戻ると数え直す。タブが隠れても(engagement が分かれても)、その表示の中では続きから数える。
+assert.deepEqual(mediaLog(await mediaEvents()), logOf('aud'), 'もう一度再生しても、同じ entity のもう 1 つでも送らない');
+// 14c) 再生が始まった後でも、止めたまま位置を動かしたものは数えない。
 let mediaSeen = (await mediaEvents()).length;
+await play(kVideo, 0);
+await waitMedia('media_start', 'vid');
+await pause(kVideo);
+const afterPause = (await mediaEvents()).length;
+assert.ok(Math.abs(await seek(kVideo, 1.0) - 1.0) < 0.05, '位置を動かせていない');
+await settle(300);
+assert.equal((await mediaEvents()).length, afterPause, '止めたまま動かした位置は数えない');
+// 14d) loop の動画は ended が来ないので、終わりの手前で complete にする。2 周目は送らない。
+await play(kVideo);
+await waitMedia('media_complete', 'vid');
+await settle(1500);
+await pause(kVideo);
+assert.deepEqual(mediaLog((await mediaEvents()).slice(mediaSeen)), logOf('vid'));
+assert.ok((await mediaEvents()).slice(mediaSeen).every(e => e.media_type === 'video'));
+// 14e) 倍速の loop の動画は、timeupdate の間に進む分だけ、終わりの幅を広げる。timeupdate の来る位置は
+// 実際に再生すると決まらないので、要素の値を差し替えて起こす(4 秒の動画の 3.4 秒、残り 0.6 秒)。
+mediaSeen = (await mediaEvents()).length;
+const fakeTimeUpdate = rate => mediaPage.evaluate((sel, r) => {
+  const el = document.querySelector(sel);
+  Object.defineProperty(el, 'paused', { configurable: true, get: () => false });
+  Object.defineProperty(el, 'currentTime', { configurable: true, get: () => 3.4 });
+  Object.defineProperty(el, 'playbackRate', { configurable: true, get: () => r });
+  el.dispatchEvent(new Event('playing'));
+  el.dispatchEvent(new Event('timeupdate'));
+}, kFastVideo, rate);
+await fakeTimeUpdate(1);
+assert.deepEqual(mediaLog((await mediaEvents()).slice(mediaSeen)), logOf('fast').slice(0, 4), '1 倍速なら残り 0.6 秒はまだ終わりでない');
+await fakeTimeUpdate(2);
+assert.deepEqual(mediaLog((await mediaEvents()).slice(mediaSeen)), logOf('fast'), '2 倍速なら残り 0.6 秒は終わり');
+// 14f) 戻るで同じページに戻ると数え直す。タブが隠れても(engagement が分かれても)、その表示の中では続きから数える。
+mediaSeen = (await mediaEvents()).length;
 await mediaPage.click('.moment-footer-gear');
 await waitPageViews(mediaPage, 2);
 await mediaPage.goBack();
 await waitPageViews(mediaPage, 3);
-await play('.content audio');
-await mediaPage.waitForFunction(() => window.dataLayer.filter(a => a[1] === 'media_progress').length >= 7, { timeout: 5000 });
+await play(kAudio, 0);
+await waitMedia('media_start', 'aud', 2);
+await pause(kAudio);
 await setHidden(mediaPage, true);
 await setHidden(mediaPage, false);
-await mediaPage.waitForFunction(() => window.dataLayer.filter(a => a[1] === 'media_complete').length >= 3, { timeout: 5000 });
-assert.deepEqual(mediaLog((await mediaEvents()).slice(mediaSeen)), kAudioLog);
+await play(kAudio);
+await waitMedia('media_complete', 'aud', 2);
+assert.deepEqual(mediaLog((await mediaEvents()).slice(mediaSeen)), logOf('aud'));
 assert.ok((await mediaEvents()).every(e => e.at === kMediaMoment));
-// 14e) 見せ始める前(page_view の前)と、離れた後は送らない。
-// 離れたページの要素は DOM から外れるが、本文の中にあるので、イベントは Page に届く。
+// 14g) 離れた後は送らない。離れたページの要素は DOM から外れるが、本文の中にあるので、イベントは Page に届く。
 // この表示でまだ再生していない動画で確かめる(音声は、この表示でもう送り終えている)。
 mediaSeen = (await mediaEvents()).length;
-await mediaPage.evaluate(() => { window.detachedVideo = document.querySelector('.content video'); });
+await mediaPage.evaluate(sel => { window.detachedVideo = document.querySelector(sel); }, kVideo);
 await mediaPage.click('.close-button');
 await waitPageViews(mediaPage, 4);
 await mediaPage.evaluate(async () => {

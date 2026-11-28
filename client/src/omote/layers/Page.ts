@@ -289,14 +289,16 @@ export default abstract class Page extends Layer {
   private onMediaTimeUpdate_(ev: Event) {
     const media = playedMediaOf(ev.target);
     const el = ev.target as HTMLMediaElement;
-    // 長さが分かる(metadata を読む)までは測らない。
-    if(media === null || !Number.isFinite(el.duration) || el.duration <= 0) {
+    // 止めたまま位置を動かしたものは、再生していないので数えない(timeupdate は止めたままの seek でも来る)。
+    // 長さが分かる(metadata を読む)までも測らない。
+    if(media === null || el.paused || !Number.isFinite(el.duration) || el.duration <= 0) {
       return;
     }
     this.mediaPlayback_?.reached(media, el.currentTime / el.duration);
-    // loop の動画は終わりで先頭に戻り、ended が来ない。終わりから kLoopEndSec 以内に入ったら、最後まで行ったことにする
-    // (timeupdate は再生中に 0.25 秒ほどごとに来るので、この幅なら取りこぼさない)。
-    if(el.loop && el.duration - el.currentTime <= kLoopEndSec) {
+    // loop の動画は終わりで先頭に戻り、ended が来ない。終わりから kLoopEndSec 秒分の再生(倍速ならその分長い)
+    // 以内に入ったら、最後まで行ったことにする。timeupdate は再生中に 0.25 秒ほどごとに来るので、
+    // 1 周のうちのどれかは、この幅に入る。この幅より短い動画は、最初の timeupdate で最後まで行ったことになる。
+    if(el.loop && el.duration - el.currentTime <= kLoopEndSec * Math.max(1, el.playbackRate)) {
       this.mediaPlayback_?.ended(media);
     }
   }
@@ -313,7 +315,7 @@ export default abstract class Page extends Layer {
   }
 }
 
-// loop の動画を、終わりからこの秒数以内に入ったら最後まで行ったことにする。
+// loop の動画を、終わりからこの秒数分の再生(1 倍速で)以内に入ったら、最後まで行ったことにする。
 const kLoopEndSec = 0.5;
 
 // 本文の <video>・<audio>(サーバが data-entity と data-type を付ける)なら、その PlayedMedia。
