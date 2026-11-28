@@ -244,13 +244,14 @@ export type PlayedMedia = {
   platform: 'internal' | 'youtube';
 };
 
-function mediaParams(media: PlayedMedia) {
+// GA に送るパラメータとしての media。
+function paramsOf(media: PlayedMedia) {
   return { entity: media.entity, media_type: media.mediaType, platform: media.platform };
 }
 
 /** メディアを、その表示で初めて再生した。 */
 export function mediaStart(media: PlayedMedia) {
-  send('media_start', mediaParams(media));
+  send('media_start', paramsOf(media));
 }
 
 /**
@@ -258,10 +259,10 @@ export function mediaStart(media: PlayedMedia) {
  * GA の拡張計測の video_progress(video_percent)に合わせた名前。
  */
 export function mediaProgress(media: PlayedMedia, percent: number) {
-  send('media_progress', { ...mediaParams(media), media_percent: percent });
+  send('media_progress', { ...paramsOf(media), media_percent: percent });
 }
 
 /** メディアを、その表示で初めて最後まで再生した。 */
 export function mediaComplete(media: PlayedMedia) {
-  send('media_complete', mediaParams(media));
+  send('media_complete', paramsOf(media));
 }
