@@ -25,6 +25,33 @@ describe("FML", () => {
       { type: 'video', entity: 'b', caption: '雪の動画' },
     ]);
   });
+  it("Parses galleries with default and explicit columns and keeps captions", () => {
+    const doc = fml.parse('[gallery]\t[image entity="a" caption="絵" link="https://example.com/"]\n[/gallery][gallery caption="  雪  " columns="8"][video entity="b" caption="氷"][/gallery]');
+    assert.deepStrictEqual(doc.blocks, [
+      { type: 'gallery', columns: 2, caption: undefined, children: [fml.makeImage('a', '絵', 'https://example.com/')] },
+      { type: 'gallery', columns: 8, caption: '  雪  ', children: [fml.makeVideo('b', '氷')] },
+    ]);
+    assert.deepStrictEqual([...doc.leafBlocks()], [fml.makeImage('a', '絵', 'https://example.com/'), fml.makeVideo('b', '氷')]);
+    assert.deepStrictEqual(fml.parse('[image][video]').blocks, [fml.makeText('[image][video]')]);
+  });
+
+  for (const [reason, body, media] of [
+    ['no closing tag', '[gallery][image entity="a"]', [fml.makeImage('a')]],
+    ['empty gallery', '[gallery] [/gallery][image entity="a"]', [fml.makeImage('a')]],
+    ['invalid columns', '[gallery columns="0"][image entity="a"][/gallery]', [fml.makeImage('a')]],
+    ['too many columns', '[gallery columns="9"][image entity="a"][/gallery]', [fml.makeImage('a')]],
+    ['fractional columns', '[gallery columns="1.5"][image entity="a"][/gallery]', [fml.makeImage('a')]],
+    ['nonmedia block', '[gallery][image entity="a"][audio entity="b"][/gallery]', [fml.makeImage('a'), fml.makeAudio('b')]],
+    ['nonwhitespace text', '[gallery]text[image entity="a"][/gallery]', [fml.makeImage('a')]],
+    ['nested gallery', '[gallery][image entity="a"][gallery][video entity="b"][/gallery][/gallery]', [fml.makeImage('a'), fml.makeVideo('b')]],
+  ] as const) {
+    it(`Falls back for ${reason} and preserves media in order`, () => {
+      const doc = fml.parse(body);
+      assert.equal(doc.blocks[0].type, 'text');
+      assert.deepStrictEqual([...doc.leafBlocks()].filter((block) => block.type !== 'text'), media);
+    });
+  }
+
   it("Image mixed", () => {
     const buffer = new fml.Buffer(`aa[image entity="test_id"] aa`);
     const p = new fml.Parser(buffer);

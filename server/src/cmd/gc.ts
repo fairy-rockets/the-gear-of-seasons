@@ -26,7 +26,7 @@ async function main() {
       if ((numMoments % 100) === 0) {
         console.log('  ', `${numMoments} analyzed.`);
       }
-      for (let block of fml.parse(m.text).blocks) {
+      for (let block of fml.parse(m.text).leafBlocks()) {
         switch (block.type) {
           case 'image': {
             if (block.entity !== undefined) {

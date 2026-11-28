@@ -44,6 +44,9 @@ export class Buffer {
     }
     return this.buff.slice(beg, this.pos);
   }
+  startsWith(literal: string): boolean {
+    return this.buff.startsWith(literal, this.pos);
+  }
   expect(literal: string): string {
     const actual = this.buff.slice(this.pos, this.pos + literal.length);
     if(actual !== literal) {
@@ -139,13 +142,14 @@ export class Parser {
     }
     return '';
   }
-  private parseBlock(): Image | Video | Audio | Link | Markdown {
+  private parseBlock(): Exclude<Block, Text> {
     const [tag, map] = this.parseBracket();
     switch(tag) {
       case 'image':
-        return makeImage(map.get('entity'), map.get('caption'), map.get('link'));
       case 'video':
-        return makeVideo(map.get('entity'), map.get('caption'));
+        return this.parseMediaBlock(tag, map);
+      case 'gallery':
+        return this.parseGallery(map);
       case 'audio':
         return makeAudio(map.get('entity'));
       case 'link':
@@ -156,10 +160,42 @@ export class Parser {
         throw new ParseError(`Unknown block type: ${tag}`);
     }
   }
+  private parseMediaBlock(tag: 'image' | 'video', map: Map<string, string>): Image | Video {
+    return tag === 'image'
+      ? makeImage(map.get('entity'), map.get('caption'), map.get('link'))
+      : makeVideo(map.get('entity'), map.get('caption'));
+  }
+  private parseGallery(map: Map<string, string>): Gallery {
+    const rawColumns = map.get('columns');
+    const columns = rawColumns === undefined ? kDefaultGalleryColumns : Number(rawColumns);
+    if (rawColumns !== undefined &&
+        (!/^\d+$/.test(rawColumns) || columns < 1 || columns > kMaxGalleryColumns)) {
+      throw new ParseError(`Gallery columns must be an integer from 1 to ${kMaxGalleryColumns}`);
+    }
+    const children: (Image | Video)[] = [];
+    this.buff.skipWhile((ch) => /\s/.test(ch));
+    while (!this.buff.startsWith('[/gallery]')) {
+      const [tag, attributes] = this.parseBracket();
+      if (tag !== 'image' && tag !== 'video') {
+        throw new ParseError(`Gallery cannot contain a ${tag} block`);
+      }
+      children.push(this.parseMediaBlock(tag, attributes));
+      this.buff.skipWhile((ch) => /\s/.test(ch));
+    }
+    this.buff.expect('[/gallery]');
+    if (children.length === 0) {
+      throw new ParseError('Gallery must contain an image or video');
+    }
+    return { type: 'gallery', columns, caption: map.get('caption'), children };
+  }
   private parseBracket(): [string, Map<string, string>] {
     const map = new Map<string, string>();
     this.buff.expect('[');
-    const tag = this.buff.takeWhile(isNotWhitespace);
+    const tag = this.buff.takeWhile((ch) => isNotWhitespace(ch) && ch !== ']');
+    // 従来のブロックはタグ名の後に空白が必要。[gallery] は属性なしで開ける。
+    if (this.buff.startsWith(']') && tag !== 'gallery') {
+      throw new ParseError(`Expected whitespace after ${tag}`);
+    }
     this.buff.skipWhitespace();
     while(this.buff.hasNext() && this.buff.look1() !== ']') {
       const key = this.buff.takeWhile((ch) => isNotWhitespace(ch) && ch !== '=');
@@ -196,9 +232,30 @@ export class Document {
   constructor(blocks: Block[]) {
     this.blocks = blocks;
   }
+
+  *leafBlocks(): IterableIterator<LeafBlock> {
+    for (const block of this.blocks) {
+      if (block.type === 'gallery') {
+        yield* block.children;
+      } else {
+        yield block;
+      }
+    }
+  }
 }
 
-type Block = Text | Image | Video | Audio | Link | Markdown;
+type LeafBlock = Text | Image | Video | Audio | Link | Markdown;
+type Block = LeafBlock | Gallery;
+
+const kDefaultGalleryColumns = 2;
+const kMaxGalleryColumns = 8;
+
+export type Gallery = {
+  type: 'gallery';
+  columns: number;
+  caption: string | undefined;
+  children: (Image | Video)[];
+}
 
 export type Text = {
   type: 'text';

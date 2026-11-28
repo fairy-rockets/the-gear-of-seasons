@@ -7,7 +7,7 @@ import * as protocol from '../lib/protocol.js';
 import Repo from '../repo/Repo.js';
 import Shelf from './Shelf.js';
 import { EntityAnnotation } from './EntityAnnotation.js';
-import { Moment, MomentVisibility } from './Moment.js';
+import { Moment, MomentVisibility, momentIconID } from './Moment.js';
 import { momentBodyText, momentListItem, momentMedia } from './MomentList.js';
 
 const kImage = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
@@ -65,6 +65,19 @@ describe("momentMedia", () => {
       { entity: kAudio, type: 'audio' },
       { entity: kVideo, type: 'video' },
     ]);
+  });
+});
+
+describe("gallery media", () => {
+  it("ギャラリーの内外を本文順で数え、同じ ID は最初の型で一度だけ残す", () => {
+    const text = `[audio entity="${kAudio}"][gallery][video entity="${kVideo}"][image entity="${kImage}"][/gallery][video entity="${kImage}"]`;
+    const doc = fml.parse(text);
+    assert.deepStrictEqual(momentMedia(doc), [
+      { entity: kAudio, type: 'audio' },
+      { entity: kVideo, type: 'video' },
+      { entity: kImage, type: 'image' },
+    ]);
+    assert.strictEqual(momentIconID(doc), kImage);
   });
 });
 

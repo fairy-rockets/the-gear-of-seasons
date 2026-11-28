@@ -342,7 +342,7 @@ export function makeCurationPlan(file: CurationFile, state: CurationState, opts:
     // メディアごとの項目
     const doc = fml.parse(current.text);
     const inBody = new Set<string>();
-    for (const block of doc.blocks) {
+    for (const block of doc.leafBlocks()) {
       if ((block.type === 'image' || block.type === 'video' || block.type === 'audio') && block.entity !== undefined) {
         inBody.add(block.entity);
       }

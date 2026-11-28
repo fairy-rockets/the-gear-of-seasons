@@ -12,7 +12,7 @@ async function findMoment(entityId: string): Promise<Set<Moment>> {
   const set = new Set<Moment>();
   for await(const moment of repo.enumurateAllMoments()) {
     const content = fml.parse(moment.text);
-    for (const block of content.blocks) {
+    for (const block of content.leafBlocks()) {
       if (block.type === 'audio' || block.type === 'image' || block.type === 'video') {
         if(!block.entity) {
           continue;
