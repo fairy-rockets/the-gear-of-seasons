@@ -88,3 +88,9 @@ about-us・お店・えらんだ絵の本文は実物のファイルを使うの
 ```sh
 docker run --rm -v "$PWD:/app:ro" gears-shot node /app/tools/preview/analytics.mjs
 ```
+
+## SNS アイコンの撮影
+
+omote のトップを `/?icon=1` で開くと、背景と歯車だけが正方形に表示される。
+正方形の中をマウスやタッチでドラッグして歯車を配置し、キャンバスの範囲を撮影する。
+再読み込みすると歯車は中央に戻る。

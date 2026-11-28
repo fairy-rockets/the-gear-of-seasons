@@ -17,6 +17,9 @@ import { kWinter, kSpring, kSummer, kAutumn } from './Seasons';
 // 奥へ動くので明るさがわずかに変わるが、視覚上の差は出ていない)。
 const kModelScale = 10;
 
+// 歯の先まで正方形に収めるため、中心面での直径を画面幅の 80% にする。
+const kIconGearWidthRatio = 0.8;
+
 /* ---- 縦長画面(スマホ)のレイアウト。#6 ---- */
 
 // この値以下のアスペクト比を「縦長」とみなし、歯車を上部中央に置く。境界をまたぐと
@@ -122,6 +125,17 @@ export default class Gear {
     }
     this.landingAngle_ = landing;
   }
+  placeForIconCapture(offsetX: number, offsetY: number) {
+    const halfWidth = kModelScale / kIconGearWidthRatio;
+    const distance = halfWidth / kCamera.tanHalfFovY;
+    mat4.fromScaling(this.matModel_, [kModelScale, kModelScale, kModelScale]);
+    mat4.fromTranslation(this.matLoc_, [
+      2 * halfWidth * offsetX,
+      -2 * halfWidth * offsetY,
+      kCamera.eyeZ - distance,
+    ]);
+  }
+
   set angle(v: number) {
     this.angle_ = v;
   }

@@ -31,14 +31,14 @@ export default class World {
   // 最後の遷移がまだ page_view を送っていなければ、その遷移の nav_via。
   // 最上位のレイヤの題が決まったら送る。次の遷移で上書きされたら、そのページは見られていない。
   private pendingVia_: analytics.NavVia | null;
-  static fromCanvas(canvas: HTMLCanvasElement): World | null {
+  static fromCanvas(canvas: HTMLCanvasElement, iconCapture = false): World | null {
     const gl = canvas.getContext('webgl2');
     if(!gl) {
       return null;
     }
-    return new World(canvas, gl);
+    return new World(canvas, gl, iconCapture);
   }
-  private constructor(canvas: HTMLCanvasElement, gl: WebGLRenderingContext) {
+  private constructor(canvas: HTMLCanvasElement, gl: WebGLRenderingContext, private readonly iconCapture_: boolean) {
     this.canvas_ = canvas;
     this.gl_ = gl;
     this.runner_ = this.render_.bind(this);
@@ -63,7 +63,9 @@ export default class World {
 
     this.pendingVia_ = null;
 
-    window.onpopstate = this.onPopState_.bind(this);
+    if (!this.iconCapture_) {
+      window.onpopstate = this.onPopState_.bind(this);
+    }
   }
 
   public start() {
@@ -89,7 +91,9 @@ export default class World {
     gl.viewport(0, 0, width, height);
     mat4.perspective(this.matProjection_, kCamera.fovY, width / height, 1, 100);
     mat4.multiply(matWorld, this.matProjection_, this.matEye_);
-    this.gear_.onSizeChanged(width, height);
+    if (!this.iconCapture_) {
+      this.gear_.onSizeChanged(width, height);
+    }
   }
 
   private render_(time: number) {

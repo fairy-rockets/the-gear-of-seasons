@@ -47,6 +47,12 @@ p {
   touch-action: none;
 }
 
+#background.icon-capture {
+  width: min(100vw, 100dvh);
+  height: min(100vw, 100dvh);
+  margin: auto;
+}
+
 .layer-wrapper {
   position: absolute;
   top: 0;
