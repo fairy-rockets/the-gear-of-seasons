@@ -13,7 +13,21 @@
   container-type: size;
 }
 
-/* figure の高さはキャプションを含むため、メディアの上限は本文の表示領域を基準にする。 */
-:is(.content-wrapper .content, #preview) .media-figure .embed {
+/* キャプションやグリッドを含む親要素ではなく、本文の表示領域を高さの上限にする。 */
+:is(.content-wrapper .content, #preview) :is(.media-figure, .media-gallery) .embed {
   max-height: 100cqh;
+}
+
+/* 外部 iframe は列幅いっぱいに広がるため、高さの上限を幅にも換算する。 */
+:is(.content-wrapper .content, #preview) :is(.media-figure, .media-gallery) iframe.embed.external {
+  width: min(100%, calc(100cqh * var(--embed-aspect-ratio)));
+}
+
+.media-gallery {
+  --gallery-gap: 0.5em;
+  display: grid;
+  gap: var(--gallery-gap);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, max(10em, (100% - (var(--gallery-columns) - 1) * var(--gallery-gap)) / var(--gallery-columns))), 1fr));
+  align-items: start;
+  margin-bottom: 0.5em;
 }

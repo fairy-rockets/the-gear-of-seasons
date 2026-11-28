@@ -43,7 +43,7 @@ class MomentRenderer {
   async render(now: dayjs.Dayjs, moment: Moment): Promise<string> {
     const buff: string[] = [];
     const doc = fml.parse(moment.text);
-    const imageIDs = [...new Set(doc.blocks
+    const imageIDs = [...new Set([...doc.leafBlocks()]
       .filter((block): block is fml.Image => block.type === 'image' && block.entity !== undefined)
       .map((block) => block.entity!))];
     const annotations = imageIDs.length > 0
@@ -67,6 +67,9 @@ class MomentRenderer {
           break;
         case 'video':
           buff.push(await this.renderVideo(block));
+          break;
+        case 'gallery':
+          buff.push(await this.renderGallery(block, annotations));
           break;
         case 'audio':
           buff.push(await this.renderAudio(block));
@@ -144,11 +147,24 @@ class MomentRenderer {
   // 外部（今は YouTube だけ）の動画は埋め込みのプレイヤーで見せる。縦横比は entity の埋め込みの大きさから取り、
   // 幅は埋め込みの大きさを上限に、本文の幅に合わせる（Shorts は縦長に出る）。
   private static renderExternalVideo(entity: ExternalVideoEntity): string {
-    const style = `aspect-ratio: ${entity.width} / ${entity.height}; max-width: ${entity.width}px;`;
+    const ratio = `${entity.width} / ${entity.height}`;
+    const style = `aspect-ratio: ${ratio}; max-width: ${entity.width}px; --embed-aspect-ratio: (${ratio});`;
     const { embedURL, playerTitle } = externalVideoPresentation(entity.externalRef);
     return `
 <iframe class="embed external ${escapeAttribute(entity.externalRef.platform)}" src="${escapeAttribute(embedURL)}" style="${escapeAttribute(style)}" title="${escapeAttribute(playerTitle)}" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" data-entity="${escapeAttribute(entity.id)}" data-type="video"></iframe>
 `.trim();
+  }
+  private async renderGallery(block: fml.Gallery, annotations: ReadonlyMap<string, EntityAnnotation>): Promise<string> {
+    const children: string[] = [];
+    for (const media of block.children) {
+      const html = media.type === 'image'
+        ? await this.renderImage(media, annotations.get(media.entity ?? ''))
+        : await this.renderVideo(media);
+      // 裏のプレビューが差し込む注釈ボタンもメディアと同じグリッドセルに置く。
+      children.push(`<div>${html}</div>`);
+    }
+    const grid = `<div class="media-gallery" style="--gallery-columns: ${block.columns};">${children.join('')}</div>`;
+    return renderMediaFigure(grid, block.caption);
   }
   private async renderAudio(block: fml.Audio) {
     if (block.entity === undefined) {

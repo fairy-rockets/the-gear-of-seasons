@@ -256,6 +256,16 @@ describe("MomentRenderer.render", () => {
     }
   });
 
+  it("ギャラリーでも画像の alt を一度だけ取得し、本文順に画像と動画を表示する", async () => {
+    const calls: string[][] = [];
+    const html = await render(
+      '[gallery columns="3" caption="<雪>"][image entity="img" caption="絵"][video entity="yt"][video entity="vid"][/gallery][image entity="img"]',
+      annotatedRenderer([annotation('白い町')], calls));
+    assert.deepStrictEqual(calls, [['img']]);
+    assert.match(html, /<figure class="media-figure"><div class="media-gallery" style="--gallery-columns: 3;"><div><figure class="media-figure"><img [^>]*alt="白い町"[^>]*><figcaption>絵<\/figcaption><\/figure><\/div><div><iframe [^>]*data-entity="yt"[^>]*><\/iframe><\/div><div><video [^>]*data-entity="vid"[^>]*>/);
+    assert.match(html, /<\/video><\/div><\/div><figcaption>&lt;雪><\/figcaption><\/figure><img /);
+  });
+
   it("画像の link= はエスケープされる", async () => {
     const html = await render('[image entity="img" link="https://example.com/?a=1&b=2"]');
     assert.ok(html.includes('<a href="https://example.com/?a=1&amp;b=2"'));
@@ -282,8 +292,8 @@ describe("MomentRenderer.render", () => {
   });
 
   it("外部の動画の縦横比と幅の上限は、埋め込みの大きさから付ける（Shorts は縦長）", async () => {
-    assert.ok((await render('[video entity="yt"]')).includes('style="aspect-ratio: 1280 / 720; max-width: 1280px;"'));
-    assert.ok((await render('[video entity="shorts"]')).includes('style="aspect-ratio: 508 / 720; max-width: 508px;"'));
+    assert.ok((await render('[video entity="yt"]')).includes('style="aspect-ratio: 1280 / 720; max-width: 1280px; --embed-aspect-ratio: (1280 / 720);"'));
+    assert.ok((await render('[video entity="shorts"]')).includes('style="aspect-ratio: 508 / 720; max-width: 508px; --embed-aspect-ratio: (508 / 720);"'));
   });
 
   it("音声は元ファイルを再生元にする", async () => {

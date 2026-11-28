@@ -13,7 +13,7 @@ export type MediaRef = {
 // 本文の [image]・[video]・[audio] の entity と、そのブロックの型。出てくる順に、同じ entity は1回だけ（最初のブロックの型）。
 export function momentMedia(doc: fml.Document): MediaRef[] {
   const found = new Map<string, protocol.EntityType>();
-  for (const block of doc.blocks) {
+  for (const block of doc.leafBlocks()) {
     if ((block.type === 'image' || block.type === 'video' || block.type === 'audio') && block.entity !== undefined) {
       if (!found.has(block.entity)) {
         found.set(block.entity, block.type);

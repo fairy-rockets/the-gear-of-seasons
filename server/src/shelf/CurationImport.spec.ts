@@ -307,6 +307,16 @@ moments:
       `moment ${kT2} entity ${kB}: entities にありません`,
     ]);
   });
+  it("ギャラリーに含まれるメディアの注釈を取り込む", () => {
+    const s = state([moment(kT1, `[gallery][image entity="${kA}"][/gallery]`)], [kImageA]);
+    const p = plan(`
+moments:
+  - moment: ${kT1}
+    media: [{ entity: ${kA}, alt: 雪 }]
+`, s);
+    assert.deepStrictEqual(p.errors, []);
+    assert.strictEqual(p.entities[0].annotation.alt, '雪');
+  });
   it("音声の materials はエラー", () => {
     const s = state([moment(kT1, `[audio entity="${kC}"]`)], [kAudioC]);
     const p = plan(`

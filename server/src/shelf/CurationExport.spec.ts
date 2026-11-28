@@ -267,6 +267,10 @@ describe("parseMarkdownURL", () => {
 });
 
 describe("mediaEntityIDs・markdownURLs", () => {
+  it("ギャラリー内の entity を出現順に含める", () => {
+    const doc = fml.parse('[gallery][video entity="v"][image entity="i"][/gallery][image entity="i"][audio entity="a"]');
+    assert.deepStrictEqual(mediaEntityIDs(doc), ['v', 'i', 'a']);
+  });
   it("entity・url の無いブロックは数えない", () => {
     const doc = fml.parse('[image link="x"]\n\n[markdown]');
     assert.deepStrictEqual(mediaEntityIDs(doc), []);

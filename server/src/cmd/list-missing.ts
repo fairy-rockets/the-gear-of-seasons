@@ -74,7 +74,7 @@ async function main() {
       numMoments++;
       const momentPath =
         moment.timestamp !== undefined ? formatMomentPath(moment.timestamp) : '(no timestamp)';
-      for (const block of fml.parse(moment.text).blocks) {
+      for (const block of fml.parse(moment.text).leafBlocks()) {
         switch (block.type) {
           case 'image':
           case 'video':

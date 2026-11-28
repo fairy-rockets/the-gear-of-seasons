@@ -252,6 +252,16 @@ describe("Shelf.updateMoment（SAVE）", () => {
     }
   });
 
+  it("ギャラリー内の先頭のメディアの撮影日時を使い、画像をアイコンにする", async () => {
+    const image = { ...kImageA, timestamp: dayjs('2020-02-03T04:05:06+09:00') };
+    const video: Entity = { type: 'video', location: 'internal', id: kB, iconID: 'i', timestamp: dayjs('2019-05-06T07:08:09+09:00'), mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };
+    const text = `[gallery][video entity="${kB}"][image entity="${kA}"][/gallery]`;
+    const repo = new FakeRepo([image, video], []);
+    const m = await new Shelf(repo as unknown as Repo).updateMoment({ ...kReq, originalDate: null, date: null, text });
+    assert.ok(m.timestamp!.isSame(video.timestamp));
+    assert.strictEqual(m.iconID, kA);
+  });
+
   it("撮影日時のない動画を飛ばし、指定日時は撮影日時より優先する", async () => {
     const t = dayjs('2019-05-06T07:08:09+09:00');
     const video: Entity = { type: 'video', location: 'internal', id: kB, iconID: 'i', timestamp: undefined, mimeType: 'video/mp4', width: 16, height: 16, duration: 1 };

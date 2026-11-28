@@ -66,7 +66,7 @@ export function parseMomentIntent(v: unknown): string | null {
 // SAVE（Shelf.updateMoment）は書くたびにこれで求め直す。
 export function momentIconID(doc: fml.Document): string | undefined {
   let iconID: string | undefined = undefined;
-  for (const block of doc.blocks) {
+  for (const block of doc.leafBlocks()) {
     let found = false;
     switch (block.type) {
       case 'image':
