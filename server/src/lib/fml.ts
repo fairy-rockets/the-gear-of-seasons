@@ -143,7 +143,7 @@ export class Parser {
     const [tag, map] = this.parseBracket();
     switch(tag) {
       case 'image':
-        return makeImage(map.get('entity'), map.get('link'), map.get('caption'));
+        return makeImage(map.get('entity'), map.get('caption'), map.get('link'));
       case 'video':
         return makeVideo(map.get('entity'), map.get('caption'));
       case 'audio':
@@ -212,21 +212,21 @@ export function makeText(str: string): Text {
   }
 }
 
-// [image entity="<id>" link="<url>" caption="<文字列>"]: 画像を medium で表示する。link= があればそこへリンクし、
+// [image entity="<id>" caption="<文字列>" link="<url>"]: 画像を medium で表示する。link= があればそこへリンクし、
 // 無ければリンクしない（元画像へはリンクしない）。
 export type Image = {
   type: 'image';
   entity: string | undefined;
-  link: string | undefined;
   caption: string | undefined;
+  link: string | undefined;
 }
 
-export function makeImage(entity: string | undefined, link?: string, caption?: string): Image {
+export function makeImage(entity: string | undefined, caption?: string, link?: string): Image {
   return {
     type: 'image',
     entity: entity,
-    link: link,
     caption,
+    link,
   }
 }
 

@@ -6,21 +6,6 @@
 
 Images in omote and the ura preview use the entity annotation's `alt` text when it is nonblank, whether or not `human_verified` is true. Other images use `an image.`. Empty or whitespace-only descriptions do not mark an image as decorative. Video and audio annotations are not rendered as labels. The same alt text goes into `og:image:alt` and `twitter:image:alt` for a page's OGP image (the moment's icon, or the site image on the fixed pages); when the image has none, or the icon is a video or audio thumbnail, those use the title of the moment the image comes from instead (on the fixed pages, 「太陽と帽子とお月さま」, not the page's own title).
 
-## FML media captions
-
-Add the optional `caption` attribute to an image or a video in the moment body:
-
-```text
-[image entity="IMAGE_ID" caption="The first snow"]
-[video entity="VIDEO_ID" caption="Snow falling"]
-```
-
-Omote and the ura preview show the caption as plain text below the media.
-The attribute works for uploaded and externally hosted videos. An image's
-optional `link` applies to the image itself. Empty and whitespace-only captions
-are omitted. FML uses ASCII double quotes to delimit attribute values, so a
-caption cannot contain a literal ASCII double quote.
-
 ## Pre-requirements
 
 - node.js 26 or higher

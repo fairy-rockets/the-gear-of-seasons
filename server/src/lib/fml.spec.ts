@@ -21,7 +21,7 @@ describe("FML", () => {
   it("Image and video captions use quoted attribute values", () => {
     const doc = fml.parse('[image entity="a" link="https://example.com/" caption="  雪 [1]  "] [video caption="雪の動画" entity="b"]');
     assert.deepStrictEqual(doc.blocks, [
-      { type: 'image', entity: 'a', link: 'https://example.com/', caption: '  雪 [1]  ' },
+      { type: 'image', entity: 'a', caption: '  雪 [1]  ', link: 'https://example.com/' },
       { type: 'video', entity: 'b', caption: '雪の動画' },
     ]);
   });
