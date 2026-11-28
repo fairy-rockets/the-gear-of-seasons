@@ -6,6 +6,7 @@ import { kEmojiURLBase } from '../../constant';
 import * as analytics from '../Analytics';
 import PageEngagement from '../PageEngagement';
 import ScrollDepthTracker from '../ScrollDepthTracker';
+import MediaPlaybackTracker from '../MediaPlaybackTracker';
 
 // 本文の状態: 待っている、表示できた、取得に失敗した。
 type BodyState = 'loading' | 'shown' | 'failed';
@@ -35,6 +36,8 @@ export default abstract class Page extends Layer {
   // この表示でどこまで読んだか。page_view を送り、本文も表示できたときに作り、離れたら null にする。
   // page_view の前に scroll を送ると、前のページの page_location が付いてしまうので、それまでは測らない。
   private scrollDepth_: ScrollDepthTracker | null;
+  // この表示で、本文のメディアをどこまで再生したか。scrollDepth_ と同じ時点で作り、離れたら null にする。
+  private mediaPlayback_: MediaPlaybackTracker | null;
   constructor(world: World, path: string, contentPromise: Promise<string>, landing?: Landing) {
     super(world, path, landing);
 
@@ -65,6 +68,7 @@ export default abstract class Page extends Layer {
     this.pageViewVia_ = null;
     this.engagement_ = null;
     this.scrollDepth_ = null;
+    this.mediaPlayback_ = null;
 
     // タッチでも確実に閉じられるよう click を使う(合成 click が発火する)。
     this.closeButton_.addEventListener('click', this.closeButtonListener_, false);
@@ -72,6 +76,10 @@ export default abstract class Page extends Layer {
     // 画像が読み込まれると本文が伸びるので測り直す(load と error は伝わってこないので、捕捉で受ける)。
     this.content_.addEventListener('load', () => this.measureScroll_(), true);
     this.content_.addEventListener('error', () => this.measureScroll_(), true);
+    // メディアのイベントも伝わってこないので、捕捉で受ける。
+    this.content_.addEventListener('playing', ev => this.onMediaPlaying_(ev), true);
+    this.content_.addEventListener('timeupdate', ev => this.onMediaTimeUpdate_(ev), true);
+    this.content_.addEventListener('ended', ev => this.onMediaEnded_(ev), true);
 
     contentPromise.then(this.onLoad_.bind(this), this.onError_.bind(this));
   }
@@ -213,6 +221,7 @@ export default abstract class Page extends Layer {
   private startViewing_(via: analytics.NavVia) {
     this.onViewed(via);
     this.scrollDepth_ = new ScrollDepthTracker();
+    this.mediaPlayback_ = new MediaPlaybackTracker();
     this.measureScroll_();
   }
 
@@ -227,6 +236,7 @@ export default abstract class Page extends Layer {
     // 次の表示では、page_view からまた数える。
     this.pageViewVia_ = null;
     this.scrollDepth_ = null;
+    this.mediaPlayback_ = null;
     this.world.canvas.removeEventListener('mouseup', this.backdropListener_, false);
     document.removeEventListener('visibilitychange', this.visibilityListener_, false);
   }
@@ -269,9 +279,56 @@ export default abstract class Page extends Layer {
     this.scrollDepth_.measure(this.content_);
   }
 
+  private onMediaPlaying_(ev: Event) {
+    const media = playedMediaOf(ev.target);
+    if(media !== null) {
+      this.mediaPlayback_?.started(media);
+    }
+  }
+
+  private onMediaTimeUpdate_(ev: Event) {
+    const media = playedMediaOf(ev.target);
+    const el = ev.target as HTMLMediaElement;
+    // 止めたまま位置を動かしたものは、再生していないので数えない(timeupdate は止めたままの seek でも来る)。
+    // 長さが分かる(metadata を読む)までも測らない。
+    if(media === null || el.paused || !Number.isFinite(el.duration) || el.duration <= 0) {
+      return;
+    }
+    this.mediaPlayback_?.reached(media, el.currentTime / el.duration);
+    // loop の動画は終わりで先頭に戻り、ended が来ない。終わりから kLoopEndSec 秒分の再生(倍速ならその分長い)
+    // 以内に入ったら、最後まで行ったことにする。timeupdate は再生中に 0.25 秒ほどごとに来るので、
+    // 1 周のうちのどれかは、この幅に入る。この幅より短い動画は、最初の timeupdate で最後まで行ったことになる。
+    if(el.loop && el.duration - el.currentTime <= kLoopEndSec * Math.max(1, el.playbackRate)) {
+      this.mediaPlayback_?.ended(media);
+    }
+  }
+
+  private onMediaEnded_(ev: Event) {
+    const media = playedMediaOf(ev.target);
+    if(media !== null) {
+      this.mediaPlayback_?.ended(media);
+    }
+  }
+
   /** @override */
   destroy() {
   }
+}
+
+// loop の動画を、終わりからこの秒数分の再生(1 倍速で)以内に入ったら、最後まで行ったことにする。
+const kLoopEndSec = 0.5;
+
+// 本文の <video>・<audio>(サーバが data-entity と data-type を付ける)なら、その PlayedMedia。
+function playedMediaOf(target: EventTarget | null): analytics.PlayedMedia | null {
+  if(!(target instanceof HTMLMediaElement)) {
+    return null;
+  }
+  const entity = target.dataset['entity'];
+  const type = target.dataset['type'];
+  if(entity === undefined || (type !== 'video' && type !== 'audio')) {
+    return null;
+  }
+  return { entity, mediaType: type, platform: 'internal' };
 }
 
 const kHTMLSrc = `
